@@ -2,7 +2,7 @@
   "name": "bliskd",
   "version": "0.0.1",
   "description": "Node SDK for Blis",
-  "main": "built/console.js",
+  "main": "built/client/blisdk.js",
   "scripts": {
     "build": "tsc",
     "watch": "npm-run-all -p -r -l tsc-watch",
