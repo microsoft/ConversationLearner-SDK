@@ -1,6 +1,6 @@
 "use strict";
 var tslib_1 = require("tslib");
-var builder = require("../../node_modules/botbuilder");
+var builder = require("botbuilder");
 var util = require('util');
 //TODOimport { QnAMakerRecognizer, IQnAMakerResult, IQnAMakerOptions } from './QnAMakerRecognizer'; 
 var BlisDialog = (function (_super) {
@@ -25,7 +25,7 @@ var BlisDialog = (function (_super) {
                         var blisResult = result;
                         try {
                             if (!error) {
-                                _this.invokeAnswer(session, recognizeResult);
+                                _this.invokeAnswer(session, blisResult);
                             }
                         }
                         catch (e) {

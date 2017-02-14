@@ -1,4 +1,4 @@
-import * as builder from '../../node_modules/botbuilder';
+import * as builder from 'botbuilder';
 import { BlisRecognizer, IBlisResult, IBlisOptions } from './BlisRecognizer';
 var util = require('util');
 
@@ -25,7 +25,7 @@ export class BlisDialog extends builder.Dialog {
                     var blisResult = result as IBlisResult;
                     try {
                         if (!error) {
-                            this.invokeAnswer(session, recognizeResult);
+                            this.invokeAnswer(session, blisResult);
                         }
                     } catch (e) {
                         this.emitError(session, e);
