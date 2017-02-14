@@ -1,0 +1,42 @@
+{
+    // Use IntelliSense to learn about possible Node.js debug attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node",
+            "request": "attach",
+            "name": "Attach to Process",
+            "processId": "${command.PickProcess}",
+            "stopOnEntry" : true,
+            "sourceMaps": true,
+            "port": 5858, 
+            "outDir" : "${workspaceRoot}/built"
+        },
+        {
+            "type": "node",
+            "request": "attach",
+            "name": "port",
+            "sourceMaps": true,
+            "port": 5858
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch Program",
+            "program": ".\\built\\console\\console.js",
+            "sourceMaps": true,
+            "cwd": "${workspaceRoot}"
+        },
+        {            
+            "name": "Attach with sourcemaps",
+            "type": "node",
+            "request": "attach",
+            "address" : "localhost",
+            "sourceMaps": true,
+              "externalConsole" : true,
+            "port": 5858
+        }
+    ]
+}

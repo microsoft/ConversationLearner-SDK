@@ -1,0 +1,83 @@
+"use strict";
+var tslib_1 = require("tslib");
+var json_typescript_mapper_1 = require("json-typescript-mapper");
+var Entity = (function () {
+    function Entity() {
+    }
+    return Entity;
+}());
+exports.Entity = Entity;
+var Action = (function () {
+    function Action() {
+        this.actionType = undefined;
+        this.content = undefined;
+    }
+    return Action;
+}());
+tslib_1.__decorate([
+    json_typescript_mapper_1.JsonProperty('action_type'),
+    tslib_1.__metadata("design:type", String)
+], Action.prototype, "actionType", void 0);
+tslib_1.__decorate([
+    json_typescript_mapper_1.JsonProperty('content'),
+    tslib_1.__metadata("design:type", String)
+], Action.prototype, "content", void 0);
+exports.Action = Action;
+var TakeTurnResponse = (function () {
+    function TakeTurnResponse(init) {
+        this.originalText = undefined;
+        this.entities = undefined;
+        this.mode = undefined;
+        this.actions = undefined;
+        this.action = undefined;
+        Object.assign(this, init);
+    }
+    TakeTurnResponse.prototype.ToJSON = function () {
+        var json = {};
+        if (this.originalText)
+            json['text'] = this.originalText;
+        if (this.entities)
+            json['entities'] = this.entities;
+        return json;
+    };
+    return TakeTurnResponse;
+}());
+tslib_1.__decorate([
+    json_typescript_mapper_1.JsonProperty('orig-text'),
+    tslib_1.__metadata("design:type", String)
+], TakeTurnResponse.prototype, "originalText", void 0);
+tslib_1.__decorate([
+    json_typescript_mapper_1.JsonProperty({ clazz: Entity, name: 'entities' }),
+    tslib_1.__metadata("design:type", Array)
+], TakeTurnResponse.prototype, "entities", void 0);
+tslib_1.__decorate([
+    json_typescript_mapper_1.JsonProperty('mode'),
+    tslib_1.__metadata("design:type", String)
+], TakeTurnResponse.prototype, "mode", void 0);
+tslib_1.__decorate([
+    json_typescript_mapper_1.JsonProperty({ clazz: Action, name: 'actions' }),
+    tslib_1.__metadata("design:type", Array)
+], TakeTurnResponse.prototype, "actions", void 0);
+tslib_1.__decorate([
+    json_typescript_mapper_1.JsonProperty({ clazz: Action, name: 'action' }),
+    tslib_1.__metadata("design:type", Action)
+], TakeTurnResponse.prototype, "action", void 0);
+exports.TakeTurnResponse = TakeTurnResponse;
+var TakeTurnModes = (function () {
+    function TakeTurnModes() {
+    }
+    return TakeTurnModes;
+}());
+TakeTurnModes.Callback = "lu_callback";
+TakeTurnModes.Teach = "teach";
+TakeTurnModes.Action = "action";
+exports.TakeTurnModes = TakeTurnModes;
+var ActionTypes = (function () {
+    function ActionTypes() {
+    }
+    return ActionTypes;
+}());
+ActionTypes.Text = "text";
+ActionTypes.API = "api";
+exports.ActionTypes = ActionTypes;
+//# sourceMappingURL=TakeTurnResponse.js.map

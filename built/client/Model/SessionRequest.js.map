@@ -1,0 +1,1 @@
+{"version":3,"file":"SessionRequest.js","sourceRoot":"","sources":["../../../src/client/Model/SessionRequest.ts"],"names":[],"mappings":";AAAA;IAMI,wBAAY,KAAe,EAAE,UAAoB,EAAE,OAAgB;QAE/D,IAAI,CAAC,KAAK,GAAG,KAAK,CAAC;QACnB,IAAI,CAAC,UAAU,GAAG,UAAU,CAAC;QAC7B,IAAI,CAAC,OAAO,GAAG,OAAO,CAAC;IAC3B,CAAC;IACL,qBAAC;AAAD,CAAC,AAZD,IAYC;AAZY,wCAAc"}
