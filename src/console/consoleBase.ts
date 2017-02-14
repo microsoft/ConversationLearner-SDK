@@ -61,7 +61,7 @@ export class ConsoleBase {
         process.stdin.on('data', async (text) => {
 
             text = text.trim();
-             var words = text.split(' ');
+            var words = text.split(' ');
 
             if (words[0] == "!reset")
             {
@@ -73,6 +73,7 @@ export class ConsoleBase {
 
             try 
             {
+                /*
                 var response = await this.blisclient.TakeTurn(this.appId, this.sessionId, text, this.LUCallback);
 
                 if (response.mode == TakeTurnModes.Teach)
@@ -86,7 +87,7 @@ export class ConsoleBase {
                 } 
                 else {
                     console.log(`> Don't know mode: ${response.mode}`)
-                }
+                }*/
             }
             catch (error)
             {

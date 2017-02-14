@@ -211,7 +211,10 @@ export class BlisClient {
         )
     }
 
-    public async TakeTurn(appId : String, sessionId : String, text : String, luCallback : (text: String, entities : Entity[]) => TakeTurnRequest, apiCallbacks = {}) : Promise<TakeTurnResponse>
+    public async TakeTurn(appId : String, sessionId : String, text : String, 
+                            luCallback : (text: String, entities : Entity[]) => TakeTurnRequest, 
+                            apiCallbacks = {},
+                            resultCallback: (response : TakeTurnResponse) => void) : Promise<void>
     {
         var takeTurnRequest = new TakeTurnRequest({text : text});
         var expectedNextModes = [TakeTurnModes.Callback, TakeTurnModes.Action, TakeTurnModes.Teach];
@@ -246,7 +249,7 @@ export class BlisClient {
                 // TEACH
                 else if (takeTurnResponse.mode == TakeTurnModes.Teach)
                 {
-                    return takeTurnResponse;
+                    return resultCallback(takeTurnResponse);
                 }
 
                 // ACTION
@@ -254,7 +257,7 @@ export class BlisClient {
                 {
                     if (takeTurnResponse.actions[0].actionType == ActionTypes.Text)
                     {
-                        return takeTurnResponse;
+                        return resultCallback(takeTurnResponse);
                     }
                     else if (takeTurnResponse.actions[0].actionType == ActionTypes.API)
                     {

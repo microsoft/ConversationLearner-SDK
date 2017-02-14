@@ -149,8 +149,9 @@ var BlisClient = (function () {
             });
         });
     };
-    BlisClient.prototype.TrainModel = function (appId) {
+    BlisClient.prototype.TrainModel = function (appId, fromScratch) {
         var _this = this;
+        if (fromScratch === void 0) { fromScratch = false; }
         var apiPath = "app/" + appId + "/model";
         return new Promise(function (resolve, reject) {
             var requestData = {
@@ -159,7 +160,7 @@ var BlisClient = (function () {
                     'Cookie': _this.credentials.CookieString()
                 },
                 body: {
-                    from_scratch: true
+                    from_scratch: fromScratch
                 },
                 json: true
             };
@@ -176,7 +177,7 @@ var BlisClient = (function () {
             });
         });
     };
-    BlisClient.prototype.TakeTurn = function (appId, sessionId, text, luCallback, apiCallbacks) {
+    BlisClient.prototype.TakeTurn = function (appId, sessionId, text, luCallback, apiCallbacks, resultCallback) {
         if (apiCallbacks === void 0) { apiCallbacks = {}; }
         return tslib_1.__awaiter(this, void 0, void 0, function () {
             var takeTurnRequest, expectedNextModes, takeTurnResponse, apiName;
@@ -207,11 +208,11 @@ var BlisClient = (function () {
                                 expectedNextModes = [TakeTurnResponse_1.TakeTurnModes.Action, TakeTurnResponse_1.TakeTurnModes.Teach];
                             }
                             else if (takeTurnResponse.mode == TakeTurnResponse_1.TakeTurnModes.Teach) {
-                                return [2 /*return*/, takeTurnResponse];
+                                return [2 /*return*/, resultCallback(takeTurnResponse)];
                             }
                             else if (takeTurnResponse.mode == TakeTurnResponse_1.TakeTurnModes.Action) {
                                 if (takeTurnResponse.actions[0].actionType == TakeTurnResponse_1.ActionTypes.Text) {
-                                    return [2 /*return*/, takeTurnResponse];
+                                    return [2 /*return*/, resultCallback(takeTurnResponse)];
                                 }
                                 else if (takeTurnResponse.actions[0].actionType == TakeTurnResponse_1.ActionTypes.API) {
                                     apiName = takeTurnResponse.actions[0].content;

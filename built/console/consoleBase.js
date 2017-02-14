@@ -3,7 +3,6 @@ var tslib_1 = require("tslib");
 process.stdin.resume();
 process.stdin.setEncoding('utf8');
 var util = require('util');
-var TakeTurnResponse_1 = require("../client/Model/TakeTurnResponse");
 var TakeTurnRequest_1 = require("../client/Model/TakeTurnRequest");
 function done() {
     console.log('Now that process.stdin is paused, there is nothing more I can do.');
@@ -55,40 +54,21 @@ var ConsoleBase = (function () {
     ConsoleBase.prototype.start = function () {
         var _this = this;
         process.stdin.on('data', function (text) { return tslib_1.__awaiter(_this, void 0, void 0, function () {
-            var words, response, outText, error_1;
+            var words;
             return tslib_1.__generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        text = text.trim();
-                        words = text.split(' ');
-                        if (words[0] == "!reset") {
-                        }
-                        if (words[0] === '!exit') {
-                            done();
-                        }
-                        _a.label = 1;
-                    case 1:
-                        _a.trys.push([1, 3, , 4]);
-                        return [4 /*yield*/, this.blisclient.TakeTurn(this.appId, this.sessionId, text, this.LUCallback)];
-                    case 2:
-                        response = _a.sent();
-                        if (response.mode == TakeTurnResponse_1.TakeTurnModes.Teach) {
-                            console.log("> " + response.action.content);
-                        }
-                        else if (response.mode == TakeTurnResponse_1.TakeTurnModes.Action) {
-                            outText = this.InsertEntities(response.actions[0].content);
-                            console.log("> " + outText);
-                        }
-                        else {
-                            console.log("> Don't know mode: " + response.mode);
-                        }
-                        return [3 /*break*/, 4];
-                    case 3:
-                        error_1 = _a.sent();
-                        console.log("> !!! " + error_1);
-                        return [3 /*break*/, 4];
-                    case 4: return [2 /*return*/];
+                text = text.trim();
+                words = text.split(' ');
+                if (words[0] == "!reset") {
                 }
+                if (words[0] === '!exit') {
+                    done();
+                }
+                try {
+                }
+                catch (error) {
+                    console.log("> !!! " + error);
+                }
+                return [2 /*return*/];
             });
         }); });
     };

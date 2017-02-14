@@ -14,6 +14,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "botbuilder": "^3.6.0",
     "json-typescript-mapper": "^1.0.5",
     "request": "^2.79.0",
     "restify": "^4.3.0",
