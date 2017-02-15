@@ -4,7 +4,8 @@ var BlisDebug = (function () {
     }
     BlisDebug.Log = function (text) {
         if (this.logFunction) {
-            this.logFunction(text);
+            var that = this;
+            that.logFunction(text);
         }
         else {
             console.log(text);
