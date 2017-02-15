@@ -1,5 +1,7 @@
 import * as builder from 'botbuilder';
 import { BlisRecognizer, IBlisResult, IBlisOptions } from './BlisRecognizer';
+import { BlisDebug } from './BlisDebug';
+
 var util = require('util');
 
 //TODOimport { QnAMakerRecognizer, IQnAMakerResult, IQnAMakerOptions } from './QnAMakerRecognizer'; 
@@ -16,6 +18,10 @@ export class BlisDialog extends builder.Dialog {
     }
 
     public async replyReceived(session: builder.Session, recognizeResult?: builder.IIntentRecognizerResult): Promise<void> {
+
+        // Set debug message to go to user
+        BlisDebug.logFunction = session.send;
+
         if (!recognizeResult) {
             var locale = session.preferredLocale();
             var context = <builder.IRecognizeDialogContext>session.toRecognizeContext();

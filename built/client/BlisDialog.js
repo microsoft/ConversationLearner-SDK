@@ -1,6 +1,7 @@
 "use strict";
 var tslib_1 = require("tslib");
 var builder = require("botbuilder");
+var BlisDebug_1 = require("./BlisDebug");
 var util = require('util');
 //TODOimport { QnAMakerRecognizer, IQnAMakerResult, IQnAMakerOptions } from './QnAMakerRecognizer'; 
 var BlisDialog = (function (_super) {
@@ -16,6 +17,8 @@ var BlisDialog = (function (_super) {
             var _this = this;
             var locale, context;
             return tslib_1.__generator(this, function (_a) {
+                // Set debug message to go to user
+                BlisDebug_1.BlisDebug.logFunction = session.send;
                 if (!recognizeResult) {
                     locale = session.preferredLocale();
                     context = session.toRecognizeContext();
