@@ -54,7 +54,7 @@ export class BlisClient {
         )
     }
 
-    public StartSession(appId : String, modelId : String, teach = true, saveDialog = false) : Promise<String>
+    public StartSession(appId : String, modelId : String, teach = false, saveDialog = false) : Promise<String>
     {
         let apiPath = `app/${appId}/session2`;
 

@@ -96,9 +96,11 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
 
     private async NewSession(teach : boolean) : Promise<void>
     {
+       BlisDebug.Log(`New session, Teach = ${teach}`);
+
        this.blisClient.EndSession(this.appId, this.sessionId).then(async (string) =>
        {
-          this.sessionId = await this.blisClient.StartSession(this.appId, this.modelId);
+          this.sessionId = await this.blisClient.StartSession(this.appId, this.modelId, teach);
        });
     }
 

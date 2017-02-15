@@ -94,13 +94,14 @@ var BlisRecognizer = (function () {
         return tslib_1.__awaiter(this, void 0, void 0, function () {
             var _this = this;
             return tslib_1.__generator(this, function (_a) {
+                BlisDebug_1.BlisDebug.Log("New session, Teach = " + teach);
                 this.blisClient.EndSession(this.appId, this.sessionId).then(function (string) { return tslib_1.__awaiter(_this, void 0, void 0, function () {
                     var _a;
                     return tslib_1.__generator(this, function (_b) {
                         switch (_b.label) {
                             case 0:
                                 _a = this;
-                                return [4 /*yield*/, this.blisClient.StartSession(this.appId, this.modelId)];
+                                return [4 /*yield*/, this.blisClient.StartSession(this.appId, this.modelId, teach)];
                             case 1:
                                 _a.sessionId = _b.sent();
                                 return [2 /*return*/];

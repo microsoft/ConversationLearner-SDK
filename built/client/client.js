@@ -44,7 +44,7 @@ var BlisClient = (function () {
     };
     BlisClient.prototype.StartSession = function (appId, modelId, teach, saveDialog) {
         var _this = this;
-        if (teach === void 0) { teach = true; }
+        if (teach === void 0) { teach = false; }
         if (saveDialog === void 0) { saveDialog = false; }
         var apiPath = "app/" + appId + "/session2";
         return new Promise(function (resolve, reject) {
