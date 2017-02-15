@@ -56,7 +56,7 @@ export class BlisClient {
 
     public DeleteApp(appId : String) : Promise<String>
     {
-        let apiPath = `app/${appId}/session2/`;
+        let apiPath = `app/${appId}`;
 
         return new Promise(
             (resolve, reject) => {

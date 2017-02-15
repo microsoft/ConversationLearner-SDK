@@ -44,7 +44,7 @@ var BlisClient = (function () {
     };
     BlisClient.prototype.DeleteApp = function (appId) {
         var _this = this;
-        var apiPath = "app/" + appId + "/session2/";
+        var apiPath = "app/" + appId;
         return new Promise(function (resolve, reject) {
             var url = _this.serviceUri + apiPath;
             var requestData = {
