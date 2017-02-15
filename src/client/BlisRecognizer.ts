@@ -104,24 +104,37 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
        });
     }
 
+    private async DeleteApp() : Promise<void>
+    {
+       BlisDebug.Log(`Deleting Application`);
+
+       this.blisClient.DeleteApp(this.appId);
+    }
+
     public recognize(context: builder.IRecognizeContext, cb: (error: Error, result: IBlisResult) => void): void {
         
-        var result: IBlisResult = { score: 1.0, answer: "yo", intent: null };
+        var result: IBlisResult = { score: 1.0, answer: null, intent: null };
         
         if (context && context.message && context.message.text) {
-            var text = context.message.text.trim();
-            var words = text.split(' ');
+            let text = context.message.text.trim();
+            let [command, arg] = text.split(' ');
 
-            if (words[0] == "!reset")
+            if (command == "!reset")
             {
                 //TODO: reset
             }
             // On Next restart session dialog
-            else if (words[0] == "!next")
+            else if (command == "!next")
             {
-                let teach = (words[1] && words[1] == 'teach');
+                let teach = (arg == 'teach');
                 this.NewSession(teach);
-                result.score = 0.0;
+                result.answer = "Starting new teach session";
+                cb(null, result);
+            }
+            else if (command == "!delete")
+            {
+                this.DeleteApp();
+                result.answer = "App has been deleted";
                 cb(null, result);
             }
             else

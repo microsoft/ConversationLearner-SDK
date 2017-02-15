@@ -54,6 +54,34 @@ export class BlisClient {
         )
     }
 
+    public DeleteApp(appId : String) : Promise<String>
+    {
+        let apiPath = `app/${appId}/session2/`;
+
+        return new Promise(
+            (resolve, reject) => {
+                let url = this.serviceUri+apiPath;
+                const requestData = {
+                    headers: {
+                        'Cookie' : this.credentials.CookieString()
+                    }
+                }
+                request.delete(url, requestData, (error, response, body) => {
+                    if (error) {
+                        reject(error);
+                    }
+                    else if (response.statusCode >= 300) {
+                        reject(body);
+                    }
+                    else {
+                        resolve(body.id);
+                    }
+                });
+            }
+        )
+    }
+
+
     public StartSession(appId : String, modelId : String, teach = false, saveDialog = false) : Promise<String>
     {
         let apiPath = `app/${appId}/session2`;

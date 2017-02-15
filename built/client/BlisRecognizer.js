@@ -112,18 +112,32 @@ var BlisRecognizer = (function () {
             });
         });
     };
+    BlisRecognizer.prototype.DeleteApp = function () {
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            return tslib_1.__generator(this, function (_a) {
+                BlisDebug_1.BlisDebug.Log("Deleting Application");
+                this.blisClient.DeleteApp(this.appId);
+                return [2 /*return*/];
+            });
+        });
+    };
     BlisRecognizer.prototype.recognize = function (context, cb) {
         var _this = this;
-        var result = { score: 1.0, answer: "yo", intent: null };
+        var result = { score: 1.0, answer: null, intent: null };
         if (context && context.message && context.message.text) {
             var text = context.message.text.trim();
-            var words = text.split(' ');
-            if (words[0] == "!reset") {
+            var _a = text.split(' '), command = _a[0], arg = _a[1];
+            if (command == "!reset") {
             }
-            else if (words[0] == "!next") {
-                var teach = (words[1] && words[1] == 'teach');
+            else if (command == "!next") {
+                var teach = (arg == 'teach');
                 this.NewSession(teach);
-                result.score = 0.0;
+                result.answer = "Starting new teach session";
+                cb(null, result);
+            }
+            else if (command == "!delete") {
+                this.DeleteApp();
+                result.answer = "App has been deleted";
                 cb(null, result);
             }
             else {

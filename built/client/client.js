@@ -42,6 +42,29 @@ var BlisClient = (function () {
             });
         });
     };
+    BlisClient.prototype.DeleteApp = function (appId) {
+        var _this = this;
+        var apiPath = "app/" + appId + "/session2/";
+        return new Promise(function (resolve, reject) {
+            var url = _this.serviceUri + apiPath;
+            var requestData = {
+                headers: {
+                    'Cookie': _this.credentials.CookieString()
+                }
+            };
+            request.delete(url, requestData, function (error, response, body) {
+                if (error) {
+                    reject(error);
+                }
+                else if (response.statusCode >= 300) {
+                    reject(body);
+                }
+                else {
+                    resolve(body.id);
+                }
+            });
+        });
+    };
     BlisClient.prototype.StartSession = function (appId, modelId, teach, saveDialog) {
         var _this = this;
         if (teach === void 0) { teach = false; }
