@@ -18,7 +18,7 @@ var BlisDialog = (function (_super) {
             var locale, context;
             return tslib_1.__generator(this, function (_a) {
                 // Set debug message to go to user
-                BlisDebug_1.BlisDebug.logFunction = session.send;
+                BlisDebug_1.BlisDebug.logger = session;
                 if (!recognizeResult) {
                     locale = session.preferredLocale();
                     context = session.toRecognizeContext();

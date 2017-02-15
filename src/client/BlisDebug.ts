@@ -1,11 +1,18 @@
 export class BlisDebug {
 
-    public static logFunction : (string) => void;
+    public static logFunction : (string) => void;   
+    public static logger : any;
+
+    public static setLogger(logger: any,logFunction : (string) => void )
+    {
+        this.logFunction = logFunction;
+        this.logger = logger;
+    }
+    
 
     public static Log(text) {
         if (this.logFunction) {
-            let that = this;
-            that.logFunction(text);
+            this.logger.Send(text);
         }
         else {
             console.log(text);
