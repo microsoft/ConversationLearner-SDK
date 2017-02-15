@@ -39,27 +39,28 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
 
             // Create App
             this.appId = options.appId;
-            if (!this.appId)
+            if (this.appId && (options.appName || options.luisKey))
             {
-                if (options.appName || options.luisKey)
-                {
                     BlisDebug.Log("No need for appName or listKey when providing appId");
-                }
+            }
+            else {
                 BlisDebug.Log("Creating app...");
                 this.appId = await this.blisClient.CreateApp(options.appName, options.luisKey);   // TODO parameter validation
             }
             BlisDebug.Log(`Using AppId ${this.appId}`);
 
+            // Load entities
             if (options.entityList)
             {
                 for (let entityName of options.entityList)
                 {
                     BlisDebug.Log(`Adding new LUIS entity: ${entityName}`);
                     let entityId = await this.blisClient.AddEntity(this.appId, entityName, "LOCAL", null);
-                    BlisDebug.Log(`Added entity: $entityId}`);
+                    BlisDebug.Log(`Added entity: ${entityId}`);
                 }
             }
 
+            // Load prebuilt
             if (options.prebuiltList)
             {
                 for (let prebuiltName of options.prebuiltList)
@@ -93,6 +94,14 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         }
     }
 
+    private async NewSession(teach : boolean) : Promise<void>
+    {
+       this.blisClient.EndSession(this.appId, this.sessionId).then(async (string) =>
+       {
+          this.sessionId = await this.blisClient.StartSession(this.appId, this.modelId);
+       });
+    }
+
     public recognize(context: builder.IRecognizeContext, cb: (error: Error, result: IBlisResult) => void): void {
         
         var result: IBlisResult = { score: 1.0, answer: "yo", intent: null };
@@ -105,27 +114,37 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             {
                 //TODO: reset
             }
+            // On Next restart session dialog
+            else if (words[0] == "!next")
+            {
+                let teach = (words[1] && words[1] == 'teach');
+                this.NewSession(teach);
+                result.score = 0.0;
+                cb(null, result);
+            }
+            else
+            {
+                this.blisClient.TakeTurn(this.appId, this.sessionId, text, this.LUCallback, null, 
+                    (response : TakeTurnResponse) => {
 
-            this.blisClient.TakeTurn(this.appId, this.sessionId, text, this.LUCallback, null, 
-                (response : TakeTurnResponse) => {
-
-                    if (response.mode == TakeTurnModes.Teach)
-                    {
-                        // Markdown requires double carraige returns
-                        var output = response.action.content.replace(/\n/g,":\n\n");
-                        result.answer = output;
+                        if (response.mode == TakeTurnModes.Teach)
+                        {
+                            // Markdown requires double carraige returns
+                            var output = response.action.content.replace(/\n/g,":\n\n");
+                            result.answer = output;
+                        }
+                        else if (response.mode == TakeTurnModes.Action)
+                        {
+                            let outText = this.InsertEntities(response.actions[0].content);
+                            result.answer = outText;
+                        } 
+                        else {
+                            result.answer = `Don't know mode: ${response.mode}`;
+                        }
+                        cb(null,result);
                     }
-                    else if (response.mode == TakeTurnModes.Action)
-                    {
-                        let outText = this.InsertEntities(response.actions[0].content);
-                        result.answer = outText;
-                    } 
-                    else {
-                        result.answer = `Don't know mode: ${response.mode}`;
-                    }
-                    cb(null,result);
-                }
-            );
+                );
+            }
         }
     }
 

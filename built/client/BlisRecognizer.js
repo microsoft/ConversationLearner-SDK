@@ -14,55 +14,55 @@ var BlisRecognizer = (function () {
             return tslib_1.__generator(this, function (_f) {
                 switch (_f.label) {
                     case 0:
-                        _f.trys.push([0, 12, , 13]);
+                        _f.trys.push([0, 13, , 14]);
                         BlisDebug_1.BlisDebug.Log("Creating client...");
                         this.blisClient = new client_1.BlisClient(options.serviceUri, options.user, options.secret);
                         // Create App
                         this.appId = options.appId;
-                        if (!!this.appId) return [3 /*break*/, 2];
-                        if (options.appName || options.luisKey) {
-                            BlisDebug_1.BlisDebug.Log("No need for appName or listKey when providing appId");
-                        }
+                        if (!(this.appId && (options.appName || options.luisKey))) return [3 /*break*/, 1];
+                        BlisDebug_1.BlisDebug.Log("No need for appName or listKey when providing appId");
+                        return [3 /*break*/, 3];
+                    case 1:
                         BlisDebug_1.BlisDebug.Log("Creating app...");
                         _a = this;
                         return [4 /*yield*/, this.blisClient.CreateApp(options.appName, options.luisKey)];
-                    case 1:
-                        _a.appId = _f.sent(); // TODO parameter validation
-                        _f.label = 2;
                     case 2:
-                        BlisDebug_1.BlisDebug.Log("Using AppId " + this.appId);
-                        if (!options.entityList) return [3 /*break*/, 6];
-                        _i = 0, _b = options.entityList;
+                        _a.appId = _f.sent(); // TODO parameter validation
                         _f.label = 3;
                     case 3:
-                        if (!(_i < _b.length)) return [3 /*break*/, 6];
+                        BlisDebug_1.BlisDebug.Log("Using AppId " + this.appId);
+                        if (!options.entityList) return [3 /*break*/, 7];
+                        _i = 0, _b = options.entityList;
+                        _f.label = 4;
+                    case 4:
+                        if (!(_i < _b.length)) return [3 /*break*/, 7];
                         entityName = _b[_i];
                         BlisDebug_1.BlisDebug.Log("Adding new LUIS entity: " + entityName);
                         return [4 /*yield*/, this.blisClient.AddEntity(this.appId, entityName, "LOCAL", null)];
-                    case 4:
-                        entityId = _f.sent();
-                        BlisDebug_1.BlisDebug.Log("Added entity: $entityId}");
-                        _f.label = 5;
                     case 5:
-                        _i++;
-                        return [3 /*break*/, 3];
+                        entityId = _f.sent();
+                        BlisDebug_1.BlisDebug.Log("Added entity: " + entityId);
+                        _f.label = 6;
                     case 6:
-                        if (!options.prebuiltList) return [3 /*break*/, 10];
-                        _c = 0, _d = options.prebuiltList;
-                        _f.label = 7;
+                        _i++;
+                        return [3 /*break*/, 4];
                     case 7:
-                        if (!(_c < _d.length)) return [3 /*break*/, 10];
+                        if (!options.prebuiltList) return [3 /*break*/, 11];
+                        _c = 0, _d = options.prebuiltList;
+                        _f.label = 8;
+                    case 8:
+                        if (!(_c < _d.length)) return [3 /*break*/, 11];
                         prebuiltName = _d[_c];
                         BlisDebug_1.BlisDebug.Log("Adding new LUIS pre-build entity: " + prebuiltName);
                         return [4 /*yield*/, this.blisClient.AddEntity(this.appId, prebuiltName, "LUIS", prebuiltName)];
-                    case 8:
+                    case 9:
                         prebuiltId = _f.sent();
                         BlisDebug_1.BlisDebug.Log("Added prebuilt: " + prebuiltId);
-                        _f.label = 9;
-                    case 9:
-                        _c++;
-                        return [3 /*break*/, 7];
+                        _f.label = 10;
                     case 10:
+                        _c++;
+                        return [3 /*break*/, 8];
+                    case 11:
                         // Create location, datetime and forecast entities
                         //   var locationEntityId = await this.blisClient.AddEntity(this.appId, "location", "LUIS", "geography");
                         //    var datetimeEntityId = await this.blisClient.AddEntity(this.appId, "date", "LUIS", "datetime");
@@ -77,16 +77,37 @@ var BlisRecognizer = (function () {
                         BlisDebug_1.BlisDebug.Log("Creating session...");
                         _e = this;
                         return [4 /*yield*/, this.blisClient.StartSession(this.appId, this.modelId)];
-                    case 11:
+                    case 12:
                         _e.sessionId = _f.sent();
                         BlisDebug_1.BlisDebug.Log("Created Session: " + this.sessionId);
-                        return [3 /*break*/, 13];
-                    case 12:
+                        return [3 /*break*/, 14];
+                    case 13:
                         err_1 = _f.sent();
                         BlisDebug_1.BlisDebug.Log(err_1);
-                        return [3 /*break*/, 13];
-                    case 13: return [2 /*return*/];
+                        return [3 /*break*/, 14];
+                    case 14: return [2 /*return*/];
                 }
+            });
+        });
+    };
+    BlisRecognizer.prototype.NewSession = function (teach) {
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            var _this = this;
+            return tslib_1.__generator(this, function (_a) {
+                this.blisClient.EndSession(this.appId, this.sessionId).then(function (string) { return tslib_1.__awaiter(_this, void 0, void 0, function () {
+                    var _a;
+                    return tslib_1.__generator(this, function (_b) {
+                        switch (_b.label) {
+                            case 0:
+                                _a = this;
+                                return [4 /*yield*/, this.blisClient.StartSession(this.appId, this.modelId)];
+                            case 1:
+                                _a.sessionId = _b.sent();
+                                return [2 /*return*/];
+                        }
+                    });
+                }); });
+                return [2 /*return*/];
             });
         });
     };
@@ -98,21 +119,29 @@ var BlisRecognizer = (function () {
             var words = text.split(' ');
             if (words[0] == "!reset") {
             }
-            this.blisClient.TakeTurn(this.appId, this.sessionId, text, this.LUCallback, null, function (response) {
-                if (response.mode == TakeTurnResponse_1.TakeTurnModes.Teach) {
-                    // Markdown requires double carraige returns
-                    var output = response.action.content.replace(/\n/g, ":\n\n");
-                    result.answer = output;
-                }
-                else if (response.mode == TakeTurnResponse_1.TakeTurnModes.Action) {
-                    var outText = _this.InsertEntities(response.actions[0].content);
-                    result.answer = outText;
-                }
-                else {
-                    result.answer = "Don't know mode: " + response.mode;
-                }
+            else if (words[0] == "!next") {
+                var teach = (words[1] && words[1] == 'teach');
+                this.NewSession(teach);
+                result.score = 0.0;
                 cb(null, result);
-            });
+            }
+            else {
+                this.blisClient.TakeTurn(this.appId, this.sessionId, text, this.LUCallback, null, function (response) {
+                    if (response.mode == TakeTurnResponse_1.TakeTurnModes.Teach) {
+                        // Markdown requires double carraige returns
+                        var output = response.action.content.replace(/\n/g, ":\n\n");
+                        result.answer = output;
+                    }
+                    else if (response.mode == TakeTurnResponse_1.TakeTurnModes.Action) {
+                        var outText = _this.InsertEntities(response.actions[0].content);
+                        result.answer = outText;
+                    }
+                    else {
+                        result.answer = "Don't know mode: " + response.mode;
+                    }
+                    cb(null, result);
+                });
+            }
         }
     };
     BlisRecognizer.prototype.InsertEntities = function (text) {
