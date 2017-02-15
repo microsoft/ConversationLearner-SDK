@@ -78,7 +78,12 @@ var BlisClient = (function () {
         var apiPath = "app/" + appId + "/session2/{sessionId}";
         return new Promise(function (resolve, reject) {
             var url = _this.serviceUri + apiPath;
-            request.delete(url, function (error, response, body) {
+            var requestData = {
+                headers: {
+                    'Cookie': _this.credentials.CookieString()
+                }
+            };
+            request.delete(url, requestData, function (error, response, body) {
                 if (error) {
                     reject(error);
                 }

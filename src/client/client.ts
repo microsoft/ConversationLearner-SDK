@@ -96,7 +96,12 @@ export class BlisClient {
         return new Promise(
             (resolve, reject) => {
                 let url = this.serviceUri+apiPath;
-                request.delete(url, (error, response, body) => {
+                const requestData = {
+                    headers: {
+                        'Cookie' : this.credentials.CookieString()
+                    }
+                }
+                request.delete(url, requestData, (error, response, body) => {
                     if (error) {
                         reject(error);
                     }
