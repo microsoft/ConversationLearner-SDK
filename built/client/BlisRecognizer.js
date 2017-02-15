@@ -10,11 +10,11 @@ var BlisRecognizer = (function () {
     }
     BlisRecognizer.prototype.init = function (options) {
         return tslib_1.__awaiter(this, void 0, void 0, function () {
-            var _a, _i, _b, entityName, _c, _d, prebuiltName, _e, _f, err_1;
-            return tslib_1.__generator(this, function (_g) {
-                switch (_g.label) {
+            var _a, _i, _b, entityName, _c, _d, prebuiltName, _e, err_1;
+            return tslib_1.__generator(this, function (_f) {
+                switch (_f.label) {
                     case 0:
-                        _g.trys.push([0, 13, , 14]);
+                        _f.trys.push([0, 12, , 13]);
                         BlisDebug_1.BlisDebug.Log("Creating client...");
                         this.blisClient = new client_1.BlisClient(options.serviceUri, options.user, options.secret);
                         // Create App
@@ -24,35 +24,35 @@ var BlisRecognizer = (function () {
                         _a = this;
                         return [4 /*yield*/, this.blisClient.CreateApp(options.appName, options.luisKey)];
                     case 1:
-                        _a.appId = _g.sent(); // TODO parameter validation
-                        _g.label = 2;
+                        _a.appId = _f.sent(); // TODO parameter validation
+                        _f.label = 2;
                     case 2:
                         if (!options.entityList) return [3 /*break*/, 6];
                         _i = 0, _b = options.entityList;
-                        _g.label = 3;
+                        _f.label = 3;
                     case 3:
                         if (!(_i < _b.length)) return [3 /*break*/, 6];
                         entityName = _b[_i];
                         BlisDebug_1.BlisDebug.Log("Adding new LUIS entity: " + entityName);
                         return [4 /*yield*/, this.blisClient.AddEntity(this.appId, entityName, "LOCAL", null)];
                     case 4:
-                        _g.sent();
-                        _g.label = 5;
+                        _f.sent();
+                        _f.label = 5;
                     case 5:
                         _i++;
                         return [3 /*break*/, 3];
                     case 6:
                         if (!options.prebuiltList) return [3 /*break*/, 10];
                         _c = 0, _d = options.prebuiltList;
-                        _g.label = 7;
+                        _f.label = 7;
                     case 7:
                         if (!(_c < _d.length)) return [3 /*break*/, 10];
                         prebuiltName = _d[_c];
                         BlisDebug_1.BlisDebug.Log("Adding new LUIS pre-build entity: " + prebuiltName);
                         return [4 /*yield*/, this.blisClient.AddEntity(this.appId, prebuiltName, "LUIS", prebuiltName)];
                     case 8:
-                        _g.sent(); // ???
-                        _g.label = 9;
+                        _f.sent(); // ???
+                        _f.label = 9;
                     case 9:
                         _c++;
                         return [3 /*break*/, 7];
@@ -66,8 +66,10 @@ var BlisRecognizer = (function () {
                         //      var whichCityActionId = await this.blisClient.AddAction(this.appId, "Which city?", new Array(), new Array(locationEntityId), null);
                         //      var forecastActionId = await this.blisClient.AddAction(this.appId, "$forecast", new Array(forecastEntityId), new Array(), null);
                         // Train model
+                        //TEMP         this.modelId = await this.blisClient.TrainModel(this.appId);
+                        // Create session
                         _e = this;
-                        return [4 /*yield*/, this.blisClient.TrainModel(this.appId)];
+                        return [4 /*yield*/, this.blisClient.StartSession(this.appId, this.modelId)];
                     case 11:
                         // Create location, datetime and forecast entities
                         //   var locationEntityId = await this.blisClient.AddEntity(this.appId, "location", "LUIS", "geography");
@@ -78,19 +80,15 @@ var BlisRecognizer = (function () {
                         //      var whichCityActionId = await this.blisClient.AddAction(this.appId, "Which city?", new Array(), new Array(locationEntityId), null);
                         //      var forecastActionId = await this.blisClient.AddAction(this.appId, "$forecast", new Array(forecastEntityId), new Array(), null);
                         // Train model
-                        _e.modelId = _g.sent();
+                        //TEMP         this.modelId = await this.blisClient.TrainModel(this.appId);
                         // Create session
-                        _f = this;
-                        return [4 /*yield*/, this.blisClient.StartSession(this.appId, this.modelId)];
+                        _e.sessionId = _f.sent();
+                        return [3 /*break*/, 13];
                     case 12:
-                        // Create session
-                        _f.sessionId = _g.sent();
-                        return [3 /*break*/, 14];
-                    case 13:
-                        err_1 = _g.sent();
+                        err_1 = _f.sent();
                         BlisDebug_1.BlisDebug.Log(err_1);
-                        return [3 /*break*/, 14];
-                    case 14: return [2 /*return*/];
+                        return [3 /*break*/, 13];
+                    case 13: return [2 /*return*/];
                 }
             });
         });

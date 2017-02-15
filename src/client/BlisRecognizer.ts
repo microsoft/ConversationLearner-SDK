@@ -74,7 +74,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     //      var forecastActionId = await this.blisClient.AddAction(this.appId, "$forecast", new Array(forecastEntityId), new Array(), null);
 
             // Train model
-            this.modelId = await this.blisClient.TrainModel(this.appId);
+   //TEMP         this.modelId = await this.blisClient.TrainModel(this.appId);
 
             // Create session
             this.sessionId = await this.blisClient.StartSession(this.appId, this.modelId);
