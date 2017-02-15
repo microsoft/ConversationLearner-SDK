@@ -75,7 +75,7 @@ var BlisClient = (function () {
     };
     BlisClient.prototype.EndSession = function (appId, sessionId) {
         var _this = this;
-        var apiPath = "app/" + appId + "/session2/{sessionId}";
+        var apiPath = "app/" + appId + "/session2/" + sessionId;
         return new Promise(function (resolve, reject) {
             var url = _this.serviceUri + apiPath;
             var requestData = {

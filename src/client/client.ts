@@ -91,7 +91,7 @@ export class BlisClient {
 
     public EndSession(appId : String, sessionId : String) : Promise<String>
     {
-        let apiPath = `app/${appId}/session2/{sessionId}`;
+        let apiPath = `app/${appId}/session2/${sessionId}`;
 
         return new Promise(
             (resolve, reject) => {
