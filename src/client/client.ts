@@ -43,7 +43,7 @@ export class BlisClient {
                     if (error) {
                         reject(error);
                     }
-                    else if (response.statusCode != 200) {
+                    else if (response.statusCode >= 300) {
                         reject(body);
                     }
                     else {
@@ -77,7 +77,7 @@ export class BlisClient {
                     if (error) {
                         reject(error);
                     }
-                    else if (response.statusCode != 200) {
+                    else if (response.statusCode >= 300) {
                         reject(body);
                     }
                     else {
@@ -105,7 +105,7 @@ export class BlisClient {
                     if (error) {
                         reject(error);
                     }
-                    else if (response.statusCode != 200) {
+                    else if (response.statusCode >= 300) {
                         reject(body);
                     }
                     else {
@@ -140,7 +140,7 @@ export class BlisClient {
                     if (error) {
                         reject(error);
                     }
-                    else if (response.statusCode != 200) {
+                    else if (response.statusCode >= 300) {
                         reject(body);
                     }
                     else {
@@ -174,7 +174,7 @@ export class BlisClient {
                     if (error) {
                         reject(error);
                     }
-                    else if (response.statusCode != 200) {
+                    else if (response.statusCode >= 300) {
                         reject(body);
                     }
                     else {
@@ -205,7 +205,7 @@ export class BlisClient {
                     if (error) {
                         reject(error);
                     }
-                    else if (response.statusCode != 200) {
+                    else if (response.statusCode >= 300) {
                         reject(body);
                     }
                     else {
@@ -313,7 +313,7 @@ export class BlisClient {
                     if (error) {
                         reject(error);
                     }
-                    else if (response.statusCode != 200) {
+                    else if (response.statusCode >= 300) {
                         reject(body);
                     }
                     else {
