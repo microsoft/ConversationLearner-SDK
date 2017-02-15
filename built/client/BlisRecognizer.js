@@ -1,6 +1,7 @@
 "use strict";
 var tslib_1 = require("tslib");
 var client_1 = require("./client");
+var BlisDebug_1 = require("./BlisDebug");
 var TakeTurnResponse_1 = require("../client/Model/TakeTurnResponse");
 var BlisRecognizer = (function () {
     function BlisRecognizer(options) {
@@ -9,15 +10,17 @@ var BlisRecognizer = (function () {
     }
     BlisRecognizer.prototype.init = function (options) {
         return tslib_1.__awaiter(this, void 0, void 0, function () {
-            var _a, _i, _b, entityName, _c, _d, prebuiltName, _e, _f;
+            var _a, _i, _b, entityName, _c, _d, prebuiltName, _e, _f, err_1;
             return tslib_1.__generator(this, function (_g) {
                 switch (_g.label) {
                     case 0:
+                        _g.trys.push([0, 13, , 14]);
+                        BlisDebug_1.BlisDebug.Log("Creating client...");
                         this.blisClient = new client_1.BlisClient(options.serviceUri, options.user, options.secret);
                         // Create App
                         this.appId = options.appId;
                         if (!!this.appId) return [3 /*break*/, 2];
-                        console.log("Creating app...");
+                        BlisDebug_1.BlisDebug.Log("Creating app...");
                         _a = this;
                         return [4 /*yield*/, this.blisClient.CreateApp(options.appName, options.luisKey)];
                     case 1:
@@ -30,7 +33,7 @@ var BlisRecognizer = (function () {
                     case 3:
                         if (!(_i < _b.length)) return [3 /*break*/, 6];
                         entityName = _b[_i];
-                        console.log("Adding new LUIS entity: " + entityName);
+                        BlisDebug_1.BlisDebug.Log("Adding new LUIS entity: " + entityName);
                         return [4 /*yield*/, this.blisClient.AddEntity(this.appId, entityName, "LOCAL", null)];
                     case 4:
                         _g.sent();
@@ -45,7 +48,7 @@ var BlisRecognizer = (function () {
                     case 7:
                         if (!(_c < _d.length)) return [3 /*break*/, 10];
                         prebuiltName = _d[_c];
-                        console.log("Adding new LUIS pre-build entity: " + prebuiltName);
+                        BlisDebug_1.BlisDebug.Log("Adding new LUIS pre-build entity: " + prebuiltName);
                         return [4 /*yield*/, this.blisClient.AddEntity(this.appId, prebuiltName, "LUIS", prebuiltName)];
                     case 8:
                         _g.sent(); // ???
@@ -82,7 +85,12 @@ var BlisRecognizer = (function () {
                     case 12:
                         // Create session
                         _f.sessionId = _g.sent();
-                        return [2 /*return*/];
+                        return [3 /*break*/, 14];
+                    case 13:
+                        err_1 = _g.sent();
+                        BlisDebug_1.BlisDebug.Log(err_1);
+                        return [3 /*break*/, 14];
+                    case 14: return [2 /*return*/];
                 }
             });
         });
