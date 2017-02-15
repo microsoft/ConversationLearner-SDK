@@ -41,16 +41,22 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             this.appId = options.appId;
             if (!this.appId)
             {
+                if (options.appName || options.luisKey)
+                {
+                    BlisDebug.Log("No need for appName or listKey when providing appId");
+                }
                 BlisDebug.Log("Creating app...");
                 this.appId = await this.blisClient.CreateApp(options.appName, options.luisKey);   // TODO parameter validation
             }
+            BlisDebug.Log(`Using AppId ${this.appId}`);
 
             if (options.entityList)
             {
                 for (let entityName of options.entityList)
                 {
                     BlisDebug.Log(`Adding new LUIS entity: ${entityName}`);
-                    await this.blisClient.AddEntity(this.appId, entityName, "LOCAL", null);
+                    let entityId = await this.blisClient.AddEntity(this.appId, entityName, "LOCAL", null);
+                    BlisDebug.Log(`Added entity: $entityId}`);
                 }
             }
 
@@ -59,7 +65,8 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                 for (let prebuiltName of options.prebuiltList)
                 {
                     BlisDebug.Log(`Adding new LUIS pre-build entity: ${prebuiltName}`);
-                    await this.blisClient.AddEntity(this.appId, prebuiltName, "LUIS", prebuiltName);  // ???
+                    let prebuiltId = await this.blisClient.AddEntity(this.appId, prebuiltName, "LUIS", prebuiltName);
+                    BlisDebug.Log(`Added prebuilt: ${prebuiltId}`);
                 }
             }
 
@@ -77,7 +84,9 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
    //TEMP         this.modelId = await this.blisClient.TrainModel(this.appId);
 
             // Create session
+            BlisDebug.Log(`Creating session...`);
             this.sessionId = await this.blisClient.StartSession(this.appId, this.modelId);
+            BlisDebug.Log(`Created Session: ${this.sessionId}`);
         }
         catch (err) {
             BlisDebug.Log(err);

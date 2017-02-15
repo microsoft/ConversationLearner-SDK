@@ -10,7 +10,7 @@ var BlisRecognizer = (function () {
     }
     BlisRecognizer.prototype.init = function (options) {
         return tslib_1.__awaiter(this, void 0, void 0, function () {
-            var _a, _i, _b, entityName, _c, _d, prebuiltName, _e, err_1;
+            var _a, _i, _b, entityName, entityId, _c, _d, prebuiltName, prebuiltId, _e, err_1;
             return tslib_1.__generator(this, function (_f) {
                 switch (_f.label) {
                     case 0:
@@ -20,6 +20,9 @@ var BlisRecognizer = (function () {
                         // Create App
                         this.appId = options.appId;
                         if (!!this.appId) return [3 /*break*/, 2];
+                        if (options.appName || options.luisKey) {
+                            BlisDebug_1.BlisDebug.Log("No need for appName or listKey when providing appId");
+                        }
                         BlisDebug_1.BlisDebug.Log("Creating app...");
                         _a = this;
                         return [4 /*yield*/, this.blisClient.CreateApp(options.appName, options.luisKey)];
@@ -27,6 +30,7 @@ var BlisRecognizer = (function () {
                         _a.appId = _f.sent(); // TODO parameter validation
                         _f.label = 2;
                     case 2:
+                        BlisDebug_1.BlisDebug.Log("Using AppId " + this.appId);
                         if (!options.entityList) return [3 /*break*/, 6];
                         _i = 0, _b = options.entityList;
                         _f.label = 3;
@@ -36,7 +40,8 @@ var BlisRecognizer = (function () {
                         BlisDebug_1.BlisDebug.Log("Adding new LUIS entity: " + entityName);
                         return [4 /*yield*/, this.blisClient.AddEntity(this.appId, entityName, "LOCAL", null)];
                     case 4:
-                        _f.sent();
+                        entityId = _f.sent();
+                        BlisDebug_1.BlisDebug.Log("Added entity: $entityId}");
                         _f.label = 5;
                     case 5:
                         _i++;
@@ -51,7 +56,8 @@ var BlisRecognizer = (function () {
                         BlisDebug_1.BlisDebug.Log("Adding new LUIS pre-build entity: " + prebuiltName);
                         return [4 /*yield*/, this.blisClient.AddEntity(this.appId, prebuiltName, "LUIS", prebuiltName)];
                     case 8:
-                        _f.sent(); // ???
+                        prebuiltId = _f.sent();
+                        BlisDebug_1.BlisDebug.Log("Added prebuilt: " + prebuiltId);
                         _f.label = 9;
                     case 9:
                         _c++;
@@ -68,21 +74,12 @@ var BlisRecognizer = (function () {
                         // Train model
                         //TEMP         this.modelId = await this.blisClient.TrainModel(this.appId);
                         // Create session
+                        BlisDebug_1.BlisDebug.Log("Creating session...");
                         _e = this;
                         return [4 /*yield*/, this.blisClient.StartSession(this.appId, this.modelId)];
                     case 11:
-                        // Create location, datetime and forecast entities
-                        //   var locationEntityId = await this.blisClient.AddEntity(this.appId, "location", "LUIS", "geography");
-                        //    var datetimeEntityId = await this.blisClient.AddEntity(this.appId, "date", "LUIS", "datetime");
-                        //    var forecastEntityId = await this.blisClient.AddEntity(this.appId, "forecast", "LOCAL", null);
-                        // Create actions
-                        //      var whichDayActionId = await this.blisClient.AddAction(this.appId, "Which day?", new Array(), new Array(datetimeEntityId), null);
-                        //      var whichCityActionId = await this.blisClient.AddAction(this.appId, "Which city?", new Array(), new Array(locationEntityId), null);
-                        //      var forecastActionId = await this.blisClient.AddAction(this.appId, "$forecast", new Array(forecastEntityId), new Array(), null);
-                        // Train model
-                        //TEMP         this.modelId = await this.blisClient.TrainModel(this.appId);
-                        // Create session
                         _e.sessionId = _f.sent();
+                        BlisDebug_1.BlisDebug.Log("Created Session: " + this.sessionId);
                         return [3 /*break*/, 13];
                     case 12:
                         err_1 = _f.sent();

@@ -290,7 +290,7 @@ export class BlisClient {
         }
     }
 
-    public TakeATurn(appId : String, sessionId : String, takeTurnRequest : TakeTurnRequest) : Promise<TakeTurnResponse>
+    private TakeATurn(appId : String, sessionId : String, takeTurnRequest : TakeTurnRequest) : Promise<TakeTurnResponse>
     {
         let apiPath = `app/${appId}/session2/${sessionId}`;
         return new Promise(
