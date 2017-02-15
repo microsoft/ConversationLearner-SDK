@@ -104,11 +104,26 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
        });
     }
 
-    private async DeleteApp() : Promise<void>
+    private DeleteApp(appId : string) : void
     {
        BlisDebug.Log(`Deleting Application`);
+       this.blisClient.DeleteApp(appId);
+    }
 
-       this.blisClient.DeleteApp(this.appId);
+    private DeleteAction(actionId : string) : void
+    {
+       BlisDebug.Log(`Deleting Action`);
+       this.blisClient.DeleteAction(this.appId, actionId);
+    }
+
+    private Help() : string
+    {
+        let text = null;
+        text += "!next                      Start new dialog\n\n";
+        text += "!next teach                Start new teaching dialog\n\n"
+        text += "!deleteApp {appId}         Delete an application\n\n"
+        text += "!deleteAction {actionId}   Delete an action on current app\n\n"
+        return text;
     }
 
     public recognize(context: builder.IRecognizeContext, cb: (error: Error, result: IBlisResult) => void): void {
@@ -116,8 +131,10 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         var result: IBlisResult = { score: 1.0, answer: null, intent: null };
         
         if (context && context.message && context.message.text) {
+            
             let text = context.message.text.trim();
             let [command, arg] = text.split(' ');
+            command = command.toLowerCase();
 
             if (command == "!reset")
             {
@@ -131,10 +148,21 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                 result.answer = "Starting new teach session";
                 cb(null, result);
             }
-            else if (command == "!delete")
+            else if (command == "!deleteapp")
             {
-                this.DeleteApp();
+                this.DeleteApp(arg);
                 result.answer = "App has been deleted";
+                cb(null, result);
+            }
+            else if (command == "!deleteaction")
+            {
+                this.DeleteAction(arg);
+                result.answer = "App has been deleted";
+                cb(null, result);
+            }
+            else if (command == "!help")
+            {
+                result.answer = this.Help();
                 cb(null, result);
             }
             else

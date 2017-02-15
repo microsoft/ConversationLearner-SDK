@@ -213,6 +213,33 @@ export class BlisClient {
         )
     }
 
+    public DeleteAction(appId : String, actionId : String) : Promise<String>
+    {
+        let apiPath = `app/${appId}/action${actionId}`;
+
+        return new Promise(
+            (resolve, reject) => {
+                let url = this.serviceUri+apiPath;
+                const requestData = {
+                    headers: {
+                        'Cookie' : this.credentials.CookieString()
+                    }
+                }
+                request.delete(url, requestData, (error, response, body) => {
+                    if (error) {
+                        reject(error);
+                    }
+                    else if (response.statusCode >= 300) {
+                        reject(body);
+                    }
+                    else {
+                        resolve(body.id);
+                    }
+                });
+            }
+        )
+    }
+
     public TrainModel(appId : String, fromScratch : boolean = false) : Promise<String>
     {
         let apiPath = `app/${appId}/model`;

@@ -177,6 +177,29 @@ var BlisClient = (function () {
             });
         });
     };
+    BlisClient.prototype.DeleteAction = function (appId, actionId) {
+        var _this = this;
+        var apiPath = "app/" + appId + "/action" + actionId;
+        return new Promise(function (resolve, reject) {
+            var url = _this.serviceUri + apiPath;
+            var requestData = {
+                headers: {
+                    'Cookie': _this.credentials.CookieString()
+                }
+            };
+            request.delete(url, requestData, function (error, response, body) {
+                if (error) {
+                    reject(error);
+                }
+                else if (response.statusCode >= 300) {
+                    reject(body);
+                }
+                else {
+                    resolve(body.id);
+                }
+            });
+        });
+    };
     BlisClient.prototype.TrainModel = function (appId, fromScratch) {
         var _this = this;
         if (fromScratch === void 0) { fromScratch = false; }
