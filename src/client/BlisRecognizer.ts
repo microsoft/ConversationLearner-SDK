@@ -9,10 +9,14 @@ export interface IBlisResult extends builder.IIntentRecognizerResult {
 }
 
 export interface IBlisOptions extends builder.IIntentRecognizerSetOptions {
-  /*  knowledgeBaseId: string;
-    subscriptionKey: string;
-    qnaThreshold?: number;
-    defaultMessage?: string;*/
+    serviceUri: string;
+    user: string;
+    secret: string;
+    appId?: string;
+    appName?: string;
+    luisKey?: string;
+    entityList?: [string];
+    prebuiltList?: [string];
 }
 
 export class BlisRecognizer implements builder.IIntentRecognizer {
@@ -23,26 +27,47 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     protected LUCallback : (text: String, luisEntities : [{}]) => TakeTurnRequest;
     
     constructor(private options: IBlisOptions){
-        //this.kbUri = qnaMakerServiceEndpoint + options.knowledgeBaseId + '/' + qnaApi;
-        //this.ocpApimSubscriptionKey = options.subscriptionKey;
-        this.init();
+        this.init(options);
     }
 
-    private async init() {
-        this.blisClient = new BlisClient("http://dialog.centralus.cloudapp.azure.com/", "ccastro@microsoft.com", "002a6a39-7ae3-49f5-a737-baf289d44f6f");
+    private async init(options: IBlisOptions) {
+        this.blisClient = new BlisClient(options.serviceUri, options.user, options.secret);
 
         // Create App
-        this.appId = await this.blisClient.CreateApp("Test1", "e740e5ecf4c3429eadb1a595d57c14c5");
+        this.appId = options.appId;
+        if (!this.appId)
+        {
+            console.log("Creating app...");
+            this.appId = await this.blisClient.CreateApp(options.appName, options.luisKey);   // TODO parameter validation
+        }
+
+        if (options.entityList)
+        {
+            for (let entityName of options.entityList)
+            {
+                console.log(`Adding new LUIS entity: ${entityName}`);
+                await this.blisClient.AddEntity(this.appId, entityName, "LOCAL", null);
+            }
+        }
+
+        if (options.prebuiltList)
+        {
+            for (let prebuiltName of options.prebuiltList)
+            {
+                console.log(`Adding new LUIS pre-build entity: ${prebuiltName}`);
+                await this.blisClient.AddEntity(this.appId, prebuiltName, "LUIS", prebuiltName);  // ???
+            }
+        }
 
         // Create location, datetime and forecast entities
-        var locationEntityId = await this.blisClient.AddEntity(this.appId, "location", "LUIS", "geography");
-        var datetimeEntityId = await this.blisClient.AddEntity(this.appId, "date", "LUIS", "datetime");
-        var forecastEntityId = await this.blisClient.AddEntity(this.appId, "forecast", "LOCAL", null);
+    //   var locationEntityId = await this.blisClient.AddEntity(this.appId, "location", "LUIS", "geography");
+    //    var datetimeEntityId = await this.blisClient.AddEntity(this.appId, "date", "LUIS", "datetime");
+    //    var forecastEntityId = await this.blisClient.AddEntity(this.appId, "forecast", "LOCAL", null);
 
         // Create actions
-        var whichDayActionId = await this.blisClient.AddAction(this.appId, "Which day?", new Array(), new Array(datetimeEntityId), null);
-        var whichCityActionId = await this.blisClient.AddAction(this.appId, "Which city?", new Array(), new Array(locationEntityId), null);
-        var forecastActionId = await this.blisClient.AddAction(this.appId, "$forecast", new Array(forecastEntityId), new Array(), null);
+  //      var whichDayActionId = await this.blisClient.AddAction(this.appId, "Which day?", new Array(), new Array(datetimeEntityId), null);
+  //      var whichCityActionId = await this.blisClient.AddAction(this.appId, "Which city?", new Array(), new Array(locationEntityId), null);
+  //      var forecastActionId = await this.blisClient.AddAction(this.appId, "$forecast", new Array(forecastEntityId), new Array(), null);
 
         // Train model
         this.modelId = await this.blisClient.TrainModel(this.appId);
@@ -69,15 +94,17 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
 
                     if (response.mode == TakeTurnModes.Teach)
                     {
-                        result.answer = "> " + response.action.content;
+                        // Markdown requires double carraige returns
+                        var output = response.action.content.replace(/\n/g,":\n\n");
+                        result.answer = output;
                     }
                     else if (response.mode == TakeTurnModes.Action)
                     {
                         let outText = this.InsertEntities(response.actions[0].content);
-                        result.answer = "> " + outText;
+                        result.answer = outText;
                     } 
                     else {
-                        result.answer = `> Don't know mode: ${response.mode}`;
+                        result.answer = `Don't know mode: ${response.mode}`;
                     }
                     cb(null,result);
                 }
