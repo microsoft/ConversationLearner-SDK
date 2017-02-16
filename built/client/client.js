@@ -203,7 +203,7 @@ var BlisClient = (function () {
             });
         });
     };
-    BlisClient.prototype.TrainDialog = function (appId, dialog) {
+    BlisClient.prototype.TrainDialog = function (appId, traindialog) {
         var _this = this;
         var apiPath = "app/" + appId + "/traindialog";
         return new Promise(function (resolve, reject) {
@@ -212,11 +212,9 @@ var BlisClient = (function () {
                 headers: {
                     'Cookie': _this.credentials.Cookiestring()
                 },
-                body: {
-                    from_scratch: fromScratch
-                },
                 json: true
             };
+            requestData['body'] = JSON.stringify(traindialog);
             request.post(requestData, function (error, response, body) {
                 if (error) {
                     reject(error);
@@ -230,8 +228,9 @@ var BlisClient = (function () {
             });
         });
     };
-    BlisClient.prototype.TrainModel = function (appId, traindialog) {
+    BlisClient.prototype.TrainModel = function (appId, fromScratch) {
         var _this = this;
+        if (fromScratch === void 0) { fromScratch = false; }
         var apiPath = "app/" + appId + "/model";
         return new Promise(function (resolve, reject) {
             var requestData = {
@@ -239,9 +238,11 @@ var BlisClient = (function () {
                 headers: {
                     'Cookie': _this.credentials.Cookiestring()
                 },
+                body: {
+                    from_scratch: fromScratch
+                },
                 json: true
             };
-            requestData['body'] = JSON.stringify(traindialog);
             request.post(requestData, function (error, response, body) {
                 if (error) {
                     reject(error);
