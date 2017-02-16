@@ -1,6 +1,7 @@
 import * as builder from 'botbuilder';
 import * as request from 'request';
 import { TakeTurnRequest } from './Model/TakeTurnRequest'
+import { SnippetList } from './Model/SnippetList'
 import { BlisClient } from './client';
 import { BlisDebug} from './BlisDebug';
 
@@ -99,10 +100,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     {
         return new Promise(
             (resolve, reject) => {
-               const requestData = {
-                    url: url,
-                }
-                request.get((error, response, body) => {
+                request.get(url, (error, response, body) => {
                     if (error) {
                         reject(error);
                     }
@@ -110,7 +108,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                         reject(body.message);
                     }
                     else {
-                        resolve(body.id);
+                        resolve(body);
                     }
 
                 });
@@ -120,7 +118,8 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     private async TrainFromFile(recognizer : BlisRecognizer, url : string, cb : (text) => void) : Promise<void>
     {
         url = "https://onedrive.live.com/download?cid=55DCA1313254B6CB&resid=55DCA1313254B6CB%213634&authkey=AIyjQoawD2vlHmc";
-        var test = await this.ReadFromFile(url);
+        var test = await this.ReadFromFile(url)
+        let sniplist : SnippetList = JSON.parse(test);
     }
 
     private async NewSession(recognizer : BlisRecognizer, teach : boolean, cb : (text) => void) : Promise<void>

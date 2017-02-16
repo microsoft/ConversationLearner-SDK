@@ -93,10 +93,7 @@ var BlisRecognizer = (function () {
     };
     BlisRecognizer.prototype.ReadFromFile = function (url) {
         return new Promise(function (resolve, reject) {
-            var requestData = {
-                url: url,
-            };
-            request.get(function (error, response, body) {
+            request.get(url, function (error, response, body) {
                 if (error) {
                     reject(error);
                 }
@@ -104,14 +101,14 @@ var BlisRecognizer = (function () {
                     reject(body.message);
                 }
                 else {
-                    resolve(body.id);
+                    resolve(body);
                 }
             });
         });
     };
     BlisRecognizer.prototype.TrainFromFile = function (recognizer, url, cb) {
         return tslib_1.__awaiter(this, void 0, void 0, function () {
-            var test;
+            var test, sniplist;
             return tslib_1.__generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -119,6 +116,7 @@ var BlisRecognizer = (function () {
                         return [4 /*yield*/, this.ReadFromFile(url)];
                     case 1:
                         test = _a.sent();
+                        sniplist = JSON.parse(test);
                         return [2 /*return*/];
                 }
             });
