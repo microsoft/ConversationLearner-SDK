@@ -180,7 +180,7 @@ var BlisRecognizer = (function () {
         var result = { score: 1.0, answer: null, intent: null };
         if (context && context.message && context.message.text) {
             var text = context.message.text.trim();
-            var _a = text.split(' '), command = _a[0], arg = _a[1], arg2 = _a[2];
+            var _a = text.split(' '), command = _a[0], arg_1 = _a[1], arg2_1 = _a[2];
             command = command.toLowerCase();
             if (this.appId = null) {
                 result.answer = "No Application has been loaded.  Type !help for more info.";
@@ -189,22 +189,22 @@ var BlisRecognizer = (function () {
             if (command == "!reset") {
             }
             else if (command == "!next") {
-                var teach = (arg == 'teach');
+                var teach = (arg_1 == 'teach');
                 this.NewSession(teach, function (text) {
                     result.answer = text;
                     cb(null, result);
                 });
             }
             else if (command == "!createapp") {
-                var that_1 = this;
-                this.CreateApp(arg, arg2, function (text) {
-                    that_1.appId = text;
+                //    let that = this;
+                (function () { return _this.CreateApp(arg_1, arg2_1, function (text) {
+                    _this.appId = text;
                     result.answer = text;
                     cb(null, result);
-                });
+                }); });
             }
             else if (command == "!deleteapp") {
-                this.DeleteApp(arg, function (text) {
+                this.DeleteApp(arg_1, function (text) {
                     // Did I delete my active app?
                     if (text == _this.appId) {
                         _this.appId = null;
@@ -214,7 +214,7 @@ var BlisRecognizer = (function () {
                 });
             }
             else if (command == "!deleteaction") {
-                this.DeleteAction(arg, function (text) {
+                this.DeleteAction(arg_1, function (text) {
                     result.answer = text;
                     cb(null, result);
                 });

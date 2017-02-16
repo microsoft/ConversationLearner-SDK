@@ -175,9 +175,9 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             }
             else if (command == "!createapp")
             {
-                let that = this;
-                this.CreateApp(arg, arg2, (text) => {
-                    that.appId = text;
+            //    let that = this;
+                () => this.CreateApp(arg, arg2, (text) => {
+                    this.appId = text;
                     result.answer = text;
                     cb(null, result);
                 });
