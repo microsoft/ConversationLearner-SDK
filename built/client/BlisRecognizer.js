@@ -111,16 +111,20 @@ var BlisRecognizer = (function () {
     };
     BlisRecognizer.prototype.TrainFromFile = function (recognizer, url, cb) {
         return tslib_1.__awaiter(this, void 0, void 0, function () {
-            var text, snipObj;
+            var _this = this;
+            var text;
             return tslib_1.__generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
                         url = "https://onedrive.live.com/download?cid=55DCA1313254B6CB&resid=55DCA1313254B6CB%213634&authkey=AIyjQoawD2vlHmc";
-                        return [4 /*yield*/, this.ReadFromFile(url)];
+                        return [4 /*yield*/, this.ReadFromFile(url)
+                                .then(function (text) {
+                                var snipObj = json_typescript_mapper_1.deserialize(SnippetList_1.SnippetList, text);
+                                _this.TrainOnSnippetList(recognizer, snipObj.snippets);
+                            })
+                                .catch(function (text) { return cb(text); })];
                     case 1:
                         text = _a.sent();
-                        snipObj = json_typescript_mapper_1.deserialize(SnippetList_1.SnippetList, JSON.parse(text));
-                        this.TrainOnSnippetList(recognizer, snipObj.snippets);
                         return [2 /*return*/];
                 }
             });
