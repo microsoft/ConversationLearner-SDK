@@ -228,28 +228,27 @@ var BlisClient = (function () {
             });
         });
     };
-    BlisClient.prototype.TakeTurn = function (appId, sessionId, text, luCallback, apiCallbacks, resultCallback) {
+    BlisClient.prototype.TakeTurn = function (appId, sessionId, text, luCallback, apiCallbacks, resultCallback, takeTurnRequest, expectedNextModes) {
         if (apiCallbacks === void 0) { apiCallbacks = {}; }
+        if (takeTurnRequest === void 0) { takeTurnRequest = new TakeTurnRequest_1.TakeTurnRequest({ text: text }); }
+        if (expectedNextModes === void 0) { expectedNextModes = [TakeTurnResponse_1.TakeTurnModes.Callback, TakeTurnResponse_1.TakeTurnModes.Action, TakeTurnResponse_1.TakeTurnModes.Teach]; }
         return tslib_1.__awaiter(this, void 0, void 0, function () {
-            var takeTurnRequest, expectedNextModes;
+            var _this = this;
             return tslib_1.__generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0:
-                        takeTurnRequest = new TakeTurnRequest_1.TakeTurnRequest({ text: text });
-                        expectedNextModes = [TakeTurnResponse_1.TakeTurnModes.Callback, TakeTurnResponse_1.TakeTurnModes.Action, TakeTurnResponse_1.TakeTurnModes.Teach];
-                        _a.label = 1;
-                    case 1:
-                        if (!true) return [3 /*break*/, 3];
-                        // Take a turn
-                        return [4 /*yield*/, this.TakeATurn(appId, sessionId, takeTurnRequest)
-                                .then(function (takeTurnResponse) {
-                                ErrorHandler_1.Debug(takeTurnResponse);
-                                if (expectedNextModes.indexOf(takeTurnResponse.mode) < 0) {
-                                    ErrorHandler_1.HandleError("Unexpected mode " + takeTurnResponse.mode);
-                                }
-                                if (takeTurnResponse.mode) {
-                                    // LU CALLBACK
-                                    if (takeTurnResponse.mode == TakeTurnResponse_1.TakeTurnModes.Callback) {
+                    case 0: return [4 /*yield*/, this.SendTurnRequest(appId, sessionId, takeTurnRequest)
+                            .then(function (takeTurnResponse) { return tslib_1.__awaiter(_this, void 0, void 0, function () {
+                            var response, apiName, response, response;
+                            return tslib_1.__generator(this, function (_a) {
+                                switch (_a.label) {
+                                    case 0:
+                                        ErrorHandler_1.Debug(takeTurnResponse);
+                                        if (expectedNextModes.indexOf(takeTurnResponse.mode) < 0) {
+                                            response = new TakeTurnResponse_1.TakeTurnResponse({ mode: TakeTurnResponse_1.TakeTurnModes.Error, error: "Unexpected mode " + takeTurnResponse.mode });
+                                            resultCallback(response);
+                                        }
+                                        if (!takeTurnResponse.mode) return [3 /*break*/, 8];
+                                        if (!(takeTurnResponse.mode == TakeTurnResponse_1.TakeTurnModes.Callback)) return [3 /*break*/, 2];
                                         if (luCallback) {
                                             takeTurnRequest = luCallback(takeTurnResponse.originalText, takeTurnResponse.entities);
                                         }
@@ -257,52 +256,63 @@ var BlisClient = (function () {
                                             takeTurnRequest = new TakeTurnRequest_1.TakeTurnRequest(); // TODO
                                         }
                                         expectedNextModes = [TakeTurnResponse_1.TakeTurnModes.Action, TakeTurnResponse_1.TakeTurnModes.Teach];
-                                    }
-                                    else if (takeTurnResponse.mode == TakeTurnResponse_1.TakeTurnModes.Teach) {
-                                        return resultCallback(takeTurnResponse);
-                                    }
-                                    else if (takeTurnResponse.mode == TakeTurnResponse_1.TakeTurnModes.Action) {
-                                        if (takeTurnResponse.actions[0].actionType == TakeTurnResponse_1.ActionTypes.Text) {
-                                            return resultCallback(takeTurnResponse);
+                                        return [4 /*yield*/, this.TakeTurn(appId, sessionId, text, luCallback, apiCallbacks, resultCallback, takeTurnRequest, expectedNextModes)];
+                                    case 1:
+                                        _a.sent();
+                                        return [3 /*break*/, 7];
+                                    case 2:
+                                        if (!(takeTurnResponse.mode == TakeTurnResponse_1.TakeTurnModes.Teach)) return [3 /*break*/, 3];
+                                        resultCallback(takeTurnResponse);
+                                        return [3 /*break*/, 7];
+                                    case 3:
+                                        if (!(takeTurnResponse.mode == TakeTurnResponse_1.TakeTurnModes.Action)) return [3 /*break*/, 7];
+                                        if (!(takeTurnResponse.actions[0].actionType == TakeTurnResponse_1.ActionTypes.Text)) return [3 /*break*/, 4];
+                                        resultCallback(takeTurnResponse);
+                                        return [3 /*break*/, 7];
+                                    case 4:
+                                        if (!(takeTurnResponse.actions[0].actionType == TakeTurnResponse_1.ActionTypes.API)) return [3 /*break*/, 7];
+                                        apiName = takeTurnResponse.actions[0].content;
+                                        if (!apiCallbacks[apiName]) return [3 /*break*/, 6];
+                                        // TODO handle apli callback
+                                        /*
+                                        takeTurnResponse = apiCallbacks[apiName]();
+                                        req_json = {
+                                            'entities': entities,
+                                            'context': context,
+                                            'action_mask': action_mask,
                                         }
-                                        else if (takeTurnResponse.actions[0].actionType == TakeTurnResponse_1.ActionTypes.API) {
-                                            var apiName = takeTurnResponse.actions[0].content;
-                                            if (apiCallbacks[apiName]) {
-                                                // TODO handle apli callback
-                                                /*
-                                                takeTurnResponse = apiCallbacks[apiName]();
-                                                req_json = {
-                                                    'entities': entities,
-                                                    'context': context,
-                                                    'action_mask': action_mask,
-                                                }
-                                                expected_next_modes = ['teach','action']
-                                                */
-                                                expectedNextModes = [TakeTurnResponse_1.TakeTurnModes.Action, TakeTurnResponse_1.TakeTurnModes.Teach];
-                                            }
-                                            else {
-                                                ErrorHandler_1.HandleError("API " + apiName + " not defined");
-                                            }
-                                        }
-                                    }
+                                        expected_next_modes = ['teach','action']
+                                        */
+                                        expectedNextModes = [TakeTurnResponse_1.TakeTurnModes.Action, TakeTurnResponse_1.TakeTurnModes.Teach];
+                                        return [4 /*yield*/, this.TakeTurn(appId, sessionId, text, luCallback, apiCallbacks, resultCallback, takeTurnRequest, expectedNextModes)];
+                                    case 5:
+                                        _a.sent();
+                                        return [3 /*break*/, 7];
+                                    case 6:
+                                        response = new TakeTurnResponse_1.TakeTurnResponse({ mode: TakeTurnResponse_1.TakeTurnModes.Error, error: "API " + apiName + " not defined" });
+                                        resultCallback(response);
+                                        _a.label = 7;
+                                    case 7: return [3 /*break*/, 9];
+                                    case 8:
+                                        response = new TakeTurnResponse_1.TakeTurnResponse({ mode: TakeTurnResponse_1.TakeTurnModes.Error, error: "mode " + response.mode + " not supported by the SDK" });
+                                        resultCallback(response);
+                                        _a.label = 9;
+                                    case 9: return [2 /*return*/];
                                 }
-                                else {
-                                    ErrorHandler_1.HandleError("mode ${response.mode} not supported by the SDK.");
-                                }
-                            })
-                                .catch(function (text) {
-                                return new TakeTurnResponse_1.TakeTurnResponse({ mode: TakeTurnResponse_1.TakeTurnModes.Error, error: text });
-                            })];
-                    case 2:
-                        // Take a turn
+                            });
+                        }); })
+                            .catch(function (text) {
+                            var response = new TakeTurnResponse_1.TakeTurnResponse({ mode: TakeTurnResponse_1.TakeTurnModes.Error, error: text });
+                            resultCallback(response);
+                        })];
+                    case 1:
                         _a.sent();
-                        return [3 /*break*/, 1];
-                    case 3: return [2 /*return*/];
+                        return [2 /*return*/];
                 }
             });
         });
     };
-    BlisClient.prototype.TakeATurn = function (appId, sessionId, takeTurnRequest) {
+    BlisClient.prototype.SendTurnRequest = function (appId, sessionId, takeTurnRequest) {
         var _this = this;
         var apiPath = "app/" + appId + "/session2/" + sessionId;
         return new Promise(function (resolve, reject) {
