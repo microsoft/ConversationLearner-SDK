@@ -24,6 +24,7 @@ export interface IBlisOptions extends builder.IIntentRecognizerSetOptions {
 export class BlisRecognizer implements builder.IIntentRecognizer {
     protected blisClient : BlisClient;
     protected appId : string;
+    protected luisKey : string;
     protected sessionId : string;
     protected modelId : string;
     protected LUCallback : (text: string, luisEntities : [{}]) => TakeTurnRequest;
@@ -115,13 +116,21 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     private async CreateApp(recognizer : BlisRecognizer, appName : string, luisKey, cb : (text) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Create Application`);
-       await this.blisClient.CreateApp(appName, luisKey)
-        .then((text) => 
+
+        // Using existing LUIS key if not provided
+        if (!luisKey) 
         {
-            recognizer.appId = text;
-            cb(`Created App ${text}`)
-        })
-        .catch((text) => cb(text));
+            luisKey = recognizer.luisKey;
+        }
+
+        await this.blisClient.CreateApp(appName, luisKey)
+            .then((text) => 
+            {
+                recognizer.appId = text;
+                recognizer.luisKey = luisKey;
+                cb(`Created App ${text}`)
+            })
+            .catch((text) => cb(text));
     }
 
     private async DeleteApp(recognizer : BlisRecognizer, appId : string, cb : (text) => void) : Promise<void>
@@ -137,7 +146,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         .then((text) => 
         {
             // Did I delete my active app?
-            if (text == recognizer.appId)
+            if (appId == recognizer.appId)
             {
                 recognizer.appId = null;
             }
@@ -159,6 +168,8 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         let text = "";
         text += "!next => Start new dialog\n\n";
         text += "!next teach => Start new teaching dialog\n\n"
+        text += "!createApp {appName} => Create new application with current luisKey\n\n"
+        text += "!createApp {appName} {luisKey} => Create new application\n\n"
         text += "!deleteApp => Delete existing application\n\n"
         text += "!deleteApp {appId} => Delete specified application\n\n"
         text += "!whichApp => Return current appId\n\n"
@@ -224,6 +235,11 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             else if (command == "!help")
             {
                 result.answer = this.Help();
+                cb(null, result);
+            }
+            else if (!this.sessionId)
+            {
+                result.answer = "Create a sesion first with !next or !next teach";
                 cb(null, result);
             }
             else

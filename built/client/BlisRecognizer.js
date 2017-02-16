@@ -121,9 +121,14 @@ var BlisRecognizer = (function () {
                 switch (_a.label) {
                     case 0:
                         BlisDebug_1.BlisDebug.Log("Trying to Create Application");
+                        // Using existing LUIS key if not provided
+                        if (!luisKey) {
+                            luisKey = recognizer.luisKey;
+                        }
                         return [4 /*yield*/, this.blisClient.CreateApp(appName, luisKey)
                                 .then(function (text) {
                                 recognizer.appId = text;
+                                recognizer.luisKey = luisKey;
                                 cb("Created App " + text);
                             })
                                 .catch(function (text) { return cb(text); })];
@@ -147,7 +152,7 @@ var BlisRecognizer = (function () {
                         return [4 /*yield*/, this.blisClient.DeleteApp(appId)
                                 .then(function (text) {
                                 // Did I delete my active app?
-                                if (text == recognizer.appId) {
+                                if (appId == recognizer.appId) {
                                     recognizer.appId = null;
                                 }
                                 cb("Deleted App " + appId);
@@ -180,6 +185,8 @@ var BlisRecognizer = (function () {
         var text = "";
         text += "!next => Start new dialog\n\n";
         text += "!next teach => Start new teaching dialog\n\n";
+        text += "!createApp {appName} => Create new application with current luisKey\n\n";
+        text += "!createApp {appName} {luisKey} => Create new application\n\n";
         text += "!deleteApp => Delete existing application\n\n";
         text += "!deleteApp {appId} => Delete specified application\n\n";
         text += "!whichApp => Return current appId\n\n";
@@ -231,6 +238,10 @@ var BlisRecognizer = (function () {
             }
             else if (command == "!help") {
                 result.answer = this.Help();
+                cb(null, result);
+            }
+            else if (!this.sessionId) {
+                result.answer = "Create a sesion first with !next or !next teach";
                 cb(null, result);
             }
             else {
