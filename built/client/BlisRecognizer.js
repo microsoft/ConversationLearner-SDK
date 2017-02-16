@@ -90,12 +90,13 @@ var BlisRecognizer = (function () {
             });
         });
     };
-    BlisRecognizer.prototype.NewSession = function (teach) {
+    BlisRecognizer.prototype.NewSession = function (teach, cb) {
         return tslib_1.__awaiter(this, void 0, void 0, function () {
             var _this = this;
             return tslib_1.__generator(this, function (_a) {
                 BlisDebug_1.BlisDebug.Log("New session, Teach = " + teach);
-                this.blisClient.EndSession(this.appId, this.sessionId).then(function (string) { return tslib_1.__awaiter(_this, void 0, void 0, function () {
+                this.blisClient.EndSession(this.appId, this.sessionId)
+                    .then(function (string) { return tslib_1.__awaiter(_this, void 0, void 0, function () {
                     var _a;
                     return tslib_1.__generator(this, function (_b) {
                         switch (_b.label) {
@@ -104,10 +105,12 @@ var BlisRecognizer = (function () {
                                 return [4 /*yield*/, this.blisClient.StartSession(this.appId, this.modelId, teach)];
                             case 1:
                                 _a.sessionId = _b.sent();
+                                cb("New session, Teach = " + teach);
                                 return [2 /*return*/];
                         }
                     });
-                }); });
+                }); })
+                    .catch(function (text) { return cb(text); });
                 return [2 /*return*/];
             });
         });
@@ -119,7 +122,7 @@ var BlisRecognizer = (function () {
                     case 0:
                         BlisDebug_1.BlisDebug.Log("Trying to Delete Application");
                         return [4 /*yield*/, this.blisClient.DeleteApp(appId)
-                                .then(function (text) { return cb(text); })
+                                .then(function (text) { return cb("Deleted App " + appId); })
                                 .catch(function (text) { return cb(text); })];
                     case 1:
                         _a.sent();
@@ -128,9 +131,21 @@ var BlisRecognizer = (function () {
             });
         });
     };
-    BlisRecognizer.prototype.DeleteAction = function (actionId) {
-        BlisDebug_1.BlisDebug.Log("Deleting Action");
-        this.blisClient.DeleteAction(this.appId, actionId);
+    BlisRecognizer.prototype.DeleteAction = function (actionId, cb) {
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            return tslib_1.__generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        BlisDebug_1.BlisDebug.Log("Trying to Delete Action");
+                        return [4 /*yield*/, this.blisClient.DeleteAction(this.appId, actionId)
+                                .then(function (text) { return cb("Deleted Action " + actionId); })
+                                .catch(function (text) { return cb(text); })];
+                    case 1:
+                        _a.sent();
+                        return [2 /*return*/];
+                }
+            });
+        });
     };
     BlisRecognizer.prototype.Help = function () {
         var text = "";
@@ -151,8 +166,13 @@ var BlisRecognizer = (function () {
             }
             else if (command == "!next") {
                 var teach = (arg == 'teach');
-                this.NewSession(teach);
-                result.answer = "Starting new teach session";
+                this.NewSession(teach, function (text) {
+                    result.answer = text;
+                    cb(null, result);
+                });
+            }
+            else if (command == "!createapp") {
+                result.answer = "TODO";
                 cb(null, result);
             }
             else if (command == "!deleteapp") {
@@ -162,9 +182,10 @@ var BlisRecognizer = (function () {
                 });
             }
             else if (command == "!deleteaction") {
-                this.DeleteAction(arg);
-                result.answer = "App has been deleted";
-                cb(null, result);
+                this.DeleteAction(arg, function (text) {
+                    result.answer = text;
+                    cb(null, result);
+                });
             }
             else if (command == "!help") {
                 result.answer = this.Help();

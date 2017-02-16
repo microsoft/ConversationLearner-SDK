@@ -94,28 +94,33 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         }
     }
 
-    private async NewSession(teach : boolean) : Promise<void>
+    private async NewSession(teach : boolean, cb : (text) => void) : Promise<void>
     {
        BlisDebug.Log(`New session, Teach = ${teach}`);
 
-       this.blisClient.EndSession(this.appId, this.sessionId).then(async (string) =>
-       {
-          this.sessionId = await this.blisClient.StartSession(this.appId, this.modelId, teach);
-       });
+       this.blisClient.EndSession(this.appId, this.sessionId)
+        .then(async (string) =>
+        {
+            this.sessionId = await this.blisClient.StartSession(this.appId, this.modelId, teach);
+            cb(`New session, Teach = ${teach}`);
+        })
+        .catch((text) => cb(text));
     }
 
     private async DeleteApp(appId : string, cb : (text) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Delete Application`);
        await this.blisClient.DeleteApp(appId)
-        .then((text) => cb(text))
+        .then((text) => cb(`Deleted App ${appId}`))
         .catch((text) => cb(text));
     }
 
-    private DeleteAction(actionId : string) : void
+    private async DeleteAction(actionId : string, cb : (text) => void) : Promise<void>
     {
-       BlisDebug.Log(`Deleting Action`);
-       this.blisClient.DeleteAction(this.appId, actionId);
+       BlisDebug.Log(`Trying to Delete Action`);
+       await this.blisClient.DeleteAction(this.appId, actionId)
+        .then((text) => cb(`Deleted Action ${actionId}`))
+        .catch((text) => cb(text));
     }
 
     private Help() : string
@@ -146,9 +151,20 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             else if (command == "!next")
             {
                 let teach = (arg == 'teach');
-                this.NewSession(teach);
-                result.answer = "Starting new teach session";
+                this.NewSession(teach, (text) => {
+                    result.answer = text;
+                    cb(null, result);
+                });
+            }
+            else if (command == "!createapp")
+            {
+                result.answer = "TODO";
                 cb(null, result);
+                /*
+                this.DeleteApp(arg, (text) => {
+                    result.answer = text;
+                    cb(null, result);
+                });*/
             }
             else if (command == "!deleteapp")
             {
@@ -159,9 +175,10 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             }
             else if (command == "!deleteaction")
             {
-                this.DeleteAction(arg);
-                result.answer = "App has been deleted";
-                cb(null, result);
+                this.DeleteAction(arg, (text) => {
+                    result.answer = text;
+                    cb(null, result);
+                });
             }
             else if (command == "!help")
             {
