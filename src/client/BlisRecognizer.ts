@@ -111,7 +111,11 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     {
        BlisDebug.Log(`Trying to Create Application`);
        await this.blisClient.CreateApp(appName, luisKey)
-        .then((text) => cb(`Created App ${text}`))
+        .then((text) => 
+        {
+            this.appId = text;
+            cb(`Created App ${text}`)
+        })
         .catch((text) => cb(text));
     }
 

@@ -117,12 +117,16 @@ var BlisRecognizer = (function () {
     };
     BlisRecognizer.prototype.CreateApp = function (appName, luisKey, cb) {
         return tslib_1.__awaiter(this, void 0, void 0, function () {
+            var _this = this;
             return tslib_1.__generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
                         BlisDebug_1.BlisDebug.Log("Trying to Create Application");
                         return [4 /*yield*/, this.blisClient.CreateApp(appName, luisKey)
-                                .then(function (text) { return cb("Created App " + text); })
+                                .then(function (text) {
+                                _this.appId = text;
+                                cb("Created App " + text);
+                            })
                                 .catch(function (text) { return cb(text); })];
                     case 1:
                         _a.sent();
