@@ -96,10 +96,11 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
 
     private async NewSession(recognizer : BlisRecognizer, teach : boolean, cb : (text) => void) : Promise<void>
     {
-       BlisDebug.Log(`New session, Teach = ${teach}`);
+       BlisDebug.Log(`Trying to create new session, Teach = ${teach}`);
 
        if (this.sessionId) 
        {
+           BlisDebug.Log(`Trying to delete existing session`);
            await this.blisClient.EndSession(this.appId, this.sessionId);
        }
        await this.blisClient.StartSession(this.appId, this.modelId, teach)
@@ -160,6 +161,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         text += "!next teach => Start new teaching dialog\n\n"
         text += "!deleteApp => Delete existing application\n\n"
         text += "!deleteApp {appId} => Delete specified application\n\n"
+        text += "!whichApp => Return current appId\n\n"
         text += "!deleteAction {actionId} => Delete an action on current app\n\n"
         return text;
     }
@@ -206,6 +208,11 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                     result.answer = text;
                     cb(null, result);
                 });
+            }
+            else if (command == "!whichapp")
+            {
+                result.answer = <string>this.appId;
+                cb(null, result);
             }
             else if (command == "!deleteaction")
             {

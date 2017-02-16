@@ -95,8 +95,9 @@ var BlisRecognizer = (function () {
             return tslib_1.__generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        BlisDebug_1.BlisDebug.Log("New session, Teach = " + teach);
+                        BlisDebug_1.BlisDebug.Log("Trying to create new session, Teach = " + teach);
                         if (!this.sessionId) return [3 /*break*/, 2];
+                        BlisDebug_1.BlisDebug.Log("Trying to delete existing session");
                         return [4 /*yield*/, this.blisClient.EndSession(this.appId, this.sessionId)];
                     case 1:
                         _a.sent();
@@ -181,6 +182,7 @@ var BlisRecognizer = (function () {
         text += "!next teach => Start new teaching dialog\n\n";
         text += "!deleteApp => Delete existing application\n\n";
         text += "!deleteApp {appId} => Delete specified application\n\n";
+        text += "!whichApp => Return current appId\n\n";
         text += "!deleteAction {actionId} => Delete an action on current app\n\n";
         return text;
     };
@@ -216,6 +218,10 @@ var BlisRecognizer = (function () {
                     result.answer = text;
                     cb(null, result);
                 });
+            }
+            else if (command == "!whichapp") {
+                result.answer = this.appId;
+                cb(null, result);
             }
             else if (command == "!deleteaction") {
                 this.DeleteAction(this, arg, function (text) {
