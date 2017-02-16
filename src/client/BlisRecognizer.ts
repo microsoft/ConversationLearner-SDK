@@ -119,7 +119,14 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     {
        BlisDebug.Log(`Trying to Delete Application`);
        await this.blisClient.DeleteApp(appId)
-        .then((text) => cb(`Deleted App ${appId}`))
+        .then((text) => {
+            // Did I delete my active app?
+            if (appId == this.appId)
+            {
+                this.appId = null;
+            }
+            cb(`Deleted App ${appId}`)
+        })
         .catch((text) => cb(text));
     }
 
@@ -151,6 +158,11 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             let [command, arg, arg2] = text.split(' ');
             command = command.toLowerCase();
 
+            if (this.appId = null)
+            {
+                result.answer = "No Application has been loaded.  Type !help for more info.";
+                cb(null, result);
+            }
             if (command == "!reset")
             {
                 //TODO: reset

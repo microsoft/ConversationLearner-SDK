@@ -133,12 +133,19 @@ var BlisRecognizer = (function () {
     };
     BlisRecognizer.prototype.DeleteApp = function (appId, cb) {
         return tslib_1.__awaiter(this, void 0, void 0, function () {
+            var _this = this;
             return tslib_1.__generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
                         BlisDebug_1.BlisDebug.Log("Trying to Delete Application");
                         return [4 /*yield*/, this.blisClient.DeleteApp(appId)
-                                .then(function (text) { return cb("Deleted App " + appId); })
+                                .then(function (text) {
+                                // Did I delete my active app?
+                                if (appId == _this.appId) {
+                                    _this.appId = null;
+                                }
+                                cb("Deleted App " + appId);
+                            })
                                 .catch(function (text) { return cb(text); })];
                     case 1:
                         _a.sent();
@@ -178,6 +185,10 @@ var BlisRecognizer = (function () {
             var text = context.message.text.trim();
             var _a = text.split(' '), command = _a[0], arg = _a[1], arg2 = _a[2];
             command = command.toLowerCase();
+            if (this.appId = null) {
+                result.answer = "No Application has been loaded.  Type !help for more info.";
+                cb(null, result);
+            }
             if (command == "!reset") {
             }
             else if (command == "!next") {
