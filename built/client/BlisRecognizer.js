@@ -196,24 +196,25 @@ var BlisRecognizer = (function () {
                 });
             }
             else if (command == "!createapp") {
+                var that_1 = this;
                 this.CreateApp(arg, arg2, function (text) {
-                    _this.appId = text;
+                    that_1.appId = text;
                     result.answer = text;
                     cb(null, result);
                 });
             }
             else if (command == "!deleteapp") {
                 this.DeleteApp(arg, function (text) {
+                    // Did I delete my active app?
+                    if (text == _this.appId) {
+                        _this.appId = null;
+                    }
                     result.answer = text;
                     cb(null, result);
                 });
             }
             else if (command == "!deleteaction") {
                 this.DeleteAction(arg, function (text) {
-                    // Did I delete my active app?
-                    if (text == _this.appId) {
-                        _this.appId = null;
-                    }
                     result.answer = text;
                     cb(null, result);
                 });

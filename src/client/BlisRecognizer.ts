@@ -175,8 +175,9 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             }
             else if (command == "!createapp")
             {
+                let that = this;
                 this.CreateApp(arg, arg2, (text) => {
-                    this.appId = text;
+                    that.appId = text;
                     result.answer = text;
                     cb(null, result);
                 });
@@ -184,6 +185,11 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             else if (command == "!deleteapp")
             {
                 this.DeleteApp(arg, (text) => {
+                    // Did I delete my active app?
+                    if (text == this.appId)
+                    {
+                        this.appId = null;
+                    }
                     result.answer = text;
                     cb(null, result);
                 });
@@ -191,11 +197,6 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             else if (command == "!deleteaction")
             {
                 this.DeleteAction(arg, (text) => {
-                    // Did I delete my active app?
-                    if (text == this.appId)
-                    {
-                        this.appId = null;
-                    }
                     result.answer = text;
                     cb(null, result);
                 });
