@@ -108,7 +108,7 @@ var BlisRecognizer = (function () {
     };
     BlisRecognizer.prototype.TrainFromFile = function (recognizer, url, cb) {
         return tslib_1.__awaiter(this, void 0, void 0, function () {
-            var test, sniplist;
+            var test, snipObj;
             return tslib_1.__generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -116,8 +116,8 @@ var BlisRecognizer = (function () {
                         return [4 /*yield*/, this.ReadFromFile(url)];
                     case 1:
                         test = _a.sent();
-                        sniplist = JSON.parse(test);
-                        this.TrainOnSnippetList(recognizer, sniplist);
+                        snipObj = JSON.parse(test);
+                        this.TrainOnSnippetList(recognizer, snipObj.snippetlist);
                         return [2 /*return*/];
                 }
             });

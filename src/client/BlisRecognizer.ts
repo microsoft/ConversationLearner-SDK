@@ -119,8 +119,8 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     {
         url = "https://onedrive.live.com/download?cid=55DCA1313254B6CB&resid=55DCA1313254B6CB%213634&authkey=AIyjQoawD2vlHmc";
         var test = await this.ReadFromFile(url)
-        let sniplist = JSON.parse(test);
-        this.TrainOnSnippetList(recognizer, sniplist);
+        let snipObj = JSON.parse(test);
+        this.TrainOnSnippetList(recognizer, snipObj.snippetlist);
     }
 
     private async TrainOnSnippetList(recognizer : BlisRecognizer, sniplist : Snippet[]) : Promise<void>
