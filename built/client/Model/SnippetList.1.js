@@ -1,27 +1,27 @@
 "use strict";
 var tslib_1 = require("tslib");
 var json_typescript_mapper_1 = require("json-typescript-mapper");
-var SnipTurn = (function () {
-    function SnipTurn() {
+var Turn = (function () {
+    function Turn() {
     }
-    return SnipTurn;
+    return Turn;
 }());
 tslib_1.__decorate([
     json_typescript_mapper_1.JsonProperty('user_text'),
     tslib_1.__metadata("design:type", Array)
-], SnipTurn.prototype, "userText", void 0);
+], Turn.prototype, "userText", void 0);
 tslib_1.__decorate([
     json_typescript_mapper_1.JsonProperty('action'),
     tslib_1.__metadata("design:type", String)
-], SnipTurn.prototype, "action", void 0);
-exports.SnipTurn = SnipTurn;
+], Turn.prototype, "action", void 0);
+exports.Turn = Turn;
 var Snippet = (function () {
     function Snippet() {
     }
     return Snippet;
 }());
 tslib_1.__decorate([
-    json_typescript_mapper_1.JsonProperty({ clazz: SnipTurn, name: 'turns' }),
+    json_typescript_mapper_1.JsonProperty({ clazz: Turn, name: 'turns' }),
     tslib_1.__metadata("design:type", Array)
 ], Snippet.prototype, "turns", void 0);
 exports.Snippet = Snippet;
@@ -35,4 +35,4 @@ tslib_1.__decorate([
     tslib_1.__metadata("design:type", Array)
 ], SnippetList.prototype, "snippets", void 0);
 exports.SnippetList = SnippetList;
-//# sourceMappingURL=SnippetList.js.map
+//# sourceMappingURL=SnippetList.1.js.map

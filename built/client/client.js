@@ -203,6 +203,33 @@ var BlisClient = (function () {
             });
         });
     };
+    BlisClient.prototype.TrainDialog = function (appId, dialog) {
+        var _this = this;
+        var apiPath = "app/" + appId + "/traindialog";
+        return new Promise(function (resolve, reject) {
+            var requestData = {
+                url: _this.serviceUri + apiPath,
+                headers: {
+                    'Cookie': _this.credentials.Cookiestring()
+                },
+                body: {
+                    from_scratch: fromScratch
+                },
+                json: true
+            };
+            request.post(requestData, function (error, response, body) {
+                if (error) {
+                    reject(error);
+                }
+                else if (response.statusCode >= 300) {
+                    reject(body.message);
+                }
+                else {
+                    resolve(body.id);
+                }
+            });
+        });
+    };
     BlisClient.prototype.TrainModel = function (appId, fromScratch) {
         var _this = this;
         if (fromScratch === void 0) { fromScratch = false; }

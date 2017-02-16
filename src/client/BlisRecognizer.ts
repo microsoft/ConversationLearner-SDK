@@ -2,6 +2,7 @@ import * as builder from 'botbuilder';
 import * as request from 'request';
 import { TakeTurnRequest } from './Model/TakeTurnRequest'
 import { SnippetList, Snippet } from './Model/SnippetList'
+import { TrainDialog, Input, Turn } from './Model/TrainDialog'
 import { BlisClient } from './client';
 import { BlisDebug} from './BlisDebug';
 
@@ -127,6 +128,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     {
         // Extract actions and add them
         let actionList = [];
+        let actiontext2id = {};
         for (let snippet of sniplist)
         {
             for (let turn of snippet.turns)
@@ -135,12 +137,34 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                 {
                     BlisDebug.Log(`Add Action: ${turn.action}`)    
                     await this.blisClient.AddAction(this.appId, turn.action, new Array(), new Array(), null)
-                    .then((text) => actionList.push(turn.action))
+                    .then((actionId) => {
+                        actionList.push(turn.action);
+                        actiontext2id[turn.action] = actionId;
+                    })
                     .catch((text) => BlisDebug.Log(`!!${text}`) );
                 }
             }
         }
         BlisDebug.Log(`Found ${actionList.length} actions. `)    
+
+        // Now train on the dialogs
+        for (let snippet of sniplist)
+        {
+            let dialog = new TrainDialog();
+            for (let turn of snippet.turns)
+            {
+                let userText = turn.userText[0];  // TODO only training on first one
+                let actionId = actiontext2id[turn.action];
+                let input = new Input({'text' : userText});
+                let newturn = new Turn({'input' :input, 'output' : actionId });
+                dialog.turns.push(newturn);
+            }
+            await this.blisClient.TrainDialog(this.appId, dialog)
+            .then((text) => {
+                BlisDebug.Log(`Yes: ${text}`);
+            })
+            .catch((text) => BlisDebug.Log(`No: ${text}`) );
+        }
     }
 
     private async NewSession(recognizer : BlisRecognizer, teach : boolean, cb : (text) => void) : Promise<void>

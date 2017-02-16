@@ -1,6 +1,6 @@
 import { JsonProperty } from 'json-typescript-mapper';
 
-export class Turn
+export class SnipTurn
 {
     @JsonProperty('user_text')  
     public userText : string[];
@@ -11,8 +11,8 @@ export class Turn
 
 export class Snippet
 {
-    @JsonProperty({clazz: Turn, name: 'turns'})
-    public turns : Turn[];
+    @JsonProperty({clazz: SnipTurn, name: 'turns'})
+    public turns : SnipTurn[];
 }
 
 export class SnippetList

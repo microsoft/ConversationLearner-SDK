@@ -1,6 +1,7 @@
 "use strict";
 var tslib_1 = require("tslib");
 var request = require("request");
+var TrainDialog_1 = require("./Model/TrainDialog");
 var client_1 = require("./client");
 var BlisDebug_1 = require("./BlisDebug");
 var TakeTurnResponse_1 = require("../client/Model/TakeTurnResponse");
@@ -125,13 +126,14 @@ var BlisRecognizer = (function () {
     };
     BlisRecognizer.prototype.TrainOnSnippetList = function (recognizer, sniplist) {
         return tslib_1.__awaiter(this, void 0, void 0, function () {
-            var actionList, _i, sniplist_1, snippet, _loop_1, this_1, _a, _b, turn;
-            return tslib_1.__generator(this, function (_c) {
-                switch (_c.label) {
+            var actionList, actiontext2id, _i, sniplist_1, snippet, _loop_1, this_1, _a, _b, turn, _c, sniplist_2, snippet, dialog, _d, _e, turn, userText, actionId, input, newturn;
+            return tslib_1.__generator(this, function (_f) {
+                switch (_f.label) {
                     case 0:
                         actionList = [];
+                        actiontext2id = {};
                         _i = 0, sniplist_1 = sniplist;
-                        _c.label = 1;
+                        _f.label = 1;
                     case 1:
                         if (!(_i < sniplist_1.length)) return [3 /*break*/, 6];
                         snippet = sniplist_1[_i];
@@ -142,7 +144,10 @@ var BlisRecognizer = (function () {
                                         if (!(actionList.indexOf(turn.action) == -1)) return [3 /*break*/, 2];
                                         BlisDebug_1.BlisDebug.Log("Add Action: " + turn.action);
                                         return [4 /*yield*/, this_1.blisClient.AddAction(this_1.appId, turn.action, new Array(), new Array(), null)
-                                                .then(function (text) { return actionList.push(turn.action); })
+                                                .then(function (actionId) {
+                                                actionList.push(turn.action);
+                                                actiontext2id[turn.action] = actionId;
+                                            })
                                                 .catch(function (text) { return BlisDebug_1.BlisDebug.Log("!!" + text); })];
                                     case 1:
                                         _a.sent();
@@ -153,14 +158,14 @@ var BlisRecognizer = (function () {
                         };
                         this_1 = this;
                         _a = 0, _b = snippet.turns;
-                        _c.label = 2;
+                        _f.label = 2;
                     case 2:
                         if (!(_a < _b.length)) return [3 /*break*/, 5];
                         turn = _b[_a];
                         return [5 /*yield**/, _loop_1(turn)];
                     case 3:
-                        _c.sent();
-                        _c.label = 4;
+                        _f.sent();
+                        _f.label = 4;
                     case 4:
                         _a++;
                         return [3 /*break*/, 2];
@@ -169,7 +174,32 @@ var BlisRecognizer = (function () {
                         return [3 /*break*/, 1];
                     case 6:
                         BlisDebug_1.BlisDebug.Log("Found " + actionList.length + " actions. ");
-                        return [2 /*return*/];
+                        _c = 0, sniplist_2 = sniplist;
+                        _f.label = 7;
+                    case 7:
+                        if (!(_c < sniplist_2.length)) return [3 /*break*/, 10];
+                        snippet = sniplist_2[_c];
+                        dialog = new TrainDialog_1.TrainDialog();
+                        for (_d = 0, _e = snippet.turns; _d < _e.length; _d++) {
+                            turn = _e[_d];
+                            userText = turn.userText[0];
+                            actionId = actiontext2id[turn.action];
+                            input = new TrainDialog_1.Input({ 'text': userText });
+                            newturn = new TrainDialog_1.Turn({ 'input': input, 'output': actionId });
+                            dialog.turns.push(newturn);
+                        }
+                        return [4 /*yield*/, this.blisClient.TrainDialog(this.appId, dialog)
+                                .then(function (text) {
+                                BlisDebug_1.BlisDebug.Log("Yes: " + text);
+                            })
+                                .catch(function (text) { return BlisDebug_1.BlisDebug.Log("No: " + text); })];
+                    case 8:
+                        _f.sent();
+                        _f.label = 9;
+                    case 9:
+                        _c++;
+                        return [3 /*break*/, 7];
+                    case 10: return [2 /*return*/];
                 }
             });
         });

@@ -4,6 +4,7 @@ import {deserialize} from 'json-typescript-mapper';
 import { Credentials } from './Http/Credentials';
 import { SessionRequest } from './Model/SessionRequest';
 import { AppRequest } from './Model/AppRequest';
+import { TrainDialog } from './Model/TrainDialog';
 import { Entity, Action, ActionTypes, TakeTurnModes, TakeTurnResponse } from './Model/TakeTurnResponse'
 import { TakeTurnRequest } from './Model/TakeTurnRequest'
 import { HandleError, Debug } from './Model/ErrorHandler';
@@ -226,6 +227,37 @@ export class BlisClient {
                     }
                 }
                 request.delete(url, requestData, (error, response, body) => {
+                    if (error) {
+                        reject(error);
+                    }
+                    else if (response.statusCode >= 300) {
+                        reject(body.message);
+                    }
+                    else {
+                        resolve(body.id);
+                    }
+                });
+            }
+        )
+    }
+
+    public TrainDialog(appId : string, dialog : TrainDialog) : Promise<string>
+    {
+        let apiPath = `app/${appId}/traindialog`;
+        return new Promise(
+            (resolve, reject) => {
+               const requestData = {
+                    url: this.serviceUri+apiPath,
+                    headers: {
+                        'Cookie' : this.credentials.Cookiestring()
+                    },
+                    body: {
+                        from_scratch : fromScratch
+                    },
+                    json: true
+                }
+
+                request.post(requestData, (error, response, body) => {
                     if (error) {
                         reject(error);
                     }
