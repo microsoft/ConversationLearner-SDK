@@ -215,7 +215,7 @@ export class BlisClient {
 
     public DeleteAction(appId : String, actionId : String) : Promise<String>
     {
-        let apiPath = `app/${appId}/action${actionId}`;
+        let apiPath = `app/${appId}/action/${actionId}`;
 
         return new Promise(
             (resolve, reject) => {

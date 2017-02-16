@@ -104,10 +104,12 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
        });
     }
 
-    private DeleteApp(appId : string) : void
+    private async DeleteApp(appId : string, cb : (text) => void) : Promise<void>
     {
-       BlisDebug.Log(`Deleting Application`);
-       this.blisClient.DeleteApp(appId);
+       BlisDebug.Log(`Trying to Delete Application`);
+       await this.blisClient.DeleteApp(appId)
+        .then((text) => cb(text))
+        .catch((text) => cb(text));
     }
 
     private DeleteAction(actionId : string) : void
@@ -118,11 +120,11 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
 
     private Help() : string
     {
-        let text = null;
-        text += "!next                      Start new dialog\n\n";
-        text += "!next teach                Start new teaching dialog\n\n"
-        text += "!deleteApp {appId}         Delete an application\n\n"
-        text += "!deleteAction {actionId}   Delete an action on current app\n\n"
+        let text = "";
+        text += "!next => Start new dialog\n\n";
+        text += "!next teach => Start new teaching dialog\n\n"
+        text += "!deleteApp {appId} => Delete an application\n\n"
+        text += "!deleteAction {actionId} => Delete an action on current app\n\n"
         return text;
     }
 
@@ -150,9 +152,10 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             }
             else if (command == "!deleteapp")
             {
-                this.DeleteApp(arg);
-                result.answer = "App has been deleted";
-                cb(null, result);
+                this.DeleteApp(arg, (text) => {
+                    result.answer = text;
+                    cb(null, result);
+                });
             }
             else if (command == "!deleteaction")
             {

@@ -112,20 +112,32 @@ var BlisRecognizer = (function () {
             });
         });
     };
-    BlisRecognizer.prototype.DeleteApp = function (appId) {
-        BlisDebug_1.BlisDebug.Log("Deleting Application");
-        this.blisClient.DeleteApp(appId);
+    BlisRecognizer.prototype.DeleteApp = function (appId, cb) {
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            return tslib_1.__generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        BlisDebug_1.BlisDebug.Log("Trying to Delete Application");
+                        return [4 /*yield*/, this.blisClient.DeleteApp(appId)
+                                .then(function (text) { return cb(text); })
+                                .catch(function (text) { return cb(text); })];
+                    case 1:
+                        _a.sent();
+                        return [2 /*return*/];
+                }
+            });
+        });
     };
     BlisRecognizer.prototype.DeleteAction = function (actionId) {
         BlisDebug_1.BlisDebug.Log("Deleting Action");
         this.blisClient.DeleteAction(this.appId, actionId);
     };
     BlisRecognizer.prototype.Help = function () {
-        var text = null;
-        text += "!next                      Start new dialog\n\n";
-        text += "!next teach                Start new teaching dialog\n\n";
-        text += "!deleteApp {appId}         Delete an application\n\n";
-        text += "!deleteAction {actionId}   Delete an action on current app\n\n";
+        var text = "";
+        text += "!next => Start new dialog\n\n";
+        text += "!next teach => Start new teaching dialog\n\n";
+        text += "!deleteApp {appId} => Delete an application\n\n";
+        text += "!deleteAction {actionId} => Delete an action on current app\n\n";
         return text;
     };
     BlisRecognizer.prototype.recognize = function (context, cb) {
@@ -144,9 +156,10 @@ var BlisRecognizer = (function () {
                 cb(null, result);
             }
             else if (command == "!deleteapp") {
-                this.DeleteApp(arg);
-                result.answer = "App has been deleted";
-                cb(null, result);
+                this.DeleteApp(arg, function (text) {
+                    result.answer = text;
+                    cb(null, result);
+                });
             }
             else if (command == "!deleteaction") {
                 this.DeleteAction(arg);

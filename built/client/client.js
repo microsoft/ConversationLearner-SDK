@@ -179,7 +179,7 @@ var BlisClient = (function () {
     };
     BlisClient.prototype.DeleteAction = function (appId, actionId) {
         var _this = this;
-        var apiPath = "app/" + appId + "/action" + actionId;
+        var apiPath = "app/" + appId + "/action/" + actionId;
         return new Promise(function (resolve, reject) {
             var url = _this.serviceUri + apiPath;
             var requestData = {
