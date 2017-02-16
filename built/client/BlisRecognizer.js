@@ -115,6 +115,22 @@ var BlisRecognizer = (function () {
             });
         });
     };
+    BlisRecognizer.prototype.CreateApp = function (appName, luisKey, cb) {
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            return tslib_1.__generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        BlisDebug_1.BlisDebug.Log("Trying to Create Application");
+                        return [4 /*yield*/, this.blisClient.CreateApp(appName, luisKey)
+                                .then(function (text) { return cb("Created App " + text); })
+                                .catch(function (text) { return cb(text); })];
+                    case 1:
+                        _a.sent();
+                        return [2 /*return*/];
+                }
+            });
+        });
+    };
     BlisRecognizer.prototype.DeleteApp = function (appId, cb) {
         return tslib_1.__awaiter(this, void 0, void 0, function () {
             return tslib_1.__generator(this, function (_a) {
@@ -160,7 +176,7 @@ var BlisRecognizer = (function () {
         var result = { score: 1.0, answer: null, intent: null };
         if (context && context.message && context.message.text) {
             var text = context.message.text.trim();
-            var _a = text.split(' '), command = _a[0], arg = _a[1];
+            var _a = text.split(' '), command = _a[0], arg = _a[1], arg2 = _a[2];
             command = command.toLowerCase();
             if (command == "!reset") {
             }
@@ -172,8 +188,10 @@ var BlisRecognizer = (function () {
                 });
             }
             else if (command == "!createapp") {
-                result.answer = "TODO";
-                cb(null, result);
+                this.CreateApp(arg, arg2, function (text) {
+                    result.answer = text;
+                    cb(null, result);
+                });
             }
             else if (command == "!deleteapp") {
                 this.DeleteApp(arg, function (text) {

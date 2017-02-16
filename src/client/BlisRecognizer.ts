@@ -107,6 +107,14 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         .catch((text) => cb(text));
     }
 
+    private async CreateApp(appName : string, luisKey, cb : (text) => void) : Promise<void>
+    {
+       BlisDebug.Log(`Trying to Create Application`);
+       await this.blisClient.CreateApp(appName, luisKey)
+        .then((text) => cb(`Created App ${text}`))
+        .catch((text) => cb(text));
+    }
+
     private async DeleteApp(appId : string, cb : (text) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Delete Application`);
@@ -140,7 +148,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         if (context && context.message && context.message.text) {
             
             let text = context.message.text.trim();
-            let [command, arg] = text.split(' ');
+            let [command, arg, arg2] = text.split(' ');
             command = command.toLowerCase();
 
             if (command == "!reset")
@@ -158,13 +166,10 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             }
             else if (command == "!createapp")
             {
-                result.answer = "TODO";
-                cb(null, result);
-                /*
-                this.DeleteApp(arg, (text) => {
+                this.CreateApp(arg, arg2, (text) => {
                     result.answer = text;
                     cb(null, result);
-                });*/
+                });
             }
             else if (command == "!deleteapp")
             {
