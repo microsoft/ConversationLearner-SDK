@@ -272,7 +272,7 @@ export class BlisClient {
         )
     }
 
-    public TrainModel(appId : string, fromScratch : boolean = false) : Promise<string>
+    public TrainModel(appId : string, traindialog : TrainDialog) : Promise<string>
     {
         let apiPath = `app/${appId}/model`;
         return new Promise(
@@ -282,11 +282,9 @@ export class BlisClient {
                     headers: {
                         'Cookie' : this.credentials.Cookiestring()
                     },
-                    body: {
-                        from_scratch : fromScratch
-                    },
                     json: true
                 }
+                requestData['body'] = JSON.stringify(traindialog);
 
                 request.post(requestData, (error, response, body) => {
                     if (error) {

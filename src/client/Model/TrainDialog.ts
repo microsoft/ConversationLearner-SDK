@@ -10,6 +10,14 @@ export class Input
         this.text = undefined;
         (<any>Object).assign(this, init);
     }
+
+    public ToJSON() : {}
+    {
+        var json = {};
+        if (this.text)  
+            json['text'] = this.text;
+        return json;
+    }
 }
 
 export class Turn
@@ -26,10 +34,30 @@ export class Turn
         this.output = undefined;
         (<any>Object).assign(this, init);
     }
+
+    public ToJSON() : {}
+    {
+        var json = {};
+        if (this.input)  
+            json['input'] = this.input.ToJSON();
+        if (this.output)
+            json['output'] = this.output;
+        return json;
+    }
 }
 
 export class TrainDialog
 {
     @JsonProperty({clazz: Turn, name: 'snippetlist'})
     public turns : Turn[];
+
+    public ToJSON() : {}
+    {
+        var json = {};
+        if (this.turns)  
+        {
+           // json['turns'] = this.originalText;
+        }
+        return json;
+    }
 }

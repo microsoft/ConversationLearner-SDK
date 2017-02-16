@@ -6,6 +6,12 @@ var Input = (function () {
         this.text = undefined;
         Object.assign(this, init);
     }
+    Input.prototype.ToJSON = function () {
+        var json = {};
+        if (this.text)
+            json['text'] = this.text;
+        return json;
+    };
     return Input;
 }());
 tslib_1.__decorate([
@@ -19,6 +25,14 @@ var Turn = (function () {
         this.output = undefined;
         Object.assign(this, init);
     }
+    Turn.prototype.ToJSON = function () {
+        var json = {};
+        if (this.input)
+            json['input'] = this.input.ToJSON();
+        if (this.output)
+            json['output'] = this.output;
+        return json;
+    };
     return Turn;
 }());
 tslib_1.__decorate([
@@ -33,6 +47,12 @@ exports.Turn = Turn;
 var TrainDialog = (function () {
     function TrainDialog() {
     }
+    TrainDialog.prototype.ToJSON = function () {
+        var json = {};
+        if (this.turns) {
+        }
+        return json;
+    };
     return TrainDialog;
 }());
 tslib_1.__decorate([
