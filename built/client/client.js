@@ -150,6 +150,9 @@ var BlisClient = (function () {
     };
     BlisClient.prototype.AddAction = function (appId, content, requiredEntityList, negativeEntityList, prebuiltEntityName) {
         var _this = this;
+        if (requiredEntityList === void 0) { requiredEntityList = null; }
+        if (negativeEntityList === void 0) { negativeEntityList = null; }
+        if (prebuiltEntityName === void 0) { prebuiltEntityName = null; }
         var apiPath = "app/" + appId + "/action";
         return new Promise(function (resolve, reject) {
             var requestData = {

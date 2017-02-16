@@ -179,7 +179,7 @@ export class BlisClient {
         )
     }
 
-    public AddAction(appId : string, content : string, requiredEntityList : string[], negativeEntityList : string[], prebuiltEntityName : string) : Promise<string>
+    public AddAction(appId : string, content : string, requiredEntityList : string[] = null, negativeEntityList : string[] = null, prebuiltEntityName : string = null) : Promise<string>
     {
         let apiPath = `app/${appId}/action`;
 
