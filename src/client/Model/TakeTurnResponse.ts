@@ -37,6 +37,9 @@ export class TakeTurnResponse
     @JsonProperty({clazz: Action, name: 'action'})
     public action : Action;
 
+    @JsonProperty('error')
+    public error : string;
+
     public constructor(init?:Partial<TakeTurnResponse>)
     {
         this.originalText = undefined;
@@ -44,6 +47,7 @@ export class TakeTurnResponse
         this.mode = undefined;
         this.actions = undefined;
         this.action = undefined;
+        this.error = undefined;
         (<any>Object).assign(this, init);
     }
     
@@ -63,6 +67,7 @@ export class TakeTurnModes
     public static Callback : String = "lu_callback";
     public static Teach : String = "teach";
     public static Action : String = "action";
+    public static Error : String = "error";
 }
 
 export class ActionTypes

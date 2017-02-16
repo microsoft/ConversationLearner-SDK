@@ -34,7 +34,7 @@ var BlisClient = (function () {
                     reject(error);
                 }
                 else if (response.statusCode >= 300) {
-                    reject(body);
+                    reject(body.message);
                 }
                 else {
                     resolve(body.id);
@@ -57,7 +57,7 @@ var BlisClient = (function () {
                     reject(error);
                 }
                 else if (response.statusCode >= 300) {
-                    reject(body);
+                    reject(body.message);
                 }
                 else {
                     resolve(body.id);
@@ -88,7 +88,7 @@ var BlisClient = (function () {
                     reject(error);
                 }
                 else if (response.statusCode >= 300) {
-                    reject(body);
+                    reject(body.message);
                 }
                 else {
                     resolve(body.id);
@@ -111,7 +111,7 @@ var BlisClient = (function () {
                     reject(error);
                 }
                 else if (response.statusCode >= 300) {
-                    reject(body);
+                    reject(body.message);
                 }
                 else {
                     resolve(body.id);
@@ -140,7 +140,7 @@ var BlisClient = (function () {
                     reject(error);
                 }
                 else if (response.statusCode >= 300) {
-                    reject(body);
+                    reject(body.message);
                 }
                 else {
                     resolve(body.id);
@@ -169,7 +169,7 @@ var BlisClient = (function () {
                     reject(error);
                 }
                 else if (response.statusCode >= 300) {
-                    reject(body);
+                    reject(body.message);
                 }
                 else {
                     resolve(body.id);
@@ -192,7 +192,7 @@ var BlisClient = (function () {
                     reject(error);
                 }
                 else if (response.statusCode >= 300) {
-                    reject(body);
+                    reject(body.message);
                 }
                 else {
                     resolve(body.id);
@@ -220,7 +220,7 @@ var BlisClient = (function () {
                     reject(error);
                 }
                 else if (response.statusCode >= 300) {
-                    reject(body);
+                    reject(body.message);
                 }
                 else {
                     resolve(body.id);
@@ -231,7 +231,7 @@ var BlisClient = (function () {
     BlisClient.prototype.TakeTurn = function (appId, sessionId, text, luCallback, apiCallbacks, resultCallback) {
         if (apiCallbacks === void 0) { apiCallbacks = {}; }
         return tslib_1.__awaiter(this, void 0, void 0, function () {
-            var takeTurnRequest, expectedNextModes, takeTurnResponse, apiName;
+            var takeTurnRequest, expectedNextModes;
             return tslib_1.__generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -240,55 +240,62 @@ var BlisClient = (function () {
                         _a.label = 1;
                     case 1:
                         if (!true) return [3 /*break*/, 3];
-                        return [4 /*yield*/, this.TakeATurn(appId, sessionId, takeTurnRequest)];
-                    case 2:
-                        takeTurnResponse = _a.sent();
-                        ErrorHandler_1.Debug(takeTurnResponse);
-                        if (expectedNextModes.indexOf(takeTurnResponse.mode) < 0) {
-                            ErrorHandler_1.HandleError("Unexpected mode " + takeTurnResponse.mode);
-                        }
-                        if (takeTurnResponse.mode) {
-                            // LU CALLBACK
-                            if (takeTurnResponse.mode == TakeTurnResponse_1.TakeTurnModes.Callback) {
-                                if (luCallback) {
-                                    takeTurnRequest = luCallback(takeTurnResponse.originalText, takeTurnResponse.entities);
+                        // Take a turn
+                        return [4 /*yield*/, this.TakeATurn(appId, sessionId, takeTurnRequest)
+                                .then(function (takeTurnResponse) {
+                                ErrorHandler_1.Debug(takeTurnResponse);
+                                if (expectedNextModes.indexOf(takeTurnResponse.mode) < 0) {
+                                    ErrorHandler_1.HandleError("Unexpected mode " + takeTurnResponse.mode);
                                 }
-                                else {
-                                    takeTurnRequest = new TakeTurnRequest_1.TakeTurnRequest(); // TODO
-                                }
-                                expectedNextModes = [TakeTurnResponse_1.TakeTurnModes.Action, TakeTurnResponse_1.TakeTurnModes.Teach];
-                            }
-                            else if (takeTurnResponse.mode == TakeTurnResponse_1.TakeTurnModes.Teach) {
-                                return [2 /*return*/, resultCallback(takeTurnResponse)];
-                            }
-                            else if (takeTurnResponse.mode == TakeTurnResponse_1.TakeTurnModes.Action) {
-                                if (takeTurnResponse.actions[0].actionType == TakeTurnResponse_1.ActionTypes.Text) {
-                                    return [2 /*return*/, resultCallback(takeTurnResponse)];
-                                }
-                                else if (takeTurnResponse.actions[0].actionType == TakeTurnResponse_1.ActionTypes.API) {
-                                    apiName = takeTurnResponse.actions[0].content;
-                                    if (apiCallbacks[apiName]) {
-                                        // TODO handle apli callback
-                                        /*
-                                        takeTurnResponse = apiCallbacks[apiName]();
-                                        req_json = {
-                                            'entities': entities,
-                                            'context': context,
-                                            'action_mask': action_mask,
+                                if (takeTurnResponse.mode) {
+                                    // LU CALLBACK
+                                    if (takeTurnResponse.mode == TakeTurnResponse_1.TakeTurnModes.Callback) {
+                                        if (luCallback) {
+                                            takeTurnRequest = luCallback(takeTurnResponse.originalText, takeTurnResponse.entities);
                                         }
-                                        expected_next_modes = ['teach','action']
-                                        */
+                                        else {
+                                            takeTurnRequest = new TakeTurnRequest_1.TakeTurnRequest(); // TODO
+                                        }
                                         expectedNextModes = [TakeTurnResponse_1.TakeTurnModes.Action, TakeTurnResponse_1.TakeTurnModes.Teach];
                                     }
-                                    else {
-                                        ErrorHandler_1.HandleError("API " + apiName + " not defined");
+                                    else if (takeTurnResponse.mode == TakeTurnResponse_1.TakeTurnModes.Teach) {
+                                        return resultCallback(takeTurnResponse);
+                                    }
+                                    else if (takeTurnResponse.mode == TakeTurnResponse_1.TakeTurnModes.Action) {
+                                        if (takeTurnResponse.actions[0].actionType == TakeTurnResponse_1.ActionTypes.Text) {
+                                            return resultCallback(takeTurnResponse);
+                                        }
+                                        else if (takeTurnResponse.actions[0].actionType == TakeTurnResponse_1.ActionTypes.API) {
+                                            var apiName = takeTurnResponse.actions[0].content;
+                                            if (apiCallbacks[apiName]) {
+                                                // TODO handle apli callback
+                                                /*
+                                                takeTurnResponse = apiCallbacks[apiName]();
+                                                req_json = {
+                                                    'entities': entities,
+                                                    'context': context,
+                                                    'action_mask': action_mask,
+                                                }
+                                                expected_next_modes = ['teach','action']
+                                                */
+                                                expectedNextModes = [TakeTurnResponse_1.TakeTurnModes.Action, TakeTurnResponse_1.TakeTurnModes.Teach];
+                                            }
+                                            else {
+                                                ErrorHandler_1.HandleError("API " + apiName + " not defined");
+                                            }
+                                        }
                                     }
                                 }
-                            }
-                        }
-                        else {
-                            ErrorHandler_1.HandleError("mode ${response.mode} not supported by the SDK.");
-                        }
+                                else {
+                                    ErrorHandler_1.HandleError("mode ${response.mode} not supported by the SDK.");
+                                }
+                            })
+                                .catch(function (text) {
+                                return new TakeTurnResponse_1.TakeTurnResponse({ mode: TakeTurnResponse_1.TakeTurnModes.Error, error: text });
+                            })];
+                    case 2:
+                        // Take a turn
+                        _a.sent();
                         return [3 /*break*/, 1];
                     case 3: return [2 /*return*/];
                 }

@@ -218,7 +218,12 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                             let outText = this.InsertEntities(response.actions[0].content);
                             result.answer = outText;
                         } 
-                        else {
+                        else if (response.mode == TakeTurnModes.Error)
+                        {
+                            result.answer = response.error;
+                        }
+                        else 
+                        {
                             result.answer = `Don't know mode: ${response.mode}`;
                         }
                         cb(null,result);

@@ -231,6 +231,9 @@ var BlisRecognizer = (function () {
                         var outText = _this.InsertEntities(response.actions[0].content);
                         result.answer = outText;
                     }
+                    else if (response.mode == TakeTurnResponse_1.TakeTurnModes.Error) {
+                        result.answer = response.error;
+                    }
                     else {
                         result.answer = "Don't know mode: " + response.mode;
                     }

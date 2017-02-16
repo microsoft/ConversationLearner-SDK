@@ -44,7 +44,7 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(body);
+                        reject(body.message);
                     }
                     else {
                         resolve(body.id);
@@ -71,7 +71,7 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(body);
+                        reject(body.message);
                     }
                     else {
                         resolve(body.id);
@@ -106,7 +106,7 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(body);
+                        reject(body.message);
                     }
                     else {
                         resolve(body.id);
@@ -134,7 +134,7 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(body);
+                        reject(body.message);
                     }
                     else {
                         resolve(body.id);
@@ -169,7 +169,7 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(body);
+                        reject(body.message);
                     }
                     else {
                         resolve(body.id);
@@ -203,7 +203,7 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(body);
+                        reject(body.message);
                     }
                     else {
                         resolve(body.id);
@@ -230,7 +230,7 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(body);
+                        reject(body.message);
                     }
                     else {
                         resolve(body.id);
@@ -261,7 +261,7 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(body);
+                        reject(body.message);
                     }
                     else {
                         resolve(body.id);
@@ -283,70 +283,74 @@ export class BlisClient {
         {
             // Take a turn
 
-            var takeTurnResponse = await this.TakeATurn(appId, sessionId, takeTurnRequest);
+            await this.TakeATurn(appId, sessionId, takeTurnRequest)
+            .then((takeTurnResponse) => {
+                Debug(takeTurnResponse);
 
-            Debug(takeTurnResponse);
-
-            if (expectedNextModes.indexOf(takeTurnResponse.mode) < 0)
-            {
-                HandleError(`Unexpected mode ${takeTurnResponse.mode}`);
-            }
-            if (takeTurnResponse.mode) {
-
-                // LU CALLBACK
-                if (takeTurnResponse.mode == TakeTurnModes.Callback)
+                if (expectedNextModes.indexOf(takeTurnResponse.mode) < 0)
                 {
-                    if (luCallback)
-                    {
-                        takeTurnRequest = luCallback(takeTurnResponse.originalText, takeTurnResponse.entities);
-                    }
-                    else
-                    {
-                        takeTurnRequest = new TakeTurnRequest();  // TODO
-                    }
-                    expectedNextModes = [TakeTurnModes.Action, TakeTurnModes.Teach];
+                    HandleError(`Unexpected mode ${takeTurnResponse.mode}`);
                 }
-                // TEACH
-                else if (takeTurnResponse.mode == TakeTurnModes.Teach)
-                {
-                    return resultCallback(takeTurnResponse);
-                }
+                if (takeTurnResponse.mode) {
 
-                // ACTION
-                else if (takeTurnResponse.mode == TakeTurnModes.Action)
-                {
-                    if (takeTurnResponse.actions[0].actionType == ActionTypes.Text)
+                    // LU CALLBACK
+                    if (takeTurnResponse.mode == TakeTurnModes.Callback)
+                    {
+                        if (luCallback)
+                        {
+                            takeTurnRequest = luCallback(takeTurnResponse.originalText, takeTurnResponse.entities);
+                        }
+                        else
+                        {
+                            takeTurnRequest = new TakeTurnRequest();  // TODO
+                        }
+                        expectedNextModes = [TakeTurnModes.Action, TakeTurnModes.Teach];
+                    }
+                    // TEACH
+                    else if (takeTurnResponse.mode == TakeTurnModes.Teach)
                     {
                         return resultCallback(takeTurnResponse);
                     }
-                    else if (takeTurnResponse.actions[0].actionType == ActionTypes.API)
+
+                    // ACTION
+                    else if (takeTurnResponse.mode == TakeTurnModes.Action)
                     {
-                        var apiName = takeTurnResponse.actions[0].content;
-                        if (apiCallbacks[apiName])
+                        if (takeTurnResponse.actions[0].actionType == ActionTypes.Text)
                         {
-                            // TODO handle apli callback
-                            /*
-                            takeTurnResponse = apiCallbacks[apiName]();
-                            req_json = {
-                                'entities': entities,
-                                'context': context,
-                                'action_mask': action_mask,
-                            }
-                            expected_next_modes = ['teach','action']
-                            */
-                            expectedNextModes = [TakeTurnModes.Action, TakeTurnModes.Teach];
+                            return resultCallback(takeTurnResponse);
                         }
-                        else 
+                        else if (takeTurnResponse.actions[0].actionType == ActionTypes.API)
                         {
-                            HandleError(`API ${apiName} not defined`);
+                            var apiName = takeTurnResponse.actions[0].content;
+                            if (apiCallbacks[apiName])
+                            {
+                                // TODO handle apli callback
+                                /*
+                                takeTurnResponse = apiCallbacks[apiName]();
+                                req_json = {
+                                    'entities': entities,
+                                    'context': context,
+                                    'action_mask': action_mask,
+                                }
+                                expected_next_modes = ['teach','action']
+                                */
+                                expectedNextModes = [TakeTurnModes.Action, TakeTurnModes.Teach];
+                            }
+                            else 
+                            {
+                                HandleError(`API ${apiName} not defined`);
+                            }
                         }
                     }
                 }
-            }
-            else
-            {
-                HandleError("mode ${response.mode} not supported by the SDK.");
-            }
+                else
+                {
+                    HandleError("mode ${response.mode} not supported by the SDK.");
+                }
+            })
+            .catch((text) => {
+                return new TakeTurnResponse({ mode : TakeTurnModes.Error, error: text} );
+            });
         }
     }
 

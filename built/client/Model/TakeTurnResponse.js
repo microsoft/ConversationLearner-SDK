@@ -30,6 +30,7 @@ var TakeTurnResponse = (function () {
         this.mode = undefined;
         this.actions = undefined;
         this.action = undefined;
+        this.error = undefined;
         Object.assign(this, init);
     }
     TakeTurnResponse.prototype.ToJSON = function () {
@@ -62,6 +63,10 @@ tslib_1.__decorate([
     json_typescript_mapper_1.JsonProperty({ clazz: Action, name: 'action' }),
     tslib_1.__metadata("design:type", Action)
 ], TakeTurnResponse.prototype, "action", void 0);
+tslib_1.__decorate([
+    json_typescript_mapper_1.JsonProperty('error'),
+    tslib_1.__metadata("design:type", String)
+], TakeTurnResponse.prototype, "error", void 0);
 exports.TakeTurnResponse = TakeTurnResponse;
 var TakeTurnModes = (function () {
     function TakeTurnModes() {
@@ -71,6 +76,7 @@ var TakeTurnModes = (function () {
 TakeTurnModes.Callback = "lu_callback";
 TakeTurnModes.Teach = "teach";
 TakeTurnModes.Action = "action";
+TakeTurnModes.Error = "error";
 exports.TakeTurnModes = TakeTurnModes;
 var ActionTypes = (function () {
     function ActionTypes() {
