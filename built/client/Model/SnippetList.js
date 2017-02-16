@@ -2,7 +2,10 @@
 var tslib_1 = require("tslib");
 var json_typescript_mapper_1 = require("json-typescript-mapper");
 var SnipTurn = (function () {
-    function SnipTurn() {
+    function SnipTurn(init) {
+        this.userText = undefined;
+        this.action = undefined;
+        Object.assign(this, init);
     }
     return SnipTurn;
 }());
@@ -16,7 +19,9 @@ tslib_1.__decorate([
 ], SnipTurn.prototype, "action", void 0);
 exports.SnipTurn = SnipTurn;
 var Snippet = (function () {
-    function Snippet() {
+    function Snippet(init) {
+        this.turns = undefined;
+        Object.assign(this, init);
     }
     return Snippet;
 }());
@@ -26,7 +31,9 @@ tslib_1.__decorate([
 ], Snippet.prototype, "turns", void 0);
 exports.Snippet = Snippet;
 var SnippetList = (function () {
-    function SnippetList() {
+    function SnippetList(init) {
+        this.snippets = undefined;
+        Object.assign(this, init);
     }
     return SnippetList;
 }());
