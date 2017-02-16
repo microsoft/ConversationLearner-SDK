@@ -373,7 +373,7 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(body);
+                        reject(body.message);
                     }
                     else {
                         // API hands back with one action or a list of actions
