@@ -1,5 +1,6 @@
 import * as builder from 'botbuilder';
 import * as request from 'request';
+import { deserialize } from 'json-typescript-mapper';
 import { TakeTurnRequest } from './Model/TakeTurnRequest'
 import { SnippetList, Snippet } from './Model/SnippetList'
 import { TrainDialog, Input, Turn } from './Model/TrainDialog'
@@ -119,9 +120,9 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     private async TrainFromFile(recognizer : BlisRecognizer, url : string, cb : (text) => void) : Promise<void>
     {
         url = "https://onedrive.live.com/download?cid=55DCA1313254B6CB&resid=55DCA1313254B6CB%213634&authkey=AIyjQoawD2vlHmc";
-        var test = await this.ReadFromFile(url)
-        let snipObj = JSON.parse(test);
-        this.TrainOnSnippetList(recognizer, snipObj.snippetlist);
+        var text = await this.ReadFromFile(url)
+        let snipObj = deserialize(SnippetList, JSON.parse(text));
+        this.TrainOnSnippetList(recognizer, snipObj.snippets);
     }
 
     private async TrainOnSnippetList(recognizer : BlisRecognizer, sniplist : Snippet[]) : Promise<void>

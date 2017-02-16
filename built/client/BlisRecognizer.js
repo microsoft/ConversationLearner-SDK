@@ -1,6 +1,8 @@
 "use strict";
 var tslib_1 = require("tslib");
 var request = require("request");
+var json_typescript_mapper_1 = require("json-typescript-mapper");
+var SnippetList_1 = require("./Model/SnippetList");
 var TrainDialog_1 = require("./Model/TrainDialog");
 var client_1 = require("./client");
 var BlisDebug_1 = require("./BlisDebug");
@@ -109,16 +111,16 @@ var BlisRecognizer = (function () {
     };
     BlisRecognizer.prototype.TrainFromFile = function (recognizer, url, cb) {
         return tslib_1.__awaiter(this, void 0, void 0, function () {
-            var test, snipObj;
+            var text, snipObj;
             return tslib_1.__generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
                         url = "https://onedrive.live.com/download?cid=55DCA1313254B6CB&resid=55DCA1313254B6CB%213634&authkey=AIyjQoawD2vlHmc";
                         return [4 /*yield*/, this.ReadFromFile(url)];
                     case 1:
-                        test = _a.sent();
-                        snipObj = JSON.parse(test);
-                        this.TrainOnSnippetList(recognizer, snipObj.snippetlist);
+                        text = _a.sent();
+                        snipObj = json_typescript_mapper_1.deserialize(SnippetList_1.SnippetList, JSON.parse(text));
+                        this.TrainOnSnippetList(recognizer, snipObj.snippets);
                         return [2 /*return*/];
                 }
             });
