@@ -153,7 +153,7 @@ var BlisRecognizer = (function () {
                         _i++;
                         return [3 /*break*/, 1];
                     case 6:
-                        BlisDebug_1.BlisDebug.Log("Found " + actionList.length + " actions.");
+                        BlisDebug_1.BlisDebug.Log("Found " + actionList.length + " actions. ");
                         return [2 /*return*/];
                 }
             });

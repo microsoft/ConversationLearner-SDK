@@ -138,7 +138,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                 }
             }
         }
-        BlisDebug.Log(`Found ${actionList.length} actions.`)    
+        BlisDebug.Log(`Found ${actionList.length} actions. `)    
     }
 
     private async NewSession(recognizer : BlisRecognizer, teach : boolean, cb : (text) => void) : Promise<void>
