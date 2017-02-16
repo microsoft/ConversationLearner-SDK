@@ -125,29 +125,29 @@ var BlisRecognizer = (function () {
     };
     BlisRecognizer.prototype.TrainOnSnippetList = function (recognizer, sniplist) {
         return tslib_1.__awaiter(this, void 0, void 0, function () {
-            var actionList, _i, _a, snippet, _b, _c, turn;
-            return tslib_1.__generator(this, function (_d) {
-                switch (_d.label) {
+            var actionList, _i, sniplist_1, snippet, _a, _b, turn;
+            return tslib_1.__generator(this, function (_c) {
+                switch (_c.label) {
                     case 0:
                         actionList = [];
-                        _i = 0, _a = sniplist.snippets;
-                        _d.label = 1;
+                        _i = 0, sniplist_1 = sniplist;
+                        _c.label = 1;
                     case 1:
-                        if (!(_i < _a.length)) return [3 /*break*/, 6];
-                        snippet = _a[_i];
-                        _b = 0, _c = snippet.turns;
-                        _d.label = 2;
+                        if (!(_i < sniplist_1.length)) return [3 /*break*/, 6];
+                        snippet = sniplist_1[_i];
+                        _a = 0, _b = snippet.turns;
+                        _c.label = 2;
                     case 2:
-                        if (!(_b < _c.length)) return [3 /*break*/, 5];
-                        turn = _c[_b];
+                        if (!(_a < _b.length)) return [3 /*break*/, 5];
+                        turn = _b[_a];
                         if (!!actionList.includes(turn.action)) return [3 /*break*/, 4];
                         return [4 /*yield*/, this.blisClient.AddAction(this.appId, turn.action)];
                     case 3:
-                        _d.sent();
+                        _c.sent();
                         actionList.push(turn.action);
-                        _d.label = 4;
+                        _c.label = 4;
                     case 4:
-                        _b++;
+                        _a++;
                         return [3 /*break*/, 2];
                     case 5:
                         _i++;

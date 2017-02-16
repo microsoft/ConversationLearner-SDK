@@ -1,7 +1,7 @@
 import * as builder from 'botbuilder';
 import * as request from 'request';
 import { TakeTurnRequest } from './Model/TakeTurnRequest'
-import { SnippetList } from './Model/SnippetList'
+import { SnippetList, Snippet } from './Model/SnippetList'
 import { BlisClient } from './client';
 import { BlisDebug} from './BlisDebug';
 
@@ -119,15 +119,15 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     {
         url = "https://onedrive.live.com/download?cid=55DCA1313254B6CB&resid=55DCA1313254B6CB%213634&authkey=AIyjQoawD2vlHmc";
         var test = await this.ReadFromFile(url)
-        let sniplist : SnippetList = JSON.parse(test);
+        let sniplist = JSON.parse(test);
         this.TrainOnSnippetList(recognizer, sniplist);
     }
 
-    private async TrainOnSnippetList(recognizer : BlisRecognizer, sniplist : SnippetList) : Promise<void>
+    private async TrainOnSnippetList(recognizer : BlisRecognizer, sniplist : Snippet[]) : Promise<void>
     {
         // Extract actions and add them
         let actionList = [];
-        for (let snippet of sniplist.snippets)
+        for (let snippet of sniplist)
         {
             for (let turn of snippet.turns)
             {
