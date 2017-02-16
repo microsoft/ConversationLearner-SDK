@@ -95,6 +95,34 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         }
     }
 
+    private ReadFromFile(url : string) : Promise<string>
+    {
+        return new Promise(
+            (resolve, reject) => {
+               const requestData = {
+                    url: url,
+                }
+                request.get((error, response, body) => {
+                    if (error) {
+                        reject(error);
+                    }
+                    else if (response.statusCode >= 300) {
+                        reject(body.message);
+                    }
+                    else {
+                        resolve(body.id);
+                    }
+
+                });
+            }
+        )
+    }
+    private async TrainFromFile(recognizer : BlisRecognizer, url : string, cb : (text) => void) : Promise<void>
+    {
+        url = "https://1drv.ms/u/s!Asu2VDIxodxVnDKTN9Z1JvH4Nv3b";
+        var test = await this.ReadFromFile(url);
+    }
+
     private async NewSession(recognizer : BlisRecognizer, teach : boolean, cb : (text) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to create new session, Teach = ${teach}`);
@@ -172,7 +200,9 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         text += "!createApp {appName} {luisKey} => Create new application\n\n"
         text += "!deleteApp => Delete existing application\n\n"
         text += "!deleteApp {appId} => Delete specified application\n\n"
+        text += "!startApp => Switch to appId\n\n"
         text += "!whichApp => Return current appId\n\n"
+        text += "!trainDialogs {file url} => Train in dialogs at given url"
         text += "!deleteAction {actionId} => Delete an action on current app\n\n"
         return text;
     }
@@ -217,6 +247,13 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                         cb(null, result);
                     });
                 }
+                else if (command == "!startapp")
+                {
+                    this.appId = arg;
+                    this.sessionId = null;
+                    result.answer = `Starting app ${arg}`;
+                    cb(null, result);
+                }
                 else if (command == "!whichapp")
                 {
                     result.answer = this.appId;
@@ -229,7 +266,14 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                         cb(null, result);
                     });
                 }
-                else if (command == "!help")
+                else if (command == "!traindialogs")
+                {
+                    this.TrainFromFile(this, arg, (text) => {
+                        result.answer = text;
+                        cb(null, result);
+                    });
+                }
+                else 
                 {
                     result.answer = this.Help();
                     cb(null, result);

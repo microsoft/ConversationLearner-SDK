@@ -1,5 +1,6 @@
 "use strict";
 var tslib_1 = require("tslib");
+var request = require("request");
 var client_1 = require("./client");
 var BlisDebug_1 = require("./BlisDebug");
 var TakeTurnResponse_1 = require("../client/Model/TakeTurnResponse");
@@ -86,6 +87,39 @@ var BlisRecognizer = (function () {
                         BlisDebug_1.BlisDebug.Log(err_1);
                         return [3 /*break*/, 14];
                     case 14: return [2 /*return*/];
+                }
+            });
+        });
+    };
+    BlisRecognizer.prototype.ReadFromFile = function (url) {
+        return new Promise(function (resolve, reject) {
+            var requestData = {
+                url: url,
+            };
+            request.get(function (error, response, body) {
+                if (error) {
+                    reject(error);
+                }
+                else if (response.statusCode >= 300) {
+                    reject(body.message);
+                }
+                else {
+                    resolve(body.id);
+                }
+            });
+        });
+    };
+    BlisRecognizer.prototype.TrainFromFile = function (recognizer, url, cb) {
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            var test;
+            return tslib_1.__generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        url = "https://1drv.ms/u/s!Asu2VDIxodxVnDKTN9Z1JvH4Nv3b";
+                        return [4 /*yield*/, this.ReadFromFile(url)];
+                    case 1:
+                        test = _a.sent();
+                        return [2 /*return*/];
                 }
             });
         });
@@ -189,7 +223,9 @@ var BlisRecognizer = (function () {
         text += "!createApp {appName} {luisKey} => Create new application\n\n";
         text += "!deleteApp => Delete existing application\n\n";
         text += "!deleteApp {appId} => Delete specified application\n\n";
+        text += "!startApp => Switch to appId\n\n";
         text += "!whichApp => Return current appId\n\n";
+        text += "!trainDialogs {file url} => Train in dialogs at given url";
         text += "!deleteAction {actionId} => Delete an action on current app\n\n";
         return text;
     };
@@ -224,6 +260,12 @@ var BlisRecognizer = (function () {
                         cb(null, result);
                     });
                 }
+                else if (command == "!startapp") {
+                    this.appId = arg;
+                    this.sessionId = null;
+                    result.answer = "Starting app " + arg;
+                    cb(null, result);
+                }
                 else if (command == "!whichapp") {
                     result.answer = this.appId;
                     cb(null, result);
@@ -234,7 +276,13 @@ var BlisRecognizer = (function () {
                         cb(null, result);
                     });
                 }
-                else if (command == "!help") {
+                else if (command == "!traindialogs") {
+                    this.TrainFromFile(this, arg, function (text) {
+                        result.answer = text;
+                        cb(null, result);
+                    });
+                }
+                else {
                     result.answer = this.Help();
                     cb(null, result);
                 }
