@@ -123,24 +123,24 @@ var Console = (function (_super) {
         /*
         
                 let locations = []; // LARS TODO [ x['entity'] for x in sorted(location_ents,key=lambda y: y['startIndex']) ]
-                let locationString = null;
+                let locationstring = null;
                 if (locations.lenght()>0) {
-                    locationString = ' '.join(locations)
+                    locationstring = ' '.join(locations)
                 }
                 else if (self.prev_action == 'Which city?' && luisEntities.length() == 0 && text.length() > 0)
                 {
-                    locationString = text;
+                    locationstring = text;
                 }
                 else
                 {
-                    locationString = null
+                    locationstring = null
                 }
-                if (locationString != null)
+                if (locationstring != null)
                 {
-                    resolvedEntities['location'] = locationString;
-                    let resolvedLocation = self._ingest_location_str(locationString);
+                    resolvedEntities['location'] = locationstring;
+                    let resolvedLocation = self._ingest_location_str(locationstring);
                     if (resolvedLocation == null) {
-                        resolvedEntities['location.cant_parse'] = locationString;
+                        resolvedEntities['location.cant_parse'] = locationstring;
                         if ('location.resolution' in self.hist)
                         {
                             del self.hist['location.resolution'];

@@ -3,7 +3,7 @@ import { JsonProperty } from 'json-typescript-mapper';
 export class TakeTurnRequest
 {
     @JsonProperty('text')
-    public text : String;
+    public text : string;
 
     @JsonProperty('entities')
     public entities : [{}];
@@ -12,7 +12,7 @@ export class TakeTurnRequest
     public context : {};
  
     @JsonProperty('action-mask')
-    public actionMask : [String];
+    public actionMask : [string];
 
     public constructor(init?:Partial<TakeTurnRequest>)
     {

@@ -8,7 +8,7 @@ var Credentials = (function () {
         this.User = user;
         this.Secret = secret;
     }
-    Credentials.prototype.CookieString = function () {
+    Credentials.prototype.Cookiestring = function () {
         return "username=" + this.User + ";password=" + this.Secret;
     };
     return Credentials;

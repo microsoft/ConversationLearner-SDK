@@ -21,7 +21,7 @@ var BlisClient = (function () {
             var requestData = {
                 url: _this.serviceUri + apiPath,
                 headers: {
-                    'Cookie': _this.credentials.CookieString(),
+                    'Cookie': _this.credentials.Cookiestring(),
                 },
                 body: {
                     name: name,
@@ -49,7 +49,7 @@ var BlisClient = (function () {
             var url = _this.serviceUri + apiPath;
             var requestData = {
                 headers: {
-                    'Cookie': _this.credentials.CookieString()
+                    'Cookie': _this.credentials.Cookiestring()
                 }
             };
             request.delete(url, requestData, function (error, response, body) {
@@ -74,7 +74,7 @@ var BlisClient = (function () {
             var requestData = {
                 url: _this.serviceUri + apiPath,
                 headers: {
-                    'Cookie': _this.credentials.CookieString()
+                    'Cookie': _this.credentials.Cookiestring()
                 },
                 body: {
                     Teach: teach,
@@ -103,7 +103,7 @@ var BlisClient = (function () {
             var url = _this.serviceUri + apiPath;
             var requestData = {
                 headers: {
-                    'Cookie': _this.credentials.CookieString()
+                    'Cookie': _this.credentials.Cookiestring()
                 }
             };
             request.delete(url, requestData, function (error, response, body) {
@@ -126,7 +126,7 @@ var BlisClient = (function () {
             var requestData = {
                 url: _this.serviceUri + apiPath,
                 headers: {
-                    'Cookie': _this.credentials.CookieString()
+                    'Cookie': _this.credentials.Cookiestring()
                 },
                 body: {
                     name: entityName,
@@ -155,7 +155,7 @@ var BlisClient = (function () {
             var requestData = {
                 url: _this.serviceUri + apiPath,
                 headers: {
-                    'Cookie': _this.credentials.CookieString()
+                    'Cookie': _this.credentials.Cookiestring()
                 },
                 body: {
                     content: content,
@@ -184,7 +184,7 @@ var BlisClient = (function () {
             var url = _this.serviceUri + apiPath;
             var requestData = {
                 headers: {
-                    'Cookie': _this.credentials.CookieString()
+                    'Cookie': _this.credentials.Cookiestring()
                 }
             };
             request.delete(url, requestData, function (error, response, body) {
@@ -208,7 +208,7 @@ var BlisClient = (function () {
             var requestData = {
                 url: _this.serviceUri + apiPath,
                 headers: {
-                    'Cookie': _this.credentials.CookieString()
+                    'Cookie': _this.credentials.Cookiestring()
                 },
                 body: {
                     from_scratch: fromScratch
@@ -319,7 +319,7 @@ var BlisClient = (function () {
             var requestData = {
                 url: _this.serviceUri + apiPath,
                 headers: {
-                    'Cookie': _this.credentials.CookieString()
+                    'Cookie': _this.credentials.Cookiestring()
                 },
                 json: true
             };

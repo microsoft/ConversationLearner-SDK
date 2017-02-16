@@ -150,7 +150,7 @@ var BlisRecognizer = (function () {
                                 if (text == recognizer.appId) {
                                     recognizer.appId = null;
                                 }
-                                cb("Deleted App " + text);
+                                cb("Deleted App " + appId);
                             })
                                 .catch(function (text) { return cb(text); })];
                     case 1:

@@ -1,9 +1,9 @@
     export class Credentials
     {
-        public User : String;
-        public Secret : String;
+        public User : string;
+        public Secret : string;
 
-        constructor(user : String, secret : String)
+        constructor(user : string, secret : string)
         {
             if (!user) throw new Error("user is required");
             if (!secret) throw new Error("secret is required");
@@ -12,7 +12,7 @@
             this.Secret = secret;
         }
 
-        public CookieString() : string 
+        public Cookiestring() : string 
         {
             return "username=" + this.User + ";password="+ this.Secret;
         }

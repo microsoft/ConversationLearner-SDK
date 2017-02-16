@@ -13,9 +13,9 @@ function done() {
 export class ConsoleBase {
     
     protected blisclient : BlisClient;
-    protected appId : String;
-    protected sessionId : String;
-    protected modelId : String;
+    protected appId : string;
+    protected sessionId : string;
+    protected modelId : string;
     protected entityName2Id : {};
 
     private hist = {}
@@ -33,12 +33,12 @@ export class ConsoleBase {
         this.start();
     }
 
-    protected LUCallback (text: String, luisEntities : [{}]) : TakeTurnRequest 
+    protected LUCallback (text: string, luisEntities : [{}]) : TakeTurnRequest 
     {
         return new TakeTurnRequest({text : text, entities: luisEntities});
     }
 
-    private InsertEntities(text: String)
+    private InsertEntities(text: string)
     {
         let words = [];
         let tokens = text.split(' ').forEach((item) => 

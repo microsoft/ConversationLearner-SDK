@@ -23,13 +23,13 @@ export class Action
 export class TakeTurnResponse
 {
     @JsonProperty('orig-text')
-    public originalText : String;
+    public originalText : string;
 
     @JsonProperty({clazz: Entity, name: 'entities'})
     public entities : Entity[];
 
     @JsonProperty('mode')
-    public mode : String;
+    public mode : string;
 
     @JsonProperty({clazz: Action, name: 'actions'})
     public actions : Action[];
@@ -64,10 +64,10 @@ export class TakeTurnResponse
 
 export class TakeTurnModes
 {
-    public static Callback : String = "lu_callback";
-    public static Teach : String = "teach";
-    public static Action : String = "action";
-    public static Error : String = "error";
+    public static Callback : string = "lu_callback";
+    public static Teach : string = "teach";
+    public static Action : string = "action";
+    public static Error : string = "error";
 }
 
 export class ActionTypes

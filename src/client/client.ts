@@ -10,7 +10,7 @@ import { HandleError, Debug } from './Model/ErrorHandler';
 
 export class BlisClient {
 
-    private serviceUri : String;
+    private serviceUri : string;
     private credentials : Credentials;
 
     constructor(serviceUri : string, user : string, secret : string)
@@ -21,7 +21,7 @@ export class BlisClient {
         this.credentials = new Credentials(user, secret);
     }
 
-    public CreateApp(name : String, luisKey : String) : Promise<String>
+    public CreateApp(name : string, luisKey : string) : Promise<string>
     {
         var apiPath = "app";
 
@@ -30,7 +30,7 @@ export class BlisClient {
                 const requestData = {
                     url: this.serviceUri + apiPath,
                     headers: {
-                        'Cookie' : this.credentials.CookieString(),
+                        'Cookie' : this.credentials.Cookiestring(),
                     },
                     body: {
                         name: name,
@@ -54,7 +54,7 @@ export class BlisClient {
         )
     }
 
-    public DeleteApp(appId : String) : Promise<String>
+    public DeleteApp(appId : string) : Promise<string>
     {
         let apiPath = `app/${appId}`;
 
@@ -63,7 +63,7 @@ export class BlisClient {
                 let url = this.serviceUri+apiPath;
                 const requestData = {
                     headers: {
-                        'Cookie' : this.credentials.CookieString()
+                        'Cookie' : this.credentials.Cookiestring()
                     }
                 }
                 request.delete(url, requestData, (error, response, body) => {
@@ -82,7 +82,7 @@ export class BlisClient {
     }
 
 
-    public StartSession(appId : String, modelId : String, teach = false, saveDialog = false) : Promise<String>
+    public StartSession(appId : string, modelId : string, teach = false, saveDialog = false) : Promise<string>
     {
         let apiPath = `app/${appId}/session2`;
 
@@ -91,7 +91,7 @@ export class BlisClient {
                const requestData = {
                     url: this.serviceUri+apiPath,
                     headers: {
-                        'Cookie' : this.credentials.CookieString()
+                        'Cookie' : this.credentials.Cookiestring()
                     },
                     body: {
                         Teach: teach,
@@ -117,7 +117,7 @@ export class BlisClient {
         )
     }
 
-    public EndSession(appId : String, sessionId : String) : Promise<String>
+    public EndSession(appId : string, sessionId : string) : Promise<string>
     {
         let apiPath = `app/${appId}/session2/${sessionId}`;
 
@@ -126,7 +126,7 @@ export class BlisClient {
                 let url = this.serviceUri+apiPath;
                 const requestData = {
                     headers: {
-                        'Cookie' : this.credentials.CookieString()
+                        'Cookie' : this.credentials.Cookiestring()
                     }
                 }
                 request.delete(url, requestData, (error, response, body) => {
@@ -145,7 +145,7 @@ export class BlisClient {
         )
     }
 
-    public AddEntity(appId : String, entityName : String, entityType : String, prebuiltEntityName : String) : Promise<String>
+    public AddEntity(appId : string, entityName : string, entityType : string, prebuiltEntityName : string) : Promise<string>
     {
         let apiPath = `app/${appId}/entity`;
 
@@ -154,7 +154,7 @@ export class BlisClient {
                const requestData = {
                     url: this.serviceUri+apiPath,
                     headers: {
-                        'Cookie' : this.credentials.CookieString()
+                        'Cookie' : this.credentials.Cookiestring()
                     },
                     body: {
                         name: entityName,
@@ -179,7 +179,7 @@ export class BlisClient {
         )
     }
 
-    public AddAction(appId : String, content : String, requiredEntityList : String[], negativeEntityList : String[], prebuiltEntityName : string) : Promise<String>
+    public AddAction(appId : string, content : string, requiredEntityList : string[], negativeEntityList : string[], prebuiltEntityName : string) : Promise<string>
     {
         let apiPath = `app/${appId}/action`;
 
@@ -188,7 +188,7 @@ export class BlisClient {
                const requestData = {
                     url: this.serviceUri+apiPath,
                     headers: {
-                        'Cookie' : this.credentials.CookieString()
+                        'Cookie' : this.credentials.Cookiestring()
                     },
                     body: {
                         content: content,
@@ -213,7 +213,7 @@ export class BlisClient {
         )
     }
 
-    public DeleteAction(appId : String, actionId : String) : Promise<String>
+    public DeleteAction(appId : string, actionId : string) : Promise<string>
     {
         let apiPath = `app/${appId}/action/${actionId}`;
 
@@ -222,7 +222,7 @@ export class BlisClient {
                 let url = this.serviceUri+apiPath;
                 const requestData = {
                     headers: {
-                        'Cookie' : this.credentials.CookieString()
+                        'Cookie' : this.credentials.Cookiestring()
                     }
                 }
                 request.delete(url, requestData, (error, response, body) => {
@@ -240,7 +240,7 @@ export class BlisClient {
         )
     }
 
-    public TrainModel(appId : String, fromScratch : boolean = false) : Promise<String>
+    public TrainModel(appId : string, fromScratch : boolean = false) : Promise<string>
     {
         let apiPath = `app/${appId}/model`;
         return new Promise(
@@ -248,7 +248,7 @@ export class BlisClient {
                const requestData = {
                     url: this.serviceUri+apiPath,
                     headers: {
-                        'Cookie' : this.credentials.CookieString()
+                        'Cookie' : this.credentials.Cookiestring()
                     },
                     body: {
                         from_scratch : fromScratch
@@ -271,8 +271,8 @@ export class BlisClient {
         )
     }
 
-    public async TakeTurn(appId : String, sessionId : String, text : String, 
-                            luCallback : (text: String, entities : Entity[]) => TakeTurnRequest, 
+    public async TakeTurn(appId : string, sessionId : string, text : string, 
+                            luCallback : (text: string, entities : Entity[]) => TakeTurnRequest, 
                             apiCallbacks = {},
                             resultCallback: (response : TakeTurnResponse) => void,
                             takeTurnRequest = new TakeTurnRequest({text : text}),
@@ -354,7 +354,7 @@ export class BlisClient {
         });
     }
 
-    private SendTurnRequest(appId : String, sessionId : String, takeTurnRequest : TakeTurnRequest) : Promise<TakeTurnResponse>
+    private SendTurnRequest(appId : string, sessionId : string, takeTurnRequest : TakeTurnRequest) : Promise<TakeTurnResponse>
     {
         let apiPath = `app/${appId}/session2/${sessionId}`;
         return new Promise(
@@ -362,7 +362,7 @@ export class BlisClient {
                const requestData = {
                     url: this.serviceUri+apiPath,
                     headers: {
-                        'Cookie' : this.credentials.CookieString()
+                        'Cookie' : this.credentials.Cookiestring()
                     },
                     json: true
                 }

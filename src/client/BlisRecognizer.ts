@@ -23,10 +23,10 @@ export interface IBlisOptions extends builder.IIntentRecognizerSetOptions {
 
 export class BlisRecognizer implements builder.IIntentRecognizer {
     protected blisClient : BlisClient;
-    protected appId : String;
-    protected sessionId : String;
-    protected modelId : String;
-    protected LUCallback : (text: String, luisEntities : [{}]) => TakeTurnRequest;
+    protected appId : string;
+    protected sessionId : string;
+    protected modelId : string;
+    protected LUCallback : (text: string, luisEntities : [{}]) => TakeTurnRequest;
     
     constructor(private options: IBlisOptions){
         this.init(options);
@@ -112,7 +112,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         .catch((text) => cb(text));
     }
 
-    private async CreateApp(recognizer : BlisRecognizer, appName : String, luisKey, cb : (text) => void) : Promise<void>
+    private async CreateApp(recognizer : BlisRecognizer, appName : string, luisKey, cb : (text) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Create Application`);
        await this.blisClient.CreateApp(appName, luisKey)
@@ -124,7 +124,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         .catch((text) => cb(text));
     }
 
-    private async DeleteApp(recognizer : BlisRecognizer, appId : String, cb : (text) => void) : Promise<void>
+    private async DeleteApp(recognizer : BlisRecognizer, appId : string, cb : (text) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Delete Application`);
 
@@ -141,12 +141,12 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             {
                 recognizer.appId = null;
             }
-            cb(`Deleted App ${text}`)
+            cb(`Deleted App ${appId}`)
         })
         .catch((text) => cb(text));
     }
 
-    private async DeleteAction(recognizer : BlisRecognizer, actionId : String, cb : (text) => void) : Promise<void>
+    private async DeleteAction(recognizer : BlisRecognizer, actionId : string, cb : (text) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Delete Action`);
        await this.blisClient.DeleteAction(this.appId, actionId)
@@ -258,7 +258,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     }
 
     
-    private InsertEntities(text: String)
+    private InsertEntities(text: string)
     {
         let words = [];
         let tokens = text.split(' ').forEach((item) => 
