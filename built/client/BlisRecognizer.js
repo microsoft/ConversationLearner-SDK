@@ -141,9 +141,9 @@ var BlisRecognizer = (function () {
                                     case 0:
                                         if (!(actionList.indexOf(turn.action) == -1)) return [3 /*break*/, 2];
                                         BlisDebug_1.BlisDebug.Log("Add Action: " + turn.action);
-                                        return [4 /*yield*/, this_1.blisClient.AddAction(this_1.appId, turn.action, null, null, null)
+                                        return [4 /*yield*/, this_1.blisClient.AddAction(this_1.appId, turn.action, new Array(), new Array(), null)
                                                 .then(function (text) { return actionList.push(turn.action); })
-                                                .catch(function (text) { return BlisDebug_1.BlisDebug.Log("" + text); })];
+                                                .catch(function (text) { return BlisDebug_1.BlisDebug.Log("!!" + text); })];
                                     case 1:
                                         _a.sent();
                                         _a.label = 2;

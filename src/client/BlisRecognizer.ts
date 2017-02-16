@@ -134,9 +134,9 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                 if (actionList.indexOf(turn.action) == -1)
                 {
                     BlisDebug.Log(`Add Action: ${turn.action}`)    
-                    await this.blisClient.AddAction(this.appId, turn.action, null, null, null)
+                    await this.blisClient.AddAction(this.appId, turn.action, new Array(), new Array(), null)
                     .then((text) => actionList.push(turn.action))
-                    .catch((text) => BlisDebug.Log(`${text}`) );
+                    .catch((text) => BlisDebug.Log(`!!${text}`) );
                 }
             }
         }
