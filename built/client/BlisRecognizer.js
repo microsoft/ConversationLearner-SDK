@@ -140,8 +140,8 @@ var BlisRecognizer = (function () {
                     case 2:
                         if (!(_a < _b.length)) return [3 /*break*/, 5];
                         turn = _b[_a];
-                        if (!!actionList.includes(turn.action)) return [3 /*break*/, 4];
-                        return [4 /*yield*/, this.blisClient.AddAction(this.appId, turn.action)];
+                        if (!(actionList.indexOf(turn.action) == -1)) return [3 /*break*/, 4];
+                        return [4 /*yield*/, this.blisClient.AddAction(this.appId, turn.action, null, null, null)];
                     case 3:
                         _c.sent();
                         actionList.push(turn.action);
