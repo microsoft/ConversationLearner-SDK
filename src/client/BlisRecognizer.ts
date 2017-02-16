@@ -107,13 +107,13 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         .catch((text) => cb(text));
     }
 
-    private async CreateApp(appName : string, luisKey, cb : (text) => void) : Promise<void>
+    private async CreateApp(recognizer : BlisRecognizer, appName : string, luisKey, cb : (text) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Create Application`);
        await this.blisClient.CreateApp(appName, luisKey)
         .then((text) => 
         {
-            this.appId = text;
+            recognizer.appId = text;
             cb(`Created App ${text}`)
         })
         .catch((text) => cb(text));
@@ -176,8 +176,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             else if (command == "!createapp")
             {
             //    let that = this;
-                () => this.CreateApp(arg, arg2, (text) => {
-                    this.appId = text;
+                this.CreateApp(this, arg, arg2, (text) => {
                     result.answer = text;
                     cb(null, result);
                 });

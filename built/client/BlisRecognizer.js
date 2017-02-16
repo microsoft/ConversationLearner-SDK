@@ -115,16 +115,15 @@ var BlisRecognizer = (function () {
             });
         });
     };
-    BlisRecognizer.prototype.CreateApp = function (appName, luisKey, cb) {
+    BlisRecognizer.prototype.CreateApp = function (recognizer, appName, luisKey, cb) {
         return tslib_1.__awaiter(this, void 0, void 0, function () {
-            var _this = this;
             return tslib_1.__generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
                         BlisDebug_1.BlisDebug.Log("Trying to Create Application");
                         return [4 /*yield*/, this.blisClient.CreateApp(appName, luisKey)
                                 .then(function (text) {
-                                _this.appId = text;
+                                recognizer.appId = text;
                                 cb("Created App " + text);
                             })
                                 .catch(function (text) { return cb(text); })];
@@ -180,7 +179,7 @@ var BlisRecognizer = (function () {
         var result = { score: 1.0, answer: null, intent: null };
         if (context && context.message && context.message.text) {
             var text = context.message.text.trim();
-            var _a = text.split(' '), command = _a[0], arg_1 = _a[1], arg2_1 = _a[2];
+            var _a = text.split(' '), command = _a[0], arg = _a[1], arg2 = _a[2];
             command = command.toLowerCase();
             if (this.appId = null) {
                 result.answer = "No Application has been loaded.  Type !help for more info.";
@@ -189,7 +188,7 @@ var BlisRecognizer = (function () {
             if (command == "!reset") {
             }
             else if (command == "!next") {
-                var teach = (arg_1 == 'teach');
+                var teach = (arg == 'teach');
                 this.NewSession(teach, function (text) {
                     result.answer = text;
                     cb(null, result);
@@ -197,14 +196,13 @@ var BlisRecognizer = (function () {
             }
             else if (command == "!createapp") {
                 //    let that = this;
-                (function () { return _this.CreateApp(arg_1, arg2_1, function (text) {
-                    _this.appId = text;
+                this.CreateApp(this, arg, arg2, function (text) {
                     result.answer = text;
                     cb(null, result);
-                }); });
+                });
             }
             else if (command == "!deleteapp") {
-                this.DeleteApp(arg_1, function (text) {
+                this.DeleteApp(arg, function (text) {
                     // Did I delete my active app?
                     if (text == _this.appId) {
                         _this.appId = null;
@@ -214,7 +212,7 @@ var BlisRecognizer = (function () {
                 });
             }
             else if (command == "!deleteaction") {
-                this.DeleteAction(arg_1, function (text) {
+                this.DeleteAction(arg, function (text) {
                     result.answer = text;
                     cb(null, result);
                 });

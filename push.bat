@@ -1,1 +1,1 @@
-git add * && git commit -m "%*" && git push
+git add * && git commit -m "%*" && git push && C:\codebox\Blis\BotTest> npm install --save github:Microsoft/BLIS-SDK
