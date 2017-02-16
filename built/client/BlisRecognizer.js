@@ -119,6 +119,8 @@ var BlisRecognizer = (function () {
                         url = "https://onedrive.live.com/download?cid=55DCA1313254B6CB&resid=55DCA1313254B6CB%213634&authkey=AIyjQoawD2vlHmc";
                         return [4 /*yield*/, this.ReadFromFile(url)
                                 .then(function (text) {
+                                // Clean the string
+                                text = text.replace(/(\r\n|\n|\r)/gm, "");
                                 var json = JSON.parse(text);
                                 var snipObj = json_typescript_mapper_1.deserialize(SnippetList_1.SnippetList, json);
                                 _this.TrainOnSnippetList(recognizer, snipObj.snippets);
