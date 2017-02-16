@@ -137,19 +137,12 @@ var BlisRecognizer = (function () {
     };
     BlisRecognizer.prototype.DeleteApp = function (appId, cb) {
         return tslib_1.__awaiter(this, void 0, void 0, function () {
-            var _this = this;
             return tslib_1.__generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
                         BlisDebug_1.BlisDebug.Log("Trying to Delete Application");
                         return [4 /*yield*/, this.blisClient.DeleteApp(appId)
-                                .then(function (text) {
-                                // Did I delete my active app?
-                                if (appId == _this.appId) {
-                                    _this.appId = null;
-                                }
-                                cb("Deleted App " + appId);
-                            })
+                                .then(function (text) { return cb("Deleted App " + appId); })
                                 .catch(function (text) { return cb(text); })];
                     case 1:
                         _a.sent();
@@ -204,6 +197,7 @@ var BlisRecognizer = (function () {
             }
             else if (command == "!createapp") {
                 this.CreateApp(arg, arg2, function (text) {
+                    _this.appId = text;
                     result.answer = text;
                     cb(null, result);
                 });
@@ -216,6 +210,10 @@ var BlisRecognizer = (function () {
             }
             else if (command == "!deleteaction") {
                 this.DeleteAction(arg, function (text) {
+                    // Did I delete my active app?
+                    if (text == _this.appId) {
+                        _this.appId = null;
+                    }
                     result.answer = text;
                     cb(null, result);
                 });
