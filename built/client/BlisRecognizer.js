@@ -200,69 +200,74 @@ var BlisRecognizer = (function () {
             var text = context.message.text.trim();
             var _a = text.split(' '), command = _a[0], arg = _a[1], arg2 = _a[2];
             command = command.toLowerCase();
-            if (this.appId == null && !command.startsWith("!")) {
-                result.answer = "No Application has been loaded.  Type !help for more info.";
-                cb(null, result);
-            }
-            else if (command == "!reset") {
-            }
-            else if (command == "!next") {
-                var teach = (arg == 'teach');
-                this.NewSession(this, teach, function (text) {
-                    result.answer = text;
+            // Handle admin commands
+            if (command.startsWith('!')) {
+                if (command == "!reset") {
+                }
+                else if (command == "!next") {
+                    var teach = (arg == 'teach');
+                    this.NewSession(this, teach, function (text) {
+                        result.answer = text;
+                        cb(null, result);
+                    });
+                }
+                else if (command == "!createapp") {
+                    //    let that = this;
+                    this.CreateApp(this, arg, arg2, function (text) {
+                        result.answer = text;
+                        cb(null, result);
+                    });
+                }
+                else if (command == "!deleteapp") {
+                    this.DeleteApp(this, arg, function (text) {
+                        result.answer = text;
+                        cb(null, result);
+                    });
+                }
+                else if (command == "!whichapp") {
+                    result.answer = this.appId;
                     cb(null, result);
-                });
-            }
-            else if (command == "!createapp") {
-                //    let that = this;
-                this.CreateApp(this, arg, arg2, function (text) {
-                    result.answer = text;
+                }
+                else if (command == "!deleteaction") {
+                    this.DeleteAction(this, arg, function (text) {
+                        result.answer = text;
+                        cb(null, result);
+                    });
+                }
+                else if (command == "!help") {
+                    result.answer = this.Help();
                     cb(null, result);
-                });
-            }
-            else if (command == "!deleteapp") {
-                this.DeleteApp(this, arg, function (text) {
-                    result.answer = text;
-                    cb(null, result);
-                });
-            }
-            else if (command == "!whichapp") {
-                result.answer = this.appId;
-                cb(null, result);
-            }
-            else if (command == "!deleteaction") {
-                this.DeleteAction(this, arg, function (text) {
-                    result.answer = text;
-                    cb(null, result);
-                });
-            }
-            else if (command == "!help") {
-                result.answer = this.Help();
-                cb(null, result);
-            }
-            else if (!this.sessionId) {
-                result.answer = "Create a sesion first with !next or !next teach";
-                cb(null, result);
+                }
             }
             else {
-                this.blisClient.TakeTurn(this.appId, this.sessionId, text, this.LUCallback, null, function (response) {
-                    if (response.mode == TakeTurnResponse_1.TakeTurnModes.Teach) {
-                        // Markdown requires double carraige returns
-                        var output = response.action.content.replace(/\n/g, ":\n\n");
-                        result.answer = output;
-                    }
-                    else if (response.mode == TakeTurnResponse_1.TakeTurnModes.Action) {
-                        var outText = _this.InsertEntities(response.actions[0].content);
-                        result.answer = outText;
-                    }
-                    else if (response.mode == TakeTurnResponse_1.TakeTurnModes.Error) {
-                        result.answer = response.error;
-                    }
-                    else {
-                        result.answer = "Don't know mode: " + response.mode;
-                    }
+                if (this.appId == null) {
+                    result.answer = "No Application has been loaded.  Type !help for more info.";
                     cb(null, result);
-                });
+                }
+                else if (!this.sessionId) {
+                    result.answer = "Create a sesion first with !next or !next teach";
+                    cb(null, result);
+                }
+                else {
+                    this.blisClient.TakeTurn(this.appId, this.sessionId, text, this.LUCallback, null, function (response) {
+                        if (response.mode == TakeTurnResponse_1.TakeTurnModes.Teach) {
+                            // Markdown requires double carraige returns
+                            var output = response.action.content.replace(/\n/g, ":\n\n");
+                            result.answer = output;
+                        }
+                        else if (response.mode == TakeTurnResponse_1.TakeTurnModes.Action) {
+                            var outText = _this.InsertEntities(response.actions[0].content);
+                            result.answer = outText;
+                        }
+                        else if (response.mode == TakeTurnResponse_1.TakeTurnModes.Error) {
+                            result.answer = response.error;
+                        }
+                        else {
+                            result.answer = "Don't know mode: " + response.mode;
+                        }
+                        cb(null, result);
+                    });
+                }
             }
         }
     };
