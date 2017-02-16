@@ -94,20 +94,24 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         }
     }
 
-    private async NewSession(teach : boolean, cb : (text) => void) : Promise<void>
+    private async NewSession(recognizer : BlisRecognizer, teach : boolean, cb : (text) => void) : Promise<void>
     {
        BlisDebug.Log(`New session, Teach = ${teach}`);
 
-       this.blisClient.EndSession(this.appId, this.sessionId)
-        .then(async (string) =>
+       if (this.sessionId) 
+       {
+           await this.blisClient.EndSession(this.appId, this.sessionId);
+       }
+       await this.blisClient.StartSession(this.appId, this.modelId, teach)
+        .then((text) => 
         {
-            this.sessionId = await this.blisClient.StartSession(this.appId, this.modelId, teach);
+            recognizer.sessionId = text;
             cb(`New session, Teach = ${teach}`);
         })
         .catch((text) => cb(text));
     }
 
-    private async CreateApp(recognizer : BlisRecognizer, appName : string, luisKey, cb : (text) => void) : Promise<void>
+    private async CreateApp(recognizer : BlisRecognizer, appName : String, luisKey, cb : (text) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Create Application`);
        await this.blisClient.CreateApp(appName, luisKey)
@@ -119,15 +123,29 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         .catch((text) => cb(text));
     }
 
-    private async DeleteApp(appId : string, cb : (text) => void) : Promise<void>
+    private async DeleteApp(recognizer : BlisRecognizer, appId : String, cb : (text) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Delete Application`);
+
+       // Delete current app if no appId provided
+       if (!appId) 
+       {
+           appId = recognizer.appId;
+       }
        await this.blisClient.DeleteApp(appId)
-        .then((text) => cb(`Deleted App ${appId}`))
+        .then((text) => 
+        {
+            // Did I delete my active app?
+            if (text == recognizer.appId)
+            {
+                recognizer.appId = null;
+            }
+            cb(`Deleted App ${text}`)
+        })
         .catch((text) => cb(text));
     }
 
-    private async DeleteAction(actionId : string, cb : (text) => void) : Promise<void>
+    private async DeleteAction(recognizer : BlisRecognizer, actionId : String, cb : (text) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Delete Action`);
        await this.blisClient.DeleteAction(this.appId, actionId)
@@ -140,7 +158,8 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         let text = "";
         text += "!next => Start new dialog\n\n";
         text += "!next teach => Start new teaching dialog\n\n"
-        text += "!deleteApp {appId} => Delete an application\n\n"
+        text += "!deleteApp => Delete existing application\n\n"
+        text += "!deleteApp {appId} => Delete specified application\n\n"
         text += "!deleteAction {actionId} => Delete an action on current app\n\n"
         return text;
     }
@@ -168,7 +187,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             else if (command == "!next")
             {
                 let teach = (arg == 'teach');
-                this.NewSession(teach, (text) => {
+                this.NewSession(this, teach, (text) => {
                     result.answer = text;
                     cb(null, result);
                 });
@@ -183,19 +202,14 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             }
             else if (command == "!deleteapp")
             {
-                this.DeleteApp(arg, (text) => {
-                    // Did I delete my active app?
-                    if (text == this.appId)
-                    {
-                        this.appId = null;
-                    }
+                this.DeleteApp(this, arg, (text) => {
                     result.answer = text;
                     cb(null, result);
                 });
             }
             else if (command == "!deleteaction")
             {
-                this.DeleteAction(arg, (text) => {
+                this.DeleteAction(this, arg, (text) => {
                     result.answer = text;
                     cb(null, result);
                 });

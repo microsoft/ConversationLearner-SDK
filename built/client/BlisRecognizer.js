@@ -90,28 +90,27 @@ var BlisRecognizer = (function () {
             });
         });
     };
-    BlisRecognizer.prototype.NewSession = function (teach, cb) {
+    BlisRecognizer.prototype.NewSession = function (recognizer, teach, cb) {
         return tslib_1.__awaiter(this, void 0, void 0, function () {
-            var _this = this;
             return tslib_1.__generator(this, function (_a) {
-                BlisDebug_1.BlisDebug.Log("New session, Teach = " + teach);
-                this.blisClient.EndSession(this.appId, this.sessionId)
-                    .then(function (string) { return tslib_1.__awaiter(_this, void 0, void 0, function () {
-                    var _a;
-                    return tslib_1.__generator(this, function (_b) {
-                        switch (_b.label) {
-                            case 0:
-                                _a = this;
-                                return [4 /*yield*/, this.blisClient.StartSession(this.appId, this.modelId, teach)];
-                            case 1:
-                                _a.sessionId = _b.sent();
-                                cb("New session, Teach = " + teach);
-                                return [2 /*return*/];
-                        }
-                    });
-                }); })
-                    .catch(function (text) { return cb(text); });
-                return [2 /*return*/];
+                switch (_a.label) {
+                    case 0:
+                        BlisDebug_1.BlisDebug.Log("New session, Teach = " + teach);
+                        if (!this.sessionId) return [3 /*break*/, 2];
+                        return [4 /*yield*/, this.blisClient.EndSession(this.appId, this.sessionId)];
+                    case 1:
+                        _a.sent();
+                        _a.label = 2;
+                    case 2: return [4 /*yield*/, this.blisClient.StartSession(this.appId, this.modelId, teach)
+                            .then(function (text) {
+                            recognizer.sessionId = text;
+                            cb("New session, Teach = " + teach);
+                        })
+                            .catch(function (text) { return cb(text); })];
+                    case 3:
+                        _a.sent();
+                        return [2 /*return*/];
+                }
             });
         });
     };
@@ -134,14 +133,24 @@ var BlisRecognizer = (function () {
             });
         });
     };
-    BlisRecognizer.prototype.DeleteApp = function (appId, cb) {
+    BlisRecognizer.prototype.DeleteApp = function (recognizer, appId, cb) {
         return tslib_1.__awaiter(this, void 0, void 0, function () {
             return tslib_1.__generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
                         BlisDebug_1.BlisDebug.Log("Trying to Delete Application");
+                        // Delete current app if no appId provided
+                        if (!appId) {
+                            appId = recognizer.appId;
+                        }
                         return [4 /*yield*/, this.blisClient.DeleteApp(appId)
-                                .then(function (text) { return cb("Deleted App " + appId); })
+                                .then(function (text) {
+                                // Did I delete my active app?
+                                if (text == recognizer.appId) {
+                                    recognizer.appId = null;
+                                }
+                                cb("Deleted App " + text);
+                            })
                                 .catch(function (text) { return cb(text); })];
                     case 1:
                         _a.sent();
@@ -150,7 +159,7 @@ var BlisRecognizer = (function () {
             });
         });
     };
-    BlisRecognizer.prototype.DeleteAction = function (actionId, cb) {
+    BlisRecognizer.prototype.DeleteAction = function (recognizer, actionId, cb) {
         return tslib_1.__awaiter(this, void 0, void 0, function () {
             return tslib_1.__generator(this, function (_a) {
                 switch (_a.label) {
@@ -170,7 +179,8 @@ var BlisRecognizer = (function () {
         var text = "";
         text += "!next => Start new dialog\n\n";
         text += "!next teach => Start new teaching dialog\n\n";
-        text += "!deleteApp {appId} => Delete an application\n\n";
+        text += "!deleteApp => Delete existing application\n\n";
+        text += "!deleteApp {appId} => Delete specified application\n\n";
         text += "!deleteAction {actionId} => Delete an action on current app\n\n";
         return text;
     };
@@ -189,7 +199,7 @@ var BlisRecognizer = (function () {
             }
             else if (command == "!next") {
                 var teach = (arg == 'teach');
-                this.NewSession(teach, function (text) {
+                this.NewSession(this, teach, function (text) {
                     result.answer = text;
                     cb(null, result);
                 });
@@ -202,17 +212,13 @@ var BlisRecognizer = (function () {
                 });
             }
             else if (command == "!deleteapp") {
-                this.DeleteApp(arg, function (text) {
-                    // Did I delete my active app?
-                    if (text == _this.appId) {
-                        _this.appId = null;
-                    }
+                this.DeleteApp(this, arg, function (text) {
                     result.answer = text;
                     cb(null, result);
                 });
             }
             else if (command == "!deleteaction") {
-                this.DeleteAction(arg, function (text) {
+                this.DeleteAction(this, arg, function (text) {
                     result.answer = text;
                     cb(null, result);
                 });
