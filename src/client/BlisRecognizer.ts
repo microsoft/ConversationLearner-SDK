@@ -187,7 +187,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             let [command, arg, arg2] = text.split(' ');
             command = command.toLowerCase();
 
-            if (this.appId == null)
+            if (this.appId == null && !command.startsWith("!"))
             {
                 result.answer = "No Application has been loaded.  Type !help for more info.";
                 cb(null, result);
