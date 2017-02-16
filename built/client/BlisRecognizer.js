@@ -125,7 +125,7 @@ var BlisRecognizer = (function () {
     };
     BlisRecognizer.prototype.TrainOnSnippetList = function (recognizer, sniplist) {
         return tslib_1.__awaiter(this, void 0, void 0, function () {
-            var actionList, _i, sniplist_1, snippet, _a, _b, turn;
+            var actionList, _i, sniplist_1, snippet, _loop_1, this_1, _a, _b, turn;
             return tslib_1.__generator(this, function (_c) {
                 switch (_c.label) {
                     case 0:
@@ -135,16 +135,31 @@ var BlisRecognizer = (function () {
                     case 1:
                         if (!(_i < sniplist_1.length)) return [3 /*break*/, 6];
                         snippet = sniplist_1[_i];
+                        _loop_1 = function (turn) {
+                            return tslib_1.__generator(this, function (_a) {
+                                switch (_a.label) {
+                                    case 0:
+                                        if (!(actionList.indexOf(turn.action) == -1)) return [3 /*break*/, 2];
+                                        BlisDebug_1.BlisDebug.Log("Add Action: " + turn.action);
+                                        return [4 /*yield*/, this_1.blisClient.AddAction(this_1.appId, turn.action, null, null, null)
+                                                .then(function (text) { return actionList.push(turn.action); })
+                                                .catch(function (text) { return BlisDebug_1.BlisDebug.Log("" + text); })];
+                                    case 1:
+                                        _a.sent();
+                                        _a.label = 2;
+                                    case 2: return [2 /*return*/];
+                                }
+                            });
+                        };
+                        this_1 = this;
                         _a = 0, _b = snippet.turns;
                         _c.label = 2;
                     case 2:
                         if (!(_a < _b.length)) return [3 /*break*/, 5];
                         turn = _b[_a];
-                        if (!(actionList.indexOf(turn.action) == -1)) return [3 /*break*/, 4];
-                        return [4 /*yield*/, this.blisClient.AddAction(this.appId, turn.action, null, null, null)];
+                        return [5 /*yield**/, _loop_1(turn)];
                     case 3:
                         _c.sent();
-                        actionList.push(turn.action);
                         _c.label = 4;
                     case 4:
                         _a++;
