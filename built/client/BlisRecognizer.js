@@ -115,7 +115,7 @@ var BlisRecognizer = (function () {
             return tslib_1.__generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        url = "https://1drv.ms/u/s!Asu2VDIxodxVnDKTN9Z1JvH4Nv3b";
+                        url = "https://onedrive.live.com/download?cid=55DCA1313254B6CB&resid=55DCA1313254B6CB%213634&authkey=AIyjQoawD2vlHmc";
                         return [4 /*yield*/, this.ReadFromFile(url)];
                     case 1:
                         test = _a.sent();

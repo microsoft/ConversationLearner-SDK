@@ -119,7 +119,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     }
     private async TrainFromFile(recognizer : BlisRecognizer, url : string, cb : (text) => void) : Promise<void>
     {
-        url = "https://1drv.ms/u/s!Asu2VDIxodxVnDKTN9Z1JvH4Nv3b";
+        url = "https://onedrive.live.com/download?cid=55DCA1313254B6CB&resid=55DCA1313254B6CB%213634&authkey=AIyjQoawD2vlHmc";
         var test = await this.ReadFromFile(url);
     }
 
