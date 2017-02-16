@@ -181,11 +181,11 @@ var BlisRecognizer = (function () {
             var text = context.message.text.trim();
             var _a = text.split(' '), command = _a[0], arg = _a[1], arg2 = _a[2];
             command = command.toLowerCase();
-            if (this.appId = null) {
+            if (this.appId == null) {
                 result.answer = "No Application has been loaded.  Type !help for more info.";
                 cb(null, result);
             }
-            if (command == "!reset") {
+            else if (command == "!reset") {
             }
             else if (command == "!next") {
                 var teach = (arg == 'teach');
