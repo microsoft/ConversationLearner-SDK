@@ -3,7 +3,7 @@ import * as request from 'request';
 import { deserialize } from 'json-typescript-mapper';
 import { TakeTurnRequest } from './Model/TakeTurnRequest'
 import { SnippetList, Snippet } from './Model/SnippetList'
-import { TrainDialog, Input, Turn } from './Model/TrainDialog'
+import { TrainDialog, Input, Turn, AltText } from './Model/TrainDialog'
 import { BlisClient } from './client';
 import { BlisDebug} from './BlisDebug';
 
@@ -158,9 +158,18 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             let dialog = new TrainDialog();
             for (let turn of snippet.turns)
             {
+                let altTexts = [];
                 let userText = turn.userText[0];  // TODO only training on first one
+
+                if (turn.userText.length > 1)
+                {
+                    for (let i=1;i<turn.userText.length-1)
+                    {
+                        altTexts.push(new AltText({text: turn.userText[1]}))
+                    }
+                }
                 let actionId = actiontext2id[turn.action];
-                let input = new Input({'text' : userText});
+                let input = new Input({'text' : userText, 'textAlts' : altTexts});
                 let newturn = new Turn({'input' :input, 'output' : actionId });
                 dialog.turns.push(newturn);
             }
@@ -255,8 +264,9 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         text += "!deleteApp {appId} => Delete specified application\n\n"
         text += "!startApp => Switch to appId\n\n"
         text += "!whichApp => Return current appId\n\n"
-        text += "!trainDialogs {file url} => Train in dialogs at given url"
+        text += "!trainDialogs {file url} => Train in dialogs at given url\n\n"
         text += "!deleteAction {actionId} => Delete an action on current app\n\n"
+        text += "!help => This list"
         return text;
     }
 
@@ -326,9 +336,15 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                         cb(null, result);
                     });
                 }
-                else 
+                else if (command == "!help")
                 {
                     result.answer = this.Help();
+                    cb(null, result);
+                }
+                else 
+                {
+                    let text = "Not a valid command.\n\n\n\n" + this.Help();
+                    result.answer = text;
                     cb(null, result);
                 }
             }

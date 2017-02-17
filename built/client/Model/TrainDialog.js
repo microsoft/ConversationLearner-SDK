@@ -1,9 +1,22 @@
 "use strict";
 var tslib_1 = require("tslib");
 var json_typescript_mapper_1 = require("json-typescript-mapper");
+var AltText = (function () {
+    function AltText(init) {
+        this.text = undefined;
+        Object.assign(this, init);
+    }
+    return AltText;
+}());
+tslib_1.__decorate([
+    json_typescript_mapper_1.JsonProperty('text'),
+    tslib_1.__metadata("design:type", String)
+], AltText.prototype, "text", void 0);
+exports.AltText = AltText;
 var Input = (function () {
     function Input(init) {
         this.text = undefined;
+        this.textAlts = undefined;
         Object.assign(this, init);
     }
     return Input;
@@ -12,6 +25,10 @@ tslib_1.__decorate([
     json_typescript_mapper_1.JsonProperty('text'),
     tslib_1.__metadata("design:type", String)
 ], Input.prototype, "text", void 0);
+tslib_1.__decorate([
+    json_typescript_mapper_1.JsonProperty({ clazz: Input, name: 'text-alts' }),
+    tslib_1.__metadata("design:type", Array)
+], Input.prototype, "textAlts", void 0);
 exports.Input = Input;
 var Turn = (function () {
     function Turn(init) {

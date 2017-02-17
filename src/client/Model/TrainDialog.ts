@@ -1,13 +1,28 @@
 import { JsonProperty } from 'json-typescript-mapper';
 
+export class AltText
+{
+    @JsonProperty('text')  
+    public text : string;
+        
+    public constructor(init?:Partial<Input>)
+    {
+        this.text = undefined;
+        (<any>Object).assign(this, init);
+    }
+}
 export class Input
 {
     @JsonProperty('text')  
     public text : string;
 
+    @JsonProperty({clazz: Input, name: 'text-alts'})
+    public textAlts : AltText[];
+
     public constructor(init?:Partial<Input>)
     {
         this.text = undefined;
+        this.textAlts = undefined;
         (<any>Object).assign(this, init);
     }
 }

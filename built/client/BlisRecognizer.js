@@ -133,7 +133,7 @@ var BlisRecognizer = (function () {
     };
     BlisRecognizer.prototype.TrainOnSnippetList = function (recognizer, sniplist) {
         return tslib_1.__awaiter(this, void 0, void 0, function () {
-            var actionList, actiontext2id, _i, sniplist_1, snippet, _loop_1, this_1, _a, _b, turn, _c, sniplist_2, snippet, dialog, _d, _e, turn, userText, actionId, input, newturn, _f;
+            var actionList, actiontext2id, _i, sniplist_1, snippet, _loop_1, this_1, _a, _b, turn, _c, sniplist_2, snippet, dialog, _d, _e, turn, altTexts, userText, i, actionId, input, newturn, _f;
             return tslib_1.__generator(this, function (_g) {
                 switch (_g.label) {
                     case 0:
@@ -189,9 +189,15 @@ var BlisRecognizer = (function () {
                         dialog = new TrainDialog_1.TrainDialog();
                         for (_d = 0, _e = snippet.turns; _d < _e.length; _d++) {
                             turn = _e[_d];
+                            altTexts = [];
                             userText = turn.userText[0];
+                            if (turn.userText.length > 1) {
+                                for (i = 1; i < turn.userText.length - 1;) {
+                                    altTexts.push(new TrainDialog_1.AltText({ text: turn.userText[1] }));
+                                }
+                            }
                             actionId = actiontext2id[turn.action];
-                            input = new TrainDialog_1.Input({ 'text': userText });
+                            input = new TrainDialog_1.Input({ 'text': userText, 'textAlts': altTexts });
                             newturn = new TrainDialog_1.Turn({ 'input': input, 'output': actionId });
                             dialog.turns.push(newturn);
                         }
@@ -319,8 +325,9 @@ var BlisRecognizer = (function () {
         text += "!deleteApp {appId} => Delete specified application\n\n";
         text += "!startApp => Switch to appId\n\n";
         text += "!whichApp => Return current appId\n\n";
-        text += "!trainDialogs {file url} => Train in dialogs at given url";
+        text += "!trainDialogs {file url} => Train in dialogs at given url\n\n";
         text += "!deleteAction {actionId} => Delete an action on current app\n\n";
+        text += "!help => This list";
         return text;
     };
     BlisRecognizer.prototype.recognize = function (context, cb) {
@@ -376,8 +383,13 @@ var BlisRecognizer = (function () {
                         cb(null, result);
                     });
                 }
-                else {
+                else if (command == "!help") {
                     result.answer = this.Help();
+                    cb(null, result);
+                }
+                else {
+                    var text_1 = "Not a valid command.\n\n\n\n" + this.Help();
+                    result.answer = text_1;
                     cb(null, result);
                 }
             }
