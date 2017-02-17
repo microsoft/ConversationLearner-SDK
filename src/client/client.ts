@@ -207,7 +207,7 @@ export class BlisClient {
         )
     }
 
-    public GetEntities(appId : string) : Promise<string[]>
+    public GetEntities(appId : string) : Promise<string>
     {
         let apiPath = `app/${appId}/entity`;
 
@@ -263,6 +263,34 @@ export class BlisClient {
                     }
                     else {
                         resolve(body.id);
+                    }
+                });
+            }
+        )
+    }
+
+    public GetActions(appId : string) : Promise<string>
+    {
+        let apiPath = `app/${appId}/action`;
+
+        return new Promise(
+            (resolve, reject) => {
+               const requestData = {
+                    url: this.serviceUri+apiPath,
+                    headers: {
+                        'Cookie' : this.credentials.Cookiestring()
+                    }
+                }
+
+                request.get(requestData, (error, response, body) => {
+                    if (error) {
+                        reject(error);
+                    }
+                    else if (response.statusCode >= 300) {
+                        reject(body.message);
+                    }
+                    else {
+                        resolve(body);
                     }
                 });
             }

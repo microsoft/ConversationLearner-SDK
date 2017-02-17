@@ -101,39 +101,81 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             }
 
             // Get entities
-            let entityIds = {};
+            let entityIds = [];
             await this.blisClient.GetEntities(this.appId)
                 .then((entities) => {
-                    entityIds = entities;
-                    BlisDebug.Log(`Found entities: ${entityIds}`);
+                    entityIds = JSON.parse(entities)['ids'];
+                    BlisDebug.Log(`Found ${entityIds.length} entities`);
                 })
                 .catch(error => { 
                     BlisDebug.Log(`ERROR: ${error}`);
                 }); 
 
-         /*   for (let entityId of entityIds)
+            let entity_id2name = {};
+            let entity_name2id = {};
+            for (let entityId of entityIds)
             {
+                await this.blisClient.GetEntity(this.appId, entityId)
+                    .then((name) => {
+                        entity_id2name[entityId] = name;
+                        entity_name2id[name] = entityId;
+                        BlisDebug.Log(`Entity lookup: ${entityId} : ${name}`);
+                    })
+                    .catch(error => { 
+                        BlisDebug.Log(`ERROR: ${error}`);
+                    }); 
+            }
 
-            }*/
-            // Create actions
-    //      var whichDayActionId = await this.blisClient.AddAction(this.appId, "Which day?", new Array(), new Array(datetimeEntityId), null);
-    //      var whichCityActionId = await this.blisClient.AddAction(this.appId, "Which city?", new Array(), new Array(locationEntityId), null);
-    //      var forecastActionId = await this.blisClient.AddAction(this.appId, "$forecast", new Array(forecastEntityId), new Array(), null);
+            // Get actions
+            let actionIds = [];
+            await this.blisClient.GetActions(this.appId)
+                .then((actions) => {
+                    actionIds = JSON.parse(actions)['ids'];
+                    BlisDebug.Log(`Found ${actionIds.length} actions`);
+                })
+                .catch(error => { 
+                    BlisDebug.Log(`ERROR: ${error}`);
+                });
+
+            let action_id2name = {};
+            let action_name2id = {};
+            for (let actionId of actionIds)
+            {
+                await this.blisClient.GetEntity(this.appId, actionId)
+                    .then((name) => {
+                        action_id2name[actionId] = name;
+                        action_name2id[name] = actionId;
+                        BlisDebug.Log(`Action lookup: ${actionId} : ${name}`);
+                    })
+                    .catch(error => { 
+                        BlisDebug.Log(`ERROR: ${error}`);
+                    }); 
+            }
 
             // Train model
-            await this.blisClient.TrainModel(this.appId)
-            .then((modelId) => {
-                this.modelId = modelId;
-                BlisDebug.Log(`Trained model: ${this.modelId}`);
-            })
-            .catch(error => { 
-                BlisDebug.Log(`ERROR: ${error}`);
-            }); 
+            if (actionIds.length > 0)
+            {
+                await this.blisClient.TrainModel(this.appId)
+                .then((modelId) => {
+                    this.modelId = modelId;
+                    BlisDebug.Log(`Trained model: ${this.modelId}`);
+                })
+                .catch(error => { 
+                    BlisDebug.Log(`ERROR: ${error}`);
+                });
+            } 
 
             // Create session
-            BlisDebug.Log(`Creating session...`);
-            this.sessionId = await this.blisClient.StartSession(this.appId, this.modelId);
-            BlisDebug.Log(`Created Session: ${this.sessionId}`);
+            if (this.modelId)
+            {
+                BlisDebug.Log(`Creating session...`);
+                this.sessionId = await this.blisClient.StartSession(this.appId, this.modelId);
+                BlisDebug.Log(`Created Session: ${this.sessionId}`);
+            }
+            else 
+            {
+                BlisDebug.Log(`No model.  Try training with "!next teach"`);
+            }
         }
         catch (error) {
             BlisDebug.Log(`ERROR: ${error}`);
@@ -298,7 +340,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     private Help() : string
     {
         let text = "";
-        text += "!next\n\n      => Start new dialog\n\n";
+        text += "!next\n\n       Start new dialog\n\n";
         text += "!next teach\n\n      => Start new teaching dialog\n\n"
         text += "!createApp {appName}\n\n      => Create new application with current luisKey\n\n"
         text += "!createApp {appName} {luisKey}\n\n      => Create new application\n\n"

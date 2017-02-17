@@ -15,11 +15,11 @@ var BlisRecognizer = (function () {
     BlisRecognizer.prototype.init = function (options) {
         return tslib_1.__awaiter(this, void 0, void 0, function () {
             var _this = this;
-            var _a, _i, _b, entityName, _c, _d, prebuiltName, entityIds_1, _e, error_1;
-            return tslib_1.__generator(this, function (_f) {
-                switch (_f.label) {
+            var _a, _i, _b, entityName, _c, _d, prebuiltName, entityIds_1, entity_id2name_1, entity_name2id_1, _loop_1, this_1, _e, entityIds_2, entityId, actionIds_1, action_id2name_1, action_name2id_1, _loop_2, this_2, _f, actionIds_2, actionId, _g, error_1;
+            return tslib_1.__generator(this, function (_h) {
+                switch (_h.label) {
                     case 0:
-                        _f.trys.push([0, 15, , 16]);
+                        _h.trys.push([0, 27, , 28]);
                         BlisDebug_1.BlisDebug.Log("Creating client...");
                         this.blisClient = new client_1.BlisClient(options.serviceUri, options.user, options.secret);
                         this.luisCallback = options.luidCallback;
@@ -40,13 +40,13 @@ var BlisRecognizer = (function () {
                         _a = this;
                         return [4 /*yield*/, this.blisClient.CreateApp(options.appName, options.luisKey)];
                     case 2:
-                        _a.appId = _f.sent(); // TODO parameter validation
-                        _f.label = 3;
+                        _a.appId = _h.sent(); // TODO parameter validation
+                        _h.label = 3;
                     case 3:
                         BlisDebug_1.BlisDebug.Log("Using AppId " + this.appId);
                         if (!options.entityList) return [3 /*break*/, 7];
                         _i = 0, _b = options.entityList;
-                        _f.label = 4;
+                        _h.label = 4;
                     case 4:
                         if (!(_i < _b.length)) return [3 /*break*/, 7];
                         entityName = _b[_i];
@@ -59,15 +59,15 @@ var BlisRecognizer = (function () {
                                 BlisDebug_1.BlisDebug.Log("ERROR: " + error);
                             })];
                     case 5:
-                        _f.sent();
-                        _f.label = 6;
+                        _h.sent();
+                        _h.label = 6;
                     case 6:
                         _i++;
                         return [3 /*break*/, 4];
                     case 7:
                         if (!options.prebuiltList) return [3 /*break*/, 11];
                         _c = 0, _d = options.prebuiltList;
-                        _f.label = 8;
+                        _h.label = 8;
                     case 8:
                         if (!(_c < _d.length)) return [3 /*break*/, 11];
                         prebuiltName = _d[_c];
@@ -80,32 +80,103 @@ var BlisRecognizer = (function () {
                                 BlisDebug_1.BlisDebug.Log("ERROR: " + error);
                             })];
                     case 9:
-                        _f.sent();
-                        _f.label = 10;
+                        _h.sent();
+                        _h.label = 10;
                     case 10:
                         _c++;
                         return [3 /*break*/, 8];
                     case 11:
-                        entityIds_1 = {};
+                        entityIds_1 = [];
                         return [4 /*yield*/, this.blisClient.GetEntities(this.appId)
                                 .then(function (entities) {
-                                entityIds_1 = entities;
-                                BlisDebug_1.BlisDebug.Log("Found entities: " + entityIds_1);
+                                entityIds_1 = JSON.parse(entities)['ids'];
+                                BlisDebug_1.BlisDebug.Log("Found " + entityIds_1.length + " entities");
                             })
                                 .catch(function (error) {
                                 BlisDebug_1.BlisDebug.Log("ERROR: " + error);
                             })];
                     case 12:
-                        _f.sent();
-                        /*   for (let entityId of entityIds)
-                           {
-               
-                           }*/
-                        // Create actions
-                        //      var whichDayActionId = await this.blisClient.AddAction(this.appId, "Which day?", new Array(), new Array(datetimeEntityId), null);
-                        //      var whichCityActionId = await this.blisClient.AddAction(this.appId, "Which city?", new Array(), new Array(locationEntityId), null);
-                        //      var forecastActionId = await this.blisClient.AddAction(this.appId, "$forecast", new Array(forecastEntityId), new Array(), null);
-                        // Train model
+                        _h.sent();
+                        entity_id2name_1 = {};
+                        entity_name2id_1 = {};
+                        _loop_1 = function (entityId) {
+                            return tslib_1.__generator(this, function (_a) {
+                                switch (_a.label) {
+                                    case 0: return [4 /*yield*/, this_1.blisClient.GetEntity(this_1.appId, entityId)
+                                            .then(function (name) {
+                                            entity_id2name_1[entityId] = name;
+                                            entity_name2id_1[name] = entityId;
+                                            BlisDebug_1.BlisDebug.Log("Entity lookup: " + entityId + " : " + name);
+                                        })
+                                            .catch(function (error) {
+                                            BlisDebug_1.BlisDebug.Log("ERROR: " + error);
+                                        })];
+                                    case 1:
+                                        _a.sent();
+                                        return [2 /*return*/];
+                                }
+                            });
+                        };
+                        this_1 = this;
+                        _e = 0, entityIds_2 = entityIds_1;
+                        _h.label = 13;
+                    case 13:
+                        if (!(_e < entityIds_2.length)) return [3 /*break*/, 16];
+                        entityId = entityIds_2[_e];
+                        return [5 /*yield**/, _loop_1(entityId)];
+                    case 14:
+                        _h.sent();
+                        _h.label = 15;
+                    case 15:
+                        _e++;
+                        return [3 /*break*/, 13];
+                    case 16:
+                        actionIds_1 = [];
+                        return [4 /*yield*/, this.blisClient.GetActions(this.appId)
+                                .then(function (actions) {
+                                actionIds_1 = JSON.parse(actions)['ids'];
+                                BlisDebug_1.BlisDebug.Log("Found " + actionIds_1.length + " actions");
+                            })
+                                .catch(function (error) {
+                                BlisDebug_1.BlisDebug.Log("ERROR: " + error);
+                            })];
+                    case 17:
+                        _h.sent();
+                        action_id2name_1 = {};
+                        action_name2id_1 = {};
+                        _loop_2 = function (actionId) {
+                            return tslib_1.__generator(this, function (_a) {
+                                switch (_a.label) {
+                                    case 0: return [4 /*yield*/, this_2.blisClient.GetEntity(this_2.appId, actionId)
+                                            .then(function (name) {
+                                            action_id2name_1[actionId] = name;
+                                            action_name2id_1[name] = actionId;
+                                            BlisDebug_1.BlisDebug.Log("Action lookup: " + actionId + " : " + name);
+                                        })
+                                            .catch(function (error) {
+                                            BlisDebug_1.BlisDebug.Log("ERROR: " + error);
+                                        })];
+                                    case 1:
+                                        _a.sent();
+                                        return [2 /*return*/];
+                                }
+                            });
+                        };
+                        this_2 = this;
+                        _f = 0, actionIds_2 = actionIds_1;
+                        _h.label = 18;
+                    case 18:
+                        if (!(_f < actionIds_2.length)) return [3 /*break*/, 21];
+                        actionId = actionIds_2[_f];
+                        return [5 /*yield**/, _loop_2(actionId)];
+                    case 19:
+                        _h.sent();
+                        _h.label = 20;
+                    case 20:
+                        _f++;
+                        return [3 /*break*/, 18];
+                    case 21:
+                        if (!(actionIds_1.length > 0)) return [3 /*break*/, 23];
                         return [4 /*yield*/, this.blisClient.TrainModel(this.appId)
                                 .then(function (modelId) {
                                 _this.modelId = modelId;
@@ -114,30 +185,27 @@ var BlisRecognizer = (function () {
                                 .catch(function (error) {
                                 BlisDebug_1.BlisDebug.Log("ERROR: " + error);
                             })];
-                    case 13:
-                        /*   for (let entityId of entityIds)
-                           {
-               
-                           }*/
-                        // Create actions
-                        //      var whichDayActionId = await this.blisClient.AddAction(this.appId, "Which day?", new Array(), new Array(datetimeEntityId), null);
-                        //      var whichCityActionId = await this.blisClient.AddAction(this.appId, "Which city?", new Array(), new Array(locationEntityId), null);
-                        //      var forecastActionId = await this.blisClient.AddAction(this.appId, "$forecast", new Array(forecastEntityId), new Array(), null);
-                        // Train model
-                        _f.sent();
-                        // Create session
+                    case 22:
+                        _h.sent();
+                        _h.label = 23;
+                    case 23:
+                        if (!this.modelId) return [3 /*break*/, 25];
                         BlisDebug_1.BlisDebug.Log("Creating session...");
-                        _e = this;
+                        _g = this;
                         return [4 /*yield*/, this.blisClient.StartSession(this.appId, this.modelId)];
-                    case 14:
-                        _e.sessionId = _f.sent();
+                    case 24:
+                        _g.sessionId = _h.sent();
                         BlisDebug_1.BlisDebug.Log("Created Session: " + this.sessionId);
-                        return [3 /*break*/, 16];
-                    case 15:
-                        error_1 = _f.sent();
+                        return [3 /*break*/, 26];
+                    case 25:
+                        BlisDebug_1.BlisDebug.Log("No model.  Try training with \"!next teach\"");
+                        _h.label = 26;
+                    case 26: return [3 /*break*/, 28];
+                    case 27:
+                        error_1 = _h.sent();
                         BlisDebug_1.BlisDebug.Log("ERROR: " + error_1);
-                        return [3 /*break*/, 16];
-                    case 16: return [2 /*return*/];
+                        return [3 /*break*/, 28];
+                    case 28: return [2 /*return*/];
                 }
             });
         });
@@ -181,7 +249,7 @@ var BlisRecognizer = (function () {
     };
     BlisRecognizer.prototype.TrainOnSnippetList = function (recognizer, sniplist) {
         return tslib_1.__awaiter(this, void 0, void 0, function () {
-            var actionList, actiontext2id, _i, sniplist_1, snippet, _loop_1, this_1, _a, _b, turn, _c, sniplist_2, snippet, dialog, _d, _e, turn, altTexts, userText, i, actionId, input, newturn, _f;
+            var actionList, actiontext2id, _i, sniplist_1, snippet, _loop_3, this_3, _a, _b, turn, _c, sniplist_2, snippet, dialog, _d, _e, turn, altTexts, userText, i, actionId, input, newturn, _f;
             return tslib_1.__generator(this, function (_g) {
                 switch (_g.label) {
                     case 0:
@@ -192,13 +260,13 @@ var BlisRecognizer = (function () {
                     case 1:
                         if (!(_i < sniplist_1.length)) return [3 /*break*/, 6];
                         snippet = sniplist_1[_i];
-                        _loop_1 = function (turn) {
+                        _loop_3 = function (turn) {
                             return tslib_1.__generator(this, function (_a) {
                                 switch (_a.label) {
                                     case 0:
                                         if (!(actionList.indexOf(turn.action) == -1)) return [3 /*break*/, 2];
                                         BlisDebug_1.BlisDebug.Log("Add Action: " + turn.action);
-                                        return [4 /*yield*/, this_1.blisClient.AddAction(this_1.appId, turn.action, new Array(), new Array(), null)
+                                        return [4 /*yield*/, this_3.blisClient.AddAction(this_3.appId, turn.action, new Array(), new Array(), null)
                                                 .then(function (actionId) {
                                                 actionList.push(turn.action);
                                                 actiontext2id[turn.action] = actionId;
@@ -211,13 +279,13 @@ var BlisRecognizer = (function () {
                                 }
                             });
                         };
-                        this_1 = this;
+                        this_3 = this;
                         _a = 0, _b = snippet.turns;
                         _g.label = 2;
                     case 2:
                         if (!(_a < _b.length)) return [3 /*break*/, 5];
                         turn = _b[_a];
-                        return [5 /*yield**/, _loop_1(turn)];
+                        return [5 /*yield**/, _loop_3(turn)];
                     case 3:
                         _g.sent();
                         _g.label = 4;
@@ -365,7 +433,7 @@ var BlisRecognizer = (function () {
     };
     BlisRecognizer.prototype.Help = function () {
         var text = "";
-        text += "!next\n\n      => Start new dialog\n\n";
+        text += "!next\n\n       Start new dialog\n\n";
         text += "!next teach\n\n      => Start new teaching dialog\n\n";
         text += "!createApp {appName}\n\n      => Create new application with current luisKey\n\n";
         text += "!createApp {appName} {luisKey}\n\n      => Create new application\n\n";
