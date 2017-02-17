@@ -163,9 +163,9 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
 
                 if (turn.userText.length > 1)
                 {
-                    for (let i=1;i<turn.userText.length-1;)
+                    for (let i=1;i<turn.userText.length;)
                     {
-                        altTexts.push(new AltText({text: turn.userText[1]}))
+                        altTexts.push(new AltText({text: turn.userText[i]}))
                     }
                 }
                 let actionId = actiontext2id[turn.action];
