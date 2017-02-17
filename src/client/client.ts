@@ -112,7 +112,6 @@ export class BlisClient {
                     else {
                         resolve(body.id);
                     }
-
                 });
             }
         )
@@ -303,7 +302,7 @@ export class BlisClient {
 
     public async TakeTurn(appId : string, sessionId : string, text : string, 
                             luCallback : (text: string, entities : Entity[]) => TakeTurnRequest, 
-                            apiCallbacks = {},
+                            apiCallbacks : { string : () => TakeTurnRequest },
                             resultCallback: (response : TakeTurnResponse) => void,
                             takeTurnRequest = new TakeTurnRequest({text : text}),
                             expectedNextModes = [TakeTurnModes.Callback, TakeTurnModes.Action, TakeTurnModes.Teach]) : Promise<void>
@@ -328,7 +327,7 @@ export class BlisClient {
                     }
                     else
                     {
-                        takeTurnRequest = new TakeTurnRequest();  // TODO
+                        //takeTurnRequest = new TakeTurnRequest({text : text, entities: takeTurnResponse.entities});
                     }
                     expectedNextModes = [TakeTurnModes.Action, TakeTurnModes.Teach];
                     await this.TakeTurn(appId, sessionId, text, luCallback, apiCallbacks, resultCallback,takeTurnRequest,expectedNextModes);
@@ -351,16 +350,7 @@ export class BlisClient {
                         var apiName = takeTurnResponse.actions[0].content;
                         if (apiCallbacks[apiName])
                         {
-                            // TODO handle apli callback
-                            /*
-                            takeTurnResponse = apiCallbacks[apiName]();
-                            req_json = {
-                                'entities': entities,
-                                'context': context,
-                                'action_mask': action_mask,
-                            }
-                            expected_next_modes = ['teach','action']
-                            */
+                            takeTurnRequest = apiCallbacks[apiName]();
                             expectedNextModes = [TakeTurnModes.Action, TakeTurnModes.Teach];
                             await this.TakeTurn(appId, sessionId, text, luCallback, apiCallbacks, resultCallback,takeTurnRequest,expectedNextModes);
                         }
@@ -371,10 +361,15 @@ export class BlisClient {
                         }
                     }
                 }
+                else
+                {
+                    var response = new TakeTurnResponse({ mode : TakeTurnModes.Error, error: `mode ${response.mode} not supported by the SDK`} );
+                    resultCallback(response);
+                }
             }
             else
             {
-                var response = new TakeTurnResponse({ mode : TakeTurnModes.Error, error: `mode ${response.mode} not supported by the SDK`} );
+                var response = new TakeTurnResponse({ mode : TakeTurnModes.Error, error: `TakeTurnResponse has no mode`} );
                 resultCallback(response);
             }
         })

@@ -22,6 +22,8 @@ export interface IBlisOptions extends builder.IIntentRecognizerSetOptions {
     luisKey?: string;
     entityList?: [string];
     prebuiltList?: [string];
+    luidCallback? : (text: string, luisEntities : [{}]) => TakeTurnRequest;
+    apiCallbacks? : { string : () => TakeTurnRequest };
 }
 
 export class BlisRecognizer implements builder.IIntentRecognizer {
@@ -30,7 +32,8 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     protected luisKey : string;
     protected sessionId : string;
     protected modelId : string;
-    protected LUCallback : (text: string, luisEntities : [{}]) => TakeTurnRequest;
+    protected luisCallback : (text: string, luisEntities : [{}]) => TakeTurnRequest;
+    protected apiCallbacks : { string : () => TakeTurnRequest };
     
     constructor(private options: IBlisOptions){
         this.init(options);
@@ -41,13 +44,25 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             BlisDebug.Log("Creating client...");
             this.blisClient = new BlisClient(options.serviceUri, options.user, options.secret);
 
+            this.luisCallback = options.luidCallback;
+            this.apiCallbacks = options.apiCallbacks;
+
             // Create App
             this.appId = options.appId;
-            if (this.appId && (options.appName || options.luisKey))
+            if (this.appId)
             {
+                if (options.appName || options.luisKey)
+                {
                     BlisDebug.Log("No need for appName or listKey when providing appId");
+                }
             }
-            else {
+            else 
+            {
+                if (!options.appName || !options.luisKey)
+                {
+                    BlisDebug.Log("ERROR: Must provide either appId or appName and luisKey");
+                    return;
+                }
                 BlisDebug.Log("Creating app...");
                 this.appId = await this.blisClient.CreateApp(options.appName, options.luisKey);   // TODO parameter validation
             }
@@ -59,26 +74,31 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                 for (let entityName of options.entityList)
                 {
                     BlisDebug.Log(`Adding new LUIS entity: ${entityName}`);
-                    let entityId = await this.blisClient.AddEntity(this.appId, entityName, "LOCAL", null);
-                    BlisDebug.Log(`Added entity: ${entityId}`);
+                    await this.blisClient.AddEntity(this.appId, entityName, "LOCAL", null)
+                    .then((entityId) => {
+                        BlisDebug.Log(`Added entity: ${entityId}`);
+                    })
+                    .catch(error => { 
+                        BlisDebug.Log(`ERROR: ${error}`);
+                    });      
                 }
             }
 
-            // Load prebuilt
+            // Load prebuilts
             if (options.prebuiltList)
             {
                 for (let prebuiltName of options.prebuiltList)
                 {
                     BlisDebug.Log(`Adding new LUIS pre-build entity: ${prebuiltName}`);
-                    let prebuiltId = await this.blisClient.AddEntity(this.appId, prebuiltName, "LUIS", prebuiltName);
-                    BlisDebug.Log(`Added prebuilt: ${prebuiltId}`);
+                    await this.blisClient.AddEntity(this.appId, prebuiltName, "LUIS", prebuiltName)  // TODO support diff luis and internal name
+                    .then((prebuiltId) => {
+                        BlisDebug.Log(`Added entity: ${prebuiltId}`);
+                    })
+                    .catch(error => { 
+                        BlisDebug.Log(`ERROR: ${error}`);
+                    }); 
                 }
             }
-
-            // Create location, datetime and forecast entities
-        //   var locationEntityId = await this.blisClient.AddEntity(this.appId, "location", "LUIS", "geography");
-        //    var datetimeEntityId = await this.blisClient.AddEntity(this.appId, "date", "LUIS", "datetime");
-        //    var forecastEntityId = await this.blisClient.AddEntity(this.appId, "forecast", "LOCAL", null);
 
             // Create actions
     //      var whichDayActionId = await this.blisClient.AddAction(this.appId, "Which day?", new Array(), new Array(datetimeEntityId), null);
@@ -86,15 +106,22 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     //      var forecastActionId = await this.blisClient.AddAction(this.appId, "$forecast", new Array(forecastEntityId), new Array(), null);
 
             // Train model
-   //TEMP         this.modelId = await this.blisClient.TrainModel(this.appId);
+            await this.blisClient.TrainModel(this.appId)
+            .then((modelId) => {
+                this.modelId = modelId;
+                BlisDebug.Log(`Trained model: ${this.modelId}`);
+            })
+            .catch(error => { 
+                BlisDebug.Log(`ERROR: ${error}`);
+            }); 
 
             // Create session
             BlisDebug.Log(`Creating session...`);
             this.sessionId = await this.blisClient.StartSession(this.appId, this.modelId);
             BlisDebug.Log(`Created Session: ${this.sessionId}`);
         }
-        catch (err) {
-            BlisDebug.Log(err);
+        catch (error) {
+            BlisDebug.Log(`ERROR: ${error}`);
         }
     }
 
@@ -256,17 +283,17 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     private Help() : string
     {
         let text = "";
-        text += "!next => Start new dialog\n\n";
-        text += "!next teach => Start new teaching dialog\n\n"
-        text += "!createApp {appName} => Create new application with current luisKey\n\n"
-        text += "!createApp {appName} {luisKey} => Create new application\n\n"
-        text += "!deleteApp => Delete existing application\n\n"
-        text += "!deleteApp {appId} => Delete specified application\n\n"
-        text += "!startApp => Switch to appId\n\n"
-        text += "!whichApp => Return current appId\n\n"
-        text += "!trainDialogs {file url} => Train in dialogs at given url\n\n"
-        text += "!deleteAction {actionId} => Delete an action on current app\n\n"
-        text += "!help => This list"
+        text += "!next\n\n      => Start new dialog\n\n";
+        text += "!next teach\n\n      => Start new teaching dialog\n\n"
+        text += "!createApp {appName}\n\n      => Create new application with current luisKey\n\n"
+        text += "!createApp {appName} {luisKey}\n\n      => Create new application\n\n"
+        text += "!deleteApp\n\n      => Delete existing application\n\n"
+        text += "!deleteApp {appId}\n\n      => Delete specified application\n\n"
+        text += "!startApp\n\n      => Switch to appId\n\n"
+        text += "!whichApp\n\n      => Return current appId\n\n"
+        text += "!trainDialogs {file url}\n\n      => Train in dialogs at given url\n\n"
+        text += "!deleteAction {actionId}\n\n      => Delete an action on current app\n\n"
+        text += "!help\n\n      => This list"
         return text;
     }
 
@@ -362,7 +389,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                 }
                 else
                 {
-                    this.blisClient.TakeTurn(this.appId, this.sessionId, text, this.LUCallback, null, 
+                    this.blisClient.TakeTurn(this.appId, this.sessionId, text, this.luisCallback, this.apiCallbacks, 
                         (response : TakeTurnResponse) => {
 
                             if (response.mode == TakeTurnModes.Teach)

@@ -257,7 +257,6 @@ var BlisClient = (function () {
         });
     };
     BlisClient.prototype.TakeTurn = function (appId, sessionId, text, luCallback, apiCallbacks, resultCallback, takeTurnRequest, expectedNextModes) {
-        if (apiCallbacks === void 0) { apiCallbacks = {}; }
         if (takeTurnRequest === void 0) { takeTurnRequest = new TakeTurnRequest_1.TakeTurnRequest({ text: text }); }
         if (expectedNextModes === void 0) { expectedNextModes = [TakeTurnResponse_1.TakeTurnModes.Callback, TakeTurnResponse_1.TakeTurnModes.Action, TakeTurnResponse_1.TakeTurnModes.Teach]; }
         return tslib_1.__awaiter(this, void 0, void 0, function () {
@@ -266,7 +265,7 @@ var BlisClient = (function () {
                 switch (_a.label) {
                     case 0: return [4 /*yield*/, this.SendTurnRequest(appId, sessionId, takeTurnRequest)
                             .then(function (takeTurnResponse) { return tslib_1.__awaiter(_this, void 0, void 0, function () {
-                            var response, apiName, response, response;
+                            var response, apiName, response, response, response;
                             return tslib_1.__generator(this, function (_a) {
                                 switch (_a.label) {
                                     case 0:
@@ -275,25 +274,24 @@ var BlisClient = (function () {
                                             response = new TakeTurnResponse_1.TakeTurnResponse({ mode: TakeTurnResponse_1.TakeTurnModes.Error, error: "Unexpected mode " + takeTurnResponse.mode });
                                             resultCallback(response);
                                         }
-                                        if (!takeTurnResponse.mode) return [3 /*break*/, 8];
+                                        if (!takeTurnResponse.mode) return [3 /*break*/, 10];
                                         if (!(takeTurnResponse.mode == TakeTurnResponse_1.TakeTurnModes.Callback)) return [3 /*break*/, 2];
                                         if (luCallback) {
                                             takeTurnRequest = luCallback(takeTurnResponse.originalText, takeTurnResponse.entities);
                                         }
                                         else {
-                                            takeTurnRequest = new TakeTurnRequest_1.TakeTurnRequest(); // TODO
                                         }
                                         expectedNextModes = [TakeTurnResponse_1.TakeTurnModes.Action, TakeTurnResponse_1.TakeTurnModes.Teach];
                                         return [4 /*yield*/, this.TakeTurn(appId, sessionId, text, luCallback, apiCallbacks, resultCallback, takeTurnRequest, expectedNextModes)];
                                     case 1:
                                         _a.sent();
-                                        return [3 /*break*/, 7];
+                                        return [3 /*break*/, 9];
                                     case 2:
                                         if (!(takeTurnResponse.mode == TakeTurnResponse_1.TakeTurnModes.Teach)) return [3 /*break*/, 3];
                                         resultCallback(takeTurnResponse);
-                                        return [3 /*break*/, 7];
+                                        return [3 /*break*/, 9];
                                     case 3:
-                                        if (!(takeTurnResponse.mode == TakeTurnResponse_1.TakeTurnModes.Action)) return [3 /*break*/, 7];
+                                        if (!(takeTurnResponse.mode == TakeTurnResponse_1.TakeTurnModes.Action)) return [3 /*break*/, 8];
                                         if (!(takeTurnResponse.actions[0].actionType == TakeTurnResponse_1.ActionTypes.Text)) return [3 /*break*/, 4];
                                         resultCallback(takeTurnResponse);
                                         return [3 /*break*/, 7];
@@ -301,16 +299,7 @@ var BlisClient = (function () {
                                         if (!(takeTurnResponse.actions[0].actionType == TakeTurnResponse_1.ActionTypes.API)) return [3 /*break*/, 7];
                                         apiName = takeTurnResponse.actions[0].content;
                                         if (!apiCallbacks[apiName]) return [3 /*break*/, 6];
-                                        // TODO handle apli callback
-                                        /*
-                                        takeTurnResponse = apiCallbacks[apiName]();
-                                        req_json = {
-                                            'entities': entities,
-                                            'context': context,
-                                            'action_mask': action_mask,
-                                        }
-                                        expected_next_modes = ['teach','action']
-                                        */
+                                        takeTurnRequest = apiCallbacks[apiName]();
                                         expectedNextModes = [TakeTurnResponse_1.TakeTurnModes.Action, TakeTurnResponse_1.TakeTurnModes.Teach];
                                         return [4 /*yield*/, this.TakeTurn(appId, sessionId, text, luCallback, apiCallbacks, resultCallback, takeTurnRequest, expectedNextModes)];
                                     case 5:
@@ -325,7 +314,12 @@ var BlisClient = (function () {
                                         response = new TakeTurnResponse_1.TakeTurnResponse({ mode: TakeTurnResponse_1.TakeTurnModes.Error, error: "mode " + response.mode + " not supported by the SDK" });
                                         resultCallback(response);
                                         _a.label = 9;
-                                    case 9: return [2 /*return*/];
+                                    case 9: return [3 /*break*/, 11];
+                                    case 10:
+                                        response = new TakeTurnResponse_1.TakeTurnResponse({ mode: TakeTurnResponse_1.TakeTurnModes.Error, error: "TakeTurnResponse has no mode" });
+                                        resultCallback(response);
+                                        _a.label = 11;
+                                    case 11: return [2 /*return*/];
                                 }
                             });
                         }); })

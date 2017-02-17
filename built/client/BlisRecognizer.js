@@ -14,19 +14,28 @@ var BlisRecognizer = (function () {
     }
     BlisRecognizer.prototype.init = function (options) {
         return tslib_1.__awaiter(this, void 0, void 0, function () {
-            var _a, _i, _b, entityName, entityId, _c, _d, prebuiltName, prebuiltId, _e, err_1;
+            var _this = this;
+            var _a, _i, _b, entityName, _c, _d, prebuiltName, _e, error_1;
             return tslib_1.__generator(this, function (_f) {
                 switch (_f.label) {
                     case 0:
-                        _f.trys.push([0, 13, , 14]);
+                        _f.trys.push([0, 14, , 15]);
                         BlisDebug_1.BlisDebug.Log("Creating client...");
                         this.blisClient = new client_1.BlisClient(options.serviceUri, options.user, options.secret);
+                        this.luisCallback = options.luidCallback;
+                        this.apiCallbacks = options.apiCallbacks;
                         // Create App
                         this.appId = options.appId;
-                        if (!(this.appId && (options.appName || options.luisKey))) return [3 /*break*/, 1];
-                        BlisDebug_1.BlisDebug.Log("No need for appName or listKey when providing appId");
+                        if (!this.appId) return [3 /*break*/, 1];
+                        if (options.appName || options.luisKey) {
+                            BlisDebug_1.BlisDebug.Log("No need for appName or listKey when providing appId");
+                        }
                         return [3 /*break*/, 3];
                     case 1:
+                        if (!options.appName || !options.luisKey) {
+                            BlisDebug_1.BlisDebug.Log("ERROR: Must provide either appId or appName and luisKey");
+                            return [2 /*return*/];
+                        }
                         BlisDebug_1.BlisDebug.Log("Creating app...");
                         _a = this;
                         return [4 /*yield*/, this.blisClient.CreateApp(options.appName, options.luisKey)];
@@ -42,10 +51,15 @@ var BlisRecognizer = (function () {
                         if (!(_i < _b.length)) return [3 /*break*/, 7];
                         entityName = _b[_i];
                         BlisDebug_1.BlisDebug.Log("Adding new LUIS entity: " + entityName);
-                        return [4 /*yield*/, this.blisClient.AddEntity(this.appId, entityName, "LOCAL", null)];
+                        return [4 /*yield*/, this.blisClient.AddEntity(this.appId, entityName, "LOCAL", null)
+                                .then(function (entityId) {
+                                BlisDebug_1.BlisDebug.Log("Added entity: " + entityId);
+                            })
+                                .catch(function (error) {
+                                BlisDebug_1.BlisDebug.Log("ERROR: " + error);
+                            })];
                     case 5:
-                        entityId = _f.sent();
-                        BlisDebug_1.BlisDebug.Log("Added entity: " + entityId);
+                        _f.sent();
                         _f.label = 6;
                     case 6:
                         _i++;
@@ -58,38 +72,53 @@ var BlisRecognizer = (function () {
                         if (!(_c < _d.length)) return [3 /*break*/, 11];
                         prebuiltName = _d[_c];
                         BlisDebug_1.BlisDebug.Log("Adding new LUIS pre-build entity: " + prebuiltName);
-                        return [4 /*yield*/, this.blisClient.AddEntity(this.appId, prebuiltName, "LUIS", prebuiltName)];
+                        return [4 /*yield*/, this.blisClient.AddEntity(this.appId, prebuiltName, "LUIS", prebuiltName) // TODO support diff luis and internal name
+                                .then(function (prebuiltId) {
+                                BlisDebug_1.BlisDebug.Log("Added entity: " + prebuiltId);
+                            })
+                                .catch(function (error) {
+                                BlisDebug_1.BlisDebug.Log("ERROR: " + error);
+                            })];
                     case 9:
-                        prebuiltId = _f.sent();
-                        BlisDebug_1.BlisDebug.Log("Added prebuilt: " + prebuiltId);
+                        _f.sent();
                         _f.label = 10;
                     case 10:
                         _c++;
                         return [3 /*break*/, 8];
-                    case 11:
-                        // Create location, datetime and forecast entities
-                        //   var locationEntityId = await this.blisClient.AddEntity(this.appId, "location", "LUIS", "geography");
-                        //    var datetimeEntityId = await this.blisClient.AddEntity(this.appId, "date", "LUIS", "datetime");
-                        //    var forecastEntityId = await this.blisClient.AddEntity(this.appId, "forecast", "LOCAL", null);
+                    case 11: 
+                    // Create actions
+                    //      var whichDayActionId = await this.blisClient.AddAction(this.appId, "Which day?", new Array(), new Array(datetimeEntityId), null);
+                    //      var whichCityActionId = await this.blisClient.AddAction(this.appId, "Which city?", new Array(), new Array(locationEntityId), null);
+                    //      var forecastActionId = await this.blisClient.AddAction(this.appId, "$forecast", new Array(forecastEntityId), new Array(), null);
+                    // Train model
+                    return [4 /*yield*/, this.blisClient.TrainModel(this.appId)
+                            .then(function (modelId) {
+                            _this.modelId = modelId;
+                            BlisDebug_1.BlisDebug.Log("Trained model: " + _this.modelId);
+                        })
+                            .catch(function (error) {
+                            BlisDebug_1.BlisDebug.Log("ERROR: " + error);
+                        })];
+                    case 12:
                         // Create actions
                         //      var whichDayActionId = await this.blisClient.AddAction(this.appId, "Which day?", new Array(), new Array(datetimeEntityId), null);
                         //      var whichCityActionId = await this.blisClient.AddAction(this.appId, "Which city?", new Array(), new Array(locationEntityId), null);
                         //      var forecastActionId = await this.blisClient.AddAction(this.appId, "$forecast", new Array(forecastEntityId), new Array(), null);
                         // Train model
-                        //TEMP         this.modelId = await this.blisClient.TrainModel(this.appId);
+                        _f.sent();
                         // Create session
                         BlisDebug_1.BlisDebug.Log("Creating session...");
                         _e = this;
                         return [4 /*yield*/, this.blisClient.StartSession(this.appId, this.modelId)];
-                    case 12:
+                    case 13:
                         _e.sessionId = _f.sent();
                         BlisDebug_1.BlisDebug.Log("Created Session: " + this.sessionId);
-                        return [3 /*break*/, 14];
-                    case 13:
-                        err_1 = _f.sent();
-                        BlisDebug_1.BlisDebug.Log(err_1);
-                        return [3 /*break*/, 14];
-                    case 14: return [2 /*return*/];
+                        return [3 /*break*/, 15];
+                    case 14:
+                        error_1 = _f.sent();
+                        BlisDebug_1.BlisDebug.Log("ERROR: " + error_1);
+                        return [3 /*break*/, 15];
+                    case 15: return [2 /*return*/];
                 }
             });
         });
@@ -317,17 +346,17 @@ var BlisRecognizer = (function () {
     };
     BlisRecognizer.prototype.Help = function () {
         var text = "";
-        text += "!next => Start new dialog\n\n";
-        text += "!next teach => Start new teaching dialog\n\n";
-        text += "!createApp {appName} => Create new application with current luisKey\n\n";
-        text += "!createApp {appName} {luisKey} => Create new application\n\n";
-        text += "!deleteApp => Delete existing application\n\n";
-        text += "!deleteApp {appId} => Delete specified application\n\n";
-        text += "!startApp => Switch to appId\n\n";
-        text += "!whichApp => Return current appId\n\n";
-        text += "!trainDialogs {file url} => Train in dialogs at given url\n\n";
-        text += "!deleteAction {actionId} => Delete an action on current app\n\n";
-        text += "!help => This list";
+        text += "!next\n\n      => Start new dialog\n\n";
+        text += "!next teach\n\n      => Start new teaching dialog\n\n";
+        text += "!createApp {appName}\n\n      => Create new application with current luisKey\n\n";
+        text += "!createApp {appName} {luisKey}\n\n      => Create new application\n\n";
+        text += "!deleteApp\n\n      => Delete existing application\n\n";
+        text += "!deleteApp {appId}\n\n      => Delete specified application\n\n";
+        text += "!startApp\n\n      => Switch to appId\n\n";
+        text += "!whichApp\n\n      => Return current appId\n\n";
+        text += "!trainDialogs {file url}\n\n      => Train in dialogs at given url\n\n";
+        text += "!deleteAction {actionId}\n\n      => Delete an action on current app\n\n";
+        text += "!help\n\n      => This list";
         return text;
     };
     BlisRecognizer.prototype.recognize = function (context, cb) {
@@ -403,7 +432,7 @@ var BlisRecognizer = (function () {
                     cb(null, result);
                 }
                 else {
-                    this.blisClient.TakeTurn(this.appId, this.sessionId, text, this.LUCallback, null, function (response) {
+                    this.blisClient.TakeTurn(this.appId, this.sessionId, text, this.luisCallback, this.apiCallbacks, function (response) {
                         if (response.mode == TakeTurnResponse_1.TakeTurnModes.Teach) {
                             // Markdown requires double carraige returns
                             var output = response.action.content.replace(/\n/g, ":\n\n");
