@@ -166,10 +166,14 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             }
             await this.blisClient.TrainDialog(this.appId, dialog)
             .then((text) => {
-                BlisDebug.Log(`Yes: ${text}`);
+                BlisDebug.Log(`Added: ${text}`);
             })
-            .catch((text) => BlisDebug.Log(`No: ${text}`) );
+            .catch((text) => BlisDebug.Log(`${text}`));
         }
+
+        // Finally train the model
+        BlisDebug.Log(`Training the model...`)    
+        this.modelId = await this.blisClient.TrainModel(this.appId);
     }
 
     private async NewSession(recognizer : BlisRecognizer, teach : boolean, cb : (text) => void) : Promise<void>

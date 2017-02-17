@@ -253,7 +253,7 @@ export class BlisClient {
                     },
                     json: true
                 }
-                requestData['body'] = JSON.stringify(traindialog);
+                requestData['body'] = traindialog;
 
                 request.post(requestData, (error, response, body) => {
                     if (error) {

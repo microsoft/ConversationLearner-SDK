@@ -214,7 +214,7 @@ var BlisClient = (function () {
                 },
                 json: true
             };
-            requestData['body'] = JSON.stringify(traindialog);
+            requestData['body'] = traindialog;
             request.post(requestData, function (error, response, body) {
                 if (error) {
                     reject(error);

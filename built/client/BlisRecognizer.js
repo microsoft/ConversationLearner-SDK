@@ -133,14 +133,14 @@ var BlisRecognizer = (function () {
     };
     BlisRecognizer.prototype.TrainOnSnippetList = function (recognizer, sniplist) {
         return tslib_1.__awaiter(this, void 0, void 0, function () {
-            var actionList, actiontext2id, _i, sniplist_1, snippet, _loop_1, this_1, _a, _b, turn, _c, sniplist_2, snippet, dialog, _d, _e, turn, userText, actionId, input, newturn;
-            return tslib_1.__generator(this, function (_f) {
-                switch (_f.label) {
+            var actionList, actiontext2id, _i, sniplist_1, snippet, _loop_1, this_1, _a, _b, turn, _c, sniplist_2, snippet, dialog, _d, _e, turn, userText, actionId, input, newturn, _f;
+            return tslib_1.__generator(this, function (_g) {
+                switch (_g.label) {
                     case 0:
                         actionList = [];
                         actiontext2id = {};
                         _i = 0, sniplist_1 = sniplist;
-                        _f.label = 1;
+                        _g.label = 1;
                     case 1:
                         if (!(_i < sniplist_1.length)) return [3 /*break*/, 6];
                         snippet = sniplist_1[_i];
@@ -165,14 +165,14 @@ var BlisRecognizer = (function () {
                         };
                         this_1 = this;
                         _a = 0, _b = snippet.turns;
-                        _f.label = 2;
+                        _g.label = 2;
                     case 2:
                         if (!(_a < _b.length)) return [3 /*break*/, 5];
                         turn = _b[_a];
                         return [5 /*yield**/, _loop_1(turn)];
                     case 3:
-                        _f.sent();
-                        _f.label = 4;
+                        _g.sent();
+                        _g.label = 4;
                     case 4:
                         _a++;
                         return [3 /*break*/, 2];
@@ -182,7 +182,7 @@ var BlisRecognizer = (function () {
                     case 6:
                         BlisDebug_1.BlisDebug.Log("Found " + actionList.length + " actions. ");
                         _c = 0, sniplist_2 = sniplist;
-                        _f.label = 7;
+                        _g.label = 7;
                     case 7:
                         if (!(_c < sniplist_2.length)) return [3 /*break*/, 10];
                         snippet = sniplist_2[_c];
@@ -197,16 +197,23 @@ var BlisRecognizer = (function () {
                         }
                         return [4 /*yield*/, this.blisClient.TrainDialog(this.appId, dialog)
                                 .then(function (text) {
-                                BlisDebug_1.BlisDebug.Log("Yes: " + text);
+                                BlisDebug_1.BlisDebug.Log("Added: " + text);
                             })
-                                .catch(function (text) { return BlisDebug_1.BlisDebug.Log("No: " + text); })];
+                                .catch(function (text) { return BlisDebug_1.BlisDebug.Log("" + text); })];
                     case 8:
-                        _f.sent();
-                        _f.label = 9;
+                        _g.sent();
+                        _g.label = 9;
                     case 9:
                         _c++;
                         return [3 /*break*/, 7];
-                    case 10: return [2 /*return*/];
+                    case 10:
+                        // Finally train the model
+                        BlisDebug_1.BlisDebug.Log("Training the model...");
+                        _f = this;
+                        return [4 /*yield*/, this.blisClient.TrainModel(this.appId)];
+                    case 11:
+                        _f.modelId = _g.sent();
+                        return [2 /*return*/];
                 }
             });
         });
