@@ -158,7 +158,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             let dialog = new TrainDialog();
             for (let turn of snippet.turns)
             {
-                let altTexts = [];
+                let altTexts : AltText[] = [];
                 let userText = turn.userText[0];  // TODO only training on first one
 
                 if (turn.userText.length > 1)
