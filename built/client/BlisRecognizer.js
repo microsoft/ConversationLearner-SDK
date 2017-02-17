@@ -15,11 +15,11 @@ var BlisRecognizer = (function () {
     BlisRecognizer.prototype.init = function (options) {
         return tslib_1.__awaiter(this, void 0, void 0, function () {
             var _this = this;
-            var _a, _i, _b, entityName, _c, _d, prebuiltName, _e, error_1;
+            var _a, _i, _b, entityName, _c, _d, prebuiltName, entityIds_1, _e, error_1;
             return tslib_1.__generator(this, function (_f) {
                 switch (_f.label) {
                     case 0:
-                        _f.trys.push([0, 14, , 15]);
+                        _f.trys.push([0, 15, , 16]);
                         BlisDebug_1.BlisDebug.Log("Creating client...");
                         this.blisClient = new client_1.BlisClient(options.serviceUri, options.user, options.secret);
                         this.luisCallback = options.luidCallback;
@@ -85,21 +85,40 @@ var BlisRecognizer = (function () {
                     case 10:
                         _c++;
                         return [3 /*break*/, 8];
-                    case 11: 
-                    // Create actions
-                    //      var whichDayActionId = await this.blisClient.AddAction(this.appId, "Which day?", new Array(), new Array(datetimeEntityId), null);
-                    //      var whichCityActionId = await this.blisClient.AddAction(this.appId, "Which city?", new Array(), new Array(locationEntityId), null);
-                    //      var forecastActionId = await this.blisClient.AddAction(this.appId, "$forecast", new Array(forecastEntityId), new Array(), null);
-                    // Train model
-                    return [4 /*yield*/, this.blisClient.TrainModel(this.appId)
-                            .then(function (modelId) {
-                            _this.modelId = modelId;
-                            BlisDebug_1.BlisDebug.Log("Trained model: " + _this.modelId);
-                        })
-                            .catch(function (error) {
-                            BlisDebug_1.BlisDebug.Log("ERROR: " + error);
-                        })];
+                    case 11:
+                        entityIds_1 = {};
+                        return [4 /*yield*/, this.blisClient.GetEntities(this.appId)
+                                .then(function (entities) {
+                                entityIds_1 = entities;
+                                BlisDebug_1.BlisDebug.Log("Found entities: " + entityIds_1);
+                            })
+                                .catch(function (error) {
+                                BlisDebug_1.BlisDebug.Log("ERROR: " + error);
+                            })];
                     case 12:
+                        _f.sent();
+                        /*   for (let entityId of entityIds)
+                           {
+               
+                           }*/
+                        // Create actions
+                        //      var whichDayActionId = await this.blisClient.AddAction(this.appId, "Which day?", new Array(), new Array(datetimeEntityId), null);
+                        //      var whichCityActionId = await this.blisClient.AddAction(this.appId, "Which city?", new Array(), new Array(locationEntityId), null);
+                        //      var forecastActionId = await this.blisClient.AddAction(this.appId, "$forecast", new Array(forecastEntityId), new Array(), null);
+                        // Train model
+                        return [4 /*yield*/, this.blisClient.TrainModel(this.appId)
+                                .then(function (modelId) {
+                                _this.modelId = modelId;
+                                BlisDebug_1.BlisDebug.Log("Trained model: " + _this.modelId);
+                            })
+                                .catch(function (error) {
+                                BlisDebug_1.BlisDebug.Log("ERROR: " + error);
+                            })];
+                    case 13:
+                        /*   for (let entityId of entityIds)
+                           {
+               
+                           }*/
                         // Create actions
                         //      var whichDayActionId = await this.blisClient.AddAction(this.appId, "Which day?", new Array(), new Array(datetimeEntityId), null);
                         //      var whichCityActionId = await this.blisClient.AddAction(this.appId, "Which city?", new Array(), new Array(locationEntityId), null);
@@ -110,15 +129,15 @@ var BlisRecognizer = (function () {
                         BlisDebug_1.BlisDebug.Log("Creating session...");
                         _e = this;
                         return [4 /*yield*/, this.blisClient.StartSession(this.appId, this.modelId)];
-                    case 13:
+                    case 14:
                         _e.sessionId = _f.sent();
                         BlisDebug_1.BlisDebug.Log("Created Session: " + this.sessionId);
-                        return [3 /*break*/, 15];
-                    case 14:
+                        return [3 /*break*/, 16];
+                    case 15:
                         error_1 = _f.sent();
                         BlisDebug_1.BlisDebug.Log("ERROR: " + error_1);
-                        return [3 /*break*/, 15];
-                    case 15: return [2 /*return*/];
+                        return [3 /*break*/, 16];
+                    case 16: return [2 /*return*/];
                 }
             });
         });

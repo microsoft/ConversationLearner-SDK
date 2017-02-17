@@ -148,6 +148,52 @@ var BlisClient = (function () {
             });
         });
     };
+    BlisClient.prototype.GetEntity = function (appId, entityId) {
+        var _this = this;
+        var apiPath = "app/" + appId + "/entity/" + entityId;
+        return new Promise(function (resolve, reject) {
+            var requestData = {
+                url: _this.serviceUri + apiPath,
+                headers: {
+                    'Cookie': _this.credentials.Cookiestring()
+                }
+            };
+            request.get(requestData, function (error, response, body) {
+                if (error) {
+                    reject(error);
+                }
+                else if (response.statusCode >= 300) {
+                    reject(body.message);
+                }
+                else {
+                    resolve(body);
+                }
+            });
+        });
+    };
+    BlisClient.prototype.GetEntities = function (appId) {
+        var _this = this;
+        var apiPath = "app/" + appId + "/entity";
+        return new Promise(function (resolve, reject) {
+            var requestData = {
+                url: _this.serviceUri + apiPath,
+                headers: {
+                    'Cookie': _this.credentials.Cookiestring()
+                }
+            };
+            request.get(requestData, function (error, response, body) {
+                if (error) {
+                    reject(error);
+                }
+                else if (response.statusCode >= 300) {
+                    reject(body.message);
+                }
+                else {
+                    resolve(body);
+                }
+            });
+        });
+    };
     BlisClient.prototype.AddAction = function (appId, content, requiredEntityList, negativeEntityList, prebuiltEntityName) {
         var _this = this;
         if (requiredEntityList === void 0) { requiredEntityList = null; }

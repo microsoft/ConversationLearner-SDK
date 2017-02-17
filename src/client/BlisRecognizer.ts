@@ -68,38 +68,53 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             }
             BlisDebug.Log(`Using AppId ${this.appId}`);
 
-            // Load entities
+            // Add any new entities
             if (options.entityList)
             {
                 for (let entityName of options.entityList)
                 {
                     BlisDebug.Log(`Adding new LUIS entity: ${entityName}`);
                     await this.blisClient.AddEntity(this.appId, entityName, "LOCAL", null)
-                    .then((entityId) => {
-                        BlisDebug.Log(`Added entity: ${entityId}`);
-                    })
-                    .catch(error => { 
-                        BlisDebug.Log(`ERROR: ${error}`);
-                    });      
+                        .then((entityId) => {
+                            BlisDebug.Log(`Added entity: ${entityId}`);
+                        })
+                        .catch(error => { 
+                            BlisDebug.Log(`ERROR: ${error}`);
+                        });      
                 }
             }
 
-            // Load prebuilts
+            // Add any new prebuilts
             if (options.prebuiltList)
             {
                 for (let prebuiltName of options.prebuiltList)
                 {
                     BlisDebug.Log(`Adding new LUIS pre-build entity: ${prebuiltName}`);
                     await this.blisClient.AddEntity(this.appId, prebuiltName, "LUIS", prebuiltName)  // TODO support diff luis and internal name
-                    .then((prebuiltId) => {
-                        BlisDebug.Log(`Added entity: ${prebuiltId}`);
-                    })
-                    .catch(error => { 
-                        BlisDebug.Log(`ERROR: ${error}`);
-                    }); 
+                        .then((prebuiltId) => {
+                            BlisDebug.Log(`Added entity: ${prebuiltId}`);
+                        })
+                        .catch(error => { 
+                            BlisDebug.Log(`ERROR: ${error}`);
+                        }); 
                 }
             }
 
+            // Get entities
+            let entityIds = {};
+            await this.blisClient.GetEntities(this.appId)
+                .then((entities) => {
+                    entityIds = entities;
+                    BlisDebug.Log(`Found entities: ${entityIds}`);
+                })
+                .catch(error => { 
+                    BlisDebug.Log(`ERROR: ${error}`);
+                }); 
+
+         /*   for (let entityId of entityIds)
+            {
+
+            }*/
             // Create actions
     //      var whichDayActionId = await this.blisClient.AddAction(this.appId, "Which day?", new Array(), new Array(datetimeEntityId), null);
     //      var whichCityActionId = await this.blisClient.AddAction(this.appId, "Which city?", new Array(), new Array(locationEntityId), null);
