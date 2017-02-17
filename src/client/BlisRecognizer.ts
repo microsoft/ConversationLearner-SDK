@@ -34,6 +34,8 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     protected modelId : string;
     protected luisCallback : (text: string, luisEntities : [{}]) => TakeTurnRequest;
     protected apiCallbacks : { string : () => TakeTurnRequest };
+    protected entity_name2id : { string : string };
+    protected entityValues = {};
     
     constructor(private options: IBlisOptions){
         this.init(options);
@@ -103,8 +105,8 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             // Get entities
             let entityIds = [];
             await this.blisClient.GetEntities(this.appId)
-                .then((entities) => {
-                    entityIds = JSON.parse(entities)['ids'];
+                .then((json) => {
+                    entityIds = JSON.parse(json)['ids'];
                     BlisDebug.Log(`Found ${entityIds.length} entities`);
                 })
                 .catch(error => { 
@@ -112,14 +114,14 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                 }); 
 
             let entity_id2name = {};
-            let entity_name2id = {};
             for (let entityId of entityIds)
             {
                 await this.blisClient.GetEntity(this.appId, entityId)
-                    .then((name) => {
-                        entity_id2name[entityId] = name;
-                        entity_name2id[name] = entityId;
-                        BlisDebug.Log(`Entity lookup: ${entityId} : ${name}`);
+                    .then((json) => {
+                        let entityName = JSON.parse(json)['name'];
+                        entity_id2name[entityId] = entityName;
+                        this.entity_name2id[entityName] = entityId;
+                        BlisDebug.Log(`Entity lookup: ${entityId} : ${entityName}`);
                     })
                     .catch(error => { 
                         BlisDebug.Log(`ERROR: ${error}`);
@@ -129,8 +131,8 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             // Get actions
             let actionIds = [];
             await this.blisClient.GetActions(this.appId)
-                .then((actions) => {
-                    actionIds = JSON.parse(actions)['ids'];
+                .then((json) => {
+                    actionIds = JSON.parse(json)['ids'];
                     BlisDebug.Log(`Found ${actionIds.length} actions`);
                 })
                 .catch(error => { 
@@ -142,10 +144,11 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             for (let actionId of actionIds)
             {
                 await this.blisClient.GetEntity(this.appId, actionId)
-                    .then((name) => {
-                        action_id2name[actionId] = name;
-                        action_name2id[name] = actionId;
-                        BlisDebug.Log(`Action lookup: ${actionId} : ${name}`);
+                    .then((json) => {
+                        let actionName = JSON.parse(json)['name'];
+                        action_id2name[actionId] = json;
+                        action_name2id[actionName] = actionId;
+                        BlisDebug.Log(`Action lookup: ${actionId} : ${actionName}`);
                     })
                     .catch(error => { 
                         BlisDebug.Log(`ERROR: ${error}`);
@@ -341,16 +344,16 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     {
         let text = "";
         text += "!next\n\n       Start new dialog\n\n";
-        text += "!next teach\n\n      => Start new teaching dialog\n\n"
-        text += "!createApp {appName}\n\n      => Create new application with current luisKey\n\n"
-        text += "!createApp {appName} {luisKey}\n\n      => Create new application\n\n"
-        text += "!deleteApp\n\n      => Delete existing application\n\n"
-        text += "!deleteApp {appId}\n\n      => Delete specified application\n\n"
-        text += "!startApp\n\n      => Switch to appId\n\n"
-        text += "!whichApp\n\n      => Return current appId\n\n"
-        text += "!trainDialogs {file url}\n\n      => Train in dialogs at given url\n\n"
-        text += "!deleteAction {actionId}\n\n      => Delete an action on current app\n\n"
-        text += "!help\n\n      => This list"
+        text += "!next teach\n\n       Start new teaching dialog\n\n"
+        text += "!createApp {appName}\n\n       Create new application with current luisKey\n\n"
+        text += "!createApp {appName} {luisKey}\n\n       Create new application\n\n"
+        text += "!deleteApp\n\n       Delete existing application\n\n"
+        text += "!deleteApp {appId}\n\n       Delete specified application\n\n"
+        text += "!startApp\n\n       Switch to appId\n\n"
+        text += "!whichApp\n\n       Return current appId\n\n"
+        text += "!trainDialogs {file url}\n\n       Train in dialogs at given url\n\n"
+        text += "!deleteAction {actionId}\n\n       Delete an action on current app\n\n"
+        text += "!help\n\n       This list"
         return text;
     }
 
@@ -484,9 +487,21 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         {
             if (item.startsWith('$')) 
             {
-                let name = item;                  // LARS TODO WAS: ent_name = item[1:] - why the 1:?
- //TODO               let value = this.hist[name];
- //               words.push(value);
+                if (this.entity_name2id[item])
+                {
+                    let entityId = this.entity_name2id[item];
+                    let entityValue = this.entityValues[item];
+                    words.push(entityValue);
+                }
+                else if (this.entityValues[item])
+                {
+                    let entityValue = this.entityValues[item];
+                    words.push(entityValue);
+                }
+                else
+                {
+                    BlisDebug.Log(`Found entity reference ${item} but no value for that entity observed`);
+                }
             }
             else
             {

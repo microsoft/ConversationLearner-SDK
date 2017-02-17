@@ -269,6 +269,34 @@ export class BlisClient {
         )
     }
 
+    public GetAction(appId : string, actionId) : Promise<string>
+    {
+        let apiPath = `app/${appId}/entity/${actionId}`;
+
+        return new Promise(
+            (resolve, reject) => {
+               const requestData = {
+                    url: this.serviceUri+apiPath,
+                    headers: {
+                        'Cookie' : this.credentials.Cookiestring()
+                    }
+                }
+
+                request.get(requestData, (error, response, body) => {
+                    if (error) {
+                        reject(error);
+                    }
+                    else if (response.statusCode >= 300) {
+                        reject(body.message);
+                    }
+                    else {
+                        resolve(body);
+                    }
+                });
+            }
+        )
+    }
+
     public GetActions(appId : string) : Promise<string>
     {
         let apiPath = `app/${appId}/action`;

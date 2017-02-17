@@ -226,6 +226,29 @@ var BlisClient = (function () {
             });
         });
     };
+    BlisClient.prototype.GetAction = function (appId, actionId) {
+        var _this = this;
+        var apiPath = "app/" + appId + "/entity/" + actionId;
+        return new Promise(function (resolve, reject) {
+            var requestData = {
+                url: _this.serviceUri + apiPath,
+                headers: {
+                    'Cookie': _this.credentials.Cookiestring()
+                }
+            };
+            request.get(requestData, function (error, response, body) {
+                if (error) {
+                    reject(error);
+                }
+                else if (response.statusCode >= 300) {
+                    reject(body.message);
+                }
+                else {
+                    resolve(body);
+                }
+            });
+        });
+    };
     BlisClient.prototype.GetActions = function (appId) {
         var _this = this;
         var apiPath = "app/" + appId + "/action";

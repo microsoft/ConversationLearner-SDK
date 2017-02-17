@@ -10,12 +10,13 @@ var TakeTurnResponse_1 = require("../client/Model/TakeTurnResponse");
 var BlisRecognizer = (function () {
     function BlisRecognizer(options) {
         this.options = options;
+        this.entityValues = {};
         this.init(options);
     }
     BlisRecognizer.prototype.init = function (options) {
         return tslib_1.__awaiter(this, void 0, void 0, function () {
             var _this = this;
-            var _a, _i, _b, entityName, _c, _d, prebuiltName, entityIds_1, entity_id2name_1, entity_name2id_1, _loop_1, this_1, _e, entityIds_2, entityId, actionIds_1, action_id2name_1, action_name2id_1, _loop_2, this_2, _f, actionIds_2, actionId, _g, error_1;
+            var _a, _i, _b, entityName, _c, _d, prebuiltName, entityIds_1, entity_id2name_1, _loop_1, this_1, _e, entityIds_2, entityId, actionIds_1, action_id2name_1, action_name2id_1, _loop_2, this_2, _f, actionIds_2, actionId, _g, error_1;
             return tslib_1.__generator(this, function (_h) {
                 switch (_h.label) {
                     case 0:
@@ -88,8 +89,8 @@ var BlisRecognizer = (function () {
                     case 11:
                         entityIds_1 = [];
                         return [4 /*yield*/, this.blisClient.GetEntities(this.appId)
-                                .then(function (entities) {
-                                entityIds_1 = JSON.parse(entities)['ids'];
+                                .then(function (json) {
+                                entityIds_1 = JSON.parse(json)['ids'];
                                 BlisDebug_1.BlisDebug.Log("Found " + entityIds_1.length + " entities");
                             })
                                 .catch(function (error) {
@@ -98,15 +99,15 @@ var BlisRecognizer = (function () {
                     case 12:
                         _h.sent();
                         entity_id2name_1 = {};
-                        entity_name2id_1 = {};
                         _loop_1 = function (entityId) {
                             return tslib_1.__generator(this, function (_a) {
                                 switch (_a.label) {
                                     case 0: return [4 /*yield*/, this_1.blisClient.GetEntity(this_1.appId, entityId)
-                                            .then(function (name) {
-                                            entity_id2name_1[entityId] = name;
-                                            entity_name2id_1[name] = entityId;
-                                            BlisDebug_1.BlisDebug.Log("Entity lookup: " + entityId + " : " + name);
+                                            .then(function (json) {
+                                            var entityName = JSON.parse(json)['name'];
+                                            entity_id2name_1[entityId] = entityName;
+                                            _this.entity_name2id[entityName] = entityId;
+                                            BlisDebug_1.BlisDebug.Log("Entity lookup: " + entityId + " : " + entityName);
                                         })
                                             .catch(function (error) {
                                             BlisDebug_1.BlisDebug.Log("ERROR: " + error);
@@ -133,8 +134,8 @@ var BlisRecognizer = (function () {
                     case 16:
                         actionIds_1 = [];
                         return [4 /*yield*/, this.blisClient.GetActions(this.appId)
-                                .then(function (actions) {
-                                actionIds_1 = JSON.parse(actions)['ids'];
+                                .then(function (json) {
+                                actionIds_1 = JSON.parse(json)['ids'];
                                 BlisDebug_1.BlisDebug.Log("Found " + actionIds_1.length + " actions");
                             })
                                 .catch(function (error) {
@@ -148,10 +149,11 @@ var BlisRecognizer = (function () {
                             return tslib_1.__generator(this, function (_a) {
                                 switch (_a.label) {
                                     case 0: return [4 /*yield*/, this_2.blisClient.GetEntity(this_2.appId, actionId)
-                                            .then(function (name) {
-                                            action_id2name_1[actionId] = name;
-                                            action_name2id_1[name] = actionId;
-                                            BlisDebug_1.BlisDebug.Log("Action lookup: " + actionId + " : " + name);
+                                            .then(function (json) {
+                                            var actionName = JSON.parse(json)['name'];
+                                            action_id2name_1[actionId] = json;
+                                            action_name2id_1[actionName] = actionId;
+                                            BlisDebug_1.BlisDebug.Log("Action lookup: " + actionId + " : " + actionName);
                                         })
                                             .catch(function (error) {
                                             BlisDebug_1.BlisDebug.Log("ERROR: " + error);
@@ -434,16 +436,16 @@ var BlisRecognizer = (function () {
     BlisRecognizer.prototype.Help = function () {
         var text = "";
         text += "!next\n\n       Start new dialog\n\n";
-        text += "!next teach\n\n      => Start new teaching dialog\n\n";
-        text += "!createApp {appName}\n\n      => Create new application with current luisKey\n\n";
-        text += "!createApp {appName} {luisKey}\n\n      => Create new application\n\n";
-        text += "!deleteApp\n\n      => Delete existing application\n\n";
-        text += "!deleteApp {appId}\n\n      => Delete specified application\n\n";
-        text += "!startApp\n\n      => Switch to appId\n\n";
-        text += "!whichApp\n\n      => Return current appId\n\n";
-        text += "!trainDialogs {file url}\n\n      => Train in dialogs at given url\n\n";
-        text += "!deleteAction {actionId}\n\n      => Delete an action on current app\n\n";
-        text += "!help\n\n      => This list";
+        text += "!next teach\n\n       Start new teaching dialog\n\n";
+        text += "!createApp {appName}\n\n       Create new application with current luisKey\n\n";
+        text += "!createApp {appName} {luisKey}\n\n       Create new application\n\n";
+        text += "!deleteApp\n\n       Delete existing application\n\n";
+        text += "!deleteApp {appId}\n\n       Delete specified application\n\n";
+        text += "!startApp\n\n       Switch to appId\n\n";
+        text += "!whichApp\n\n       Return current appId\n\n";
+        text += "!trainDialogs {file url}\n\n       Train in dialogs at given url\n\n";
+        text += "!deleteAction {actionId}\n\n       Delete an action on current app\n\n";
+        text += "!help\n\n       This list";
         return text;
     };
     BlisRecognizer.prototype.recognize = function (context, cb) {
@@ -542,10 +544,22 @@ var BlisRecognizer = (function () {
         }
     };
     BlisRecognizer.prototype.InsertEntities = function (text) {
+        var _this = this;
         var words = [];
         var tokens = text.split(' ').forEach(function (item) {
             if (item.startsWith('$')) {
-                var name_1 = item; // LARS TODO WAS: ent_name = item[1:] - why the 1:?
+                if (_this.entity_name2id[item]) {
+                    var entityId = _this.entity_name2id[item];
+                    var entityValue = _this.entityValues[item];
+                    words.push(entityValue);
+                }
+                else if (_this.entityValues[item]) {
+                    var entityValue = _this.entityValues[item];
+                    words.push(entityValue);
+                }
+                else {
+                    BlisDebug_1.BlisDebug.Log("Found entity reference " + item + " but no value for that entity observed");
+                }
             }
             else {
                 words.push(item);
