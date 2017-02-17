@@ -192,7 +192,7 @@ var BlisRecognizer = (function () {
                             altTexts = [];
                             userText = turn.userText[0];
                             if (turn.userText.length > 1) {
-                                for (i = 1; i < turn.userText.length;) {
+                                for (i = 1; i < turn.userText.length; i++) {
                                     altTexts.push(new TrainDialog_1.AltText({ text: turn.userText[i] }));
                                 }
                             }

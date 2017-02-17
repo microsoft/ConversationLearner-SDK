@@ -163,7 +163,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
 
                 if (turn.userText.length > 1)
                 {
-                    for (let i=1;i<turn.userText.length;)
+                    for (let i=1;i<turn.userText.length;i++)
                     {
                         altTexts.push(new AltText({text: turn.userText[i]}))
                     }
