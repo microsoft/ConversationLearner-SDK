@@ -1,5 +1,5 @@
 import { JsonProperty } from 'json-typescript-mapper';
-import { Entity } from './Entity';
+import { LuisEntity } from './LuisEntity';
 import { Action } from './Action';
 
 export class TakeTurnResponse
@@ -7,8 +7,8 @@ export class TakeTurnResponse
     @JsonProperty('orig-text')
     public originalText : string;
 
-    @JsonProperty({clazz: Entity, name: 'entities'})
-    public entities : Entity[];
+    @JsonProperty({clazz: LuisEntity, name: 'entities'})
+    public entities : LuisEntity[];
 
     @JsonProperty('mode')
     public mode : string;

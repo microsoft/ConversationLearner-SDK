@@ -4,11 +4,11 @@ import { deserialize } from 'json-typescript-mapper';
 import { TakeTurnRequest } from './Model/TakeTurnRequest'
 import { SnippetList, Snippet } from './Model/SnippetList'
 import { TrainDialog, Input, Turn, AltText } from './Model/TrainDialog'
-import { BlisClient } from './client';
+import { BlisClient } from './BlisClient';
 import { BlisDebug} from './BlisDebug';
-import { Entity } from '../client/Model/Entity';
-import { TakeTurnModes } from '../client/Model/Consts';
-import { TakeTurnResponse } from '../client/Model/TakeTurnResponse'
+import { LuisEntity } from './Model/LuisEntity';
+import { TakeTurnModes } from './Model/Consts';
+import { TakeTurnResponse } from './Model/TakeTurnResponse'
 
 export interface IBlisResult extends builder.IIntentRecognizerResult {
     answer: string;
@@ -24,13 +24,15 @@ export interface IBlisOptions extends builder.IIntentRecognizerSetOptions {
     // BLIS Secret
     secret: string;
     appId?: string;
+
+    // TODO CUT
     appName?: string;
     luisKey?: string;
-    entityList?: [string];
-    prebuiltList?: [string];
+    entityList?: [string];  
+    prebuiltList?: [string]; 
 
     // Optional callback than runs after LUIS but before BLIS.  Allows Bot to substitute entities
-    luisCallback? : (text: string, luisEntities : [{}]) => TakeTurnRequest;
+    luisCallback? : (text: string, luisEntities : LuisEntity[]) => TakeTurnRequest;
 
     // Optional callback that runs after BLIS is called but before the Action is rendered
     blisCallback? : (text : string) => string;
@@ -45,7 +47,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     protected luisKey : string;
     protected sessionId : string;
     protected modelId : string;
-    protected luisCallback : (text: string, luisEntities : [{}]) => TakeTurnRequest;
+    protected luisCallback : (text: string, luisEntities : LuisEntity[]) => TakeTurnRequest;
     protected apiCallbacks : { string : () => TakeTurnRequest };
     protected blisCallback : (test : string) => string;
     protected entity_name2id : { string : string };

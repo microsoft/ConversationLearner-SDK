@@ -3,7 +3,7 @@ var util = require('util');
 import {deserialize} from 'json-typescript-mapper';
 import { Credentials } from './Http/Credentials';
 import { TrainDialog } from './Model/TrainDialog'; 
-import { Entity } from './Model/Entity';
+import { LuisEntity } from './Model/LuisEntity';
 import { Action } from './Model/Action'
 import { TakeTurnModes, ActionTypes } from './Model/Consts';
 import { TakeTurnResponse } from './Model/TakeTurnResponse'
@@ -416,13 +416,13 @@ export class BlisClient {
         )
     }
 
-    private DefaultLUCallback(text: string, entities : Entity[]) : TakeTurnRequest
+    private DefaultLUCallback(text: string, entities : LuisEntity[]) : TakeTurnRequest
     {
         return new TakeTurnRequest({text : text, entities: entities});
     }
 
     public async TakeTurn(appId : string, sessionId : string, text : string, 
-                            luCallback : (text: string, entities : Entity[]) => TakeTurnRequest, 
+                            luCallback : (text: string, entities : LuisEntity[]) => TakeTurnRequest, 
                             apiCallbacks : { string : () => TakeTurnRequest },
                             resultCallback: (response : TakeTurnResponse) => void,
                             takeTurnRequest = new TakeTurnRequest({text : text}),

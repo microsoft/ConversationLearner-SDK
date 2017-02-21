@@ -1,13 +1,13 @@
 import { JsonProperty } from 'json-typescript-mapper';
-import { Entity } from './Entity';
+import { LuisEntity } from './LuisEntity';
 
 export class TakeTurnRequest
 {
     @JsonProperty('text')
     public text : string;
 
-    @JsonProperty({clazz: Entity, name: 'entities'})
-    public entities : Entity[];
+    @JsonProperty({clazz: LuisEntity, name: 'entities'})
+    public entities : LuisEntity[];
 
     @JsonProperty('context')
     public context : {};

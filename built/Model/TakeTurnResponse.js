@@ -1,7 +1,7 @@
 "use strict";
 var tslib_1 = require("tslib");
 var json_typescript_mapper_1 = require("json-typescript-mapper");
-var Entity_1 = require("./Entity");
+var LuisEntity_1 = require("./LuisEntity");
 var Action_1 = require("./Action");
 var TakeTurnResponse = (function () {
     function TakeTurnResponse(init) {
@@ -28,7 +28,7 @@ tslib_1.__decorate([
     tslib_1.__metadata("design:type", String)
 ], TakeTurnResponse.prototype, "originalText", void 0);
 tslib_1.__decorate([
-    json_typescript_mapper_1.JsonProperty({ clazz: Entity_1.Entity, name: 'entities' }),
+    json_typescript_mapper_1.JsonProperty({ clazz: LuisEntity_1.LuisEntity, name: 'entities' }),
     tslib_1.__metadata("design:type", Array)
 ], TakeTurnResponse.prototype, "entities", void 0);
 tslib_1.__decorate([
@@ -41,12 +41,11 @@ tslib_1.__decorate([
 ], TakeTurnResponse.prototype, "actions", void 0);
 tslib_1.__decorate([
     json_typescript_mapper_1.JsonProperty({ clazz: Action_1.Action, name: 'action' }),
-    tslib_1.__metadata("design:type", typeof (_a = typeof Action_1.Action !== "undefined" && Action_1.Action) === "function" && _a || Object)
+    tslib_1.__metadata("design:type", Action_1.Action)
 ], TakeTurnResponse.prototype, "action", void 0);
 tslib_1.__decorate([
     json_typescript_mapper_1.JsonProperty('error'),
     tslib_1.__metadata("design:type", String)
 ], TakeTurnResponse.prototype, "error", void 0);
 exports.TakeTurnResponse = TakeTurnResponse;
-var _a;
 //# sourceMappingURL=TakeTurnResponse.js.map
