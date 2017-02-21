@@ -3,7 +3,9 @@ process.stdin.setEncoding('utf8');
 var util = require('util');
 import { BlisClient } from '../client/client'
 import { ConsoleBase } from './consoleBase'
-import { Entity, TakeTurnResponse, TakeTurnModes } from '../client/Model/TakeTurnResponse'
+import { Entity } from '../client/Model/Entity'
+import { TakeTurnModes} from '../client/model/Consts'
+import { TakeTurnResponse } from '../client/Model/TakeTurnResponse'
 import { TakeTurnRequest } from '../client/Model/TakeTurnRequest'
 
 export class Console extends ConsoleBase {

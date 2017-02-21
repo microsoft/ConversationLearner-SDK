@@ -2,7 +2,8 @@ process.stdin.resume();
 process.stdin.setEncoding('utf8');
 var util = require('util');
 import { BlisClient } from '../client/client'
-import { Entity, TakeTurnResponse, TakeTurnModes } from '../client/Model/TakeTurnResponse'
+import { Entity } from '../client/Model/Entity'
+import { TakeTurnResponse} from '../client/Model/TakeTurnResponse'
 import { TakeTurnRequest } from '../client/Model/TakeTurnRequest'
 
 function done() {
@@ -45,7 +46,7 @@ export class ConsoleBase {
         {
             if (item.startsWith('$')) 
             {
-                let name = item;                  // LARS TODO WAS: ent_name = item[1:] - why the 1:?
+                let name = item;                 
                 let value = this.hist[name];
                 words.push(value);
             }

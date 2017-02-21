@@ -1,24 +1,6 @@
 import { JsonProperty } from 'json-typescript-mapper';
-
-export class Entity
-{
-}
-
-export class Action
-{
-    @JsonProperty('action_type')
-    public actionType : string;
-
-    @JsonProperty('content')
-    public content : string;
-
-    public constructor()
-    {
-        this.actionType = undefined;
-        this.content = undefined;
-    }
-}
-
+import { Entity } from './Entity';
+import { Action } from './Action';
 
 export class TakeTurnResponse
 {
@@ -60,18 +42,4 @@ export class TakeTurnResponse
             json['entities'] = this.entities;
         return json;
     }
-}
-
-export class TakeTurnModes
-{
-    public static Callback : string = "lu_callback";
-    public static Teach : string = "teach";
-    public static Action : string = "action";
-    public static Error : string = "error";
-}
-
-export class ActionTypes
-{
-    public static Text = "text";
-    public static API = "api";
 }

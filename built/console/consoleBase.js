@@ -41,7 +41,7 @@ var ConsoleBase = (function () {
         var words = [];
         var tokens = text.split(' ').forEach(function (item) {
             if (item.startsWith('$')) {
-                var name_1 = item; // LARS TODO WAS: ent_name = item[1:] - why the 1:?
+                var name_1 = item;
                 var value = _this.hist[name_1];
                 words.push(value);
             }

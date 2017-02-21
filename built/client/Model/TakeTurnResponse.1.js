@@ -48,4 +48,14 @@ tslib_1.__decorate([
     tslib_1.__metadata("design:type", String)
 ], TakeTurnResponse.prototype, "error", void 0);
 exports.TakeTurnResponse = TakeTurnResponse;
-//# sourceMappingURL=TakeTurnResponse.js.map
+exports.TakeTurnModes = {
+    Callback: "lu_callback",
+    Teach: "teach",
+    Action: "action",
+    Error: "error"
+};
+exports.ActionTypes = {
+    Text: "text",
+    API: "api"
+};
+//# sourceMappingURL=TakeTurnResponse.1.js.map

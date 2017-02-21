@@ -4,12 +4,8 @@ import { BlisDebug } from './BlisDebug';
 
 var util = require('util');
 
-//TODOimport { QnAMakerRecognizer, IQnAMakerResult, IQnAMakerOptions } from './QnAMakerRecognizer'; 
-
-
 export class BlisDialog extends builder.Dialog {
-	/*private answerThreshold: number;
-	private defaultNoMatchMessage: string;*/
+
     private recognizers: builder.IntentRecognizerSet;
 
     constructor(private options: IBlisOptions) {
@@ -54,7 +50,7 @@ export class BlisDialog extends builder.Dialog {
     }
 
     private invokeAnswer(session: builder.Session, recognizeResult: builder.IIntentRecognizerResult): void {
-        // TODO threshold
+        // TODO: Consider adding threshold
         var blisResult = recognizeResult as IBlisResult;
         session.send(blisResult.answer);
     }

@@ -1,6 +1,7 @@
 "use strict";
 var tslib_1 = require("tslib");
 var json_typescript_mapper_1 = require("json-typescript-mapper");
+var Entity_1 = require("./Entity");
 var TakeTurnRequest = (function () {
     function TakeTurnRequest(init) {
         this.text = undefined;
@@ -28,7 +29,7 @@ tslib_1.__decorate([
     tslib_1.__metadata("design:type", String)
 ], TakeTurnRequest.prototype, "text", void 0);
 tslib_1.__decorate([
-    json_typescript_mapper_1.JsonProperty('entities'),
+    json_typescript_mapper_1.JsonProperty({ clazz: Entity_1.Entity, name: 'entities' }),
     tslib_1.__metadata("design:type", Array)
 ], TakeTurnRequest.prototype, "entities", void 0);
 tslib_1.__decorate([

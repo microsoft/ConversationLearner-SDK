@@ -6,23 +6,36 @@ import { SnippetList, Snippet } from './Model/SnippetList'
 import { TrainDialog, Input, Turn, AltText } from './Model/TrainDialog'
 import { BlisClient } from './client';
 import { BlisDebug} from './BlisDebug';
-
-import { Entity, TakeTurnResponse, TakeTurnModes } from '../client/Model/TakeTurnResponse'
+import { Entity } from '../client/Model/Entity';
+import { TakeTurnModes } from '../client/Model/Consts';
+import { TakeTurnResponse } from '../client/Model/TakeTurnResponse'
 
 export interface IBlisResult extends builder.IIntentRecognizerResult {
     answer: string;
 }
 
 export interface IBlisOptions extends builder.IIntentRecognizerSetOptions {
+    // URL for BLIS service
     serviceUri: string;
+
+    // BLIS User Name
     user: string;
+
+    // BLIS Secret
     secret: string;
     appId?: string;
     appName?: string;
     luisKey?: string;
     entityList?: [string];
     prebuiltList?: [string];
-    luidCallback? : (text: string, luisEntities : [{}]) => TakeTurnRequest;
+
+    // Optional callback than runs after LUIS but before BLIS.  Allows Bot to substitute entities
+    luisCallback? : (text: string, luisEntities : [{}]) => TakeTurnRequest;
+
+    // Optional callback that runs after BLIS is called but before the Action is rendered
+    blisCallback? : (text : string) => string;
+
+    // Mappting between API names and functions
     apiCallbacks? : { string : () => TakeTurnRequest };
 }
 
@@ -34,6 +47,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     protected modelId : string;
     protected luisCallback : (text: string, luisEntities : [{}]) => TakeTurnRequest;
     protected apiCallbacks : { string : () => TakeTurnRequest };
+    protected blisCallback : (test : string) => string;
     protected entity_name2id : { string : string };
     protected entityValues = {};
     
@@ -46,8 +60,9 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             BlisDebug.Log("Creating client...");
             this.blisClient = new BlisClient(options.serviceUri, options.user, options.secret);
 
-            this.luisCallback = options.luidCallback;
+            this.luisCallback = options.luisCallback;
             this.apiCallbacks = options.apiCallbacks;
+            this.blisCallback = options.blisCallback ? options.blisCallback : this.DefaultBlisCallback;
 
             // Create App
             this.appId = options.appId;
@@ -460,7 +475,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                             }
                             else if (response.mode == TakeTurnModes.Action)
                             {
-                                let outText = this.InsertEntities(response.actions[0].content);
+                                let outText = this.blisCallback(response.actions[0].content);
                                 result.answer = outText;
                             } 
                             else if (response.mode == TakeTurnModes.Error)
@@ -480,7 +495,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     }
 
     
-    private InsertEntities(text: string)
+    private DefaultBlisCallback(text: string)
     {
         let words = [];
         let tokens = text.split(' ').forEach((item) => 

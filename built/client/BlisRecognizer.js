@@ -6,7 +6,7 @@ var SnippetList_1 = require("./Model/SnippetList");
 var TrainDialog_1 = require("./Model/TrainDialog");
 var client_1 = require("./client");
 var BlisDebug_1 = require("./BlisDebug");
-var TakeTurnResponse_1 = require("../client/Model/TakeTurnResponse");
+var Consts_1 = require("../client/Model/Consts");
 var BlisRecognizer = (function () {
     function BlisRecognizer(options) {
         this.options = options;
@@ -23,8 +23,9 @@ var BlisRecognizer = (function () {
                         _h.trys.push([0, 27, , 28]);
                         BlisDebug_1.BlisDebug.Log("Creating client...");
                         this.blisClient = new client_1.BlisClient(options.serviceUri, options.user, options.secret);
-                        this.luisCallback = options.luidCallback;
+                        this.luisCallback = options.luisCallback;
                         this.apiCallbacks = options.apiCallbacks;
+                        this.blisCallback = options.blisCallback ? options.blisCallback : this.DefaultBlisCallback;
                         // Create App
                         this.appId = options.appId;
                         if (!this.appId) return [3 /*break*/, 1];
@@ -522,16 +523,16 @@ var BlisRecognizer = (function () {
                 }
                 else {
                     this.blisClient.TakeTurn(this.appId, this.sessionId, text, this.luisCallback, this.apiCallbacks, function (response) {
-                        if (response.mode == TakeTurnResponse_1.TakeTurnModes.Teach) {
+                        if (response.mode == Consts_1.TakeTurnModes.Teach) {
                             // Markdown requires double carraige returns
                             var output = response.action.content.replace(/\n/g, ":\n\n");
                             result.answer = output;
                         }
-                        else if (response.mode == TakeTurnResponse_1.TakeTurnModes.Action) {
-                            var outText = _this.InsertEntities(response.actions[0].content);
+                        else if (response.mode == Consts_1.TakeTurnModes.Action) {
+                            var outText = _this.blisCallback(response.actions[0].content);
                             result.answer = outText;
                         }
-                        else if (response.mode == TakeTurnResponse_1.TakeTurnModes.Error) {
+                        else if (response.mode == Consts_1.TakeTurnModes.Error) {
                             result.answer = response.error;
                         }
                         else {
@@ -543,7 +544,7 @@ var BlisRecognizer = (function () {
             }
         }
     };
-    BlisRecognizer.prototype.InsertEntities = function (text) {
+    BlisRecognizer.prototype.DefaultBlisCallback = function (text) {
         var _this = this;
         var words = [];
         var tokens = text.split(' ').forEach(function (item) {

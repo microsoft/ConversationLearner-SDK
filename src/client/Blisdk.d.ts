@@ -1,8 +1,38 @@
 import * as builder from 'botbuilder';
+import { TakeTurnRequest } from './Model/TakeTurnRequest'
 
 /** Options used to configure an IBlisOptions. */
 export interface IBlisOptions {
+    /** URL for BLIS service */
+    serviceUri: string;
 
+    /** BLIS User Name */
+    user: string;
+
+    /** BLIS Secret */
+    secret: string;
+
+    /** (Optional) Id of BLIS app to employ  */
+    appId?: string;
+
+    /** (Optional) appName of BLIS app to create - if no appId supplied */
+    appName?: string;
+
+    /** (Optional) luisKey to use when creating a new BLIS app - if no appId supplied */
+    luisKey?: string;
+
+    // GET RID OF?  
+    entityList?: [string];
+    prebuiltList?: [string];
+
+    /** (Optional) Callback than runs after LUIS but before BLIS.  Allows Bot to substitute entities */
+    luisCallback? : (text: string, luisEntities : [{}]) => TakeTurnRequest;
+
+    /** (Optional) Callback that runs after BLIS is called but before the Action is rendered */
+    blisCallback? : (text : string) => string;
+
+    /** (Optional) Mappting between API names and functions */
+    apiCallbacks? : { string : () => TakeTurnRequest };
 }
 
 /** Results returned by an Bliss recognizer. */

@@ -3,7 +3,6 @@ var tslib_1 = require("tslib");
 var builder = require("botbuilder");
 var BlisDebug_1 = require("./BlisDebug");
 var util = require('util');
-//TODOimport { QnAMakerRecognizer, IQnAMakerResult, IQnAMakerOptions } from './QnAMakerRecognizer'; 
 var BlisDialog = (function (_super) {
     tslib_1.__extends(BlisDialog, _super);
     function BlisDialog(options) {
@@ -52,7 +51,7 @@ var BlisDialog = (function (_super) {
         return this;
     };
     BlisDialog.prototype.invokeAnswer = function (session, recognizeResult) {
-        // TODO threshold
+        // TODO: Consider adding threshold
         var blisResult = recognizeResult;
         session.send(blisResult.answer);
     };

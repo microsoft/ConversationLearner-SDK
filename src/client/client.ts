@@ -2,12 +2,13 @@ const request = require('request');
 var util = require('util');
 import {deserialize} from 'json-typescript-mapper';
 import { Credentials } from './Http/Credentials';
-import { SessionRequest } from './Model/SessionRequest';
-import { AppRequest } from './Model/AppRequest';
-import { TrainDialog } from './Model/TrainDialog';
-import { Entity, Action, ActionTypes, TakeTurnModes, TakeTurnResponse } from './Model/TakeTurnResponse'
+import { TrainDialog } from './Model/TrainDialog'; 
+import { Entity } from './Model/Entity';
+import { Action } from './Model/Action'
+import { TakeTurnModes, ActionTypes } from './Model/Consts';
+import { TakeTurnResponse } from './Model/TakeTurnResponse'
 import { TakeTurnRequest } from './Model/TakeTurnRequest'
-import { HandleError, Debug } from './Model/ErrorHandler';
+import { BlisDebug } from './BlisDebug';
 
 export class BlisClient {
 
@@ -16,7 +17,10 @@ export class BlisClient {
 
     constructor(serviceUri : string, user : string, secret : string)
     {
-        if (!serviceUri) HandleError("service Uri is required");
+        if (!serviceUri) 
+        {
+            BlisDebug.Log("service Uri is required");
+        } 
         this.serviceUri = serviceUri;
 
         this.credentials = new Credentials(user, secret);
@@ -412,6 +416,11 @@ export class BlisClient {
         )
     }
 
+    private DefaultLUCallback(text: string, entities : Entity[]) : TakeTurnRequest
+    {
+        return new TakeTurnRequest({text : text, entities: entities});
+    }
+
     public async TakeTurn(appId : string, sessionId : string, text : string, 
                             luCallback : (text: string, entities : Entity[]) => TakeTurnRequest, 
                             apiCallbacks : { string : () => TakeTurnRequest },
@@ -421,7 +430,7 @@ export class BlisClient {
     {
         await this.SendTurnRequest(appId, sessionId, takeTurnRequest)
         .then(async (takeTurnResponse) => {
-            Debug(takeTurnResponse);
+            BlisDebug.Log(takeTurnResponse);
 
             if (expectedNextModes.indexOf(takeTurnResponse.mode) < 0)
             {
@@ -439,7 +448,7 @@ export class BlisClient {
                     }
                     else
                     {
-                        //takeTurnRequest = new TakeTurnRequest({text : text, entities: takeTurnResponse.entities});
+                        takeTurnRequest = this.DefaultLUCallback(takeTurnResponse.originalText, takeTurnResponse.entities);
                     }
                     expectedNextModes = [TakeTurnModes.Action, TakeTurnModes.Teach];
                     await this.TakeTurn(appId, sessionId, text, luCallback, apiCallbacks, resultCallback,takeTurnRequest,expectedNextModes);
@@ -513,13 +522,7 @@ export class BlisClient {
                         reject(body.message);
                     }
                     else {
-                        // API hands back with one action or a list of actions
-                      /*  if (body.action) {
-                            body.actions = new Array<Action>(body.action);
-                            body.action = null;
-                        }*/
                         var ttresponse = deserialize(TakeTurnResponse, body);
-                        //var ttresponse = new TakeTurnResponse(body['orig-text'], body.entities, body.mode, body.actions);
                         resolve(ttresponse);
                     }
                 });
