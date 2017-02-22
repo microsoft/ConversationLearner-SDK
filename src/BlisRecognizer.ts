@@ -250,7 +250,11 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                         actionList.push(turn.action);
                         actiontext2id[turn.action] = actionId;
                     })
-                    .catch((text) => BlisDebug.Log(`!!${text}`) );
+                    .catch((text) => 
+                    {
+                        BlisDebug.Log(`!!${text}`);
+                        return;
+                    });
                 }
             }
         }
@@ -281,7 +285,11 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             .then((text) => {
                 BlisDebug.Log(`Added: ${text}`);
             })
-            .catch((text) => BlisDebug.Log(`${text}`));
+            .catch((text) => 
+            {
+                BlisDebug.Log(`${text}`);
+                return;
+            });
         }
 
         // Finally train the model
