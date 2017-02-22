@@ -235,6 +235,8 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
 
     private async TrainOnSnippetList(recognizer : BlisRecognizer, sniplist : Snippet[]) : Promise<void>
     {
+        let fail = false;
+
         // Extract actions and add them
         let actionList = [];
         let actiontext2id = {};
@@ -244,21 +246,25 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             {
                 if (actionList.indexOf(turn.action) == -1)
                 {
-                    BlisDebug.Log(`Add Action: ${turn.action}`)    
-                    await this.blisClient.AddAction(this.appId, turn.action, new Array(), new Array(), null)
-                    .then((actionId) => {
-                        actionList.push(turn.action);
-                        actiontext2id[turn.action] = actionId;
-                    })
-                    .catch((text) => 
+                    while (!fail)
                     {
-                        BlisDebug.Log(`!!${text}`);
-                        return;
-                    });
+                        BlisDebug.Log(`Add Action: ${turn.action}`)    
+                        await this.blisClient.AddAction(this.appId, turn.action, new Array(), new Array(), null)
+                        .then((actionId) => {
+                            actionList.push(turn.action);
+                            actiontext2id[turn.action] = actionId;
+                        })
+                        .catch((text) => 
+                        {
+                            BlisDebug.Log(`!!${text}`);
+                            fail = true;;
+                        });
+                    }
                 }
             }
         }
         BlisDebug.Log(`Found ${actionList.length} actions. `)    
+        if (fail) return;
 
         // Now train on the dialogs
         for (let snippet of sniplist)
@@ -281,17 +287,21 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                 let newturn = new Turn({'input' :input, 'output' : actionId });
                 dialog.turns.push(newturn);
             }
-            await this.blisClient.TrainDialog(this.appId, dialog)
-            .then((text) => {
-                BlisDebug.Log(`Added: ${text}`);
-            })
-            .catch((text) => 
+            while (!fail)
             {
-                BlisDebug.Log(`${text}`);
-                return;
-            });
+                await this.blisClient.TrainDialog(this.appId, dialog)
+                .then((text) => {
+                    BlisDebug.Log(`Added: ${text}`);
+                })
+                .catch((text) => 
+                {
+                    BlisDebug.Log(`${text}`);
+                    fail = true;
+                });
+            }
         }
-
+        if (fail) return;
+        
         // Finally train the model
         BlisDebug.Log(`Training the model...`)    
         this.modelId = await this.blisClient.TrainModel(this.appId);
