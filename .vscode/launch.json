@@ -12,7 +12,7 @@
             "stopOnEntry" : true,
             "sourceMaps": true,
             "port": 5858, 
-            "outDir" : "${workspaceRoot}/built"
+            "outDir" : "${workspaceRoot}/lib"
         },
         {
             "type": "node",
@@ -20,14 +20,6 @@
             "name": "port",
             "sourceMaps": true,
             "port": 5858
-        },
-        {
-            "type": "node",
-            "request": "launch",
-            "name": "Launch Program",
-            "program": ".\\built\\console\\console.js",
-            "sourceMaps": true,
-            "cwd": "${workspaceRoot}"
         },
         {            
             "name": "Attach with sourcemaps",

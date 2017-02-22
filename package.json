@@ -2,13 +2,13 @@
   "name": "bliskd",
   "version": "0.0.1",
   "description": "Node SDK for Blis",
-  "main": "built/client/blisdk.js",
+  "main": "lib/blisdk.js",
   "typings": "./src/botbuilder.d.ts",
   "scripts": {
     "build": "tsc",
     "watch": "npm-run-all -p -r -l tsc-watch",
     "tsc-watch": "tsc -w",
-    "clean": "rm -rf built",
+    "clean": "rm -rf lib",
     "publish": "tsc",
     "start": "http-server -p 5000"
   },
