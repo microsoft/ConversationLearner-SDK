@@ -386,12 +386,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
 
             // Handle admin commands
             if (command.startsWith('!')) {
-                if (command == "!reset")
-                {
-                    //TODO: reset
-                }
-                // On Next restart session dialog
-                else if (command == "!next")
+                if (command == "!next")
                 {
                     let teach = (arg == 'teach');
                     this.NewSession(this, teach, (text) => {

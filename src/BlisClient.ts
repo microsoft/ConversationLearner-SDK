@@ -1,5 +1,4 @@
 const request = require('request');
-var util = require('util');
 import {deserialize} from 'json-typescript-mapper';
 import { Credentials } from './Http/Credentials';
 import { TrainDialog } from './Model/TrainDialog'; 

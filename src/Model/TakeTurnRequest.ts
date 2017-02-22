@@ -13,7 +13,7 @@ export class TakeTurnRequest
     public context : {};
  
     @JsonProperty('action-mask')
-    public actionMask : [string];
+    public actionMask : string[];
 
     public constructor(init?:Partial<TakeTurnRequest>)
     {

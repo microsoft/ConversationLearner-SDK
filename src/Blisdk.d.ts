@@ -1,5 +1,35 @@
 import * as builder from 'botbuilder';
 import { TakeTurnRequest } from './Model/TakeTurnRequest'
+import { LuisEntity } from './Model/LuisEntity'
+
+/** Entity returned from LUIS */
+export interface LuisEntity {
+    
+    /** Type of entity */
+    type : string;
+
+    /** Actual extracted entity */
+    entity : string;
+
+    /** Additional entity detail in JSON */
+    resolution : {}; 
+}
+
+/** Request sent to BLIS */
+export interface TakeTurnRequest
+{
+    /** Text inclued in the request */
+    text : string;
+
+    /** LUIS entities to send with the request */
+    entities : LuisEntity[];
+
+    /** TODO - how to describe this */
+    context : {};
+ 
+    /** Actions exclude from the response */
+    actionMask : string[];
+}
 
 /** Options used to configure an IBlisOptions. */
 export interface IBlisOptions {
@@ -26,7 +56,7 @@ export interface IBlisOptions {
     prebuiltList?: [string];
 
     /** (Optional) Callback than runs after LUIS but before BLIS.  Allows Bot to substitute entities */
-    luisCallback? : (text: string, luisEntities : [{}]) => TakeTurnRequest;
+    luisCallback? : (text: string, luisEntities : LuisEntity[]) => TakeTurnRequest;
 
     /** (Optional) Callback that runs after BLIS is called but before the Action is rendered */
     blisCallback? : (text : string) => string;

@@ -2,8 +2,6 @@ import * as builder from 'botbuilder';
 import { BlisRecognizer, IBlisResult, IBlisOptions } from './BlisRecognizer';
 import { BlisDebug } from './BlisDebug';
 
-var util = require('util');
-
 export class BlisDialog extends builder.Dialog {
 
     private recognizers: builder.IntentRecognizerSet;

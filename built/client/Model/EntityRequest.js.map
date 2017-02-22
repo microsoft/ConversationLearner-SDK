@@ -1,1 +1,0 @@
-{"version":3,"file":"EntityRequest.js","sourceRoot":"","sources":["../../../src/client/Model/EntityRequest.ts"],"names":[],"mappings":";AACA;IAMI,uBAAY,IAAa,EAAE,UAAmB,EAAE,kBAA2B;QAEvE,IAAI,CAAC,IAAI,GAAG,IAAI,CAAC;QACjB,IAAI,CAAC,UAAU,GAAG,UAAU,CAAC;QAC7B,IAAI,CAAC,kBAAkB,GAAG,kBAAkB,CAAC;IACjD,CAAC;IACL,oBAAC;AAAD,CAAC,AAZD,IAYC;AAZY,sCAAa"}
