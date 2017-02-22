@@ -394,118 +394,125 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
 
     public recognize(context: builder.IRecognizeContext, cb: (error: Error, result: IBlisResult) => void): void {
         
-        var result: IBlisResult = { score: 1.0, answer: null, intent: null };
-        
-        if (context && context.message && context.message.text) {
+        try
+        {
+            var result: IBlisResult = { score: 1.0, answer: null, intent: null };
             
-            let text = context.message.text.trim();
-            let [command, arg, arg2] = text.split(' ');
-            command = command.toLowerCase();
+            if (context && context.message && context.message.text) {
+                
+                let text = context.message.text.trim();
+                let [command, arg, arg2] = text.split(' ');
+                command = command.toLowerCase();
 
-            // Handle admin commands
-            if (command.startsWith('!')) {
-                if (command == "!next")
-                {
-                    let teach = (arg == 'teach');
-                    this.NewSession(this, teach, (text) => {
+                // Handle admin commands
+                if (command.startsWith('!')) {
+                    if (command == "!next")
+                    {
+                        let teach = (arg == 'teach');
+                        this.NewSession(this, teach, (text) => {
+                            result.answer = text;
+                            cb(null, result);
+                        });
+                    }
+                    else if (command == "!createapp")
+                    {
+                    //    let that = this;
+                        this.CreateApp(this, arg, arg2, (text) => {
+                            result.answer = text;
+                            cb(null, result);
+                        });
+                    }
+                    else if (command == "!deleteapp")
+                    {
+                        this.DeleteApp(this, arg, (text) => {
+                            result.answer = text;
+                            cb(null, result);
+                        });
+                    }
+                    else if (command == "!startapp")
+                    {
+                        this.appId = arg;
+                        this.sessionId = null;
+                        result.answer = `Starting app ${arg}`;
+                        cb(null, result);
+                    }
+                    else if (command == "!whichapp")
+                    {
+                        result.answer = this.appId;
+                        cb(null, result);
+                    }
+                    else if (command == "!deleteaction")
+                    {
+                        this.DeleteAction(this, arg, (text) => {
+                            result.answer = text;
+                            cb(null, result);
+                        });
+                    }
+                    else if (command == "!traindialogs")
+                    {
+                        this.TrainFromFile(this, arg, (text) => {
+                            result.answer = text;
+                            cb(null, result);
+                        });
+                    }
+                    else if (command == "!help")
+                    {
+                        result.answer = this.Help();
+                        cb(null, result);
+                    }
+                    else 
+                    {
+                        let text = "Not a valid command.\n\n\n\n" + this.Help();
                         result.answer = text;
                         cb(null, result);
-                    });
-                }
-                else if (command == "!createapp")
-                {
-                //    let that = this;
-                    this.CreateApp(this, arg, arg2, (text) => {
-                        result.answer = text;
-                        cb(null, result);
-                    });
-                }
-                else if (command == "!deleteapp")
-                {
-                    this.DeleteApp(this, arg, (text) => {
-                        result.answer = text;
-                        cb(null, result);
-                    });
-                }
-                else if (command == "!startapp")
-                {
-                    this.appId = arg;
-                    this.sessionId = null;
-                    result.answer = `Starting app ${arg}`;
-                    cb(null, result);
-                }
-                else if (command == "!whichapp")
-                {
-                    result.answer = this.appId;
-                    cb(null, result);
-                }
-                else if (command == "!deleteaction")
-                {
-                    this.DeleteAction(this, arg, (text) => {
-                        result.answer = text;
-                        cb(null, result);
-                    });
-                }
-                else if (command == "!traindialogs")
-                {
-                    this.TrainFromFile(this, arg, (text) => {
-                        result.answer = text;
-                        cb(null, result);
-                    });
-                }
-                else if (command == "!help")
-                {
-                    result.answer = this.Help();
-                    cb(null, result);
+                    }
                 }
                 else 
                 {
-                    let text = "Not a valid command.\n\n\n\n" + this.Help();
-                    result.answer = text;
-                    cb(null, result);
-                }
-            }
-            else 
-            {
-                if (this.appId == null)
-                {
-                    result.answer = "No Application has been loaded.  Type !help for more info.";
-                    cb(null, result);
-                }
-                else if (!this.sessionId)
-                {
-                    result.answer = "Create a sesion first with !next or !next teach";
-                    cb(null, result);
-                }
-                else
-                {
-                    this.blisClient.TakeTurn(this.appId, this.sessionId, text, this.luisCallback, this.apiCallbacks, 
-                        (response : TakeTurnResponse) => {
+                    if (this.appId == null)
+                    {
+                        result.answer = "No Application has been loaded.  Type !help for more info.";
+                        cb(null, result);
+                    }
+                    else if (!this.sessionId)
+                    {
+                        result.answer = "Create a sesion first with !next or !next teach";
+                        cb(null, result);
+                    }
+                    else
+                    {
+                        this.blisClient.TakeTurn(this.appId, this.sessionId, text, this.luisCallback, this.apiCallbacks, 
+                            (response : TakeTurnResponse) => {
 
-                            if (response.mode == TakeTurnModes.Teach)
-                            {
-                                // Markdown requires double carraige returns
-                                var output = response.action.content.replace(/\n/g,":\n\n");
-                                result.answer = output;
+                                if (response.mode == TakeTurnModes.Teach)
+                                {
+                                    // Markdown requires double carraige returns
+                                    var output = response.action.content.replace(/\n/g,":\n\n");
+                                    result.answer = output;
+                                }
+                                else if (response.mode == TakeTurnModes.Action)
+                                {
+                                    let outText = this.blisCallback(response.actions[0].content);
+                                    result.answer = outText;
+                                } 
+                                else if (response.mode == TakeTurnModes.Error)
+                                {
+                                    result.answer = response.error;
+                                }
+                                else 
+                                {
+                                    result.answer = `Don't know mode: ${response.mode}`;
+                                }
+                                cb(null,result);
                             }
-                            else if (response.mode == TakeTurnModes.Action)
-                            {
-                                let outText = this.blisCallback(response.actions[0].content);
-                                result.answer = outText;
-                            } 
-                            else if (response.mode == TakeTurnModes.Error)
-                            {
-                                result.answer = response.error;
-                            }
-                            else 
-                            {
-                                result.answer = `Don't know mode: ${response.mode}`;
-                            }
-                            cb(null,result);
-                        }
-                    );
-                }
-            } 
+                        );
+                    }
+                } 
+            }
+        }
+        catch (Error)
+        {
+            cb(Error, null);
         }
     }
 
