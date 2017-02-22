@@ -202,6 +202,11 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         }
     }
 
+    public InitDebug(bot : builder.UniversalBot) : void
+    {
+        BlisDebug.InitLogger(bot);
+    }
+
     private ReadFromFile(url : string) : Promise<string>
     {
         return new Promise(
@@ -397,9 +402,11 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         try
         {
             var result: IBlisResult = { score: 1.0, answer: null, intent: null };
-            
-            if (context && context.message && context.message.text) {
+
+             if (context && context.message && context.message.text) {
                 
+                BlisDebug.SetAddress(context.message.address);
+            
                 let text = context.message.text.trim();
                 let [command, arg, arg2] = text.split(' ');
                 command = command.toLowerCase();

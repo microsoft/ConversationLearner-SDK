@@ -1,18 +1,25 @@
+import * as builder from 'botbuilder';
+
 export class BlisDebug {
 
-    public static logFunction : (string) => void;   
-    public static logger : any;
+    public static bot : any;
+    public static address : any;
 
-    public static setLogger(logger: any,logFunction : (string) => void )
+    public static InitLogger(bot : builder.UniversalBot)
     {
-        this.logFunction = logFunction;
-        this.logger = logger;
+        this.bot = bot;
     }
     
+    public static SetAddress(address : any)
+    {
+        this.address = address;
+    }
 
     public static Log(text) {
-        if (this.logFunction) {
-            this.logger.Send(text);
+        if (this.bot && this.address) {
+            var msg = new builder.Message().address(this.address);
+            msg.text(text);
+            this.bot.send(msg);
         }
         else {
             console.log(text);

@@ -1,1 +1,1 @@
-git add * && git commit -m "%*" && git push && START cmd.exe /k "cd C:\codebox\Blis\BLIS-SDK-SAMPLE & npm install -save https://aka.ms/blisdk && exit"
+npm pack && git add * && git commit -m "%*" && git push

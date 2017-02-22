@@ -13,9 +13,6 @@ export class BlisDialog extends builder.Dialog {
 
     public async replyReceived(session: builder.Session, recognizeResult?: builder.IIntentRecognizerResult): Promise<void> {
 
-        // Set debug message to go to user
-        BlisDebug.logger = session;
-
         if (!recognizeResult) {
             var locale = session.preferredLocale();
             var context = <builder.IRecognizeDialogContext>session.toRecognizeContext();

@@ -82,6 +82,9 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     */
     constructor(options: IBlisOptions);
 
+    /** Init logger for developer debugging */  // TOOD nail down types
+    public InitDebug(bot : builder.UniversalBot) : void;
+
     /** Attempts to match a users text utterance and retrieves the best matching answer. */
     public recognize(context: builder.IRecognizeContext, cb: (error: Error, result: IBlisResult) => void): void;
 }
