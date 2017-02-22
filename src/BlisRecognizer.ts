@@ -246,7 +246,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             {
                 if (actionList.indexOf(turn.action) == -1)
                 {
-                    while (!fail)
+                    if (!fail)
                     {
                         BlisDebug.Log(`Add Action: ${turn.action}`)    
                         await this.blisClient.AddAction(this.appId, turn.action, new Array(), new Array(), null)
@@ -287,7 +287,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                 let newturn = new Turn({'input' :input, 'output' : actionId });
                 dialog.turns.push(newturn);
             }
-            while (!fail)
+            if (!fail)
             {
                 await this.blisClient.TrainDialog(this.appId, dialog)
                 .then((text) => {
@@ -301,7 +301,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             }
         }
         if (fail) return;
-        
+
         // Finally train the model
         BlisDebug.Log(`Training the model...`)    
         this.modelId = await this.blisClient.TrainModel(this.appId);
