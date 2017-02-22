@@ -1,1 +1,1 @@
-START cmd.exe /k "cd C:\codebox\Blis\BotTest & npm install --save github:Microsoft/BLIS-SDK && exit"
+START cmd.exe /k "cd C:\codebox\Blis\BLIS-SDK-SAMPLE & npm install github:Microsoft/BLIS-SDK && exit"
