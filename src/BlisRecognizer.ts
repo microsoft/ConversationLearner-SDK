@@ -43,8 +43,9 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     protected entity_name2id : { string : string };
     protected entityValues = {};
     
-    constructor(private options: IBlisOptions){
+    constructor(private bot : builder.UniversalBot, options: IBlisOptions){
         this.init(options);
+        BlisDebug.InitLogger(bot);
     }
 
     private async init(options: IBlisOptions) {
@@ -66,8 +67,6 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
 
             // Attempt to load the application
             await this.LoadApp(this, options.appId, (text) => BlisDebug.Log(text));
-
-        
 /*
             // Get entities
             let entityIds = [];
@@ -146,11 +145,6 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         catch (error) {
             BlisDebug.Log(`ERROR: ${error}`);
         }
-    }
-
-    public InitDebug(bot : builder.UniversalBot) : void
-    {
-        BlisDebug.InitLogger(bot);
     }
 
     private ReadFromFile(url : string) : Promise<string>
@@ -697,6 +691,13 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         return "App has been trained and bot started.";
     }
 
+    private SendTyping(address : any)
+    {
+        let msg = <builder.IMessage>{ type: 'typing'};
+        msg.address = address;
+        this.bot.send(msg);
+    }
+
     public recognize(context: builder.IRecognizeContext, cb: (error: Error, result: IBlisResult) => void): void {
         
         try
@@ -705,6 +706,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
 
              if (context && context.message && context.message.text) {
                 
+                this.SendTyping(context.message.address);
                 BlisDebug.SetAddress(context.message.address);
             
                 let text = context.message.text.trim();
