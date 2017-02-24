@@ -1,13 +1,19 @@
 export const TakeTurnModes =
 {
-    Callback : "lu_callback",
-    Teach :  "teach",
-    Action :  "action",
-    Error : "error"
+    CALLBACK : "lu_callback",
+    TEACH :  "teach",
+    ACTION :  "action",
+    ERROR : "error"
 }
 
 export const ActionTypes =
 {
-    Text : "text",
+    TEXT : "text",
     API : "api"
+}
+
+export const EntityTypes =
+{
+    LOCAL : "LOCAL",
+    LUIS : "LUIS"
 }
