@@ -9,20 +9,57 @@ import { TakeTurnResponse } from './Model/TakeTurnResponse'
 import { TakeTurnRequest } from './Model/TakeTurnRequest'
 import { BlisDebug } from './BlisDebug';
 
+export class BlisClientOptions {
+
+    // Application Id
+    appId : string;
+
+    // Dialog session Id
+    sessionId? : string;
+
+    // Training model to use
+    modelId? : string;
+
+    // In teach Model
+    inTeach? : boolean;
+
+    // Optional callback than runs after LUIS but before BLIS.  Allows Bot to substitute entities
+    luisCallback? : (text: string, luisEntities : LuisEntity[]) => TakeTurnRequest;
+
+    // Mappting between API names and functions
+    apiCallbacks? : { string : () => TakeTurnRequest };
+
+    public constructor(init?:Partial<BlisClientOptions>)
+    {
+        (<any>Object).assign(this, init);
+    }
+}
+
 export class BlisClient {
 
     private serviceUri : string;
     private credentials : Credentials;
+    private options : BlisClientOptions = new BlisClientOptions();
 
     constructor(serviceUri : string, user : string, secret : string)
     {
         if (!serviceUri) 
         {
-            BlisDebug.Log("service Uri is required");
+            BlisDebug.Log("service URI is required");
         } 
         this.serviceUri = serviceUri;
 
         this.credentials = new Credentials(user, secret);
+    }
+
+    public SetOptions(init?:Partial<BlisClientOptions>)
+    {
+        (<any>Object).assign(this.options, init);
+    }
+
+    public GetOption(key : string)
+    {
+        return this.options[key];
     }
 
     public CreateApp(name : string, luisKey : string) : Promise<string>
@@ -48,7 +85,40 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(body.message);
+                        reject(JSON.parse(body).message);
+                    }
+                    else {
+                        var appId = body.id;
+                        this.options.appId = appId;
+                        this.options.sessionId = null;
+                        this.options.modelId = null;
+                        resolve(appId);
+                    }
+                });
+            }
+        )
+    }
+
+    public GetApp() : Promise<string>
+    {
+        let apiPath = `app/${this.options.appId}`;
+
+        return new Promise(
+            (resolve, reject) => {
+                let url = this.serviceUri+apiPath;
+                const requestData = {
+                    headers: {
+                        'Cookie' : this.credentials.Cookiestring()
+                    }
+                }
+                request.get(url, requestData, (error, response, body) => {
+                    if (error) {
+                        this.options.appId = null;
+                        reject(error);
+                    }
+                    else if (response.statusCode >= 300) {
+                        this.options.appId = null;
+                        reject(JSON.parse(body).message);
                     }
                     else {
                         resolve(body.id);
@@ -60,6 +130,12 @@ export class BlisClient {
 
     public DeleteApp(appId : string) : Promise<string>
     {
+       // Delete current app if no appId provided
+       if (!appId) 
+       {
+           appId = this.options.appId;
+       }
+
         let apiPath = `app/${appId}`;
 
         return new Promise(
@@ -75,9 +151,17 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(body.message);
+                        reject(JSON.parse(body).message);
                     }
                     else {
+                        let appId = body.id;
+                        // Did I delete my active app?
+                        if (appId == this.options.appId)
+                        {
+                            this.options.appId = null;
+                            this.options.modelId = null;
+                            this.options.sessionId = null;
+                        }
                         resolve(body.id);
                     }
                 });
@@ -86,9 +170,9 @@ export class BlisClient {
     }
 
 
-    public StartSession(appId : string, modelId : string, teach = false, saveDialog = false) : Promise<string>
+    public StartSession(inTeach = false, saveDialog = false) : Promise<string>
     {
-        let apiPath = `app/${appId}/session2`;
+        let apiPath = `app/${this.options.appId}/session2`;
 
         return new Promise(
             (resolve, reject) => {
@@ -98,13 +182,12 @@ export class BlisClient {
                         'Cookie' : this.credentials.Cookiestring()
                     },
                     body: {
-                        Teach: teach,
-                        Save_To_Log: saveDialog,
-                        ModelID: modelId
+                        Teach: inTeach,
+                        Save_To_Log: saveDialog
+                        // Note: Never need to send modelId as will use the latest
                     },
                     json: true
                 }
-
                 request.post(requestData, (error, response, body) => {
                     if (error) {
                         reject(error);
@@ -113,19 +196,29 @@ export class BlisClient {
                         reject(body.message);
                     }
                     else {
-                        resolve(body.id);
+                        let sessionId = body.id;
+                        this.options.sessionId = sessionId;
+                        this.options.inTeach = inTeach;
+                        resolve(sessionId);
                     }
                 });
             }
         )
     }
 
-    public EndSession(appId : string, sessionId : string) : Promise<string>
+    public EndSession() : Promise<string>
     {
-        let apiPath = `app/${appId}/session2/${sessionId}`;
+        BlisDebug.Log(`Deleting existing session ${this.options.sessionId}`);
+        let apiPath = `app/${this.options.appId}/session2/${this.options.sessionId}`;
 
         return new Promise(
             (resolve, reject) => {
+                
+                if (!this.options.sessionId)
+                {
+                    resolve("No Session");
+                    return;
+                }
                 let url = this.serviceUri+apiPath;
                 const requestData = {
                     headers: {
@@ -137,20 +230,21 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(body.message);
+                        reject(JSON.parse(body).message);
                     }
                     else {
+                        this.options.sessionId = null;
+                        this.options.inTeach = false;
                         resolve(body.id);
                     }
-
                 });
             }
         )
     }
 
-    public AddEntity(appId : string, entityName : string, entityType : string, prebuiltEntityName : string) : Promise<string>
+    public AddEntity(entityName : string, entityType : string, prebuiltEntityName : string) : Promise<string>
     {
-        let apiPath = `app/${appId}/entity`;
+        let apiPath = `app/${this.options.appId}/entity`;
 
         return new Promise(
             (resolve, reject) => {
@@ -172,7 +266,7 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(body.message);
+                        reject(JSON.parse(body).message);
                     }
                     else {
                         resolve(body.id);
@@ -182,9 +276,9 @@ export class BlisClient {
         )
     }
 
-    public GetEntity(appId : string, entityId) : Promise<string>
+    public GetEntity(entityId : string) : Promise<string>
     {
-        let apiPath = `app/${appId}/entity/${entityId}`;
+        let apiPath = `app/${this.options.appId}/entity/${entityId}`;
 
         return new Promise(
             (resolve, reject) => {
@@ -200,7 +294,7 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(body.message);
+                        reject(JSON.parse(body).message);
                     }
                     else {
                         resolve(body);
@@ -210,9 +304,9 @@ export class BlisClient {
         )
     }
 
-    public GetEntities(appId : string) : Promise<string>
+    public GetEntities() : Promise<string>
     {
-        let apiPath = `app/${appId}/entity`;
+        let apiPath = `app/${this.options.appId}/entity`;
 
         return new Promise(
             (resolve, reject) => {
@@ -228,7 +322,7 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(body.message);
+                        reject(JSON.parse(body).message);
                     }
                     else {
                         resolve(body);
@@ -238,9 +332,9 @@ export class BlisClient {
         )
     }
 
-    public AddAction(appId : string, content : string, requiredEntityList : string[] = null, negativeEntityList : string[] = null, prebuiltEntityName : string = null) : Promise<string>
+    public AddAction(content : string, requiredEntityList : string[] = null, negativeEntityList : string[] = null, prebuiltEntityName : string = null) : Promise<string>
     {
-        let apiPath = `app/${appId}/action`;
+        let apiPath = `app/${this.options.appId}/action`;
 
         return new Promise(
             (resolve, reject) => {
@@ -262,7 +356,7 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(body.message);
+                        reject(JSON.parse(body).message);
                     }
                     else {
                         resolve(body.id);
@@ -272,9 +366,9 @@ export class BlisClient {
         )
     }
 
-    public GetAction(appId : string, actionId) : Promise<string>
+    public GetAction(actionId : string) : Promise<string>
     {
-        let apiPath = `app/${appId}/entity/${actionId}`;
+        let apiPath = `app/${this.options.appId}/entity/${actionId}`;
 
         return new Promise(
             (resolve, reject) => {
@@ -290,7 +384,7 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(body.message);
+                        reject(JSON.parse(body).message);
                     }
                     else {
                         resolve(body);
@@ -300,9 +394,9 @@ export class BlisClient {
         )
     }
 
-    public GetActions(appId : string) : Promise<string>
+    public GetActions() : Promise<string>
     {
-        let apiPath = `app/${appId}/action`;
+        let apiPath = `app/${this.options.appId}/action`;
 
         return new Promise(
             (resolve, reject) => {
@@ -318,7 +412,7 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(body.message);
+                        reject(JSON.parse(body).message);
                     }
                     else {
                         resolve(body);
@@ -328,9 +422,9 @@ export class BlisClient {
         )
     }
 
-    public DeleteAction(appId : string, actionId : string) : Promise<string>
+    public DeleteAction(actionId : string) : Promise<string>
     {
-        let apiPath = `app/${appId}/action/${actionId}`;
+        let apiPath = `app/${this.options.appId}/action/${actionId}`;
 
         return new Promise(
             (resolve, reject) => {
@@ -345,7 +439,7 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(body.message);
+                        reject(JSON.parse(body).message);
                     }
                     else {
                         resolve(body.id);
@@ -355,9 +449,9 @@ export class BlisClient {
         )
     }
 
-    public TrainDialog(appId : string, traindialog : TrainDialog) : Promise<string>
+    public TrainDialog(traindialog : TrainDialog) : Promise<string>
     {
-        let apiPath = `app/${appId}/traindialog`;
+        let apiPath = `app/${this.options.appId}/traindialog`;
         return new Promise(
             (resolve, reject) => {
                const requestData = {
@@ -374,19 +468,25 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(body.message);
+                        reject(JSON.parse(body).message);
                     }
                     else {
-                        resolve(body.id);
+                        let modelId = body.id;
+                        this.options.modelId = modelId;
+                        resolve(modelId);
                     }
                 });
             }
         )
     }
 
-    public TrainModel(appId : string, fromScratch : boolean = false) : Promise<string>
+    // TODO:  decice what to do with fromScratch
+    public TrainModel(fromScratch : boolean = false) : Promise<string>
     {
-        let apiPath = `app/${appId}/model`;
+        // Clear existing modelId TODO - depends on if fromScratch
+        this.options.modelId = null;
+        
+        let apiPath = `app/${this.options.appId}/model`;
         return new Promise(
             (resolve, reject) => {
                const requestData = {
@@ -405,103 +505,24 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(body.message);
+                        reject(JSON.parse(body).message);
                     }
                     else {
-                        resolve(body.id);
+                        let modelId = body.id;
+                        this.options.modelId = modelId;
+                        resolve(modelId);
                     }
                 });
             }
         )
     }
 
-    private DefaultLUCallback(text: string, entities : LuisEntity[]) : TakeTurnRequest
+    public GetModel() : Promise<string>
     {
-        return new TakeTurnRequest({text : text, entities: entities});
-    }
-
-    public async TakeTurn(appId : string, sessionId : string, text : string, 
-                            luCallback : (text: string, entities : LuisEntity[]) => TakeTurnRequest, 
-                            apiCallbacks : { string : () => TakeTurnRequest },
-                            resultCallback: (response : TakeTurnResponse) => void,
-                            takeTurnRequest = new TakeTurnRequest({text : text}),
-                            expectedNextModes = [TakeTurnModes.Callback, TakeTurnModes.Action, TakeTurnModes.Teach]) : Promise<void>
-    {
-        await this.SendTurnRequest(appId, sessionId, takeTurnRequest)
-        .then(async (takeTurnResponse) => {
-            BlisDebug.Log(takeTurnResponse);
-
-            if (expectedNextModes.indexOf(takeTurnResponse.mode) < 0)
-            {
-                var response = new TakeTurnResponse({ mode : TakeTurnModes.Error, error: `Unexpected mode ${takeTurnResponse.mode}`} );
-                resultCallback(response);
-            }
-            if (takeTurnResponse.mode) {
-
-                // LUIS CALLBACK
-                if (takeTurnResponse.mode == TakeTurnModes.Callback)
-                {
-                    if (luCallback)
-                    {
-                        takeTurnRequest = luCallback(takeTurnResponse.originalText, takeTurnResponse.entities);
-                    }
-                    else
-                    {
-                        takeTurnRequest = this.DefaultLUCallback(takeTurnResponse.originalText, takeTurnResponse.entities);
-                    }
-                    expectedNextModes = [TakeTurnModes.Action, TakeTurnModes.Teach];
-                    await this.TakeTurn(appId, sessionId, text, luCallback, apiCallbacks, resultCallback,takeTurnRequest,expectedNextModes);
-                }
-                // TEACH
-                else if (takeTurnResponse.mode == TakeTurnModes.Teach)
-                {
-                    resultCallback(takeTurnResponse);
-                }
-
-                // ACTION
-                else if (takeTurnResponse.mode == TakeTurnModes.Action)
-                {
-                    if (takeTurnResponse.actions[0].actionType == ActionTypes.Text)
-                    {
-                        resultCallback(takeTurnResponse);
-                    }
-                    else if (takeTurnResponse.actions[0].actionType == ActionTypes.API)
-                    {
-                        var apiName = takeTurnResponse.actions[0].content;
-                        if (apiCallbacks[apiName])
-                        {
-                            takeTurnRequest = apiCallbacks[apiName]();
-                            expectedNextModes = [TakeTurnModes.Action, TakeTurnModes.Teach];
-                            await this.TakeTurn(appId, sessionId, text, luCallback, apiCallbacks, resultCallback,takeTurnRequest,expectedNextModes);
-                        }
-                        else 
-                        {
-                            var response = new TakeTurnResponse({ mode : TakeTurnModes.Error, error: `API ${apiName} not defined`} );
-                            resultCallback(response);
-                        }
-                    }
-                }
-                else
-                {
-                    var response = new TakeTurnResponse({ mode : TakeTurnModes.Error, error: `mode ${response.mode} not supported by the SDK`} );
-                    resultCallback(response);
-                }
-            }
-            else
-            {
-                var response = new TakeTurnResponse({ mode : TakeTurnModes.Error, error: `TakeTurnResponse has no mode`} );
-                resultCallback(response);
-            }
-        })
-        .catch((text) => {
-            var response = new TakeTurnResponse({ mode : TakeTurnModes.Error, error: text} );
-            resultCallback(response);
-        });
-    }
-
-    private SendTurnRequest(appId : string, sessionId : string, takeTurnRequest : TakeTurnRequest) : Promise<TakeTurnResponse>
-    {
-        let apiPath = `app/${appId}/session2/${sessionId}`;
+        // Clear existing modelId
+        this.options.modelId = null;
+        
+        let apiPath = `app/${this.options.appId}/model`;
         return new Promise(
             (resolve, reject) => {
                const requestData = {
@@ -511,14 +532,143 @@ export class BlisClient {
                     },
                     json: true
                 }
-                requestData['body'] = takeTurnRequest.ToJSON();
+
+                request.get(requestData, (error, response, body) => {
+                    if (error) {
+                        reject(error);
+                    }
+                    else if (response.statusCode >= 300) {
+                        reject(JSON.parse(body).message);
+                    }
+                    else {
+                        let modelId = body.ids[0];
+                        this.options.modelId = modelId;
+                        resolve(modelId);
+                    }
+                });
+            }
+        )
+    }
+
+    private DefaultLUCallback(text: string, entities : LuisEntity[]) : TakeTurnRequest
+    {
+        return new TakeTurnRequest();  // TODO
+    }
+
+    public async TakeTurn(payload : string | TakeTurnRequest, cb: (response : TakeTurnResponse) => void) : Promise<void>
+    {
+        // Error checking
+        if (this.options.appId == null)
+        {
+            let response = this.ErrorResponse("No Application has been loaded.\n\nTry _!createapp_, _!loadapp_ or _!help_ for more info.");
+            cb(response);
+            return;
+        }
+        else if (!this.options.modelId && !this.options.inTeach)
+        {
+            let response = this.ErrorResponse("This application needs to be trained first.\n\nTry _!train_, _!traindialogs_ or _!help_ for more info.");
+            cb(response);
+            return;
+        }
+        else if (!this.options.sessionId)
+        {
+            let response = this.ErrorResponse("Create a session first with _!next_ or _!next_ teach.");
+            cb(response);
+            return;
+        }
+
+        let expectedNextModes;
+        let requestBody : {};
+        if (typeof payload == 'string') {
+            expectedNextModes = [TakeTurnModes.Callback, TakeTurnModes.Action, TakeTurnModes.Teach];
+            requestBody = { text : payload};
+        }
+        else {
+            expectedNextModes = [TakeTurnModes.Action, TakeTurnModes.Teach]
+            requestBody = payload.ToJSON();
+        }
+
+        await this.SendTurnRequest(requestBody)
+        .then(async (takeTurnResponse) => {
+            BlisDebug.Log(takeTurnResponse);
+
+            // Check that expected mode matches
+            if (!takeTurnResponse.mode || expectedNextModes.indexOf(takeTurnResponse.mode) < 0)
+            {
+                var response = new TakeTurnResponse({ mode : TakeTurnModes.Error, error: `Unexpected mode ${takeTurnResponse.mode}`} );
+                cb(response);
+            }
+
+            // LUIS CALLBACK
+            if (takeTurnResponse.mode == TakeTurnModes.Callback)
+            {
+                let takeTurnRequest;
+                if (this.options.luisCallback)
+                {
+                    takeTurnRequest = this.options.luisCallback(takeTurnResponse.originalText, takeTurnResponse.entities);
+                }
+                else
+                {
+                    takeTurnRequest = this.DefaultLUCallback(takeTurnResponse.originalText, takeTurnResponse.entities);
+                }
+                await this.TakeTurn(takeTurnRequest, cb);
+            }
+            // TEACH
+            else if (takeTurnResponse.mode == TakeTurnModes.Teach)
+            {
+                cb(takeTurnResponse);
+            }
+
+            // ACTION
+            else if (takeTurnResponse.mode == TakeTurnModes.Action)
+            {
+                if (takeTurnResponse.actions[0].actionType == ActionTypes.Text)
+                {
+                    cb(takeTurnResponse);
+                }
+                else if (takeTurnResponse.actions[0].actionType == ActionTypes.API)
+                {
+                    var apiName = takeTurnResponse.actions[0].content;
+                    if (this.options.apiCallbacks && this.options.apiCallbacks[apiName])
+                    {
+                        let takeTurnRequest = this.options.apiCallbacks[apiName]();
+                        expectedNextModes = [TakeTurnModes.Action, TakeTurnModes.Teach];
+                        await this.TakeTurn(takeTurnRequest, cb);
+                    }
+                    else 
+                    {
+                        let response = this.ErrorResponse(`API ${apiName} not defined`);
+                        cb(response);
+                    }
+                }
+            }
+        })
+        .catch((text) => {
+            var response = this.ErrorResponse(text);
+            cb(response);
+        });
+    }
+
+    private SendTurnRequest(body : {}) : Promise<TakeTurnResponse>
+    {
+        let apiPath = `app/${this.options.appId}/session2/${this.options.sessionId}`;
+        return new Promise(
+            (resolve, reject) => {
+               const requestData = {
+                    url: this.serviceUri+apiPath,
+                    headers: {
+                        'Cookie' : this.credentials.Cookiestring()
+                    },
+                    json: true
+                }
+                requestData['body'] = body;
 
                 request.put(requestData, (error, response, body) => {
                     if (error) {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(body.message);
+                        reject(JSON.parse(body).message);
                     }
                     else {
                         var ttresponse = deserialize(TakeTurnResponse, body);
@@ -527,5 +677,10 @@ export class BlisClient {
                 });
             }
         )
+    }
+   
+    private ErrorResponse(text : string) : TakeTurnResponse
+    {
+        return new TakeTurnResponse({ mode : TakeTurnModes.Error, error: text} );
     }
 }

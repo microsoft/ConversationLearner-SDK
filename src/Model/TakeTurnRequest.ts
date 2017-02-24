@@ -3,21 +3,20 @@ import { LuisEntity } from './LuisEntity';
 
 export class TakeTurnRequest
 {
-    @JsonProperty('text')
-    public text : string;
+    /** Array of Entity GUIDS */
+    @JsonProperty('entities')
+    public entities : string[]; 
 
-    @JsonProperty({clazz: LuisEntity, name: 'entities'})
-    public entities : LuisEntity[];
-
-    @JsonProperty('context')
-    public context : {};
- 
+    /** Array of Action GUIDS to exclude */
     @JsonProperty('action-mask')
     public actionMask : string[];
 
+    /** Additional context in key/value form */
+    @JsonProperty('context')
+    public context : {};
+ 
     public constructor(init?:Partial<TakeTurnRequest>)
     {
-        this.text = undefined;
         this.entities = undefined;
         this.context = undefined;      
         this.actionMask = undefined;
@@ -27,8 +26,6 @@ export class TakeTurnRequest
     public ToJSON() : {}
     {
         var json = {};
-        if (this.text)  
-            json['text'] = this.text;
         if (this.entities)  
             json['entities'] = this.entities;
         if (this.context)  

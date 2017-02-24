@@ -2,9 +2,11 @@ import { JsonProperty } from 'json-typescript-mapper';
 
 export class LuisEntity
 {
+    // "City"
     @JsonProperty('type')
     public type : string;
 
+    // "Seattle"
     @JsonProperty('entity')
     public entity : string;
 

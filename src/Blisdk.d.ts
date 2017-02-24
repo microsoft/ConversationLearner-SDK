@@ -15,22 +15,6 @@ export interface LuisEntity {
     resolution : {}; 
 }
 
-/** Request sent to BLIS */
-export interface TakeTurnRequest
-{
-    /** Text inclued in the request */
-    text : string;
-
-    /** LUIS entities to send with the request */
-    entities : LuisEntity[];
-
-    /** TODO - how to describe this */
-    context : {};
- 
-    /** Actions exclude from the response */
-    actionMask : string[];
-}
-
 /** Options used to configure an IBlisOptions. */
 export interface IBlisOptions {
     /** URL for BLIS service */
@@ -44,16 +28,6 @@ export interface IBlisOptions {
 
     /** (Optional) Id of BLIS app to employ  */
     appId?: string;
-
-    /** (Optional) appName of BLIS app to create - if no appId supplied */
-    appName?: string;
-
-    /** (Optional) luisKey to use when creating a new BLIS app - if no appId supplied */
-    luisKey?: string;
-
-    // GET RID OF?  
-    entityList?: [string];
-    prebuiltList?: [string];
 
     /** (Optional) Callback than runs after LUIS but before BLIS.  Allows Bot to substitute entities */
     luisCallback? : (text: string, luisEntities : LuisEntity[]) => TakeTurnRequest;
@@ -72,6 +46,21 @@ export interface IBlisResult extends builder.IIntentRecognizerResult {
 }
 
 /**
+* A request submitted to BLIS
+*/
+export class TakeTurnRequest {
+
+    /** Array of Entity GUIDS */
+    public entities : string[];
+ 
+    /** Array of Action GUIDS to exclude */
+    public actionMask : string[];
+
+    /** Additional context in key/value form */
+    public context : {};
+}
+
+/**
 * Blis recognizer plugin fetches answers for users utterances using Blid)
 * @param options used to initialize the recognizer.
 */
@@ -82,7 +71,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     */
     constructor(options: IBlisOptions);
 
-    /** Init logger for developer debugging */  // TOOD nail down types
+    /** Init logger for developer debugging */  
     public InitDebug(bot : builder.UniversalBot) : void;
 
     /** Attempts to match a users text utterance and retrieves the best matching answer. */
