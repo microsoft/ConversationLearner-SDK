@@ -17,3 +17,11 @@ export const EntityTypes =
     LOCAL : "LOCAL",
     LUIS : "LUIS"
 }
+
+export const UserStates =
+{
+    APP : "APP",
+    SESSION : "SESSION",
+    MODEL : "MODEL",
+    TEACH: "TEACH"
+}

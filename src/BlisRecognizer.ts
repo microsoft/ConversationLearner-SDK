@@ -4,10 +4,11 @@ import { deserialize } from 'json-typescript-mapper';
 import { TakeTurnRequest } from './Model/TakeTurnRequest'
 import { SnippetList, Snippet } from './Model/SnippetList'
 import { TrainDialog, Input, Turn, AltText } from './Model/TrainDialog'
-import { BlisClient, BlisClientOptions } from './BlisClient';
+import { BlisClient } from './BlisClient';
 import { BlisDebug} from './BlisDebug';
+import { BlisUserState} from './BlisUserState';
 import { LuisEntity } from './Model/LuisEntity';
-import { TakeTurnModes, EntityTypes } from './Model/Consts';
+import { TakeTurnModes, EntityTypes, UserStates } from './Model/Consts';
 import { TakeTurnResponse } from './Model/TakeTurnResponse'
 
 export interface IBlisResult extends builder.IIntentRecognizerResult {
@@ -40,6 +41,7 @@ export interface IBlisOptions extends builder.IIntentRecognizerSetOptions {
 export class BlisRecognizer implements builder.IIntentRecognizer {
     protected blisClient : BlisClient;
     protected blisCallback : (test : string) => string;
+    protected defaultApp : string;
     protected entity_name2id : { string : string };
     protected entityValues = {};
     
@@ -50,23 +52,10 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
 
     private async init(options: IBlisOptions) {
         try {
-            var fail = "";
-
             BlisDebug.Log("Creating client...");
-            this.blisClient = new BlisClient(options.serviceUri, options.user, options.secret);
-
-            // Set client options
-            let coptions = 
-            {
-                luisCallback : options.luisCallback,
-                apiCallbacks : options.apiCallbacks,
-                appId : options.appId
-            }
-            this.blisClient.SetOptions(coptions);
+            this.blisClient = new BlisClient(options.serviceUri, options.user, options.secret, options.luisCallback, options.apiCallbacks);
+            this.defaultApp = options.appId;
             this.blisCallback = options.blisCallback ? options.blisCallback : this.DefaultBlisCallback;
-
-            // Attempt to load the application
-            await this.LoadApp(this, options.appId, (text) => BlisDebug.Log(text));
 /*
             // Get entities
             let entityIds = [];
@@ -167,7 +156,8 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         )
     }
 
-    private async AddEntity(recognizer : BlisRecognizer, entityName : string, entityType : string, prebuiltName : string, cb : (text) => void) : Promise<void>
+    // TODO why pass recognizer everywhere??
+    private async AddEntity(recognizer : BlisRecognizer, userState : BlisUserState, entityName : string, entityType : string, prebuiltName : string, cb : (text) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Delete Action`);
 
@@ -196,19 +186,13 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             cb(msg);
             return;
         }
-        if (entityType == EntityTypes.LUIS && !prebuiltName)
-        {
-            let msg = `LUIS entities require a prebuilt name\n\n     !createApp {entitiyName} {LUIS | LOCAL} {prebuiltName?}`;
-            cb(msg);
-            return;
-        }
 
-       await this.blisClient.AddEntity(entityName, entityType, prebuiltName)
+       await this.blisClient.AddEntity(userState, entityName, entityType, prebuiltName)
         .then((entityId) => cb(`Created Entity ${entityId}`))
         .catch((text) => cb(text));
     }
 
-    private async CreateApp(recognizer : BlisRecognizer, appName : string, luisKey, cb : (text) => void) : Promise<void>
+    private async CreateApp(recognizer : BlisRecognizer, userState : BlisUserState,  appName : string, luisKey, cb : (text) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Create Application`);
 
@@ -230,7 +214,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             cb(msg);
             return;
         }
-        await this.blisClient.CreateApp(appName, luisKey)
+        await this.blisClient.CreateApp(userState, appName, luisKey)
             .then((text) => 
             {
                 cb(`Created App ${text}.\n\nTo train try _!teach_, _!trainfromurl_ or type _!help_ for more info. `)
@@ -247,11 +231,12 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         text += "!whichApp\n\n       Return current appId\n\n"
         text += "!entities\n\n       Return list of entities\n\n"
         text += "!actions\n\n       Return list of actions\n\n"
+        text += "!traindialogs\n\n       Return list of training dialogs\n\n"
         text += "!help\n\n       General help"
         return text;
     }
 
-    private async DeleteAction(recognizer : BlisRecognizer, actionId : string, cb : (text) => void) : Promise<void>
+    private async DeleteAction(recognizer : BlisRecognizer, userState : BlisUserState, actionId : string, cb : (text) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Delete Action`);
 
@@ -262,12 +247,12 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             return;
         }
 
-       await this.blisClient.DeleteAction(actionId)
+       await this.blisClient.DeleteAction(userState, actionId)
         .then((text) => cb(`Deleted Action ${actionId}`))
         .catch((text) => cb(text));
     }
 
-    private async DeleteAllApps(recognizer : BlisRecognizer, cb : (text) => void) : Promise<void>
+    private async DeleteAllApps(recognizer : BlisRecognizer, userState : BlisUserState, cb : (text) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Delete All Applications`);
 
@@ -288,14 +273,14 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         }
 
         for (let appId of appIds){
-            await this.blisClient.DeleteApp(appId)
+            await this.blisClient.DeleteApp(userState, appId)
             .then((text) => BlisDebug.Log(`Deleted ${appId} apps`))
             .catch((text) => BlisDebug.Log(`Failed to delete ${appId}`));
         }
         cb("Done");
     }
 
-    private async DeleteApp(recognizer : BlisRecognizer, appId : string, cb : (text) => void) : Promise<void>
+    private async DeleteApp(recognizer : BlisRecognizer, userState : BlisUserState, appId : string, cb : (text) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Delete Application`);
         if (!appId)
@@ -305,7 +290,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             return;
         }
 
-       await this.blisClient.DeleteApp(appId)
+       await this.blisClient.DeleteApp(userState, appId)
         .then((text) => 
         {
             cb(`Deleted App ${appId}`)
@@ -313,23 +298,23 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         .catch((text) => cb(text));
     }
 
-    private Dump() : string
+    private Dump(userState : BlisUserState) : string
     {
         let text = "";
-        text += `App: ${this.blisClient.GetOption("appId")}\n\n`;
-        text += `Model: ${this.blisClient.GetOption("modelId")}\n\n`;
-        text += `Session: ${this.blisClient.GetOption("sessionId")}\n\n`;
-        text += `InTeach: ${this.blisClient.GetOption("inTeach")}\n\n`;
+        text += `App: ${userState[UserStates.APP]}\n\n`;
+        text += `Model: ${userState[UserStates.MODEL]}\n\n`;
+        text += `Session: ${userState[UserStates.SESSION]}\n\n`;
+        text += `InTeach: ${userState[UserStates.TEACH]}\n\n`;
         return text;
     }
 
-    private async EndSession(recognizer : BlisRecognizer, cb : (text) => void) : Promise<void>
+    private async EndSession(recognizer : BlisRecognizer, userState : BlisUserState, cb : (text) => void) : Promise<void>
     {
         // Ending teaching session
-        await this.blisClient.EndSession()
+        await this.blisClient.EndSession(userState)
         .then(async (sessionId) => {
             // Update the model
-            await this.blisClient.GetModel()
+            await this.blisClient.GetModel(userState)
             .then((text) => {
                 // Update the model (as we may not have had one before teaching)
                 cb(sessionId)
@@ -347,14 +332,14 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         });
     }
 
-    private async GetActions(recognizer : BlisRecognizer, cb : (text) => void) : Promise<void>
+    private async GetActions(recognizer : BlisRecognizer, userState : BlisUserState, cb : (text) => void) : Promise<void>
     {
         BlisDebug.Log(`Getting actions`);
 
         // Get actions
         let actionIds = [];
         let fail = null;
-        await this.blisClient.GetActions()
+        await this.blisClient.GetActions(userState)
             .then((json) => {
                 actionIds = JSON.parse(json)['ids'];
                 BlisDebug.Log(`Found ${actionIds.length} actions`);
@@ -370,7 +355,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         let msg = "";
         for (let actionId of actionIds)
         {
-            await this.blisClient.GetAction(actionId)
+            await this.blisClient.GetAction(userState, actionId)
                 .then((json) => {
                     let content = JSON.parse(json)['content'];
                     msg += `${actionId} : ${content}\n\n`;
@@ -432,13 +417,13 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         cb(msg);
     }
 
-    private async GetEntities(recognizer : BlisRecognizer, cb : (text) => void) : Promise<void>
+    private async GetEntities(recognizer : BlisRecognizer, userState : BlisUserState, cb : (text) => void) : Promise<void>
     {
         BlisDebug.Log(`Getting entities`);
 
         let entityIds = [];
         let fail = null;
-        await this.blisClient.GetEntities()
+        await this.blisClient.GetEntities(userState)
             .then((json) => {
                 entityIds = JSON.parse(json)['ids'];
                 BlisDebug.Log(`Found ${entityIds.length} entities`);
@@ -454,7 +439,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         let msg = "";
         for (let entityId of entityIds)
         {
-            await this.blisClient.GetEntity(entityId)
+            await this.blisClient.GetEntity(userState, entityId)
                 .then((json) => {
                     let entityName = JSON.parse(json)['name'];
                     BlisDebug.Log(`Entity lookup: ${entityId} : ${entityName}`);
@@ -469,6 +454,48 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         }
         if (!msg) {
             msg = "This application contains no entities.";
+        }
+        cb(msg);
+    }
+
+    private async GetTrainDialogs(recognizer : BlisRecognizer, userState : BlisUserState, cb : (text) => void) : Promise<void>
+    {
+        BlisDebug.Log(`Getting actions`);
+
+        // Get actions
+        let dialogIds = [];
+        let fail = null;
+        await this.blisClient.GetTrainDialogs(userState)
+            .then((json) => {
+                dialogIds = JSON.parse(json)['ids'];
+                BlisDebug.Log(`Found ${dialogIds.length} actions`);
+            })
+            .catch(error => fail = error);
+
+        if (fail) 
+        {
+            BlisDebug.Log(fail);
+            return fail;
+        }
+
+        let msg = "";
+        for (let dialogId of dialogIds)
+        {
+            await this.blisClient.GetTrainDialog(userState, dialogId)
+                .then((json) => {
+                    let content = JSON.parse(json)['content'];
+                    msg += `${dialogId} : ${content}\n\n`;
+                    BlisDebug.Log(`Action lookup: ${dialogId} : ${content}`);
+                })
+                .catch(error => fail = error); 
+        }
+        if (fail) 
+        {
+            BlisDebug.Log(fail);
+            return fail;
+        }
+        if (!msg) {
+            msg = "This application contains no training dialogs.";
         }
         cb(msg);
     }
@@ -490,7 +517,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         return text;
     }
 
-    private async LoadApp(recognizer : BlisRecognizer, appId : string, cb : (text) => void) : Promise<void>
+    private async LoadApp(recognizer : BlisRecognizer, userState : BlisUserState, appId : string, cb : (text) => void) : Promise<void>
     {
         BlisDebug.Log(`Trying to load Application ${appId}`);
 
@@ -507,11 +534,14 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             return;
         }
 
-        this.blisClient.SetOptions({appId : appId, sessionId : null});
+        userState[UserStates.APP] = appId;
+        userState[UserStates.SESSION] = null;
+        userState[UserStates.MODEL] = null;
+        userState[UserStates.TEACH] = false;
         let fail = null;
 
         // Validate appId
-        await this.blisClient.GetApp()
+        await this.blisClient.GetApp(userState)
             .then((appId) => {
                 BlisDebug.Log(`Found App: ${appId}`);
             })
@@ -525,7 +555,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         }
 
         // Validate modelId
-        await this.blisClient.GetModel()
+        await this.blisClient.GetModel(userState)
             .then((appId) => {
                 BlisDebug.Log(`Found Model: ${appId}`);
             })
@@ -540,7 +570,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
 
         // Create session
         BlisDebug.Log(`Creating session...`);
-        let sessionId = await this.blisClient.StartSession()
+        let sessionId = await this.blisClient.StartSession(userState)
         .then(sessionId => {
             BlisDebug.Log(`Stared Session: ${appId}`);
             cb("Application loaded and Session started.");
@@ -548,16 +578,16 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         .catch(error => cb(error));
     }
 
-    private async NewSession(recognizer : BlisRecognizer, teach : boolean, cb : (text) => void) : Promise<void>
+    private async NewSession(recognizer : BlisRecognizer, userState : BlisUserState, teach : boolean, cb : (text) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to create new session, Teach = ${teach}`);
 
        // Close any existing session
-       await this.blisClient.EndSession()
+       await this.blisClient.EndSession(userState)
        .then(sessionId => BlisDebug.Log(`Ended session ${sessionId}`))
        .catch(error  => BlisDebug.Log(`${error}`));
        
-       await this.blisClient.StartSession(teach)
+       await this.blisClient.StartSession(userState, teach)
         .then((sessionId) => 
         {
             BlisDebug.Log(`Started session ${sessionId}`)   
@@ -572,7 +602,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         .catch((text) => cb(text));
     }
 
-    private async TrainFromFile(recognizer : BlisRecognizer, url : string, cb : (text) => void) : Promise<void>
+    private async TrainFromFile(recognizer : BlisRecognizer, userState : BlisUserState, url : string, cb : (text) => void) : Promise<void>
     {
         if (url == "*")
         {
@@ -590,14 +620,14 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         .then((text:string) =>{
             let json = JSON.parse(text);
             let snipObj = deserialize(SnippetList, json);
-            this.TrainOnSnippetList(recognizer, snipObj.snippets)
+            this.TrainOnSnippetList(recognizer, userState, snipObj.snippets)
             .then(status => cb(status))
             .catch(error => cb("Failed to Train"));
         })
         .catch((text) => cb(text));
     }
 
-    private async TrainOnSnippetList(recognizer : BlisRecognizer, sniplist : Snippet[]) : Promise<string>
+    private async TrainOnSnippetList(recognizer : BlisRecognizer, userState : BlisUserState, sniplist : Snippet[]) : Promise<string>
     {
         let fail = null;
 
@@ -613,7 +643,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                     if (!fail)
                     {
                         BlisDebug.Log(`Add Action: ${turn.action}`)    
-                        await this.blisClient.AddAction(turn.action, new Array(), new Array(), null)
+                        await this.blisClient.AddAction(userState, turn.action, new Array(), new Array(), null)
                         .then((actionId) => {
                             actionList.push(turn.action);
                             actiontext2id[turn.action] = actionId;
@@ -653,7 +683,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             }
             if (!fail)
             {
-                await this.blisClient.TrainDialog(dialog)
+                await this.blisClient.AddTrainDialog(userState, dialog)
                 .then((text) => {
                     BlisDebug.Log(`Added: ${text}`);
                 })
@@ -668,7 +698,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
 
         // Train the model
         BlisDebug.Log(`Training the model...`)    
-        await this.blisClient.TrainModel()
+        await this.blisClient.TrainModel(userState)
         .then((text) => BlisDebug.Log(`Model trained: ${text}`))
         .catch((text) =>
         {
@@ -679,7 +709,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
 
         // Start a session
         BlisDebug.Log(`Starting session...`)    
-        await this.blisClient.StartSession()
+        await this.blisClient.StartSession(userState)
         .then((text) => BlisDebug.Log(`Session started: ${text}`))
         .catch((text) =>
         {
@@ -698,197 +728,216 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         this.bot.send(msg);
     }
 
-    public recognize(context: builder.IRecognizeContext, cb: (error: Error, result: IBlisResult) => void): void {
-        
+    public LoadUser(address : builder.IAddress, 
+                        cb : (err: Error, state: BlisUserState) => void )
+    {
+        // TODO handle errors
+        BlisUserState.Get(this.bot, address, this.defaultApp, (error, userState, isNew) => {
+            if (isNew)
+            {                        
+                // Attempt to load the application
+                this.LoadApp(this, userState, this.defaultApp, (text) => 
+                {
+                    BlisDebug.Log(text);
+                    cb(null, userState);
+                });
+            }
+            else
+            {   
+                cb(null, userState);
+            }
+        });
+    }
+
+    private SendResult(address : builder.IAddress, userState : BlisUserState, cb: (error: Error, result: IBlisResult) => void, text : string) 
+    {
+        // Save user state
+        BlisUserState.Save(this.bot, address, userState);
+
+        // Assume BLIS always wins for now 
+        var result: IBlisResult = { score: 1.0, answer: null, intent: null };
+        result.answer = text;
+
+        // Send callback
+        cb(null, result);
+    }
+
+    public recognize(context: builder.IRecognizeContext, cb: (error: Error, result: IBlisResult) => void): void 
+    {    
         try
         {
-            var result: IBlisResult = { score: 1.0, answer: null, intent: null };
+           
 
              if (context && context.message && context.message.text) {
+                let address = context.message.address;
+                this.LoadUser(address, (error, userState) => {
+
+                    // TODO = handle error 
+                    this.SendTyping(address);
+                    BlisDebug.SetAddress(address);
                 
-                this.SendTyping(context.message.address);
-                BlisDebug.SetAddress(context.message.address);
-            
-                let text = context.message.text.trim();
-                let [command, arg, arg2, arg3] = text.split(' ');
-                command = command.toLowerCase();
+                    let text = context.message.text.trim();
+                    let [command, arg, arg2, arg3] = text.split(' ');
+                    command = command.toLowerCase();
 
-                // Handle admin commands
-                if (command.startsWith('!')) {
+                    // Handle admin commands
+                    if (command.startsWith('!')) {
 
-                    if (this.blisClient.GetOption('inTeach') && (command != "!dump") && (command != "!debug")) {
-                        if (command == "!done") {
-                            this.EndSession(this, (text) => {
-                                result.answer = "_Completed teach dialog..._";
-                                cb(null, result);
-                            });
+                        if (userState[UserStates.TEACH] && (command != "!dump") && (command != "!debug")) {
+                            if (command == "!done") {
+                                this.EndSession(this, userState, (text) => {
+                                    this.SendResult(address, userState, cb, "_Completed teach dialog..._");
+                                });
+                            }
+                            else {
+                                this.SendResult(address, userState, cb, "_In teaching mode. The only valid command is_ !done");
+                            }
                         }
                         else {
-                            result.answer = "_In teaching mode. The only valid command is_ !done";
-                            cb(null, result);
-                        }
-                    }
-                    else {
-                        if (command == "!addentity")
-                        {
-                            this.AddEntity(this, arg, arg2, arg3, (text) => {
-                                result.answer = text;
-                                cb(null, result);
-                            });
-                        }
-                        else if (command == "!apps")
-                        {
-                            this.GetApps(this, (text) => {
-                                result.answer = text;
-                                cb(null, result);
-                            });
-                        }
-                        else if (command == "!start")
-                        {
-                            this.NewSession(this, false, (text) => {
-                                result.answer = text;
-                                cb(null, result);
-                            });
-                        }
-                        else if (command == "!teach")
-                        {
-                            this.NewSession(this, true, (text) => {
-                                result.answer = text;
-                                cb(null, result);
-                            });
-                        }
-                        else if (command == "!actions")
-                        {
-                            this.GetActions(this, (text) => {
-                                result.answer = text;
-                                cb(null, result);
-                            });
-                        }
-                        else if (command == "!deleteallapps")
-                        {
-                            this.DeleteAllApps(this, (text) => {
-                                result.answer = text;
-                                cb(null, result);
-                            });
-                        }
-                        else if (command == "!done")
-                        {
-                            result.answer = "_I wasn't in teach mode. Type _!teach_ to begin teaching_";
-                            cb(null, result);
-                        }
-                        else if (command == "!dump")
-                        {
-                            result.answer = this.Dump();
-                            cb(null, result);
-                        }
-                        else if (command == "!createapp")
-                        {
-                            this.CreateApp(this, arg, arg2, (text) => {
-                                result.answer = text;
-                                cb(null, result);
-                            });
-                        }
-                        else if (command == "!deleteapp")
-                        {
-                            this.DeleteApp(this, arg, (text) => {
-                                result.answer = text;
-                                cb(null, result);
-                            });
-                        }
-                        else if (command == "!debug")
-                        {
-                            let active = BlisDebug.Toggle();
-                            result.answer = "Debug " + (active ? "Enabled" : "Disabled");
-                            cb(null, result);
-                        }
-                        else if (command == "!debughelp")
-                        {
-                            result.answer = this.DebugHelp();
-                            cb(null, result);
-                        }
-                        else if (command == "!entities")
-                        {
-                            this.GetEntities(this, (text) => {
-                                result.answer = text;
-                                cb(null, result);
-                            });
-                        }
-                        else if (command == "!loadapp")
-                        {
-                            this.LoadApp(this, arg, (text) => {
-                                result.answer = text;
-                                cb(null, result);
-                            });
-                        }
-                        else if (command == "!whichapp")
-                        {
-                            result.answer = this.blisClient.GetOption('appId');
-                            if (!result.answer) result.answer = "No app has been loaded.";
-                            cb(null, result);
-                        }
-                        else if (command == "!deleteaction")
-                        {
-                            this.DeleteAction(this, arg, (text) => {
-                                result.answer = text;
-                                cb(null, result);
-                            });
-                        }
-                        else if (command == "!trainfromurl")
-                        {
-                            this.TrainFromFile(this, arg, (text) => {
-                                result.answer = text;
-                                cb(null, result);
-                            });
-                        }
-                        else if (command == "!help")
-                        {
-                            result.answer = this.Help();
-                            cb(null, result);
-                        }
-                        else 
-                        {
-                            let text = "_Not a valid command._\n\n\n\n" + this.Help();
-                            result.answer = text;
-                            cb(null, result);
-                        }
-                    }
-                }
-                else 
-                {
-                    let inTeach = this.blisClient.GetOption('inTeach');
-                    this.blisClient.TakeTurn(text,
-                        (response : TakeTurnResponse) => {
-
-                            if (response.mode == TakeTurnModes.TEACH)
+                            if (command == "!addentity")
                             {
-                                // Markdown requires double carraige returns
-                                result.answer = response.action.content.replace(/\n/g,":\n\n");
-                                if (inTeach)
-                                {
-                                    result.answer = `_Pick desired response or type a new one_\n\n${result.answer}`;
-                                }
+                                this.AddEntity(this, userState, arg, arg2, arg3, (text) => {
+                                    this.SendResult(address, userState, cb, text);
+                                });
                             }
-                            else if (response.mode == TakeTurnModes.ACTION)
+                            else if (command == "!apps")
                             {
-                                let outText = this.blisCallback(response.actions[0].content);
-                                result.answer = outText;
-                                if (inTeach)
-                                {
-                                    result.answer = `_Trained Response:_ ${result.answer}\n\n_Provide next input or _!done_ if training dialog is complete_`;
-                                }
-                            } 
-                            else if (response.mode == TakeTurnModes.ERROR)
+                                this.GetApps(this, (text) => {
+                                    this.SendResult(address, userState, cb, text);
+                                });
+                            }
+                            else if (command == "!start")
                             {
-                                result.answer = response.error;
+                                this.NewSession(this, userState, false, (text) => {
+                                    this.SendResult(address, userState, cb, text);
+                                });
+                            }
+                            else if (command == "!teach")
+                            {
+                                this.NewSession(this, userState, true, (text) => {
+                                    this.SendResult(address, userState, cb, text);
+                                });
+                            }
+                            else if (command == "!actions")
+                            {
+                                this.GetActions(this, userState, (text) => {
+                                    this.SendResult(address, userState, cb, text);
+                                });
+                            }
+                            else if (command == "!deleteallapps")
+                            {
+                                this.DeleteAllApps(this, userState, (text) => {
+                                    this.SendResult(address, userState, cb, text);
+                                });
+                            }
+                            else if (command == "!done")
+                            {
+                                this.SendResult(address, userState, cb, "_I wasn't in teach mode. Type _!teach_ to begin teaching_");
+                            }
+                            else if (command == "!createapp")
+                            {
+                                this.CreateApp(this, userState, arg, arg2, (text) => {
+                                    this.SendResult(address, userState, cb, text);
+                                });
+                            }
+                            else if (command == "!deleteapp")
+                            {
+                                this.DeleteApp(this, userState, arg, (text) => {
+                                    this.SendResult(address, userState, cb, text);
+                                });
+                            }
+                            else if (command == "!debug")
+                            {
+                                let active = BlisDebug.Toggle();
+                                this.SendResult(address, userState, cb, "Debug " + (active ? "Enabled" : "Disabled"));
+                            }
+                            else if (command == "!debughelp")
+                            {
+                                this.SendResult(address, userState, cb, this.DebugHelp());
+                            }
+                            else if (command == "!dump")
+                            {
+                                this.SendResult(address, userState, cb, this.Dump(userState));
+                            }
+                            else if (command == "!entities")
+                            {
+                                this.GetEntities(this, userState, (text) => {
+                                    this.SendResult(address, userState, cb, text);
+                                });
+                            }
+                            else if (command == "!loadapp")
+                            {
+                                this.LoadApp(this, userState, arg, (text) => {
+                                    this.SendResult(address, userState, cb, text);
+                                });
+                            }
+                            else if (command == "!whichapp")
+                            {
+                                var msg = userState[UserStates.APP];
+                                if (!msg) msg = "No app has been loaded.";
+                                this.SendResult(address, userState, cb, msg);
+                            }
+                            else if (command == "!deleteaction")
+                            {
+                                this.DeleteAction(this, userState, arg, (text) => {
+                                    this.SendResult(address, userState, cb, text);
+                                });
+                            }
+                            else if (command == "!trainfromurl")
+                            {
+                                this.TrainFromFile(this, userState, arg, (text) => {
+                                    this.SendResult(address, userState, cb, text);
+                                });
+                            }
+                            else if (command == "!help")
+                            {
+                                this.SendResult(address, userState, cb, this.Help());
                             }
                             else 
                             {
-                                result.answer = `Don't know mode: ${response.mode}`;
+                                let text = "_Not a valid command._\n\n\n\n" + this.Help();
+                                this.SendResult(address, userState, cb, text);
                             }
+                        }
+                    }
+                    else 
+                    {
+                        let inTeach = userState[UserStates.TEACH];
+                        this.blisClient.TakeTurn(userState, text, 
+                            (response : TakeTurnResponse) => {
+                                let msg = "";
+                                if (response.mode == TakeTurnModes.TEACH)
+                                {
+                                    // Markdown requires double carraige returns
+                                    msg = response.action.content.replace(/\n/g,":\n\n");
+                                    if (inTeach)
+                                    {
+                                        msg = `_Pick desired response or type a new one_\n\n${msg}`;
+                                    }
+                                }
+                                else if (response.mode == TakeTurnModes.ACTION)
+                                {
+                                    let outText = this.blisCallback(response.actions[0].content);
+                                    msg = outText;
+                                    if (inTeach)
+                                    {
+                                        msg = `_Trained Response:_ ${msg}\n\n_Provide next input or _!done_ if training dialog is complete_`;
+                                    }
+                                } 
+                                else if (response.mode == TakeTurnModes.ERROR)
+                                {
+                                    msg = response.error;
+                                }
+                                else 
+                                {
+                                    msg = `Don't know mode: ${response.mode}`;
+                                }
+                                this.SendResult(address, userState, cb, msg);
+                            });
+                    } 
+                });
 
-                            cb(null,result);
-                        });
-                } 
+                
             }
         }
         catch (Error)

@@ -4,67 +4,40 @@ import { Credentials } from './Http/Credentials';
 import { TrainDialog } from './Model/TrainDialog'; 
 import { LuisEntity } from './Model/LuisEntity';
 import { Action } from './Model/Action'
-import { TakeTurnModes, ActionTypes } from './Model/Consts';
+import { TakeTurnModes, ActionTypes, UserStates } from './Model/Consts';
 import { TakeTurnResponse } from './Model/TakeTurnResponse'
 import { TakeTurnRequest } from './Model/TakeTurnRequest'
+import { BlisUserState } from './BlisUserState';
 import { BlisDebug } from './BlisDebug';
-
-export class BlisClientOptions {
-
-    // Application Id
-    appId : string;
-
-    // Dialog session Id
-    sessionId? : string;
-
-    // Training model to use
-    modelId? : string;
-
-    // In teach Model
-    inTeach? : boolean;
-
-    // Optional callback than runs after LUIS but before BLIS.  Allows Bot to substitute entities
-    luisCallback? : (text: string, luisEntities : LuisEntity[]) => TakeTurnRequest;
-
-    // Mappting between API names and functions
-    apiCallbacks? : { string : () => TakeTurnRequest };
-
-    public constructor(init?:Partial<BlisClientOptions>)
-    {
-        (<any>Object).assign(this, init);
-    }
-}
 
 export class BlisClient {
 
     private serviceUri : string;
     private credentials : Credentials;
-    private options : BlisClientOptions = new BlisClientOptions();
+    
+    // Optional callback than runs after LUIS but before BLIS.  Allows Bot to substitute entities
+    private luisCallback? : (text: string, luisEntities : LuisEntity[]) => TakeTurnRequest;
 
-    constructor(serviceUri : string, user : string, secret : string)
+    // Mappting between API names and functions
+    private apiCallbacks? : { string : () => TakeTurnRequest };
+
+    constructor(serviceUri : string, user : string, secret : string,
+        luisCallback : (text: string, luisEntities : LuisEntity[]) => TakeTurnRequest,
+        apiCallbacks : { string : () => TakeTurnRequest })
     {
         if (!serviceUri) 
         {
             BlisDebug.Log("service URI is required");
         } 
         this.serviceUri = serviceUri;
-
         this.credentials = new Credentials(user, secret);
+        this.luisCallback = luisCallback,
+        this.apiCallbacks = apiCallbacks
     }
 
-    public SetOptions(init?:Partial<BlisClientOptions>)
+    public AddAction(userState : BlisUserState, content : string, requiredEntityList : string[] = null, negativeEntityList : string[] = null, prebuiltEntityName : string = null) : Promise<string>
     {
-        (<any>Object).assign(this.options, init);
-    }
-
-    public GetOption(key : string)
-    {
-        return this.options[key];
-    }
-
-    public AddAction(content : string, requiredEntityList : string[] = null, negativeEntityList : string[] = null, prebuiltEntityName : string = null) : Promise<string>
-    {
-        let apiPath = `app/${this.options.appId}/action`;
+        let apiPath = `app/${userState[UserStates.APP]}/action`;
 
         return new Promise(
             (resolve, reject) => {
@@ -86,7 +59,7 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(JSON.parse(body).message);
+                        reject(body.message);
                     }
                     else {
                         resolve(body.id);
@@ -96,9 +69,9 @@ export class BlisClient {
         )
     }
 
-    public AddEntity(entityName : string, entityType : string, prebuiltEntityName : string) : Promise<string>
+    public AddEntity(userState : BlisUserState, entityName : string, entityType : string, prebuiltEntityName : string) : Promise<string>
     {
-        let apiPath = `app/${this.options.appId}/entity`;
+        let apiPath = `app/${userState[UserStates.APP]}/entity`;
 
         return new Promise(
             (resolve, reject) => {
@@ -130,7 +103,38 @@ export class BlisClient {
         )
     }
 
-    public CreateApp(name : string, luisKey : string) : Promise<string>
+    public AddTrainDialog(userState : BlisUserState, traindialog : TrainDialog) : Promise<string>
+    {
+        let apiPath = `app/${userState[UserStates.APP]}/traindialog`;
+        return new Promise(
+            (resolve, reject) => {
+               const requestData = {
+                    url: this.serviceUri+apiPath,
+                    headers: {
+                        'Cookie' : this.credentials.Cookiestring()
+                    },
+                    json: true
+                }
+                requestData['body'] = traindialog;
+
+                request.post(requestData, (error, response, body) => {
+                    if (error) {
+                        reject(error);
+                    }
+                    else if (response.statusCode >= 300) {
+                        reject(JSON.parse(body).message);
+                    }
+                    else {
+                        let modelId = body.id;
+                        userState[UserStates.MODEL] = modelId;
+                        resolve(modelId);
+                    }
+                });
+            }
+        )
+    }
+
+    public CreateApp(userState : BlisUserState, name : string, luisKey : string) : Promise<string>
     {
         var apiPath = "app";
 
@@ -157,9 +161,9 @@ export class BlisClient {
                     }
                     else {
                         var appId = body.id;
-                        this.options.appId = appId;
-                        this.options.sessionId = null;
-                        this.options.modelId = null;
+                        userState[UserStates.APP] = appId;
+                        userState[UserStates.SESSION] = null;
+                        userState[UserStates.MODEL] = null;
                         resolve(appId);
                     }
                 });
@@ -167,9 +171,9 @@ export class BlisClient {
         )
     }
 
-    public DeleteAction(actionId : string) : Promise<string>
+    public DeleteAction(userState : BlisUserState, actionId : string) : Promise<string>
     {
-        let apiPath = `app/${this.options.appId}/action/${actionId}`;
+        let apiPath = `app/${userState[UserStates.APP]}/action/${actionId}`;
 
         return new Promise(
             (resolve, reject) => {
@@ -194,12 +198,12 @@ export class BlisClient {
         )
     }
 
-    public DeleteApp(appId : string) : Promise<string>
+    public DeleteApp(userState : BlisUserState, appId : string) : Promise<string>
     {
         // If not appId sent use active app
         let activeApp = false;
         if (!appId) {
-            appId = this.options.appId;
+            appId = userState[UserStates.APP];
             activeApp = true;
         }
 
@@ -224,9 +228,9 @@ export class BlisClient {
                         // Did I delete my active app?
                         if (activeApp)
                         {
-                            this.options.appId = null;
-                            this.options.modelId = null;
-                            this.options.sessionId = null;
+                            userState[UserStates.APP] = null;
+                            userState[UserStates.MODEL] = null;
+                            userState[UserStates.SESSION] = null;
                         }
                         resolve(body.id);
                     }
@@ -235,15 +239,15 @@ export class BlisClient {
         )
     }
 
-    public EndSession() : Promise<string>
+    public EndSession(userState : BlisUserState, ) : Promise<string>
     {
-        BlisDebug.Log(`Deleting existing session ${this.options.sessionId}`);
-        let apiPath = `app/${this.options.appId}/session2/${this.options.sessionId}`;
+        BlisDebug.Log(`Deleting existing session ${userState[UserStates.SESSION]}`);
+        let apiPath = `app/${userState[UserStates.APP]}/session2/${userState[UserStates.SESSION]}`;
 
         return new Promise(
             (resolve, reject) => {
                 
-                if (!this.options.sessionId)
+                if (!userState[UserStates.SESSION])
                 {
                     resolve("No Session");
                     return;
@@ -262,8 +266,8 @@ export class BlisClient {
                         reject(JSON.parse(body).message);
                     }
                     else {
-                        this.options.sessionId = null;
-                        this.options.inTeach = false;
+                        userState[UserStates.SESSION] = null;
+                        userState[UserStates.TEACH] = false;
                         resolve(body.id);
                     }
                 });
@@ -271,12 +275,12 @@ export class BlisClient {
         )
     }
 
-    public GetApp(appId? : string) : Promise<string>
+    public GetApp(userState : BlisUserState, appId? : string) : Promise<string>
     {
         // If not appId sent use active app
         let activeApp = false;
         if (!appId) {
-            appId = this.options.appId;
+            appId = userState[UserStates.APP];
             activeApp = true;
         }
 
@@ -293,11 +297,11 @@ export class BlisClient {
                 request.get(url, requestData, (error, response, body) => {
                     let payload = JSON.parse(body);
                     if (error) {
-                        if (activeApp) this.options.appId = null;
+                        if (activeApp) userState[UserStates.APP] = null;
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        if (activeApp) this.options.appId = null;
+                        if (activeApp) userState[UserStates.APP] = null;
                         reject(payload.message);
                     }
                     else {
@@ -308,9 +312,9 @@ export class BlisClient {
         )
     }
 
-    public GetEntity(entityId : string) : Promise<string>
+    public GetAction(userState : BlisUserState, actionId : string) : Promise<string>
     {
-        let apiPath = `app/${this.options.appId}/entity/${entityId}`;
+        let apiPath = `app/${userState[UserStates.APP]}/action/${actionId}`;
 
         return new Promise(
             (resolve, reject) => {
@@ -336,37 +340,9 @@ export class BlisClient {
         )
     }
 
-    public GetEntities() : Promise<string>
+    public GetActions(userState : BlisUserState, ) : Promise<string>
     {
-        let apiPath = `app/${this.options.appId}/entity`;
-
-        return new Promise(
-            (resolve, reject) => {
-               const requestData = {
-                    url: this.serviceUri+apiPath,
-                    headers: {
-                        'Cookie' : this.credentials.Cookiestring()
-                    }
-                }
-
-                request.get(requestData, (error, response, body) => {
-                    if (error) {
-                        reject(error);
-                    }
-                    else if (response.statusCode >= 300) {
-                        reject(JSON.parse(body).message);
-                    }
-                    else {
-                        resolve(body);
-                    }
-                });
-            }
-        )
-    }
-
-    public GetAction(actionId : string) : Promise<string>
-    {
-        let apiPath = `app/${this.options.appId}/action/${actionId}`;
+        let apiPath = `app/${userState[UserStates.APP]}/action`;
 
         return new Promise(
             (resolve, reject) => {
@@ -420,9 +396,9 @@ export class BlisClient {
         )
     }
 
-    public GetActions() : Promise<string>
+    public GetEntity(userState : BlisUserState, entityId : string) : Promise<string>
     {
-        let apiPath = `app/${this.options.appId}/action`;
+        let apiPath = `app/${userState[UserStates.APP]}/entity/${entityId}`;
 
         return new Promise(
             (resolve, reject) => {
@@ -448,12 +424,40 @@ export class BlisClient {
         )
     }
 
-    public GetModel() : Promise<string>
+    public GetEntities(userState : BlisUserState, ) : Promise<string>
+    {
+        let apiPath = `app/${userState[UserStates.APP]}/entity`;
+
+        return new Promise(
+            (resolve, reject) => {
+               const requestData = {
+                    url: this.serviceUri+apiPath,
+                    headers: {
+                        'Cookie' : this.credentials.Cookiestring()
+                    }
+                }
+
+                request.get(requestData, (error, response, body) => {
+                    if (error) {
+                        reject(error);
+                    }
+                    else if (response.statusCode >= 300) {
+                        reject(JSON.parse(body).message);
+                    }
+                    else {
+                        resolve(body);
+                    }
+                });
+            }
+        )
+    }
+
+    public GetModel(userState : BlisUserState) : Promise<string>
     {
         // Clear existing modelId
-        this.options.modelId = null;
+        userState[UserStates.MODEL]  = null;
         
-        let apiPath = `app/${this.options.appId}/model`;
+        let apiPath = `app/${userState[UserStates.APP]}/model`;
         return new Promise(
             (resolve, reject) => {
                const requestData = {
@@ -469,21 +473,77 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(JSON.parse(body).message);
+                        reject(body.message);
                     }
                     else {
                         let modelId = body.ids[0];
-                        this.options.modelId = modelId;
+                        userState[UserStates.MODEL]  = modelId;
                         resolve(modelId);
                     }
                 });
             }
         )
     }
-    
-    public StartSession(inTeach = false, saveDialog = false) : Promise<string>
+
+    public GetTrainDialog(userState : BlisUserState, dialogId : string) : Promise<string>
     {
-        let apiPath = `app/${this.options.appId}/session2`;
+        let apiPath = `app/${userState[UserStates.APP]}/traindialog/${dialogId}`;
+
+        return new Promise(
+            (resolve, reject) => {
+               const requestData = {
+                    url: this.serviceUri+apiPath,
+                    headers: {
+                        'Cookie' : this.credentials.Cookiestring()
+                    }
+                }
+
+                request.get(requestData, (error, response, body) => {
+                    if (error) {
+                        reject(error);
+                    }
+                    else if (response.statusCode >= 300) {
+                        reject(JSON.parse(body).message);
+                    }
+                    else {
+                        resolve(body);
+                    }
+                });
+            }
+        )
+    }
+
+    public GetTrainDialogs(userState : BlisUserState) : Promise<string>
+    {
+        let apiPath = `app/${userState[UserStates.APP]}/traindialog`;
+
+        return new Promise(
+            (resolve, reject) => {
+               const requestData = {
+                    url: this.serviceUri+apiPath,
+                    headers: {
+                        'Cookie' : this.credentials.Cookiestring()
+                    }
+                }
+
+                request.get(requestData, (error, response, body) => {
+                    if (error) {
+                        reject(error);
+                    }
+                    else if (response.statusCode >= 300) {
+                        reject(JSON.parse(body).message);
+                    }
+                    else {
+                        resolve(body);
+                    }
+                });
+            }
+        )
+    }
+
+    public StartSession(userState : BlisUserState, inTeach = false, saveDialog = false) : Promise<string>
+    {
+        let apiPath = `app/${userState[UserStates.APP]}/session2`;
 
         return new Promise(
             (resolve, reject) => {
@@ -508,8 +568,8 @@ export class BlisClient {
                     }
                     else {
                         let sessionId = body.id;
-                        this.options.sessionId = sessionId;
-                        this.options.inTeach = inTeach;
+                        userState[UserStates.SESSION]  = sessionId;
+                        userState[UserStates.TEACH]  = inTeach;
                         resolve(sessionId);
                     }
                 });
@@ -517,44 +577,13 @@ export class BlisClient {
         )
     }
 
-    public TrainDialog(traindialog : TrainDialog) : Promise<string>
-    {
-        let apiPath = `app/${this.options.appId}/traindialog`;
-        return new Promise(
-            (resolve, reject) => {
-               const requestData = {
-                    url: this.serviceUri+apiPath,
-                    headers: {
-                        'Cookie' : this.credentials.Cookiestring()
-                    },
-                    json: true
-                }
-                requestData['body'] = traindialog;
-
-                request.post(requestData, (error, response, body) => {
-                    if (error) {
-                        reject(error);
-                    }
-                    else if (response.statusCode >= 300) {
-                        reject(JSON.parse(body).message);
-                    }
-                    else {
-                        let modelId = body.id;
-                        this.options.modelId = modelId;
-                        resolve(modelId);
-                    }
-                });
-            }
-        )
-    }
-
     // TODO:  decice what to do with fromScratch
-    public TrainModel(fromScratch : boolean = false) : Promise<string>
+    public TrainModel(userState : BlisUserState, fromScratch : boolean = false) : Promise<string>
     {
         // Clear existing modelId TODO - depends on if fromScratch
-        this.options.modelId = null;
+        userState[UserStates.MODEL]  = null;
         
-        let apiPath = `app/${this.options.appId}/model`;
+        let apiPath = `app/${userState[UserStates.APP]}/model`;
         return new Promise(
             (resolve, reject) => {
                const requestData = {
@@ -577,7 +606,7 @@ export class BlisClient {
                     }
                     else {
                         let modelId = body.id;
-                        this.options.modelId = modelId;
+                        userState[UserStates.MODEL]  = modelId;
                         resolve(modelId);
                     }
                 });
@@ -590,22 +619,22 @@ export class BlisClient {
         return new TakeTurnRequest();  // TODO
     }
 
-    public async TakeTurn(payload : string | TakeTurnRequest, cb: (response : TakeTurnResponse) => void) : Promise<void>
+    public async TakeTurn(userState : BlisUserState, payload : string | TakeTurnRequest, cb: (response : TakeTurnResponse) => void) : Promise<void>
     {
         // Error checking
-        if (this.options.appId == null)
+        if (userState[UserStates.APP]  == null)
         {
             let response = this.ErrorResponse("No Application has been loaded.\n\nTry _!createapp_, _!loadapp_ or _!help_ for more info.");
             cb(response);
             return;
         }
-        else if (!this.options.modelId && !this.options.inTeach)
+        else if (!userState[UserStates.MODEL]  && !userState[UserStates.TEACH] )
         {
-            let response = this.ErrorResponse("This application needs to be trained first.\n\nTry _!train_, _!traindialogs_ or _!help_ for more info.");
+            let response = this.ErrorResponse("This application needs to be trained first.\n\nTry _!teach, _!traindialogs_ or _!help_ for more info.");
             cb(response);
             return;
         }
-        else if (!this.options.sessionId)
+        else if (!userState[UserStates.SESSION] )
         {
             let response = this.ErrorResponse("Start the bot first with _!start_ or train more with _!teach_.");
             cb(response);
@@ -623,7 +652,7 @@ export class BlisClient {
             requestBody = payload.ToJSON();
         }
 
-        await this.SendTurnRequest(requestBody)
+        await this.SendTurnRequest(userState, requestBody)
         .then(async (takeTurnResponse) => {
             BlisDebug.Log(takeTurnResponse);
 
@@ -638,15 +667,15 @@ export class BlisClient {
             if (takeTurnResponse.mode == TakeTurnModes.CALLBACK)
             {
                 let takeTurnRequest;
-                if (this.options.luisCallback)
+                if (this.luisCallback)
                 {
-                    takeTurnRequest = this.options.luisCallback(takeTurnResponse.originalText, takeTurnResponse.entities);
+                    takeTurnRequest = this.luisCallback(takeTurnResponse.originalText, takeTurnResponse.entities);
                 }
                 else
                 {
                     takeTurnRequest = this.DefaultLUCallback(takeTurnResponse.originalText, takeTurnResponse.entities);
                 }
-                await this.TakeTurn(takeTurnRequest, cb);
+                await this.TakeTurn(userState, takeTurnRequest, cb);
             }
             // TEACH
             else if (takeTurnResponse.mode == TakeTurnModes.TEACH)
@@ -664,11 +693,11 @@ export class BlisClient {
                 else if (takeTurnResponse.actions[0].actionType == ActionTypes.API)
                 {
                     var apiName = takeTurnResponse.actions[0].content;
-                    if (this.options.apiCallbacks && this.options.apiCallbacks[apiName])
+                    if (this.apiCallbacks && this.apiCallbacks[apiName])
                     {
-                        let takeTurnRequest = this.options.apiCallbacks[apiName]();
+                        let takeTurnRequest = this.apiCallbacks[apiName]();
                         expectedNextModes = [TakeTurnModes.ACTION, TakeTurnModes.TEACH];
-                        await this.TakeTurn(takeTurnRequest, cb);
+                        await this.TakeTurn(userState, takeTurnRequest, cb);
                     }
                     else 
                     {
@@ -684,9 +713,9 @@ export class BlisClient {
         });
     }
 
-    private SendTurnRequest(body : {}) : Promise<TakeTurnResponse>
+    private SendTurnRequest(userState : BlisUserState, body : {}) : Promise<TakeTurnResponse>
     {
-        let apiPath = `app/${this.options.appId}/session2/${this.options.sessionId}`;
+        let apiPath = `app/${userState[UserStates.APP]}/session2/${userState[UserStates.SESSION]}`;
         return new Promise(
             (resolve, reject) => {
                const requestData = {
@@ -703,7 +732,7 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(JSON.parse(body).message);
+                        reject(body.message);
                     }
                     else {
                         var ttresponse = deserialize(TakeTurnResponse, body);
