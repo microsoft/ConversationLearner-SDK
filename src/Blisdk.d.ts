@@ -46,18 +46,40 @@ export interface IBlisResult extends builder.IIntentRecognizerResult {
 }
 
 /**
+* Memory store for Blis
+*/
+export interface BlisMemory {
+
+    /** Remember a key / value
+    * @param key 
+    * @param value
+    */ 
+    Remember(key: string, value: string) : void;
+
+    /** Forget a key/value
+    * @param key 
+    */  
+    Forget(key: string) : void;
+
+    /** Replace place keys identified in the given text string by a '$' prefix with thier values
+    * @param text 
+    */  
+    Substitute(text: string) : string;
+}
+
+/**
 * A request submitted to BLIS
 */
-export class TakeTurnRequest {
+export interface TakeTurnRequest {
 
     /** Array of Entity GUIDS */
-    public entities : string[];
+    entities : string[];
  
     /** Array of Action GUIDS to exclude */
-    public actionMask : string[];
+    actionMask : string[];
 
     /** Additional context in key/value form */
-    public context : {};
+    context : {};
 }
 
 /**
@@ -72,14 +94,14 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     constructor(options: IBlisOptions);
 
     /** Init logger for developer debugging */  
-    public InitDebug(bot : builder.UniversalBot) : void;
+    InitDebug(bot : builder.UniversalBot) : void;
 
     /** Attempts to match a users text utterance and retrieves the best matching answer. */
-    public recognize(context: builder.IRecognizeContext, cb: (error: Error, result: IBlisResult) => void): void;
+    recognize(context: builder.IRecognizeContext, cb: (error: Error, result: IBlisResult) => void): void;
 }
 
 /** Fetches the best matching answer response from Blis. */
-export class BlisDialog extends builder.Dialog {
+export interface BlisDialog extends builder.Dialog {
     /**  
     * Constructs a new instance of an BlisDialog.
     * @param options used to initialize the dialog.

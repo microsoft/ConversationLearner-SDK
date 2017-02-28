@@ -31,6 +31,7 @@ export class BlisUserState {
                 session.userData.Blis[UserStates.MODEL] = null;
                 session.userData.Blis[UserStates.SESSION] = null;
                 session.userData.Blis[UserStates.TEACH] = false;
+                session.userData.Blis[UserStates.MEMORY] = {};
                 cb(null, session.userData.Blis, true);
             }
             else {
@@ -44,7 +45,7 @@ export class BlisUserState {
         bot.loadSession(address, (error, session) => 
         {
             if (error) {
-                BlisDebug.Log(error);
+                BlisDebug.LogObject(error);
             }
             else 
             {
@@ -56,6 +57,7 @@ export class BlisUserState {
                 session.userData.Blis[UserStates.MODEL] = userData[UserStates.MODEL];
                 session.userData.Blis[UserStates.SESSION] = userData[UserStates.SESSION];
                 session.userData.Blis[UserStates.TEACH] = userData[UserStates.TEACH];
+                session.userData.Blis[UserStates.MEMORY] = userData[UserStates.MEMORY];
                 session.save();
             }
         });

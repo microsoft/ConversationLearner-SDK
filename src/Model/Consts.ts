@@ -23,5 +23,6 @@ export const UserStates =
     APP : "APP",
     SESSION : "SESSION",
     MODEL : "MODEL",
-    TEACH: "TEACH"
+    TEACH: "TEACH",
+    MEMORY: "MEMORY"
 }

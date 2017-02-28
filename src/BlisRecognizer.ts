@@ -3,8 +3,9 @@ import * as request from 'request';
 import { deserialize } from 'json-typescript-mapper';
 import { TakeTurnRequest } from './Model/TakeTurnRequest'
 import { SnippetList, Snippet } from './Model/SnippetList'
-import { TrainDialog, Input, Turn, AltText } from './Model/TrainDialog'
+import { TrainDialogSNP, InputSNP, TurnSNP, AltTextSNP } from './Model/TrainDialogSNP'
 import { BlisClient } from './BlisClient';
+import { BlisMemory } from './BlisMemory';
 import { BlisDebug} from './BlisDebug';
 import { BlisUserState} from './BlisUserState';
 import { LuisEntity } from './Model/LuisEntity';
@@ -29,10 +30,10 @@ export interface IBlisOptions extends builder.IIntentRecognizerSetOptions {
     appId?: string; 
 
     // Optional callback than runs after LUIS but before BLIS.  Allows Bot to substitute entities
-    luisCallback? : (text: string, luisEntities : LuisEntity[]) => TakeTurnRequest;
+    luisCallback? : (text: string, luisEntities : LuisEntity[], memory : BlisMemory) => TakeTurnRequest;
 
     // Optional callback that runs after BLIS is called but before the Action is rendered
-    blisCallback? : (text : string) => string;
+    blisCallback? : (text : string, memory : BlisMemory) => string;
 
     // Mappting between API names and functions
     apiCallbacks? : { string : () => TakeTurnRequest };
@@ -40,7 +41,7 @@ export interface IBlisOptions extends builder.IIntentRecognizerSetOptions {
 
 export class BlisRecognizer implements builder.IIntentRecognizer {
     protected blisClient : BlisClient;
-    protected blisCallback : (test : string) => string;
+    protected blisCallback : (test : string, memory : BlisMemory) => string;
     protected defaultApp : string;
     protected entity_name2id : { string : string };
     protected entityValues = {};
@@ -57,34 +58,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             this.defaultApp = options.appId;
             this.blisCallback = options.blisCallback ? options.blisCallback : this.DefaultBlisCallback;
 /*
-            // Get entities
-            let entityIds = [];
-            await this.blisClient.GetEntities()
-                .then((json) => {
-                    entityIds = JSON.parse(json)['ids'];
-                    BlisDebug.Log(`Found ${entityIds.length} entities`);
-                })
-                .catch(error => fail = error); 
-            if (fail) return fail;
-
-            let entity_id2name = {};
-            for (let entityId of entityIds)
-            {
-                await this.blisClient.GetEntity(entityId)
-                    .then((json) => {
-                        let entityName = JSON.parse(json)['name'];
-                        entity_id2name[entityId] = entityName;
-                        this.entity_name2id[entityName] = entityId;
-                        BlisDebug.Log(`Entity lookup: ${entityId} : ${entityName}`);
-                    })
-                    .catch(error => fail = error); 
-            }
-            if (fail) 
-            {
-                BlisDebug.Log(fail);
-                return fail;
-            }
-
+  
             // Get actions
             let actionIds = [];
             await this.blisClient.GetActions()
@@ -156,8 +130,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         )
     }
 
-    // TODO why pass recognizer everywhere??
-    private async AddEntity(recognizer : BlisRecognizer, userState : BlisUserState, entityName : string, entityType : string, prebuiltName : string, cb : (text) => void) : Promise<void>
+    private async AddEntity(userState : BlisUserState, entityName : string, entityType : string, prebuiltName : string, cb : (text) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Delete Action`);
 
@@ -192,14 +165,14 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         .catch((text) => cb(text));
     }
 
-    private async CreateApp(recognizer : BlisRecognizer, userState : BlisUserState,  appName : string, luisKey, cb : (text) => void) : Promise<void>
+    private async CreateApp(userState : BlisUserState,  appName : string, luisKey, cb : (text) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Create Application`);
 
         // TODO - temp debug
         if (luisKey == '*')
         {
-            luisKey = 'e740e5ecf4c3429eadb1a595d57c14c5';
+            luisKey = 'fefa536979fe4079872584fc4bf41abe';
         }
 
         if (!appName)
@@ -214,6 +187,12 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             cb(msg);
             return;
         }
+
+        
+        // TEMP TODO
+        luisKey = null;
+
+
         await this.blisClient.CreateApp(userState, appName, luisKey)
             .then((text) => 
             {
@@ -236,7 +215,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         return text;
     }
 
-    private async DeleteAction(recognizer : BlisRecognizer, userState : BlisUserState, actionId : string, cb : (text) => void) : Promise<void>
+    private async DeleteAction(userState : BlisUserState, actionId : string, cb : (text) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Delete Action`);
 
@@ -252,7 +231,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         .catch((text) => cb(text));
     }
 
-    private async DeleteAllApps(recognizer : BlisRecognizer, userState : BlisUserState, cb : (text) => void) : Promise<void>
+    private async DeleteAllApps(userState : BlisUserState, cb : (text) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Delete All Applications`);
 
@@ -280,7 +259,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         cb("Done");
     }
 
-    private async DeleteApp(recognizer : BlisRecognizer, userState : BlisUserState, appId : string, cb : (text) => void) : Promise<void>
+    private async DeleteApp(userState : BlisUserState, appId : string, cb : (text) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Delete Application`);
         if (!appId)
@@ -305,10 +284,11 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         text += `Model: ${userState[UserStates.MODEL]}\n\n`;
         text += `Session: ${userState[UserStates.SESSION]}\n\n`;
         text += `InTeach: ${userState[UserStates.TEACH]}\n\n`;
+        text += `Memory: ${JSON.stringify(userState[UserStates.MEMORY])}\n\n`;
         return text;
     }
 
-    private async EndSession(recognizer : BlisRecognizer, userState : BlisUserState, cb : (text) => void) : Promise<void>
+    private async EndSession(userState : BlisUserState, cb : (text) => void) : Promise<void>
     {
         // Ending teaching session
         await this.blisClient.EndSession(userState)
@@ -332,7 +312,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         });
     }
 
-    private async GetActions(recognizer : BlisRecognizer, userState : BlisUserState, cb : (text) => void) : Promise<void>
+    private async GetActions(userState : BlisUserState, cb : (text) => void) : Promise<void>
     {
         BlisDebug.Log(`Getting actions`);
 
@@ -374,7 +354,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         cb(msg);
     }
 
-    private async GetApps(recognizer : BlisRecognizer, cb : (text) => void) : Promise<void>
+    private async GetApps(cb : (text) => void) : Promise<void>
     {
         BlisDebug.Log(`Getting apps`);
 
@@ -417,7 +397,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         cb(msg);
     }
 
-    private async GetEntities(recognizer : BlisRecognizer, userState : BlisUserState, cb : (text) => void) : Promise<void>
+    private async GetEntities(userState : BlisUserState, cb : (text) => void) : Promise<void>
     {
         BlisDebug.Log(`Getting entities`);
 
@@ -458,7 +438,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         cb(msg);
     }
 
-    private async GetTrainDialogs(recognizer : BlisRecognizer, userState : BlisUserState, cb : (text) => void) : Promise<void>
+    private async GetTrainDialogs(userState : BlisUserState, cb : (text) => void) : Promise<void>
     {
         BlisDebug.Log(`Getting actions`);
 
@@ -478,17 +458,18 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             return fail;
         }
 
-        let msg = "";
+        let msg = "[";
         for (let dialogId of dialogIds)
         {
             await this.blisClient.GetTrainDialog(userState, dialogId)
                 .then((json) => {
-                    let content = JSON.parse(json)['content'];
-                    msg += `${dialogId} : ${content}\n\n`;
-                    BlisDebug.Log(`Action lookup: ${dialogId} : ${content}`);
+                    if (msg.length > 1) msg += ",";
+                    msg += `${json}\n\n`;
+                    BlisDebug.Log(`Action lookup: ${dialogId}`);
                 })
                 .catch(error => fail = error); 
         }
+        msg += "]"
         if (fail) 
         {
             BlisDebug.Log(fail);
@@ -517,7 +498,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         return text;
     }
 
-    private async LoadApp(recognizer : BlisRecognizer, userState : BlisUserState, appId : string, cb : (text) => void) : Promise<void>
+    private async LoadApp(userState : BlisUserState, appId : string, cb : (text) => void) : Promise<void>
     {
         BlisDebug.Log(`Trying to load Application ${appId}`);
 
@@ -578,7 +559,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         .catch(error => cb(error));
     }
 
-    private async NewSession(recognizer : BlisRecognizer, userState : BlisUserState, teach : boolean, cb : (text) => void) : Promise<void>
+    private async NewSession(userState : BlisUserState, teach : boolean, cb : (text) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to create new session, Teach = ${teach}`);
 
@@ -602,7 +583,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         .catch((text) => cb(text));
     }
 
-    private async TrainFromFile(recognizer : BlisRecognizer, userState : BlisUserState, url : string, cb : (text) => void) : Promise<void>
+    private async TrainFromFile(userState : BlisUserState, url : string, cb : (text) => void) : Promise<void>
     {
         if (url == "*")
         {
@@ -620,14 +601,14 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         .then((text:string) =>{
             let json = JSON.parse(text);
             let snipObj = deserialize(SnippetList, json);
-            this.TrainOnSnippetList(recognizer, userState, snipObj.snippets)
+            this.TrainOnSnippetList(userState, snipObj.snippets)
             .then(status => cb(status))
             .catch(error => cb("Failed to Train"));
         })
         .catch((text) => cb(text));
     }
 
-    private async TrainOnSnippetList(recognizer : BlisRecognizer, userState : BlisUserState, sniplist : Snippet[]) : Promise<string>
+    private async TrainOnSnippetList(userState : BlisUserState, sniplist : Snippet[]) : Promise<string>
     {
         let fail = null;
 
@@ -663,22 +644,22 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         // Now train on the dialogs
         for (let snippet of sniplist)
         {
-            let dialog = new TrainDialog();
+            let dialog = new TrainDialogSNP();
             for (let turn of snippet.turns)
             {
-                let altTexts : AltText[] = [];
+                let altTexts : AltTextSNP[] = [];
                 let userText = turn.userText[0];  // TODO only training on first one
 
                 if (turn.userText.length > 1)
                 {
                     for (let i=1;i<turn.userText.length;i++)
                     {
-                        altTexts.push(new AltText({text: turn.userText[i]}))
+                        altTexts.push(new AltTextSNP({text: turn.userText[i]}))
                     }
                 }
                 let actionId = actiontext2id[turn.action];
-                let input = new Input({'text' : userText, 'textAlts' : altTexts});
-                let newturn = new Turn({'input' :input, 'output' : actionId });
+                let input = new InputSNP({'text' : userText, 'textAlts' : altTexts});
+                let newturn = new TurnSNP({'input' :input, 'output' : actionId });
                 dialog.turns.push(newturn);
             }
             if (!fail)
@@ -736,7 +717,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             if (isNew)
             {                        
                 // Attempt to load the application
-                this.LoadApp(this, userState, this.defaultApp, (text) => 
+                this.LoadApp(userState, this.defaultApp, (text) => 
                 {
                     BlisDebug.Log(text);
                     cb(null, userState);
@@ -785,7 +766,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
 
                         if (userState[UserStates.TEACH] && (command != "!dump") && (command != "!debug")) {
                             if (command == "!done") {
-                                this.EndSession(this, userState, (text) => {
+                                this.EndSession(userState, (text) => {
                                     this.SendResult(address, userState, cb, "_Completed teach dialog..._");
                                 });
                             }
@@ -794,39 +775,39 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                             }
                         }
                         else {
-                            if (command == "!addentity")
+                            if (command == "!actions")
                             {
-                                this.AddEntity(this, userState, arg, arg2, arg3, (text) => {
+                                this.GetActions(userState, (text) => {
+                                    this.SendResult(address, userState, cb, text);
+                                });
+                            }
+                            else if (command == "!addentity")
+                            {
+                                this.AddEntity(userState, arg, arg2, arg3, (text) => {
                                     this.SendResult(address, userState, cb, text);
                                 });
                             }
                             else if (command == "!apps")
                             {
-                                this.GetApps(this, (text) => {
+                                this.GetApps((text) => {
                                     this.SendResult(address, userState, cb, text);
                                 });
                             }
-                            else if (command == "!start")
+                            else if (command == "!createapp")
                             {
-                                this.NewSession(this, userState, false, (text) => {
-                                    this.SendResult(address, userState, cb, text);
-                                });
-                            }
-                            else if (command == "!teach")
-                            {
-                                this.NewSession(this, userState, true, (text) => {
-                                    this.SendResult(address, userState, cb, text);
-                                });
-                            }
-                            else if (command == "!actions")
-                            {
-                                this.GetActions(this, userState, (text) => {
+                                this.CreateApp(userState, arg, arg2, (text) => {
                                     this.SendResult(address, userState, cb, text);
                                 });
                             }
                             else if (command == "!deleteallapps")
                             {
-                                this.DeleteAllApps(this, userState, (text) => {
+                                this.DeleteAllApps(userState, (text) => {
+                                    this.SendResult(address, userState, cb, text);
+                                });
+                            }
+                            else if (command == "!deleteaction")
+                            {
+                                this.DeleteAction(userState, arg, (text) => {
                                     this.SendResult(address, userState, cb, text);
                                 });
                             }
@@ -834,15 +815,9 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                             {
                                 this.SendResult(address, userState, cb, "_I wasn't in teach mode. Type _!teach_ to begin teaching_");
                             }
-                            else if (command == "!createapp")
-                            {
-                                this.CreateApp(this, userState, arg, arg2, (text) => {
-                                    this.SendResult(address, userState, cb, text);
-                                });
-                            }
                             else if (command == "!deleteapp")
                             {
-                                this.DeleteApp(this, userState, arg, (text) => {
+                                this.DeleteApp(userState, arg, (text) => {
                                     this.SendResult(address, userState, cb, text);
                                 });
                             }
@@ -861,13 +836,41 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                             }
                             else if (command == "!entities")
                             {
-                                this.GetEntities(this, userState, (text) => {
+                                this.GetEntities(userState, (text) => {
                                     this.SendResult(address, userState, cb, text);
                                 });
                             }
+                            else if (command == "!help")
+                            {
+                                this.SendResult(address, userState, cb, this.Help());
+                            }
                             else if (command == "!loadapp")
                             {
-                                this.LoadApp(this, userState, arg, (text) => {
+                                this.LoadApp(userState, arg, (text) => {
+                                    this.SendResult(address, userState, cb, text);
+                                });
+                            }
+                            else if (command == "!start")
+                            {
+                                this.NewSession(userState, false, (text) => {
+                                    this.SendResult(address, userState, cb, text);
+                                });
+                            }
+                            else if (command == "!teach")
+                            {
+                                this.NewSession(userState, true, (text) => {
+                                    this.SendResult(address, userState, cb, text);
+                                });
+                            }
+                            else if (command == "!trainfromurl")
+                            {
+                                this.TrainFromFile(userState, arg, (text) => {
+                                    this.SendResult(address, userState, cb, text);
+                                });
+                            }
+                            else if (command == "!traindialogs")
+                            {
+                                this.GetTrainDialogs(userState, (text) => {
                                     this.SendResult(address, userState, cb, text);
                                 });
                             }
@@ -876,22 +879,6 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                                 var msg = userState[UserStates.APP];
                                 if (!msg) msg = "No app has been loaded.";
                                 this.SendResult(address, userState, cb, msg);
-                            }
-                            else if (command == "!deleteaction")
-                            {
-                                this.DeleteAction(this, userState, arg, (text) => {
-                                    this.SendResult(address, userState, cb, text);
-                                });
-                            }
-                            else if (command == "!trainfromurl")
-                            {
-                                this.TrainFromFile(this, userState, arg, (text) => {
-                                    this.SendResult(address, userState, cb, text);
-                                });
-                            }
-                            else if (command == "!help")
-                            {
-                                this.SendResult(address, userState, cb, this.Help());
                             }
                             else 
                             {
@@ -903,6 +890,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                     else 
                     {
                         let inTeach = userState[UserStates.TEACH];
+                        let memory = new BlisMemory(userState);
                         this.blisClient.TakeTurn(userState, text, 
                             (response : TakeTurnResponse) => {
                                 let msg = "";
@@ -917,7 +905,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                                 }
                                 else if (response.mode == TakeTurnModes.ACTION)
                                 {
-                                    let outText = this.blisCallback(response.actions[0].content);
+                                    let outText = this.blisCallback(response.actions[0].content, memory);
                                     msg = outText;
                                     if (inTeach)
                                     {

@@ -1,13 +1,14 @@
 const request = require('request');
 import {deserialize} from 'json-typescript-mapper';
 import { Credentials } from './Http/Credentials';
-import { TrainDialog } from './Model/TrainDialog'; 
+import { TrainDialogSNP } from './Model/TrainDialogSNP'; 
 import { LuisEntity } from './Model/LuisEntity';
 import { Action } from './Model/Action'
 import { TakeTurnModes, ActionTypes, UserStates } from './Model/Consts';
 import { TakeTurnResponse } from './Model/TakeTurnResponse'
 import { TakeTurnRequest } from './Model/TakeTurnRequest'
 import { BlisUserState } from './BlisUserState';
+import { BlisMemory } from './BlisMemory';
 import { BlisDebug } from './BlisDebug';
 
 export class BlisClient {
@@ -16,13 +17,13 @@ export class BlisClient {
     private credentials : Credentials;
     
     // Optional callback than runs after LUIS but before BLIS.  Allows Bot to substitute entities
-    private luisCallback? : (text: string, luisEntities : LuisEntity[]) => TakeTurnRequest;
+    private luisCallback? : (text: string, luisEntities : LuisEntity[], memory : BlisMemory) => TakeTurnRequest;
 
     // Mappting between API names and functions
     private apiCallbacks? : { string : () => TakeTurnRequest };
 
     constructor(serviceUri : string, user : string, secret : string,
-        luisCallback : (text: string, luisEntities : LuisEntity[]) => TakeTurnRequest,
+        luisCallback : (text: string, luisEntities : LuisEntity[], memory : BlisMemory) => TakeTurnRequest,
         apiCallbacks : { string : () => TakeTurnRequest })
     {
         if (!serviceUri) 
@@ -103,7 +104,7 @@ export class BlisClient {
         )
     }
 
-    public AddTrainDialog(userState : BlisUserState, traindialog : TrainDialog) : Promise<string>
+    public AddTrainDialog(userState : BlisUserState, traindialog : TrainDialogSNP) : Promise<string>
     {
         let apiPath = `app/${userState[UserStates.APP]}/traindialog`;
         return new Promise(
@@ -202,8 +203,7 @@ export class BlisClient {
     {
         // If not appId sent use active app
         let activeApp = false;
-        if (!appId) {
-            appId = userState[UserStates.APP];
+        if (appId == userState[UserStates.APP]) {
             activeApp = true;
         }
 
@@ -570,6 +570,7 @@ export class BlisClient {
                         let sessionId = body.id;
                         userState[UserStates.SESSION]  = sessionId;
                         userState[UserStates.TEACH]  = inTeach;
+                        userState[UserStates.MEMORY]  = {};
                         resolve(sessionId);
                     }
                 });
@@ -654,7 +655,7 @@ export class BlisClient {
 
         await this.SendTurnRequest(userState, requestBody)
         .then(async (takeTurnResponse) => {
-            BlisDebug.Log(takeTurnResponse);
+            BlisDebug.LogObject(takeTurnResponse);
 
             // Check that expected mode matches
             if (!takeTurnResponse.mode || expectedNextModes.indexOf(takeTurnResponse.mode) < 0)
@@ -667,9 +668,10 @@ export class BlisClient {
             if (takeTurnResponse.mode == TakeTurnModes.CALLBACK)
             {
                 let takeTurnRequest;
+                let memory = new BlisMemory(userState);
                 if (this.luisCallback)
                 {
-                    takeTurnRequest = this.luisCallback(takeTurnResponse.originalText, takeTurnResponse.entities);
+                    takeTurnRequest = this.luisCallback(takeTurnResponse.originalText, takeTurnResponse.entities, memory);
                 }
                 else
                 {

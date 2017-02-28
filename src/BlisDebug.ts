@@ -38,7 +38,7 @@ export class BlisDebug {
         }
     }
 
-     public static Log(text) {
+     public static Log(text : string) {
         if (this.enabled)
         {
             this.cache += (this.cache ? "\n\n" : ">> ") + text;
@@ -46,5 +46,9 @@ export class BlisDebug {
         this.SendCache();
 
         console.log(text);
+    }
+
+    public static LogObject(obj : any) {
+        this.Log(JSON.stringify(obj));
     }
 }
