@@ -162,14 +162,20 @@ export class BlisClient {
                     }
                     else {
                         var appId = body.id;
-                        userState[UserStates.APP] = appId;
-                        userState[UserStates.SESSION] = null;
-                        userState[UserStates.MODEL] = null;
+                        this.InitUserState(userState, appId);
                         resolve(appId);
                     }
                 });
             }
         )
+    }
+
+    public InitUserState(userState : BlisUserState, appId : string) {
+        userState[UserStates.APP] = appId;
+        userState[UserStates.SESSION] = null;
+        userState[UserStates.MODEL] = null;
+        userState[UserStates.MEMORY] = {};
+        userState[UserStates.ENTITYLOOKUP] = {};
     }
 
     public DeleteAction(userState : BlisUserState, actionId : string) : Promise<string>
@@ -275,15 +281,8 @@ export class BlisClient {
         )
     }
 
-    public GetApp(userState : BlisUserState, appId? : string) : Promise<string>
+    public GetApp(appId : string) : Promise<string>
     {
-        // If not appId sent use active app
-        let activeApp = false;
-        if (!appId) {
-            appId = userState[UserStates.APP];
-            activeApp = true;
-        }
-
         let apiPath = `app/${appId}`;
 
         return new Promise(
@@ -297,11 +296,9 @@ export class BlisClient {
                 request.get(url, requestData, (error, response, body) => {
                     let payload = JSON.parse(body);
                     if (error) {
-                        if (activeApp) userState[UserStates.APP] = null;
-                        reject(error);
+                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        if (activeApp) userState[UserStates.APP] = null;
                         reject(payload.message);
                     }
                     else {

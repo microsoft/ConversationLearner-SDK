@@ -16,17 +16,7 @@ export class BlisDebug {
     {
         this.address = address;
         this.SendCache();
-    }
-
-    public static Toggle() : boolean
-    {
-        this.enabled = !this.enabled;
-        if (!this.enabled)
-        {
-            this.cache = "";
-        }
-        return this.enabled;
-    }    
+    }  
  
     private static SendCache() {
         if (this.bot && this.address && this.cache)

@@ -24,5 +24,7 @@ export const UserStates =
     SESSION : "SESSION",
     MODEL : "MODEL",
     TEACH: "TEACH",
-    MEMORY: "MEMORY"
+    DEBUG: "DEBUG",
+    MEMORY: "MEMORY",
+    ENTITYLOOKUP: "ENTITYLOOKUP"
 }

@@ -31,7 +31,9 @@ export class BlisUserState {
                 session.userData.Blis[UserStates.MODEL] = null;
                 session.userData.Blis[UserStates.SESSION] = null;
                 session.userData.Blis[UserStates.TEACH] = false;
+                session.userData.Blis[UserStates.DEBUG] = false;
                 session.userData.Blis[UserStates.MEMORY] = {};
+                session.userData.Blis[UserStates.ENTITYLOOKUP] = {};
                 cb(null, session.userData.Blis, true);
             }
             else {
@@ -57,7 +59,9 @@ export class BlisUserState {
                 session.userData.Blis[UserStates.MODEL] = userData[UserStates.MODEL];
                 session.userData.Blis[UserStates.SESSION] = userData[UserStates.SESSION];
                 session.userData.Blis[UserStates.TEACH] = userData[UserStates.TEACH];
+                session.userData.Blis[UserStates.DEBUG] = userData[UserStates.DEBUG];
                 session.userData.Blis[UserStates.MEMORY] = userData[UserStates.MEMORY];
+                session.userData.Blis[UserStates.ENTITYLOOKUP] = userData[UserStates.ENTITYLOOKUP];
                 session.save();
             }
         });
