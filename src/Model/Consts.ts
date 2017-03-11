@@ -18,6 +18,41 @@ export const EntityTypes =
     LUIS : "LUIS"
 }
 
+export const TeachStep =
+{
+    LABELENTITY : "label_entity",
+    LABELACTION : "label_action"
+}
+
+export const Commands =
+{
+    ACTIONS : "!actions",
+    ADDENTITY : "!addentity",
+    ADDTEXTACTION : "!addtextaction",
+    ADDAPIACTION : "!addapiaction",
+    APPS : "!apps",
+    CREATEAPP : "!createapp",
+    DEBUG : "!debug",
+    DEBUGHELP : "!debughelp",
+    DELETEACTION : "!deleteaction",
+    DELETEALLAPPS: "!deleteallapps",
+    DELETEAPP : "!deleteapp",
+    DUMP : "!dump",
+    ENTITIES : "!entities",
+    DONE : "!done",
+    HELP : "!help",
+    LOADAPP: "!loadapp",
+    START: "!start",
+    TEACH : "!teach",
+    TRAINDIALOGS : "!traindialogs",
+    TRAINFROMURL : "!trainfromurl"
+}
+
+export const Help =
+{
+    NEWAPP : "#newapp"
+}
+
 export const UserStates =
 {
     APP : "APP",
@@ -26,5 +61,6 @@ export const UserStates =
     TEACH: "TEACH",
     DEBUG: "DEBUG",
     MEMORY: "MEMORY",
-    ENTITYLOOKUP: "ENTITYLOOKUP"
+    ENTITYLOOKUP: "ENTITYLOOKUP",
+    LASTINPUT: "LASTINPUT"
 }

@@ -16,7 +16,7 @@ export class LabelAction
     @JsonProperty('content')
     public content : string;
 
-    /** End char number in the string containing the entity */
+    /** Id of the Action */
     @JsonProperty('id')
     public id : string;
 

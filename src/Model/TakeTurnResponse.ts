@@ -24,13 +24,13 @@ export class TakeTurnResponse
     @JsonProperty('teach_step')
     public teachStep : string;
 
-    @JsonProperty({clazz: LabelEntity, name : 'teach.label_entity'})
-    public teachLabelEntity : LabelEntity[];
+    @JsonProperty({clazz: LabelEntity, name : 'teach_label_entity'})
+    public teachLabelEntities : LabelEntity[];
 
-    @JsonProperty({clazz: LabelAction, name : 'teach.label_action'})
-    public teachLabelAction : string;
+    @JsonProperty({clazz: LabelAction, name : 'teach_label_action'})
+    public teachLabelActions : LabelAction[];
 
-    @JsonProperty('teach.error_msg')
+    @JsonProperty('teach_error_msg')
     public teachError : string;
 
     @JsonProperty('error')
@@ -44,8 +44,8 @@ export class TakeTurnResponse
         this.actions = undefined;
         this.action = undefined;
         this.teachStep = undefined;
-        this.teachLabelEntity = undefined;
-        this.teachLabelAction = undefined;
+        this.teachLabelEntities = undefined;
+        this.teachLabelActions = undefined;
         this.teachError = undefined;
         this.error = undefined;
         (<any>Object).assign(this, init);

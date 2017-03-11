@@ -49,6 +49,36 @@ export class BlisMemory {
         }
     }
 
+    // Converst array entity IDs into an array of entity Names
+    public EntityNames(ids: string[]) : string[] {
+        let names = [];
+        try {
+            for (let id of ids) 
+            {    
+                let found = false;            
+                for (let name in this.userState[UserStates.ENTITYLOOKUP])
+                {
+                    let foundId = this.userState[UserStates.ENTITYLOOKUP][name];
+                    if (foundId == id)
+                    {
+                        names.push(name);
+                        found = true;
+                    }
+                }
+                if (!found)
+                {
+                    names.push("{UNKNOWN}");
+                    BlisDebug.Log(`Missing entity name: ${id}`);
+                }        
+            }
+        }
+        catch (Error)
+        {
+            BlisDebug.Log(Error);
+        }
+        return names;
+    }
+
     public Remember(key: string, value: string) {
         try {
             this.userState[UserStates.MEMORY][key] = value;
@@ -58,6 +88,12 @@ export class BlisMemory {
             BlisDebug.Log(Error);
         }
     }  
+
+    // Return array of entityIds for which I've remembered something
+    public RememberedIds() : string[]
+    {
+        return Object.keys(this.userState[UserStates.MEMORY]);
+    }
 
     public Forget(key: string) {
         try {
@@ -89,23 +125,35 @@ export class BlisMemory {
         return text;
     }
 
-    public Dump() : string {
-        
+    public SetLastInput(input: string) : void {
+        this.userState[UserStates.LASTINPUT] = input;
+    }
+
+    public GetLastInput() : string {
+        return this.userState[UserStates.LASTINPUT];
+    }
+
+    public DumpEntities() : string
+    {
         let memory = "";
         for (let entityId in this.userState[UserStates.MEMORY])
         {
             if (memory) memory += ", ";
             let entityName = this.EntityName(entityId);
             let entityValue = this.userState[UserStates.MEMORY][entityId];
-            memory += `${entityName} : ${entityValue}`;
+            memory += `[$${entityName} : ${entityValue}]`;
         }
+        return memory;
+    }
+
+    public Dump() : string {
         let text = "";
         text += `App: ${this.userState[UserStates.APP]}\n\n`;
         text += `Model: ${this.userState[UserStates.MODEL]}\n\n`;
         text += `Session: ${this.userState[UserStates.SESSION]}\n\n`;
         text += `InTeach: ${this.userState[UserStates.TEACH]}\n\n`;
         text += `InDebug: ${this.userState[UserStates.TEACH]}\n\n`;
-        text += `Memory: {${memory}}\n\n`;
+        text += `Memory: {${this.DumpEntities()}}\n\n`;
         text += `EntityLookup: ${JSON.stringify(this.userState[UserStates.ENTITYLOOKUP])}\n\n`;
         return text;
     }

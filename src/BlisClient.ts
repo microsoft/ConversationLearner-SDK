@@ -11,6 +11,7 @@ import { BlisUserState } from './BlisUserState';
 import { BlisMemory } from './BlisMemory';
 import { BlisDebug } from './BlisDebug';
 
+export interface FunctionMap { [name: string] : (memory : BlisMemory, args : string) => TakeTurnRequest; }
 export class BlisClient {
 
     private serviceUri : string;
@@ -19,8 +20,11 @@ export class BlisClient {
     // Optional callback than runs after LUIS but before BLIS.  Allows Bot to substitute entities
     private luisCallback? : (text: string, luisEntities : LuisEntity[], memory : BlisMemory) => TakeTurnRequest;
 
-    // Mappting between API names and functions
-    private apiCallbacks? : { string : () => TakeTurnRequest };
+    // Mappting between user defined API names and functions
+    private apiCallbacks : { string : () => TakeTurnRequest };
+
+    // Mappting between prebuild API names and functions
+    private intApiCallbacks : FunctionMap = {};
 
     constructor(serviceUri : string, user : string, secret : string,
         luisCallback : (text: string, luisEntities : LuisEntity[], memory : BlisMemory) => TakeTurnRequest,
@@ -32,11 +36,13 @@ export class BlisClient {
         } 
         this.serviceUri = serviceUri;
         this.credentials = new Credentials(user, secret);
-        this.luisCallback = luisCallback,
-        this.apiCallbacks = apiCallbacks
+        this.luisCallback = luisCallback;
+        this.apiCallbacks = apiCallbacks;
+
+        this.intApiCallbacks["saveLast"] = this.SaveLastCB;
     }
 
-    public AddAction(userState : BlisUserState, content : string, requiredEntityList : string[] = null, negativeEntityList : string[] = null, prebuiltEntityName : string = null) : Promise<string>
+    public AddAction(userState : BlisUserState, content : string, actionType : string, requiredEntityList : string[] = [], negativeEntityList : string[] = [], prebuiltEntityName : string = null) : Promise<string>
     {
         let apiPath = `app/${userState[UserStates.APP]}/action`;
 
@@ -50,7 +56,8 @@ export class BlisClient {
                     body: {
                         content: content,
                         RequiredEntities: requiredEntityList,
-                        NegativeEntities: negativeEntityList
+                        NegativeEntities: negativeEntityList,
+                        action_type: actionType
                     },
                     json: true
                 }
@@ -309,7 +316,7 @@ export class BlisClient {
         )
     }
 
-    public GetAction(userState : BlisUserState, actionId : string) : Promise<string>
+    public GetAction(userState : BlisUserState, actionId : string) : Promise<Action>
     {
         let apiPath = `app/${userState[UserStates.APP]}/action/${actionId}`;
 
@@ -319,7 +326,8 @@ export class BlisClient {
                     url: this.serviceUri+apiPath,
                     headers: {
                         'Cookie' : this.credentials.Cookiestring()
-                    }
+                    },
+                    json: true
                 }
 
                 request.get(requestData, (error, response, body) => {
@@ -330,7 +338,8 @@ export class BlisClient {
                         reject(JSON.parse(body).message);
                     }
                     else {
-                        resolve(body);
+                        var action = deserialize(Action, body);
+                        resolve(action);
                     }
                 });
             }
@@ -393,6 +402,7 @@ export class BlisClient {
         )
     }
 
+    // TODO return entity object
     public GetEntity(userState : BlisUserState, entityId : string) : Promise<string>
     {
         let apiPath = `app/${userState[UserStates.APP]}/entity/${entityId}`;
@@ -685,16 +695,31 @@ export class BlisClient {
             // ACTION
             else if (takeTurnResponse.mode == TakeTurnModes.ACTION)
             {
-                if (takeTurnResponse.actions[0].actionType == ActionTypes.TEXT)
+                let action = takeTurnResponse.actions[0];
+                
+                if (action.actionType == ActionTypes.TEXT)
                 {
                     cb(takeTurnResponse);
                 }
-                else if (takeTurnResponse.actions[0].actionType == ActionTypes.API)
+                else if (action.actionType == ActionTypes.API)
                 {
-                    var apiName = takeTurnResponse.actions[0].content;
-                    if (this.apiCallbacks && this.apiCallbacks[apiName])
+                    let apiString = action.content;
+                    let [apiName, arg] = apiString.split(' ');
+
+                    // First check for build in APIS
+                    let api = this.intApiCallbacks[apiName];
+
+                    // Then check user defined APIs
+                    if (!api && this.apiCallbacks)
                     {
-                        let takeTurnRequest = this.apiCallbacks[apiName]();
+                        api = this.apiCallbacks[apiName]
+                    }
+
+                    // Call API if it was found
+                    if (api)
+                    {
+                        let memory = new BlisMemory(userState);
+                        let takeTurnRequest = api(memory, arg);
                         expectedNextModes = [TakeTurnModes.ACTION, TakeTurnModes.TEACH];
                         await this.TakeTurn(userState, takeTurnRequest, cb);
                     }
@@ -734,6 +759,9 @@ export class BlisClient {
                         reject(body.message);
                     }
                     else {
+                        if (typeof body === "string") {
+                            body = JSON.parse(body);
+                        }
                         var ttresponse = deserialize(TakeTurnResponse, body);
                         resolve(ttresponse);
                     }
@@ -745,5 +773,17 @@ export class BlisClient {
     private ErrorResponse(text : string) : TakeTurnResponse
     {
         return new TakeTurnResponse({ mode : TakeTurnModes.ERROR, error: text} );
+    }
+
+    //====================================================
+    // Built in API GetActions
+    //====================================================
+    private SaveLastCB(memory : BlisMemory, arg : string) : TakeTurnRequest
+    {
+        let lastInput = memory.GetLastInput();
+        arg = arg.replace('$','');
+        memory.Remember(arg, lastInput);
+        let entityIds = memory.RememberedIds();
+        return new TakeTurnRequest({entities: entityIds});
     }
 }

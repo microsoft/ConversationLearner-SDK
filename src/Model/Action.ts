@@ -8,9 +8,17 @@ export class Action
     @JsonProperty('content')
     public content : string;
 
+    @JsonProperty('NegativeEntities')
+    public negativeEntities : string[];
+    
+    @JsonProperty('RequiredEntities')
+    public requiredEntities : string[];
+
     public constructor()
     {
         this.actionType = undefined;
         this.content = undefined;
+        this.negativeEntities = undefined;
+        this.requiredEntities = undefined;
     }
 }
