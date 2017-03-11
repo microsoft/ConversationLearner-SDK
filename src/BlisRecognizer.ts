@@ -587,7 +587,16 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                 command = "!"+command;
             }
             let comObj = BlisHelp.CommandHelp(command);
-            return `${command} ${comObj.args}\n\n     ${comObj.description}\n\n`;
+            let msg = `${command} ${comObj.args}\n\n     ${comObj.description}\n\n`;
+            if (comObj.examples.length > 0)
+            {
+                msg += "For example:\n\n"
+                for (let example of comObj.examples)
+                {
+                    msg += `     ${example}\n\n`;
+                }
+            }
+            return msg;
         }
         let text = "";
         for (let item in Commands)
