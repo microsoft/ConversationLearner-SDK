@@ -24,6 +24,13 @@ export const TeachStep =
     LABELACTION : "label_action"
 }
 
+export const SaveStep =
+{
+    INPUT : "input",
+    ENTITY : "entity",
+    RESPONSE : "response"
+}
+
 export const Commands =
 {
     ACTIONS : "!actions",
@@ -39,9 +46,11 @@ export const Commands =
     DELETEAPP : "!deleteapp",
     DUMP : "!dump",
     ENTITIES : "!entities",
-    DONE : "!done",
+    FORGETTRAIN : "!forgettrain",
+    DONETRAIN : "!donetrain",
     HELP : "!help",
     LOADAPP: "!loadapp",
+    SAVETRAIN: "!savetrain",
     START: "!start",
     TEACH : "!teach",
     TRAINDIALOGS : "!traindialogs",
@@ -62,5 +71,6 @@ export const UserStates =
     DEBUG: "DEBUG",
     MEMORY: "MEMORY",
     ENTITYLOOKUP: "ENTITYLOOKUP",
-    LASTINPUT: "LASTINPUT"
+    LASTINPUT: "LASTINPUT",
+    TRAINSTEPS: "TRAINSTEPS"
 }

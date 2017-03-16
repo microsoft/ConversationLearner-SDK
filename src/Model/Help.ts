@@ -113,7 +113,7 @@ export class BlisHelp {
                     name,
                     "!!WARNING!! Delete all Applications associated with this BLIS account",
                     "", null);
-            case Commands.DONE:
+            case Commands.DONETRAIN:
                 return new Command(
                     name,
                     "End a teaching session",

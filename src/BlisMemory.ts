@@ -1,6 +1,12 @@
 import { BlisUserState} from './BlisUserState';
-import { UserStates } from './Model/Consts';
+import { UserStates, SaveStep } from './Model/Consts';
 import { BlisDebug} from './BlisDebug';
+
+export class TrainStep {
+    public input : string;
+    public entity: string;
+    public response : string;
+}
 
 export class BlisMemory {
 
@@ -132,6 +138,47 @@ export class BlisMemory {
     public GetLastInput() : string {
         return this.userState[UserStates.LASTINPUT];
     }
+
+    //--------------------------------------------------------
+    public SaveTrainStep(saveStep: string, value: string) : void {
+        if (!this.userState[UserStates.TRAINSTEPS]) {
+            this.userState[UserStates.TRAINSTEPS] = [];
+        }
+        let curStep = null;
+        if (saveStep == SaveStep.INPUT)
+        {
+            curStep = new TrainStep();
+            curStep[SaveStep.INPUT] = value;
+            this.userState[UserStates.TRAINSTEPS].push(curStep);
+        }
+        else 
+        {
+            let lastIndex = this.userState[UserStates.TRAINSTEPS].length - 1;
+            curStep = this.userState[UserStates.TRAINSTEPS][lastIndex];
+            if (saveStep == SaveStep.ENTITY)
+            {
+                curStep[SaveStep.ENTITY] = value;
+            }
+            else if (saveStep == SaveStep.RESPONSE)
+            {
+                curStep[SaveStep.RESPONSE] = value;
+            }
+            else
+            {
+                console.log(`Unknown SaveStep value ${saveStep}`);
+            }
+        }
+        
+    }
+
+    public GetTrainSteps() : TrainStep[] {
+        return this.userState[UserStates.TRAINSTEPS];
+    }
+
+    public ClearTrainSteps() : void {
+        this.userState[UserStates.TRAINSTEPS] = [];
+    }
+    //--------------------------------------------------------
 
     public DumpEntities() : string
     {

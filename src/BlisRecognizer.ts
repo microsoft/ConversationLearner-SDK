@@ -14,7 +14,7 @@ import { LuisEntity } from './Model/LuisEntity';
 import { Action } from './Model/Action';
 import { LabelEntity } from './Model/LabelEntity';
 import { LabelAction } from './Model/LabelAction';
-import { TakeTurnModes, EntityTypes, UserStates, TeachStep, Commands, ActionTypes } from './Model/Consts';
+import { TakeTurnModes, EntityTypes, UserStates, TeachStep, Commands, ActionTypes, SaveStep } from './Model/Consts';
 import { BlisHelp, Help } from './Model/Help';
 import { TakeTurnResponse } from './Model/TakeTurnResponse'
 
@@ -631,6 +631,8 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         userState[UserStates.TEACH] = false;
         userState[UserStates.MEMORY] = {};
         userState[UserStates.ENTITYLOOKUP] = {};
+        userState[UserStates.LASTINPUT] = null;
+        userState[UserStates.TRAINSTEPS] = {};
 
         let fail = null;
 
@@ -920,13 +922,46 @@ let msg =  new builder.Message();
         command = command.toLowerCase();
 
         if (userState[UserStates.TEACH] && (command != Commands.DUMP) && (command != "!debug")  && (command != Commands.TEACH)) {
-            if (command == Commands.DONE) {
+            if (command == Commands.SAVETRAIN) {
                 this.EndSession(userState, (text) => {
                     this.SendResult(address, userState, cb, "_Completed teach dialog..._",null);
                 });
             }
+            else if (command == Commands.FORGETTRAIN) {
+                // TODO: flag to not save training
+                this.EndSession(userState, (text) => {
+                    this.SendResult(address, userState, cb, "_Completed teach dialog..._",null);
+                });
+            }
+            else if (command == Commands.DONETRAIN) {
+
+                let memory = new BlisMemory(userState);
+                let dialog = memory.GetTrainSteps();
+                let msg = "";
+
+                for (let trainstep of dialog)
+                {
+                    msg += trainstep.input;
+
+                    if (trainstep.entity != null)
+                    {
+                        msg += ` _${trainstep.entity}_\n\n`;
+                    }
+                    else
+                    {
+                        msg += "\n\n";
+                    }
+                    msg += `     ${trainstep.response}\n\n`
+                }
+                msg += dialog.toString();
+
+                let card = this.MakeHero("", "", "Does this look good?", 
+                    { "Save" : Commands.SAVETRAIN , "Abandon" : Commands.FORGETTRAIN});
+
+                this.SendResult(address, userState, cb, msg, <any>card);
+            }
             else {//TODO
-                this.SendResult(address, userState, cb, `_In teaching mode. The only valid command is_ ${Commands.DONE}`,null);
+                this.SendResult(address, userState, cb, `_In teaching mode. The only valid command is_ ${Commands.DONETRAIN}`,null);
             }
         }
         else {
@@ -982,7 +1017,7 @@ let msg =  new builder.Message();
                     this.SendResult(address, userState, cb, text, null);
                 });
             }
-            else if (command == Commands.DONE)
+            else if (command == Commands.DONETRAIN)
             {
                 this.SendResult(address, userState, cb, `_I wasn't in teach mode. Type _${Commands.TEACH}_ to begin teaching_`, null);
             }
@@ -1031,6 +1066,8 @@ let msg =  new builder.Message();
             }
             else if (command == Commands.TEACH)
             {
+                let memory = new BlisMemory(userState);
+                memory.ClearTrainSteps();
                 this.NewSession(userState, true, (text) => {
                     this.SendResult(address, userState, cb, text, null);
                 });
@@ -1058,8 +1095,7 @@ let msg =  new builder.Message();
     public recognize(context: builder.IRecognizeContext, cb: (error: Error, result: IBlisResult) => void): void 
     {    
         try
-        {
-            
+        {  
              if (context && context.message && context.message.text) {
                 let address = context.message.address;
                 this.LoadUser(address, (error, userState) => {
@@ -1090,6 +1126,8 @@ let msg =  new builder.Message();
                                 if (response.mode == TakeTurnModes.TEACH)
                                 {
                                       if (response.teachStep == TeachStep.LABELENTITY) {
+                                        memory.SaveTrainStep(SaveStep.INPUT, userInput);
+
                                         msg = `**Teach Step: Detected Entities**\n\n`;
                                         msg += `-----------------------------\n\n`;
                                         if (response.teachLabelEntities.length == 0)
@@ -1112,7 +1150,8 @@ let msg =  new builder.Message();
                                     }
                                     else if (response.teachStep == TeachStep.LABELACTION)
                                     {
-                                        let memory = new BlisMemory(userState);
+                                        memory.SaveTrainStep(SaveStep.ENTITY,memory.DumpEntities());
+
                                         msg = `**Teach Step: Select Action**\n\n`;
                                         msg += `${memory.DumpEntities()}\n\n`;
                                         msg += `-----------------------------\n\n`;
@@ -1157,8 +1196,9 @@ let msg =  new builder.Message();
                                     let outText = this.blisCallback(response.actions[0].content, memory);
                                     if (inTeach)
                                     {
+                                        memory.SaveTrainStep(SaveStep.RESPONSE, outText);
                                         card = this.MakeHero('Trained Response:', outText, "Type next user input for this Dialog or" , 
-                                        { "Done Training" : Commands.DONE , "New Dialog" : Commands.TEACH});
+                                        { "Done Training" : Commands.DONETRAIN , "New Dialog" : Commands.TEACH});
                                     }
                                     else
                                     {
