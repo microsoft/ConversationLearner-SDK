@@ -195,6 +195,9 @@ export class BlisMemory {
             let entityValue = this.userState[UserStates.MEMORY][entityId];
             memory += `[$${entityName} : ${entityValue}]`;
         }
+        if (memory == "") {
+            memory = 'No set entities';
+        }
         return memory;
     }
 

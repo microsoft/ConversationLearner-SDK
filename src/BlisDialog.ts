@@ -47,13 +47,18 @@ export class BlisDialog extends builder.Dialog {
     private invokeAnswer(session: builder.Session, recognizeResult: builder.IIntentRecognizerResult): void {
         // TODO: Consider adding threshold
         var blisResult = recognizeResult as IBlisResult;
-        if (blisResult.answer)
+
+        for (let response of blisResult.responses)
         {
-            session.send(blisResult.answer);
-        }
-        if (blisResult.card) {
-            var msg = new builder.Message(session).addAttachment(blisResult.card);
-            session.send(msg);
+            if (typeof response == 'string')
+            {
+                session.send(response);
+            }
+            else
+            {
+                var msg = new builder.Message(session).addAttachment(response);
+                session.send(msg);
+            }
         }
     }
 

@@ -19,8 +19,7 @@ import { BlisHelp, Help } from './Model/Help';
 import { TakeTurnResponse } from './Model/TakeTurnResponse'
 
 export interface IBlisResult extends builder.IIntentRecognizerResult {
-    answer: string;
-    card: builder.IAttachment;
+    responses: (string | builder.IIsAttachment)[];
 }
 
 export interface IBlisOptions extends builder.IIntentRecognizerSetOptions {
@@ -95,7 +94,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         )
     }
 
-    private async AddAction(userState : BlisUserState, content : string, actionType : string, cb : (text, card) => void) : Promise<void>
+    private async AddAction(userState : BlisUserState, content : string, actionType : string, cb : (responses : (string | builder.IIsAttachment)[]) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Delete Action`);
 
@@ -104,13 +103,13 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         if (!content)
         {   //TODO
             let msg = `You must provide the ID of the action to delete.\n\n     ${Commands.DELETEACTION} {app ID}`;
-            cb(msg, null);
+            cb([msg]);
             return;
         }
         if (!actionType)
         {   //TODO
             let msg = `You must provide the ID of the action to delete.\n\n     ${Commands.DELETEACTION} {app ID}`;
-            cb(msg, null);
+            cb([msg]);
             return;
         }
 
@@ -150,7 +149,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                     }
                     else
                     {
-                        cb(`Entity $${posName} not found.`, null);
+                        cb([`Entity $${posName} not found.`]);
                         return;
                     }
                 }
@@ -165,7 +164,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                 }  
                 else
                 {
-                    cb(`Entity $${negName} not found.`, null);
+                    cb([`Entity $${negName} not found.`]);
                     return;
                 }
             }
@@ -180,7 +179,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                     }  
                     else
                     {
-                        cb(`Entity $${posName} not found.`, null);
+                        cb([`Entity $${posName} not found.`]);
                         return;
                     }
                 }
@@ -199,40 +198,40 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                 {
                     substr += `--[${negNames.toLocaleString()}]`;
                 }
-                let card = this.MakeHero("Created Action", /* actionId + "\n\n" +*/ substr, actionText, null);
-                cb(null, card)
+                let card = this.MakeHero("Created Action", /* actionId + "\n\n" +*/ substr + "\n\n", actionText, null);
+                cb([card])
     
             })
-        .catch((text) => cb(text, null));
+        .catch((text) => cb([text]));
     }
 
-    private async AddEntity(userState : BlisUserState, entityName : string, entityType : string, prebuiltName : string, cb : (text, card) => void) : Promise<void>
+    private async AddEntity(userState : BlisUserState, entityName : string, entityType : string, prebuiltName : string, cb : (responses : (string | builder.IIsAttachment)[]) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Add Entity ${entityName}`);
 
         if (!entityName)
         {
             let msg = `You must provide an entity name for the entity to create.\n\n     ${Commands.ADDENTITY} {entitiyName} {LUIS | LOCAL} {prebuiltName?}`;
-            cb(msg, null);
+            cb([msg]);
             return;
         }
         if (!entityType)
         {
             let msg = `You must provide an entity type for the entity to create.\n\n     ${Commands.ADDENTITY} {entitiyName} {LUIS | LOCAL} {prebuiltName?}`;
-            cb(msg, null);
+            cb([msg]);
             return;
         }
         entityType = entityType.toUpperCase();
         if (entityType != EntityTypes.LOCAL && entityType != EntityTypes.LUIS)
         {
             let msg = `Entity type must be 'LOCAL' or 'LUIS'\n\n     ${Commands.ADDENTITY} {entitiyName} {LUIS | LOCAL} {prebuiltName?}`;
-            cb(msg, null);
+            cb([msg]);
             return;
         }
         if (entityType == EntityTypes.LOCAL && prebuiltName != null)
         {
             let msg = `LOCAL entities shouldn't include a prebuilt name\n\n     ${Commands.ADDENTITY} {entitiyName} {LUIS | LOCAL} {prebuiltName?}`;
-            cb(msg, null);
+            cb([msg]);
             return;
         }
 
@@ -242,12 +241,12 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             let memory = new BlisMemory(userState);
             memory.AddEntityLookup(entityName, entityId);
             let card = this.MakeHero("Created Entity", entityId, entityName, null);
-            cb(null, card); 
+            cb([card]); 
         })
-        .catch((text) => cb(text, null));
+        .catch((text) => cb([text]));
     } 
 
-    private async CreateApp(userState : BlisUserState,  appName : string, luisKey, cb : (text, card) => void) : Promise<void>
+    private async CreateApp(userState : BlisUserState,  appName : string, luisKey, cb : (responses: (string | builder.IIsAttachment)[]) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Create Application`);
 
@@ -265,13 +264,13 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         if (!appName)
         {
             let msg = `You must provide a name for your application.\n\n     ${Commands.CREATEAPP} {app Name} {luis key}`;
-            cb(msg, null);
+            cb([msg]);
             return;
         }
         if (!luisKey)
         {
             let msg = `You must provide a luisKey for your application.\n\n     ${Commands.CREATEAPP} {app Name} {luis key}`;
-            cb(msg, null);
+            cb([msg]);
             return;
         }
 
@@ -279,9 +278,9 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             .then((appId) => 
             {
                 let card = this.MakeHero("Created App", appId, null, {"Help" : Help.NEWAPP});
-                cb(null, card);
+                cb([card]);
             })
-            .catch((text) => cb(text, null));
+            .catch((text) => cb([text]));
     } 
 
     private DebugHelp() : string
@@ -709,7 +708,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         .catch(error => cb(error));
     }
 
-    private async NewSession(userState : BlisUserState, teach : boolean, cb : (text, card) => void) : Promise<void>
+    private async NewSession(userState : BlisUserState, teach : boolean, cb : (results : (string | builder.IIsAttachment)[]) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to create new session, Teach = ${teach}`);
 
@@ -725,13 +724,13 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             if (teach)
             {
                 let card = this.MakeHero("Teach mode started", null, "Provide your first input", null);
-                cb(null, card);
+                cb([card]);
             }
             else {
-                cb(`_Bot started..._`, null);
+                cb([`_Bot started..._`]);
             }
         })
-        .catch((text) => cb(text, null));
+        .catch((text) => cb([text]));
     }
 
     private async TrainFromFile(userState : BlisUserState, url : string, cb : (text) => void) : Promise<void>
@@ -921,13 +920,13 @@ let msg =  new builder.Message();
         });
     }
 
-    private SendResult(address : builder.IAddress, userState : BlisUserState, cb: (error: Error, result: IBlisResult) => void, text : string, card : builder.IAttachment) 
+    private SendResult(address : builder.IAddress, userState : BlisUserState, cb: (error: Error, result: IBlisResult) => void, responses : (string|builder.IIsAttachment)[]) 
     {
         // Save user state
         BlisUserState.Save(this.bot, address, userState);
 
         // Assume BLIS always wins for now 
-        var result: IBlisResult = { score: 1.0, answer: text, intent: null, card: card };
+        var result: IBlisResult = { score: 1.0, responses: responses, intent: null };
 
         // Send callback
         cb(null, result);
@@ -936,7 +935,7 @@ let msg =  new builder.Message();
     private HandleHelp(input : string, address : builder.IAddress, userState : BlisUserState, cb: (error: Error, result: IBlisResult) => void) : void 
     {
         let help = BlisHelp.Get(input);
-        this.SendResult(address, userState, cb, help, null);
+        this.SendResult(address, userState, cb, [help]);
     }
 
     private HandleCommand(input : string, address : builder.IAddress, userState : BlisUserState, cb: (error: Error, result: IBlisResult) => void) : void 
@@ -945,106 +944,106 @@ let msg =  new builder.Message();
         command = command.toLowerCase();
 
         if (userState[UserStates.TEACH] && (command != Commands.DUMP) && (command != "!debug")  && (command != Commands.TEACH)) {
-           this.SendResult(address, userState, cb, `_Command not valid while in Teach mode_`,null);
+           this.SendResult(address, userState, cb, [`_Command not valid while in Teach mode_`]);
         }
         else {
             if (command == Commands.ACTIONS)
             {
                 this.GetActions(userState, arg, (text) => {
-                    this.SendResult(address, userState, cb, text, null);
+                    this.SendResult(address, userState, cb, [text]);
                 });
             }
             else if (command == Commands.ADDAPIACTION)
             {
                 let firstSpace = input.indexOf(' ');
                 let start = input.slice(firstSpace+1);
-                this.AddAction(userState, start, ActionTypes.API, (text, card) => {
-                    this.SendResult(address, userState, cb, text, card);
+                this.AddAction(userState, start, ActionTypes.API, (responses) => {
+                    this.SendResult(address, userState, cb, responses);
                 });
             }
             else if (command == Commands.ADDTEXTACTION)
             {
                 let firstSpace = input.indexOf(' ');
                 let start = input.slice(firstSpace+1);
-                this.AddAction(userState, start, ActionTypes.TEXT, (text, card) => {
-                    this.SendResult(address, userState, cb, text, card);
+                this.AddAction(userState, start, ActionTypes.TEXT, (responses) => {
+                    this.SendResult(address, userState, cb, responses);
                 });
             }
             else if (command == Commands.ADDENTITY)
             {
-                this.AddEntity(userState, arg, arg2, arg3, (text, card) => {
-                    this.SendResult(address, userState, cb, text, card);
+                this.AddEntity(userState, arg, arg2, arg3, (responses) => {
+                    this.SendResult(address, userState, cb, responses);
                 });
             }
             else if (command == Commands.APPS)
             {
                 this.GetApps((text) => {
-                    this.SendResult(address, userState, cb, text, null);
+                    this.SendResult(address, userState, cb, [text]);
                 });
             }
             else if (command == Commands.CREATEAPP)
             {
-                this.CreateApp(userState, arg, arg2, (text, card) => {
-                    this.SendResult(address, userState, cb, text, card);
+                this.CreateApp(userState, arg, arg2, (responses) => {
+                    this.SendResult(address, userState, cb, responses);
                 });
             }
             else if (command == Commands.DELETEALLAPPS)
             {
                 this.DeleteAllApps(userState, (text) => {
-                    this.SendResult(address, userState, cb, text, null);
+                    this.SendResult(address, userState, cb, [text]);
                 });
             }
             else if (command == Commands.DELETEACTION)
             {
                 this.DeleteAction(userState, arg, (text) => {
-                    this.SendResult(address, userState, cb, text, null);
+                    this.SendResult(address, userState, cb, [text]);
                 });
             }
-            else if (command == IntCommands.DONETRAIN)
+            else if (command == IntCommands.DONETEACH)
             {
-                this.SendResult(address, userState, cb, `_I wasn't in teach mode. Type _${Commands.TEACH}_ to begin teaching_`, null);
+                this.SendResult(address, userState, cb, [`_I wasn't in teach mode. Type _${Commands.TEACH}_ to begin teaching_`]);
             }
             else if (command == Commands.DELETEAPP)
             {
                 this.DeleteApp(userState, arg, (text) => {
-                    this.SendResult(address, userState, cb, text, null);
+                    this.SendResult(address, userState, cb, [text]);
                 });
             }
             else if (command == Commands.DEBUG)
             {
                 userState[UserStates.DEBUG] = !userState[UserStates.DEBUG];
                 BlisDebug.enabled = userState[UserStates.DEBUG];
-                this.SendResult(address, userState, cb, "Debug " + (BlisDebug.enabled ? "Enabled" : "Disabled"), null);
+                this.SendResult(address, userState, cb, ["Debug " + (BlisDebug.enabled ? "Enabled" : "Disabled")]);
             }
             else if (command == Commands.DEBUGHELP)
             {
-                this.SendResult(address, userState, cb, this.DebugHelp(), null);
+                this.SendResult(address, userState, cb, [this.DebugHelp()]);
             }
             else if (command == Commands.DUMP)
             {
                 let memory = new BlisMemory(userState);
-                this.SendResult(address, userState, cb, memory.Dump(), null);
+                this.SendResult(address, userState, cb, [memory.Dump()]);
             }
             else if (command == Commands.ENTITIES)
             {
                 this.GetEntities(userState, arg, (text) => {
-                    this.SendResult(address, userState, cb, text, null);
+                    this.SendResult(address, userState, cb, [text]);
                 });
             }
             else if (command == Commands.HELP)
             {
-                this.SendResult(address, userState, cb, this.Help(arg), null);
+                this.SendResult(address, userState, cb, [this.Help(arg)]);
             }
             else if (command == Commands.LOADAPP)
             {
                 this.LoadApp(userState, arg, (text) => {
-                    this.SendResult(address, userState, cb, text, null);
+                    this.SendResult(address, userState, cb, [text]);
                 });
             }
             else if (command == Commands.START)
             {
-                this.NewSession(userState, false, (text, card) => {
-                    this.SendResult(address, userState, cb, text, card);
+                this.NewSession(userState, false, (responses) => {
+                    this.SendResult(address, userState, cb, responses);
                 });
             }
             else if (command == Commands.TEACH)
@@ -1054,32 +1053,32 @@ let msg =  new builder.Message();
                 if (memory.HasEntities()) 
                 {
                     memory.ClearTrainSteps();
-                    this.NewSession(userState, true, (text, card) => {
-                        this.SendResult(address, userState, cb, text, card);
+                    this.NewSession(userState, true, (results) => {
+                        this.SendResult(address, userState, cb, results);
                     });
                 }
                 else 
                 {
                     let card = this.MakeHero("", "", "First define some Entities", {"Help" : Help.NEWAPP});
-                    this.SendResult(address, userState, cb, null, <any>card);
+                    this.SendResult(address, userState, cb, [card]);
                 }
             }
             else if (command == Commands.TRAINFROMURL)
             {
                 this.TrainFromFile(userState, arg, (text) => {
-                    this.SendResult(address, userState, cb, text, null);
+                    this.SendResult(address, userState, cb, [text]);
                 });
             }
             else if (command == Commands.TRAINDIALOGS)
             {
                 this.GetTrainDialogs(userState, address, (text) => {
-                    this.SendResult(address, userState, cb, text, null);
+                    this.SendResult(address, userState, cb, [text]);
                 });
             }
             else 
             {
                 let text = "_Not a valid command._\n\n\n\n" + this.Help(null);
-                this.SendResult(address, userState, cb, text, null);
+                this.SendResult(address, userState, cb, [text]);
             }
         }
     }
@@ -1090,20 +1089,20 @@ let msg =  new builder.Message();
         command = command.toLowerCase();
 
         if (userState[UserStates.TEACH]) {
-            if (command == IntCommands.SAVETRAIN) {
+            if (command == IntCommands.SAVETEACH) {
                 let card = this.MakeHero("Dialog Trained", null, null, {"Start Bot" : Commands.START, "Teach Bot" : Commands.TEACH, "Add Entities & Actions" : Help.NEWAPP});
                 this.EndSession(userState, (text) => {
-                    this.SendResult(address, userState, cb, null, <any>card);
+                    this.SendResult(address, userState, cb, [card]);
                 });
             }
-            else if (command == IntCommands.FORGETTRAIN) {
+            else if (command == IntCommands.FORGETTEACH) {
                 // TODO: flag to not save training
                 let card = this.MakeHero("Dialog Abandoned", null, null, {"Start Bot" : Commands.START, "Teach Bot" : Commands.TEACH, "Add Entities & Actions" : Help.NEWAPP});
                 this.EndSession(userState, (text) => {
-                    this.SendResult(address, userState, cb, null, <any>card);
+                    this.SendResult(address, userState, cb, [card]);
                 });
             }
-            else if (command == IntCommands.DONETRAIN) {
+            else if (command == IntCommands.DONETEACH) {
 
                 let memory = new BlisMemory(userState);
                 let dialog = memory.GetTrainSteps();
@@ -1125,19 +1124,19 @@ let msg =  new builder.Message();
                     msg += `     ${trainstep.response}\n\n`
                 }
                 let card = this.MakeHero("", "", "Does this look good?", 
-                    { "Save" : IntCommands.SAVETRAIN , "Abandon" : IntCommands.FORGETTRAIN});
+                    { "Save" : IntCommands.SAVETEACH , "Abandon" : IntCommands.FORGETTEACH});
 
-                this.SendResult(address, userState, cb, msg, <any>card);
+                this.SendResult(address, userState, cb, [msg, card]);
             }
             else 
             {
-                this.SendResult(address, userState, cb, `_In teaching mode. The only valid command is_ ${IntCommands.DONETRAIN}`,null);
+                this.SendResult(address, userState, cb, [`_In teaching mode. The only valid command is_ ${IntCommands.DONETEACH}`]);
             }
         }
         else 
         {
                 let text = "_Not a valid command._\n\n\n\n" + this.Help(null);
-                this.SendResult(address, userState, cb, text, null);
+                this.SendResult(address, userState, cb, [text]);
         }
     }
     public recognize(context: builder.IRecognizeContext, cb: (error: Error, result: IBlisResult) => void): void 
@@ -1172,55 +1171,59 @@ let msg =  new builder.Message();
 
                         this.blisClient.TakeTurn(userState, userInput, 
                             (response : TakeTurnResponse) => {
-                                let msg = null;
-                                let card = null;
+                                let responses: (string | builder.IIsAttachment)[] = [];
+
                                 if (response.mode == TakeTurnModes.TEACH)
                                 {
                                       if (response.teachStep == TeachStep.LABELENTITY) {
-                                        msg = "";
+
                                         if (response.teachError) {
-                                            msg += `**ERROR**\n\n`;
-                                            msg += `Input did not match original text. Let's try again.\n\n`;
-                                            msg += `-----------------------------\n\n`;
+                                            let title = `**ERROR**\n\n`;
+                                            let body = `Input did not match original text. Let's try again.\n\n`;
+                                            responses.push(this.MakeHero(title, body, null, null));
                                         }
                                         else
                                         {
                                             memory.SaveTrainStep(SaveStep.INPUT, userInput);
                                         }
-                                        msg += `**Teach Step: Detected Entities**\n\n`;
-                                        msg += `-----------------------------\n\n`;
+                                        let cardtitle = "Teach Step: Detected Entities";
                                         if (response.teachLabelEntities.length == 0)
                                         {
-                                            msg += `No entities found.\n\n`;
+                                            let cardsub = `No new entities found.\n\n`;
                                             let cardtext = "Click None if correct or indicate entities in input string"
-                                            card = this.MakeHero(null, null, cardtext, { "None" : "1", "Help" : Help.PICKENTITY});
+                                            responses.push(this.MakeHero(cardtitle, cardsub, cardtext, { "None" : "1", "Help" : Help.PICKENTITY}));
                                         }
                                         else 
                                         {
+                                            let entities = "";
                                             for (let i in response.teachLabelEntities)
                                             {
                                                 let labelEntity = response.teachLabelEntities[i];
                                                 let entityType = memory.EntityName(labelEntity.entityId);
-                                                msg += `[$${entityType}: ${labelEntity.entityValue}]    _Score: ${labelEntity.score.toFixed(3)}_\n\n`;
+                                                entities += `[$${entityType}: ${labelEntity.entityValue}]    _Score: ${labelEntity.score.toFixed(3)}_\n\n`;
                                             }
-                                            let cardtext = "Click Correct if entities are valid or indicate entities in input string"
-                                            card = this.MakeHero(null, null, cardtext, { "Correct" : "1", "Help" : Help.PICKENTITY});
+                                            responses.push(entities);
+
+                                            let body = "Click Correct if entities are valid or indicate entities in input string"
+                                            responses.push(this.MakeHero(cardtitle, null, body, { "Correct" : "1", "Help" : Help.PICKENTITY}));
                                         }
                                     }
                                     else if (response.teachStep == TeachStep.LABELACTION)
                                     {
                                         memory.SaveTrainStep(SaveStep.ENTITY,memory.DumpEntities());
 
-                                        let cardText = "";
-                                        msg = `**Teach Step: Select Action**\n\n`;
-                                        msg += `${memory.DumpEntities()}\n\n`;
+                                        let title = `Teach Step: Select Action`;
+                                        let body = `${memory.DumpEntities()}\n\n`;
+                                        responses.push(this.MakeHero(title, null, body, null));
+
                                         if (response.teachLabelActions.length == 0)
                                         {
-                                            msg += 'No actions matched.\n\n';
-                                            cardText = 'Enter a new Action\n\n';
+                                            responses.push('No actions matched.\n\n');
+                                            body = 'Enter a new Action\n\n';
                                         }
                                         else 
                                         {
+                                            let msg = "";
                                             for (var i in response.teachLabelActions)
                                             {
                                                 var labelAction = response.teachLabelActions[i];
@@ -1234,13 +1237,14 @@ let msg =  new builder.Message();
   
                                                 }
                                             }
-                                            cardText = 'Select Action by number or enter a new one';
+                                            responses.push(msg);
+                                            responses.push(this.MakeHero(" ", null, 'Select Action by number or enter a new one', { "Help" : Help.ADDACTION}));
                                         }
-                                        card = this.MakeHero(null, null, cardText, { "Help" : Help.ADDACTION});
+                                        
                                     }
                                     else
                                     {
-                                        msg = `Unrecognized TeachStep ${response.teachStep}`;
+                                        responses.push(`Unrecognized TeachStep ${response.teachStep}`);
                                     }
                                     /*
                                     // Markdown requires double carraige returns
@@ -1256,24 +1260,24 @@ let msg =  new builder.Message();
                                     if (inTeach)
                                     {
                                         memory.SaveTrainStep(SaveStep.RESPONSE, outText);
-                                        card = this.MakeHero('Trained Response:', outText, "Type next user input for this Dialog or" , 
-                                        { "Dialog Complete" : IntCommands.DONETRAIN});
+                                        responses.push(this.MakeHero('Trained Response:', outText + "\n\n", "Type next user input for this Dialog or" , 
+                                        { "Dialog Complete" : IntCommands.DONETEACH}));
                                     }
                                     else
                                     {
-                                        msg = outText;
+                                        responses.push(outText);
                                         memory.SetLastInput(userInput);
                                     }
                                 } 
                                 else if (response.mode == TakeTurnModes.ERROR)
                                 {
-                                    msg = response.error;
+                                    responses.push(response.error);
                                 }
                                 else 
                                 {
-                                    msg = `Don't know mode: ${response.mode}`;
+                                    responses.push(`Don't know mode: ${response.mode}`);
                                 }
-                                this.SendResult(address, userState, cb, msg, card);
+                                this.SendResult(address, userState, cb, responses);
                             });
                     } 
                 });                

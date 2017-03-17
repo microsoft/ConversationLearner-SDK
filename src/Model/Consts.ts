@@ -57,9 +57,9 @@ export const Commands =
 // Internal commands. (Not for user)
 export const IntCommands =
 {
-    FORGETTRAIN : "~forgettrain",
-    DONETRAIN : "~donetrain",
-    SAVETRAIN: "~savetrain",
+    FORGETTEACH : "~forgetteach",
+    DONETEACH : "~doneteach",
+    SAVETEACH: "~saveteach",
 }
 
 export const Help =
