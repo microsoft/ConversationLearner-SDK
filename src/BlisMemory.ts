@@ -196,7 +196,7 @@ export class BlisMemory {
             memory += `[$${entityName} : ${entityValue}]`;
         }
         if (memory == "") {
-            memory = 'No set entities';
+            memory = '[ - none - ]';
         }
         return memory;
     }

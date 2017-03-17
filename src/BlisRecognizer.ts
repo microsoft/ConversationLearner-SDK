@@ -1115,7 +1115,7 @@ let msg =  new builder.Message();
 
                     if (trainstep.entity)
                     {
-                        msg += ` _${trainstep.entity}_\n\n`;
+                        msg += `    _${trainstep.entity}_\n\n`;
                     }
                     else
                     {
