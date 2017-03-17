@@ -46,15 +46,20 @@ export const Commands =
     DELETEAPP : "!deleteapp",
     DUMP : "!dump",
     ENTITIES : "!entities",
-    FORGETTRAIN : "!forgettrain",
-    DONETRAIN : "!donetrain",
     HELP : "!help",
     LOADAPP: "!loadapp",
-    SAVETRAIN: "!savetrain",
     START: "!start",
     TEACH : "!teach",
     TRAINDIALOGS : "!traindialogs",
     TRAINFROMURL : "!trainfromurl"
+}
+
+// Internal commands. (Not for user)
+export const IntCommands =
+{
+    FORGETTRAIN : "~forgettrain",
+    DONETRAIN : "~donetrain",
+    SAVETRAIN: "~savetrain",
 }
 
 export const Help =

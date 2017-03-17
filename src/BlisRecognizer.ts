@@ -14,7 +14,7 @@ import { LuisEntity } from './Model/LuisEntity';
 import { Action } from './Model/Action';
 import { LabelEntity } from './Model/LabelEntity';
 import { LabelAction } from './Model/LabelAction';
-import { TakeTurnModes, EntityTypes, UserStates, TeachStep, Commands, ActionTypes, SaveStep } from './Model/Consts';
+import { TakeTurnModes, EntityTypes, UserStates, TeachStep, Commands, IntCommands, ActionTypes, SaveStep } from './Model/Consts';
 import { BlisHelp, Help } from './Model/Help';
 import { TakeTurnResponse } from './Model/TakeTurnResponse'
 
@@ -687,7 +687,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         .catch(error => cb(error));
     }
 
-    private async NewSession(userState : BlisUserState, teach : boolean, cb : (text) => void) : Promise<void>
+    private async NewSession(userState : BlisUserState, teach : boolean, cb : (text, card) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to create new session, Teach = ${teach}`);
 
@@ -702,13 +702,14 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             BlisDebug.Log(`Started session ${sessionId}`)   
             if (teach)
             {
-                cb(`_Teach mode started. Provide your first input_`);
+                let card = this.MakeHero("Teach mode started", null, "Provide your first input", null);
+                cb(null, card);
             }
             else {
-                cb(`_Bot started..._`);
+                cb(`_Bot started..._`, null);
             }
         })
-        .catch((text) => cb(text));
+        .catch((text) => cb(text, null));
     }
 
     private async TrainFromFile(userState : BlisUserState, url : string, cb : (text) => void) : Promise<void>
@@ -922,47 +923,7 @@ let msg =  new builder.Message();
         command = command.toLowerCase();
 
         if (userState[UserStates.TEACH] && (command != Commands.DUMP) && (command != "!debug")  && (command != Commands.TEACH)) {
-            if (command == Commands.SAVETRAIN) {
-                this.EndSession(userState, (text) => {
-                    this.SendResult(address, userState, cb, "_Completed teach dialog..._",null);
-                });
-            }
-            else if (command == Commands.FORGETTRAIN) {
-                // TODO: flag to not save training
-                this.EndSession(userState, (text) => {
-                    this.SendResult(address, userState, cb, "_Completed teach dialog..._",null);
-                });
-            }
-            else if (command == Commands.DONETRAIN) {
-
-                let memory = new BlisMemory(userState);
-                let dialog = memory.GetTrainSteps();
-                let msg = "";
-
-                for (let trainstep of dialog)
-                {
-                    msg += trainstep.input;
-
-                    if (trainstep.entity != null)
-                    {
-                        msg += ` _${trainstep.entity}_\n\n`;
-                    }
-                    else
-                    {
-                        msg += "\n\n";
-                    }
-                    msg += `     ${trainstep.response}\n\n`
-                }
-                msg += dialog.toString();
-
-                let card = this.MakeHero("", "", "Does this look good?", 
-                    { "Save" : Commands.SAVETRAIN , "Abandon" : Commands.FORGETTRAIN});
-
-                this.SendResult(address, userState, cb, msg, <any>card);
-            }
-            else {//TODO
-                this.SendResult(address, userState, cb, `_In teaching mode. The only valid command is_ ${Commands.DONETRAIN}`,null);
-            }
+           this.SendResult(address, userState, cb, `_Command not valid while in Teach mode_`,null);
         }
         else {
             if (command == Commands.ACTIONS)
@@ -1017,7 +978,7 @@ let msg =  new builder.Message();
                     this.SendResult(address, userState, cb, text, null);
                 });
             }
-            else if (command == Commands.DONETRAIN)
+            else if (command == IntCommands.DONETRAIN)
             {
                 this.SendResult(address, userState, cb, `_I wasn't in teach mode. Type _${Commands.TEACH}_ to begin teaching_`, null);
             }
@@ -1060,17 +1021,26 @@ let msg =  new builder.Message();
             }
             else if (command == Commands.START)
             {
-                this.NewSession(userState, false, (text) => {
-                    this.SendResult(address, userState, cb, text, null);
+                this.NewSession(userState, false, (text, card) => {
+                    this.SendResult(address, userState, cb, text, card);
                 });
             }
             else if (command == Commands.TEACH)
             {
                 let memory = new BlisMemory(userState);
-                memory.ClearTrainSteps();
-                this.NewSession(userState, true, (text) => {
-                    this.SendResult(address, userState, cb, text, null);
-                });
+
+                if (memory.HasEntities()) 
+                {
+                    memory.ClearTrainSteps();
+                    this.NewSession(userState, true, (text, card) => {
+                        this.SendResult(address, userState, cb, text, card);
+                    });
+                }
+                else 
+                {
+                    let card = this.MakeHero("", "", "First define some Entities", {"Help" : Help.NEWAPP});
+                    this.SendResult(address, userState, cb, null, <any>card);
+                }
             }
             else if (command == Commands.TRAINFROMURL)
             {
@@ -1092,6 +1062,62 @@ let msg =  new builder.Message();
         }
     }
 
+    private HandleIntCommand(input : string, address : builder.IAddress, userState : BlisUserState, cb: (error: Error, result: IBlisResult) => void) : void 
+    {
+        let [command, arg, arg2, arg3] = input.split(' ');
+        command = command.toLowerCase();
+
+        if (userState[UserStates.TEACH]) {
+            if (command == IntCommands.SAVETRAIN) {
+                let card = this.MakeHero("Dialog Trained", null, null, {"Start Bot" : Commands.START, "Teach Bot" : Commands.TEACH, "Add Entities & Actions" : Help.NEWAPP});
+                this.EndSession(userState, (text) => {
+                    this.SendResult(address, userState, cb, null, <any>card);
+                });
+            }
+            else if (command == IntCommands.FORGETTRAIN) {
+                // TODO: flag to not save training
+                let card = this.MakeHero("Dialog Abandoned", null, null, {"Start Bot" : Commands.START, "Teach Bot" : Commands.TEACH, "Add Entities & Actions" : Help.NEWAPP});
+                this.EndSession(userState, (text) => {
+                    this.SendResult(address, userState, cb, null, <any>card);
+                });
+            }
+            else if (command == IntCommands.DONETRAIN) {
+
+                let memory = new BlisMemory(userState);
+                let dialog = memory.GetTrainSteps();
+                let msg = "** New Dialog Summary **\n\n";
+                msg += `-----------------------------\n\n`;
+
+                for (let trainstep of dialog)
+                {
+                    msg += trainstep.input;
+
+                    if (trainstep.entity)
+                    {
+                        msg += ` _${trainstep.entity}_\n\n`;
+                    }
+                    else
+                    {
+                        msg += "\n\n";
+                    }
+                    msg += `     ${trainstep.response}\n\n`
+                }
+                let card = this.MakeHero("", "", "Does this look good?", 
+                    { "Save" : IntCommands.SAVETRAIN , "Abandon" : IntCommands.FORGETTRAIN});
+
+                this.SendResult(address, userState, cb, msg, <any>card);
+            }
+            else 
+            {
+                this.SendResult(address, userState, cb, `_In teaching mode. The only valid command is_ ${IntCommands.DONETRAIN}`,null);
+            }
+        }
+        else 
+        {
+                let text = "_Not a valid command._\n\n\n\n" + this.Help(null);
+                this.SendResult(address, userState, cb, text, null);
+        }
+    }
     public recognize(context: builder.IRecognizeContext, cb: (error: Error, result: IBlisResult) => void): void 
     {    
         try
@@ -1110,6 +1136,9 @@ let msg =  new builder.Message();
                     if (userInput.startsWith('!')) {
                         this.HandleCommand(userInput, address, userState, cb);
                     }
+                    else if (userInput.startsWith('~')) {
+                        this.HandleIntCommand(userInput, address, userState, cb);
+                    }
                     else if (userInput.startsWith('#'))
                     {
                         this.HandleHelp(userInput, address, userState, cb);
@@ -1126,14 +1155,22 @@ let msg =  new builder.Message();
                                 if (response.mode == TakeTurnModes.TEACH)
                                 {
                                       if (response.teachStep == TeachStep.LABELENTITY) {
-                                        memory.SaveTrainStep(SaveStep.INPUT, userInput);
-
-                                        msg = `**Teach Step: Detected Entities**\n\n`;
+                                        msg = "";
+                                        if (response.teachError) {
+                                            msg += `**ERROR**\n\n`;
+                                            msg += `Input did not match original text. Let's try again.\n\n`;
+                                            msg += `-----------------------------\n\n`;
+                                        }
+                                        else
+                                        {
+                                            memory.SaveTrainStep(SaveStep.INPUT, userInput);
+                                        }
+                                        msg += `**Teach Step: Detected Entities**\n\n`;
                                         msg += `-----------------------------\n\n`;
                                         if (response.teachLabelEntities.length == 0)
                                         {
                                             msg += `No entities found.\n\n`;
-                                            let cardtext = "Indicate entities or press Correct if indeed there are none"
+                                            let cardtext = "Click None if correct or indicate entities in input string"
                                             card = this.MakeHero(null, null, cardtext, { "None" : "1", "Help" : Help.PICKENTITY});
                                         }
                                         else 
@@ -1144,7 +1181,7 @@ let msg =  new builder.Message();
                                                 let entityType = memory.EntityName(labelEntity.entityId);
                                                 msg += `[$${entityType}: ${labelEntity.entityValue}]    _Score: ${labelEntity.score.toFixed(3)}_\n\n`;
                                             }
-                                            let cardtext = "Indicate entities or press Correct if entities are valid"
+                                            let cardtext = "Click Correct if entities are valid or indicate entities in input string"
                                             card = this.MakeHero(null, null, cardtext, { "Correct" : "1", "Help" : Help.PICKENTITY});
                                         }
                                     }
@@ -1152,13 +1189,13 @@ let msg =  new builder.Message();
                                     {
                                         memory.SaveTrainStep(SaveStep.ENTITY,memory.DumpEntities());
 
+                                        let cardText = "";
                                         msg = `**Teach Step: Select Action**\n\n`;
                                         msg += `${memory.DumpEntities()}\n\n`;
-                                        msg += `-----------------------------\n\n`;
                                         if (response.teachLabelActions.length == 0)
                                         {
                                             msg += 'No actions matched.\n\n';
-                                            msg += 'Enter a new Action\n\n'
+                                            cardText = 'Enter a new Action\n\n';
                                         }
                                         else 
                                         {
@@ -1176,8 +1213,9 @@ let msg =  new builder.Message();
                                                 }
                                             }
                                             msg += `-----------------------------\n\n`;
-                                            msg += '_Select matched action number or enter a new action_\n\n'
+                                            cardText = 'Select Action by number or enter a new one';
                                         }
+                                        card = this.MakeHero(null, null, cardText, { "Help" : Help.ADDACTION});
                                     }
                                     else
                                     {
@@ -1198,7 +1236,7 @@ let msg =  new builder.Message();
                                     {
                                         memory.SaveTrainStep(SaveStep.RESPONSE, outText);
                                         card = this.MakeHero('Trained Response:', outText, "Type next user input for this Dialog or" , 
-                                        { "Done Training" : Commands.DONETRAIN , "New Dialog" : Commands.TEACH});
+                                        { "Dialog Complete" : IntCommands.DONETRAIN});
                                     }
                                     else
                                     {

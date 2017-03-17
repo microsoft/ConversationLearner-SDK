@@ -27,6 +27,11 @@ export class BlisMemory {
         }  
     }
 
+    // Does this bot have any entities
+    public HasEntities() : boolean {
+        return (this.userState[UserStates.ENTITYLOOKUP] && Object.keys(this.userState[UserStates.ENTITYLOOKUP]).length >0);
+    }
+
     public EntityId(name: string) {
         try {
             return this.userState[UserStates.ENTITYLOOKUP][name];
@@ -112,7 +117,7 @@ export class BlisMemory {
     }
 
     public Substitute(text: string) : string {
-        let words = text.split(/[\s,:.]+/);
+        let words = text.split(/[\s,:.?]+/);
         for (let word of words) 
         {
             if (word.startsWith("$"))

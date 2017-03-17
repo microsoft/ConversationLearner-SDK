@@ -3,6 +3,7 @@ import { Command } from './Command';
 
 export const Help =
 {
+    ADDACTION: "#addaction",
     DELETEACTION: "#deleteaction",
     DELETEAPP : "#deleteapp",
     PICKENTITY : "#pickentity",
@@ -17,6 +18,10 @@ export class BlisHelp {
         let command : Command = null;
         switch (name)
         {
+            case Help.ADDACTION:
+                help = this.CommandHelpString(Commands.ADDTEXTACTION) + "\n\n";
+                help += this.CommandHelpString(Commands.ADDAPIACTION);
+                return help;
             case Help.DELETEACTION:
                 command = this.CommandHelp(Commands.DELETEAPP);
                 help += command.description + "\n\n"
@@ -35,7 +40,7 @@ export class BlisHelp {
                 help += ">> I like [Food Pizza] and [Dancing Activity]";
                 return help;
             case Help.NEWAPP:
-                help += `First add entities and actions to your application using:\n\n`;
+                help += `Add entities and actions to your application using:\n\n`;
                 help += `>> ${Commands.ADDENTITY}\n\n`;
                 help += `>> ${Commands.ADDTEXTACTION}\n\n`;
                 help += `>> ${Commands.ADDAPIACTION}\n\n`;
@@ -44,12 +49,27 @@ export class BlisHelp {
                 help += `For help with any command type:\n\n`;
                 help += `>> ${Commands.HELP} {command name}\n\n`;
                 help += `To see all commands type:\n\n`;
-                help += `>> ${Commands.HELP} {command name}\n\n`;
+                help += `>> ${Commands.HELP}\n\n`;
                 return help;
         }
         return "Sorry. No help for this topic yet.";
     }
 
+    public static CommandHelpString(name : string) : string {
+        let command = this.CommandHelp(name);
+        let help = command.description + "\n\n"
+        help += `>> ${command.args}\n\n`;
+        if (command.examples && command.examples.length > 0)
+        {
+            help += "For example:\n\n"
+            for (let example of command.examples)
+            {
+                help += `     ${example}\n\n`;
+            }
+        }
+        return help;
+    }
+    
     public static CommandHelp(name: string) : Command {
         
         let info = {};
@@ -69,7 +89,9 @@ export class BlisHelp {
                 return new Command(
                     name,
                     "Add a new entity",
-                    "{_entitiyName_} {_LUIS | LOCAL_} {_prebuildName?_}", null);
+                    "{_entitiyName_} {_LUIS | LOCAL_} {_prebuildName?_}", 
+                     ["!addentity name luis", 
+                    "!addentity color local"]);
             case Commands.ADDTEXTACTION:
                 return new Command(
                     name,
@@ -112,11 +134,6 @@ export class BlisHelp {
                 return new Command(
                     name,
                     "!!WARNING!! Delete all Applications associated with this BLIS account",
-                    "", null);
-            case Commands.DONETRAIN:
-                return new Command(
-                    name,
-                    "End a teaching session",
                     "", null);
             case Commands.DUMP:
                 return new Command(
