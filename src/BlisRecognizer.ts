@@ -133,10 +133,29 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         let posIds = [];
         let negNames = [];
         let posNames = [];
-        let words = content.split(' ');
+        let words = content.split(/[\s,:.?]+/);
         for (let word of words)
         {
-            if (word.startsWith('--'))
+            // Add requirement for entity when used for substitution
+            if (word.startsWith('$'))
+            {
+                let posName = word.slice(1);
+                if (posNames.indexOf(posName) < 0)
+                {
+                    let posID = memory.EntityId(posName);
+                    if (posID)
+                    {
+                        posIds.push(posID);
+                        posNames.push(posName);
+                    }
+                    else
+                    {
+                        cb(`Entity $${posName} not found.`, null);
+                        return;
+                    }
+                }
+            }
+            else if (word.startsWith('--'))
             {
                 let negName = word.slice(2);
                 let negID = memory.EntityId(negName);
@@ -152,15 +171,18 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             }
             else if (word.startsWith('++')) {
                 let posName = word.slice(2);
-                let posID = memory.EntityId(posName);
-                 if (posID) {
-                    posIds.push(posID);
-                    posNames.push(posName);
-                }  
-                else
+                if (posNames.indexOf(posName) < 0)
                 {
-                    cb(`Entity $${posName} not found.`, null);
-                    return;
+                    let posID = memory.EntityId(posName);
+                    if (posID) {
+                        posIds.push(posID);
+                        posNames.push(posName);
+                    }  
+                    else
+                    {
+                        cb(`Entity $${posName} not found.`, null);
+                        return;
+                    }
                 }
             }
         }
@@ -177,7 +199,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                 {
                     substr += `--[${negNames.toLocaleString()}]`;
                 }
-                let card = this.MakeHero("Created Action", actionId + "\n\n" + substr, actionText, null);
+                let card = this.MakeHero("Created Action", /* actionId + "\n\n" +*/ substr, actionText, null);
                 cb(null, card)
     
             })
@@ -398,7 +420,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                         atext += `  --[${negstring}]`;
                     }
                     // Show detail if requested
-                    atext += detail == 'Y' ?  `: _${actionId}_\n\n` : `\n\n`
+                    atext += detail ?  `: _${actionId}_\n\n` : `\n\n`
 
                     if (action.actionType == ActionTypes.API)
                     {
@@ -1212,7 +1234,6 @@ let msg =  new builder.Message();
   
                                                 }
                                             }
-                                            msg += `-----------------------------\n\n`;
                                             cardText = 'Select Action by number or enter a new one';
                                         }
                                         card = this.MakeHero(null, null, cardText, { "Help" : Help.ADDACTION});
