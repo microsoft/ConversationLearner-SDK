@@ -84,5 +84,13 @@ export class Turn
 
 export class TrainDialog
 {
-    public turns : Turn[] = [];
+    @JsonProperty({clazz: Turn, name: 'turns'})
+    public turns : Turn[];
+
+    public constructor(init?:Partial<TrainDialog>)
+    {
+        this.turns = undefined;
+        (<any>Object).assign(this, init);
+    }
 }
+    

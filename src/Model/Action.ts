@@ -14,11 +14,12 @@ export class Action
     @JsonProperty('RequiredEntities')
     public requiredEntities : string[];
 
-    public constructor()
+    public constructor(init?:Partial<Action>)
     {
         this.actionType = undefined;
         this.content = undefined;
         this.negativeEntities = undefined;
         this.requiredEntities = undefined;
+        (<any>Object).assign(this, init);
     }
 }

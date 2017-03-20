@@ -51,8 +51,7 @@ export const Commands =
     LOADAPP: "!loadapp",
     START: "!start",
     TEACH : "!teach",
-    TRAINDIALOGS : "!traindialogs",
-    TRAINFROMURL : "!trainfromurl"
+    TRAINDIALOGS : "!traindialogs"
 }
 
 // Internal commands. (Not for user)

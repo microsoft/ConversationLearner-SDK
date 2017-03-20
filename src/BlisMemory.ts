@@ -185,6 +185,17 @@ export class BlisMemory {
     }
     //--------------------------------------------------------
 
+    public AppId() : string
+    {
+        return this.userState[UserStates.APP];
+    }
+
+    public ModelId() : string
+    {
+        return this.userState[UserStates.MODEL];
+    }
+
+
     public DumpEntities() : string
     {
         let memory = "";

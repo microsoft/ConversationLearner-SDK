@@ -3,7 +3,7 @@ import * as request from 'request';
 import * as util from 'util';
 import { deserialize } from 'json-typescript-mapper';
 import { TakeTurnRequest } from './Model/TakeTurnRequest'
-import { SnippetList, Snippet } from './Model/SnippetList'
+import { BlisApp } from './Model/BlisApp'
 import { TrainDialogSNP, InputSNP, TurnSNP, AltTextSNP } from './Model/TrainDialogSNP'
 import { BlisClient } from './BlisClient';
 import { BlisMemory } from './BlisMemory';
@@ -78,7 +78,12 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     {
         return new Promise(
             (resolve, reject) => {
-                request.get(url, (error, response, body) => {
+                const requestData = {
+                    url: url, 
+                    json: true,
+                    encoding : 'utf8'
+                }
+                request.get(requestData, (error, response, body) => {
                     if (error) {
                         reject(error);
                     }
@@ -86,7 +91,8 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                         reject(body.message);
                     }
                     else {
-                        resolve(body);
+                        let model = String.fromCharCode.apply(null, body.data);
+                        resolve(model);
                     }
 
                 });
@@ -390,8 +396,16 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         let fail = null;
         await this.blisClient.ExportApp(userState)
             .then((json) => {
-                 this.SendAsAttachment(address,json);
-                 cb("");
+                let msg = JSON.stringify(json);
+                if (address.channelId == "emulator")
+                {
+                    cb(msg);
+                }
+                else
+                {
+                    this.SendAsAttachment(address, msg);
+                    cb("");
+                }
             })
             .catch(error => cb(error));
     }
@@ -700,6 +714,22 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             return;
         }
 
+        // Train the model if needed
+        if (!userState[UserStates.MODEL])
+        {        
+            BlisDebug.Log(`Training the model...`)    
+            await this.blisClient.TrainModel(userState)
+            .then((text) => BlisDebug.Log(`Model trained: ${text}`))
+            .catch(error => fail = error); 
+        }
+
+        if (fail) 
+        {
+            BlisDebug.Log(fail);
+            cb(fail);
+            return;
+        }
+
         // Load entities to generate lookup table
         await this.GetEntities(userState, null, (text) =>
         {
@@ -721,6 +751,39 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             cb("Application loaded and Session started.");
         })
         .catch(error => cb(error));
+    }
+
+    private async ImportApp(userState : BlisUserState, attachment : builder.IAttachment, cb : (text) => void) : Promise<void>
+    {
+        if (attachment.contentType != "text/plain")
+        {
+            cb("Expected a text file for import.");
+            return;
+        }
+
+        var text = await this.ReadFromFile(attachment.contentUrl)
+            .then((text:string) => {
+                try 
+                { 
+                    // Import new training data
+                    let json = JSON.parse(text);
+                    this.blisClient.ImportApp(userState, json)
+                        .then(status => 
+                        {
+                            // Reload the app
+                            let memory = new BlisMemory(userState);
+                            this.LoadApp(userState, memory.AppId(), (text) => {
+                                cb(text);
+                            });
+                        })
+                        .catch(error => cb(`Failed to Import App: ${error}`));
+                }
+                catch (error)
+                {
+                    cb(`Failed to Import App: ${error}`);
+                }
+            })
+            .catch((text) => cb(text));
     }
 
     private async NewSession(userState : BlisUserState, teach : boolean, cb : (results : (string | builder.IIsAttachment)[]) => void) : Promise<void>
@@ -748,35 +811,10 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         .catch((text) => cb([text]));
     }
 
-    private async TrainFromFile(userState : BlisUserState, url : string, cb : (text) => void) : Promise<void>
-    {
-        if (url == "*")
-        {
-            url = "https://onedrive.live.com/download?cid=55DCA1313254B6CB&resid=55DCA1313254B6CB%213634&authkey=AIyjQoawD2vlHmc";
-        }
-
-        if (!url)
-        {
-            let msg = `You must provide url location of training file.\n\n     !trainfromurl {url}`;
-            cb(msg);
-            return;
-        }
-
-        var text = await this.ReadFromFile(url)
-        .then((text:string) =>{
-            let json = JSON.parse(text);
-            let snipObj = deserialize(SnippetList, json);
-            this.TrainOnSnippetList(userState, snipObj.snippets)
-            .then(status => cb(status))
-            .catch(error => cb("Failed to Train"));
-        })
-        .catch((text) => cb(text));
-    }
-
-    private async TrainOnSnippetList(userState : BlisUserState, sniplist : Snippet[]) : Promise<string>
+    private async TrainOnImport(userState : BlisUserState, blisApp : BlisApp) : Promise<string>
     {
         let fail = null;
-
+/*
         // Extract actions and add them
         let actionList = [];
         let actiontext2id = {};
@@ -863,7 +901,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
            fail = text;
         });
         if (fail) return fail;
-
+*/
         return "App has been trained and bot started.";
     }
 
@@ -1084,12 +1122,6 @@ let msg =  new builder.Message();
                     this.SendResult(address, userState, cb, [card]);
                 }
             }
-            else if (command == Commands.TRAINFROMURL)
-            {
-                this.TrainFromFile(userState, arg, (text) => {
-                    this.SendResult(address, userState, cb, [text]);
-                });
-            }
             else if (command == Commands.TRAINDIALOGS)
             {
                 this.GetTrainDialogs(userState, address, (text) => {
@@ -1164,10 +1196,21 @@ let msg =  new builder.Message();
     {    
         try
         {  
-             if (context && context.message && context.message.text) {
-                let address = context.message.address;
-                this.LoadUser(address, (error, userState) => {
+            if (!context || !context.message)
+            {
+                return;
+            }
 
+            let address = context.message.address;
+            this.LoadUser(address, (error, userState) => {
+
+                if (context.message.attachments && context.message.attachments.length > 0)
+                {
+                    this.ImportApp(userState, context.message.attachments[0] ,(text) => {
+                        this.SendResult(address, userState, cb, [text]);
+                    });
+                }
+                if (context.message.text) {
                     // TODO = handle error 
                     this.SendTyping(address);
                     BlisDebug.SetAddress(address);
@@ -1196,7 +1239,7 @@ let msg =  new builder.Message();
 
                                 if (response.mode == TakeTurnModes.TEACH)
                                 {
-                                      if (response.teachStep == TeachStep.LABELENTITY) {
+                                        if (response.teachStep == TeachStep.LABELENTITY) {
 
                                         if (response.teachError) {
                                             let title = `**ERROR**\n\n`;
@@ -1255,7 +1298,7 @@ let msg =  new builder.Message();
                                                 else
                                                 {
                                                     msg += `_(${1+Number(i)}) ${labelAction.content}_ _(${labelAction.actionType.toUpperCase()})_ DISQUALIFIED\n\n`;
-  
+
                                                 }
                                             }
                                             responses.push(msg);
@@ -1301,8 +1344,8 @@ let msg =  new builder.Message();
                                 this.SendResult(address, userState, cb, responses);
                             });
                     } 
-                });                
-            }
+                }
+            });                
         }
         catch (Error)
         {

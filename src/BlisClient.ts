@@ -4,6 +4,7 @@ import { Credentials } from './Http/Credentials';
 import { TrainDialogSNP } from './Model/TrainDialogSNP'; 
 import { LuisEntity } from './Model/LuisEntity';
 import { Action } from './Model/Action'
+import { BlisApp } from './Model/BlisApp'
 import { TakeTurnModes, ActionTypes, UserStates } from './Model/Consts';
 import { TakeTurnResponse } from './Model/TakeTurnResponse'
 import { TakeTurnRequest } from './Model/TakeTurnRequest'
@@ -569,6 +570,36 @@ export class BlisClient {
                     }
                     else if (response.statusCode >= 300) {
                         reject(JSON.parse(body).message);
+                    }
+                    else {
+                        resolve(body);
+                    }
+                });
+            }
+        )
+    }
+
+    public ImportApp(userState : BlisUserState, blisApp : BlisApp) : Promise<string>
+    { 
+        let apiPath = `app/${userState[UserStates.APP]}/source`;
+
+        return new Promise(
+            (resolve, reject) => {
+               const requestData = {
+                    url: this.serviceUri+apiPath,
+                    headers: {
+                        'Cookie' : this.credentials.Cookiestring()
+                    },
+                    json: true,
+                    body: blisApp
+                }
+
+                request.post(requestData, (error, response, body) => {
+                    if (error) {
+                        reject(error);
+                    }
+                    else if (response.statusCode >= 300) {
+                        reject(body.message);
                     }
                     else {
                         resolve(body);
