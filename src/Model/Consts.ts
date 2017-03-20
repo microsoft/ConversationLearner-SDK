@@ -46,6 +46,7 @@ export const Commands =
     DELETEAPP : "!deleteapp",
     DUMP : "!dump",
     ENTITIES : "!entities",
+    EXPORTAPP : "!exportapp",
     HELP : "!help",
     LOADAPP: "!loadapp",
     START: "!start",

@@ -288,6 +288,35 @@ export class BlisClient {
         )
     }
 
+    public ExportApp(userState : BlisUserState) : Promise<string>
+    {
+        let apiPath = `app/${userState[UserStates.APP]}/source`;
+
+        return new Promise(
+            (resolve, reject) => {
+               const requestData = {
+                    url: this.serviceUri+apiPath,
+                    headers: {
+                        'Cookie' : this.credentials.Cookiestring()
+                    },
+                    json: true
+                }
+
+                request.get(requestData, (error, response, body) => {
+                    if (error) {
+                        reject(error);
+                    }
+                    else if (response.statusCode >= 300) {
+                        reject(body.message);
+                    }
+                    else {
+                        resolve(body);
+                    }
+                });
+            }
+        )
+    }
+
     public GetApp(appId : string) : Promise<string>
     {
         let apiPath = `app/${appId}`;
@@ -520,6 +549,7 @@ export class BlisClient {
         )
     }
 
+    // TODO obsolete
     public GetTrainDialogs(userState : BlisUserState) : Promise<string>
     {
         let apiPath = `app/${userState[UserStates.APP]}/traindialog`;

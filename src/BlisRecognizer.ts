@@ -381,6 +381,21 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         });
     }
 
+    private async ExportApp(userState : BlisUserState, address : builder.IAddress, cb : (text) => void) : Promise<void>
+    {
+        BlisDebug.Log(`Exporting App`);
+
+        // Get actions
+        let dialogIds = [];
+        let fail = null;
+        await this.blisClient.ExportApp(userState)
+            .then((json) => {
+                 this.SendAsAttachment(address,json);
+                 cb("");
+            })
+            .catch(error => cb(error));
+    }
+
     private async GetActions(userState : BlisUserState, detail : string, cb : (text) => void) : Promise<void>
     {
         BlisDebug.Log(`Getting actions`);
@@ -1027,6 +1042,12 @@ let msg =  new builder.Message();
             else if (command == Commands.ENTITIES)
             {
                 this.GetEntities(userState, arg, (text) => {
+                    this.SendResult(address, userState, cb, [text]);
+                });
+            }
+            else if (command == Commands.EXPORTAPP)
+            {
+                this.ExportApp(userState, address, (text) => {
                     this.SendResult(address, userState, cb, [text]);
                 });
             }
