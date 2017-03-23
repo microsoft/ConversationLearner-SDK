@@ -168,8 +168,8 @@ export class BlisHelp {
             case Commands.TRAINDIALOGS:
                 return new Command(
                     name,
-                    "Train in dialogs at given url",
-                    "{file url}", null);
+                    "Show training dialogs for this application",
+                    "{_search term_ OPTIONAL}", null);
             default:
                  return new Command(
                     name,

@@ -1,4 +1,6 @@
 import { JsonProperty } from 'json-typescript-mapper';
+import { BlisClient } from '../BlisClient';
+import { BlisDebug} from '../BlisDebug';
 
 export class Entity
 {
@@ -21,5 +23,18 @@ export class Entity
         this.luisPreName = undefined;
         this.name = undefined;
         (<any>Object).assign(this, init);
+    }
+
+    public static async toText(client : BlisClient, appId : string, entityId : string) : Promise<string>
+    {
+        try {
+            let entity = await client.GetEntity(appId, entityId);
+            return entity.name;
+        }
+        catch (error)
+        {
+            BlisDebug.Log(`ERROR: ${error}`);
+            throw(error);
+        }
     }
 }

@@ -16,6 +16,20 @@ export class BlisUserState {
     // In teach Model
     inTeach? : boolean;
 
+    public constructor(appId : string)
+    {
+        this[UserStates.APP] = appId;
+        this[UserStates.MODEL] = null;
+        this[UserStates.SESSION] = null;
+        this[UserStates.TEACH] = false;
+        this[UserStates.DEBUG] = false;
+        this[UserStates.MEMORY] = {};
+        this[UserStates.ENTITYLOOKUP] = {};
+        this[UserStates.LASTSTEP] = null;
+        this[UserStates.SAVELOOKUP] = {};
+        this[UserStates.TRAINSTEPS] = [];
+    }
+
     public static Get(bot : builder.UniversalBot, address : builder.IAddress, defaultApp : string,
                         cb : (err: Error, state: BlisUserState, isNew : boolean) => void )  {
 
@@ -26,31 +40,13 @@ export class BlisUserState {
             }
             else if (!session.userData.Blis)
             {
-                session.userData.Blis = this.InitState(defaultApp);
+                session.userData.Blis = new BlisUserState(defaultApp);
                 cb(null, session.userData.Blis, true);
             }
             else {
                 cb(null, session.userData.Blis, false);
             }
         });
-    }
-
-    public static InitState(appId : string, userState? : BlisUserState, ) : void
-    {
-        if (!userState)
-        {
-            userState = new BlisUserState();
-        }
-        userState[UserStates.APP] = appId;
-        userState[UserStates.MODEL] = null;
-        userState[UserStates.SESSION] = null;
-        userState[UserStates.TEACH] = false;
-        userState[UserStates.DEBUG] = false;
-        userState[UserStates.MEMORY] = {};
-        userState[UserStates.ENTITYLOOKUP] = {};
-        userState[UserStates.LASTSTEP] = null;
-        userState[UserStates.SAVELOOKUP] = {};
-        userState[UserStates.TRAINSTEPS] = [];
     }
 
     public static Save(bot : builder.UniversalBot, address : builder.IAddress, userData : BlisUserState)  

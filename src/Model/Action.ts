@@ -1,7 +1,9 @@
 import { JsonProperty } from 'json-typescript-mapper';
+import { BlisClient } from '../BlisClient';
+import { BlisDebug} from '../BlisDebug';
 
 export class Action
-{
+{ 
     @JsonProperty('id')
     public id : string;
 
@@ -44,6 +46,20 @@ export class Action
         return null;
     }
     
+    public static async toText(client : BlisClient, appId : string, actionId : string) : Promise<string>
+    {
+        try
+        {            
+            let action = await client.GetAction(appId, actionId);
+            return action.content;
+        }
+        catch (error)
+        {
+            BlisDebug.Log(`ERROR: ${error}`);
+            throw(error);
+        }
+    }
+
     public static Split(action : string) : string[] {
         return action.split(/[\s,:.?]+/);
     }

@@ -15,8 +15,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@types/node-cache": "^3.0.31",
     "botbuilder": "^3.6.0",
     "json-typescript-mapper": "^1.0.5",
+    "node-cache": "^4.1.1",
     "request": "^2.79.0",
     "restify": "^4.3.0",
     "swagger-client": "^2.1.32",

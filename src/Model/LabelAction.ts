@@ -1,18 +1,17 @@
 import { JsonProperty } from 'json-typescript-mapper';
 
-// TODO fix all commments
 /** Action in response to a user's string */
 export class LabelAction
 {
-    /** Start char number in string containing the entity */
+    /** Type of action (API or TEXT)*/
     @JsonProperty('action_type')
     public actionType : string; 
 
-    /** Matched entity value */
+    /** Can this action fire? */
     @JsonProperty('available')
     public available : boolean;
 
-    /** Match score (0-1) */
+    /** Content of the action */
     @JsonProperty('content')
     public content : string;
 
@@ -20,7 +19,7 @@ export class LabelAction
     @JsonProperty('id')
     public id : string;
 
-    /** The entityID of the matched entity */
+    /** Score from 0-1 */
     @JsonProperty('score')
     public score : number;
  

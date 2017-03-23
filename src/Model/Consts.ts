@@ -49,6 +49,7 @@ export const Commands =
     ENTITIES : "!entities",
     EXPORTAPP : "!exportapp",
     HELP : "!help",
+    IMPORTAPP : "!importapp",
     LOADAPP: "!loadapp",
     START: "!start",
     TEACH : "!teach",
@@ -58,8 +59,9 @@ export const Commands =
 // Internal commands. (Not for user)
 export const IntCommands =
 {
-    FORGETTEACH : "~forgetteach",
+    DELETEDIALOG : '~deletedialog',
     DONETEACH : "~doneteach",
+    FORGETTEACH : "~forgetteach",
     SAVETEACH: "~saveteach",
 }
 

@@ -11,11 +11,15 @@ import { TakeTurnRequest } from './Model/TakeTurnRequest'
 import { BlisUserState } from './BlisUserState';
 import { BlisMemory } from './BlisMemory';
 import { BlisDebug } from './BlisDebug';
+import * as NodeCache from 'node-cache';
 
 export class BlisClient {
 
     private serviceUri : string;
     private credentials : Credentials;
+
+    private actionCache = new NodeCache({ stdTTL: 300, checkperiod: 600 });
+    private entityCache = new NodeCache({ stdTTL: 300, checkperiod: 600 });
 
     constructor(serviceUri : string, user : string, secret : string)
     {
@@ -27,9 +31,11 @@ export class BlisClient {
         this.credentials = new Credentials(user, secret);
     }
 
-    public AddAction(userState : BlisUserState, content : string, actionType : string, requiredEntityList : string[] = [], negativeEntityList : string[] = [], prebuiltEntityName : string = null) : Promise<string>
+    // TODO: eliminate all uses of .then pattern
+    // TODO: switch remaining to not userstate
+    public AddAction(appId : string, content : string, actionType : string, requiredEntityList : string[] = [], negativeEntityList : string[] = [], prebuiltEntityName : string = null) : Promise<string>
     {
-        let apiPath = `app/${userState[UserStates.APP]}/action`;
+        let apiPath = `app/${appId}/action`;
 
         return new Promise(
             (resolve, reject) => {
@@ -62,9 +68,9 @@ export class BlisClient {
         )
     }
 
-    public AddEntity(userState : BlisUserState, entityName : string, entityType : string, prebuiltEntityName : string) : Promise<string>
+    public AddEntity(appId : string, entityName : string, entityType : string, prebuiltEntityName : string) : Promise<string>
     {
-        let apiPath = `app/${userState[UserStates.APP]}/entity`;
+        let apiPath = `app/${appId}/entity`;
 
         return new Promise(
             (resolve, reject) => {
@@ -96,7 +102,7 @@ export class BlisClient {
         )
     }
 
-    public CreateApp(userState : BlisUserState, name : string, luisKey : string) : Promise<string>
+    public CreateApp(name : string, luisKey : string) : Promise<string>
     {
         var apiPath = "app";
 
@@ -123,7 +129,6 @@ export class BlisClient {
                     }
                     else {
                         var appId = body.id;
-                        BlisUserState.InitState(appId, userState);
                         resolve(appId);
                     }
                 });
@@ -131,9 +136,9 @@ export class BlisClient {
         )
     }
 
-    public DeleteAction(userState : BlisUserState, actionId : string) : Promise<string>
+    public DeleteAction(appId : string, actionId : string) : Promise<string>
     {
-        let apiPath = `app/${userState[UserStates.APP]}/action/${actionId}`;
+        let apiPath = `app/${appId}/action/${actionId}`;
 
         return new Promise(
             (resolve, reject) => {
@@ -198,6 +203,35 @@ export class BlisClient {
         )
     }
 
+    public DeleteTrainDialog(appId : string, dialogId : string) : Promise<string>
+    {
+        let apiPath = `app/${appId}/traindialog/${dialogId}`;
+
+        return new Promise(
+            (resolve, reject) => {
+               const requestData = {
+                    url: this.serviceUri+apiPath,
+                    headers: {
+                        'Cookie' : this.credentials.Cookiestring()
+                    },
+                    json: true
+                }
+
+                request.delete(requestData, (error, response, body) => {
+                    if (error) {
+                        reject(error);
+                    }
+                    else if (response.statusCode >= 300) {
+                        reject(body.message);
+                    }
+                    else {
+                        resolve(body);
+                    }
+                });
+            }
+        )
+    }
+
     public EndSession(userState : BlisUserState, ) : Promise<string>
     {
         BlisDebug.Log(`Deleting existing session ${userState[UserStates.SESSION]}`);
@@ -233,9 +267,9 @@ export class BlisClient {
         )
     }
 
-    public ExportApp(userState : BlisUserState) : Promise<BlisApp>
+    public ExportApp(appId : string) : Promise<BlisApp>
     {
-        let apiPath = `app/${userState[UserStates.APP]}/source`;
+        let apiPath = `app/${appId}/source`;
 
         return new Promise(
             (resolve, reject) => {
@@ -291,29 +325,37 @@ export class BlisClient {
         )
     }
 
-    public GetAction(userState : BlisUserState, actionId : string) : Promise<Action>
+    public GetAction(appId : string, actionId : string) : Promise<Action>
     {
-        let apiPath = `app/${userState[UserStates.APP]}/action/${actionId}`;
-
         return new Promise(
             (resolve, reject) => {
-               const requestData = {
-                    url: this.serviceUri+apiPath,
-                    headers: {
-                        'Cookie' : this.credentials.Cookiestring()
-                    },
-                    json: true
+                // Check cache first
+                let action = this.actionCache.get(actionId);
+                if (action) {
+                    resolve(action);
+                    return;
                 }
+
+                // Call API
+                let apiPath = `app/${appId}/action/${actionId}`;
+                const requestData = {
+                        url: this.serviceUri+apiPath,
+                        headers: {
+                            'Cookie' : this.credentials.Cookiestring()
+                        },
+                        json: true
+                    }
 
                 request.get(requestData, (error, response, body) => {
                     if (error) {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(JSON.parse(body).message);
+                        reject(body.message);
                     }
                     else {
                         var action = deserialize(Action, body);
+                        this.actionCache.set(actionId, action);
                         resolve(action);
                     }
                 });
@@ -321,9 +363,9 @@ export class BlisClient {
         )
     }
 
-    public GetActions(userState : BlisUserState, ) : Promise<string>
+    public GetActions(appId : string, ) : Promise<string>
     {
-        let apiPath = `app/${userState[UserStates.APP]}/action`;
+        let apiPath = `app/${appId}/action`;
 
         return new Promise(
             (resolve, reject) => {
@@ -377,12 +419,19 @@ export class BlisClient {
         )
     }
 
-    public GetEntity(userState : BlisUserState, entityId : string) : Promise<Entity>
+    public GetEntity(appId : string, entityId : string) : Promise<Entity>
     {
-        let apiPath = `app/${userState[UserStates.APP]}/entity/${entityId}`;
-
         return new Promise(
             (resolve, reject) => {
+                // Check cache first
+                let entity = this.entityCache.get(entityId);
+                if (entity) {
+                    resolve(entity);
+                    return;
+                }
+
+                // Call API
+               let apiPath = `app/${appId}/entity/${entityId}`;
                const requestData = {
                     url: this.serviceUri+apiPath,
                     headers: {
@@ -396,10 +445,11 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(JSON.parse(body).message);
+                        reject(body.message);
                     }
                     else {
                         var entity = deserialize(Entity, body);
+                        this.entityCache.set(entityId, entity);
                         resolve(entity);
                     }
                 });
@@ -407,9 +457,9 @@ export class BlisClient {
         )
     }
 
-    public GetEntities(userState : BlisUserState, ) : Promise<string>
+    public GetEntities(appId : string) : Promise<string>
     {
-        let apiPath = `app/${userState[UserStates.APP]}/entity`;
+        let apiPath = `app/${appId}/entity`;
 
         return new Promise(
             (resolve, reject) => {
@@ -468,9 +518,9 @@ export class BlisClient {
         )
     }
 
-    public GetTrainDialog(userState : BlisUserState, dialogId : string) : Promise<string>
+    public GetTrainDialog(appId : string, dialogId : string) : Promise<string>
     {
-        let apiPath = `app/${userState[UserStates.APP]}/traindialog/${dialogId}`;
+        let apiPath = `app/${appId}/traindialog/${dialogId}`;
 
         return new Promise(
             (resolve, reject) => {
@@ -496,9 +546,9 @@ export class BlisClient {
         )
     }
 
-    public GetTrainDialogs(userState : BlisUserState) : Promise<string>
+    public GetTrainDialogs(appId : string) : Promise<string>
     {
-        let apiPath = `app/${userState[UserStates.APP]}/traindialog`;
+        let apiPath = `app/${appId}/traindialog`;
 
         return new Promise(
             (resolve, reject) => {
@@ -524,9 +574,9 @@ export class BlisClient {
         )
     }
 
-    public ImportApp(userState : BlisUserState, blisApp : BlisApp) : Promise<BlisApp>
+    public ImportApp(appId : string, blisApp : BlisApp) : Promise<BlisApp>
     { 
-        let apiPath = `app/${userState[UserStates.APP]}/source`;
+        let apiPath = `app/${appId}/source`;
 
         return new Promise(
             (resolve, reject) => {
@@ -544,7 +594,7 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(JSON.parse(body).message);
+                        reject(body.message);
                     }
                     else {
                         var blisApp = deserialize(BlisApp, body);
@@ -555,9 +605,9 @@ export class BlisClient {
         )
     }
 
-    public Retrain(userState : BlisUserState) : Promise<TakeTurnResponse>
+    public Retrain(appId : string, sessionId : string) : Promise<TakeTurnResponse>
     {
-        let apiPath = `app/${userState[UserStates.APP]}/session2/${userState[UserStates.SESSION]}/retrain`;
+        let apiPath = `app/${appId}/session2/${sessionId}/retrain`;
         return new Promise(
             (resolve, reject) => {
                const requestData = {
@@ -573,7 +623,7 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(body);
+                        reject(body.message);
                     }
                     else {
                         if (typeof body === "string") {
@@ -587,9 +637,9 @@ export class BlisClient {
         )
     }
 
-    public StartSession(userState : BlisUserState, inTeach = false, saveDialog = false) : Promise<string>
+    public StartSession(appId : string, inTeach = false, saveDialog = false) : Promise<string>
     {
-        let apiPath = `app/${userState[UserStates.APP]}/session2`;
+        let apiPath = `app/${appId}/session2`;
 
         return new Promise(
             (resolve, reject) => {
@@ -613,8 +663,7 @@ export class BlisClient {
                         reject(body.message);
                     }
                     else {
-                        let sessionId = body.id;
-                        new BlisMemory(userState).StartSession(sessionId, inTeach);                      
+                        let sessionId = body.id;                      
                         resolve(sessionId);
                     }
                 });
@@ -647,7 +696,7 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(JSON.parse(body).message);
+                        reject(body.message);
                     }
                     else {
                         let modelId = body.id;
