@@ -40,7 +40,6 @@ export class Input
     @JsonProperty('entities')
     public entityIds : string[];
 
-    // TODO: confirm array of acctionIDs
     @JsonProperty('masked-actions')
     public maskedActionIds : string[];
 
@@ -82,14 +81,32 @@ export class Turn
     }
 }
 
-export class TrainDialog
+export class Dialog
 {
     @JsonProperty({clazz: Turn, name: 'turns'})
     public turns : Turn[];
+    
+    public constructor(init?:Partial<Dialog>)
+    {
+        this.turns = undefined;
+        (<any>Object).assign(this, init);
+    }
+}
+
+export class TrainDialog
+{
+    @JsonProperty('id')
+    public id : string;
+
+    @JsonProperty({clazz: Dialog, name: 'dialog'})
+    public dialog : Dialog;
+
+
 
     public constructor(init?:Partial<TrainDialog>)
     {
-        this.turns = undefined;
+        this.id = undefined;
+        this.dialog = undefined;
         (<any>Object).assign(this, init);
     }
 }

@@ -3,9 +3,10 @@ import { UserStates, SaveStep } from './Model/Consts';
 import { BlisDebug} from './BlisDebug';
 
 export class TrainStep {
-    public input : string;
-    public entity: string;
-    public response : string;
+    public input : string = null;
+    public entity: string = null;
+    public api : string[] = [];
+    public response : string = null;
 }
 
 export class BlisMemory {
@@ -13,13 +14,55 @@ export class BlisMemory {
     constructor(private userState : BlisUserState){
     }
 
-    public AddEntityLookup(name: string, id : string) {
-        this.userState[UserStates.ENTITYLOOKUP][name] = id;
+    /** Clear memory associated with a session */
+    public EndSession() : void
+    {
+        this.userState[UserStates.SESSION] = null;
+        this.userState[UserStates.TEACH] = false;
+        this.userState[UserStates.LASTSTEP] = null;
+        this.userState[UserStates.MEMORY]  = {};
     }
 
-    public RemoveEntityLookup(name: string) {
+    /** Init memory for a session */
+    public StartSession(sessionId : string, inTeach : boolean) : void
+    {
+        this.EndSession();
+        this.userState[UserStates.SESSION]  = sessionId;
+        this.userState[UserStates.TEACH]  = inTeach;
+    }
+
+    /** Return ActionId for saveEntity API for the given name */
+    public APILookup(entityName: string) {
         try {
-            this.userState[UserStates.ENTITYLOOKUP].delete[name] = null;
+            return this.userState[UserStates.SAVELOOKUP][entityName];
+        }
+        catch (Error)
+        {
+            BlisDebug.Log(Error);
+        }
+    }
+
+    public AddAPILookup(entityName: string, apiActionId : string) {
+        this.userState[UserStates.SAVELOOKUP][entityName] = apiActionId;
+    }
+
+    public RemoveAPILookup(entityName: string) {
+        try {
+            this.userState[UserStates.SAVELOOKUP][entityName] = null;
+        }
+        catch (Error)
+        {
+             BlisDebug.Log(Error);
+        }  
+    }
+
+    public AddEntityLookup(entityName: string, entityId : string) {
+        this.userState[UserStates.ENTITYLOOKUP][entityName] = entityId;
+    }
+
+    public RemoveEntityLookup(entityName: string) {
+        try {
+            this.userState[UserStates.ENTITYLOOKUP][entityName] = null;
         }
         catch (Error)
         {
@@ -32,8 +75,17 @@ export class BlisMemory {
         return (this.userState[UserStates.ENTITYLOOKUP] && Object.keys(this.userState[UserStates.ENTITYLOOKUP]).length >0);
     }
 
-    public EntityId(name: string) {
+    public EntityValue(entityName : string) : string
+    {
+        let entityId = this.EntityName2Id(entityName);
+        return this.userState[UserStates.MEMORY][entityId];
+    }
+
+    public EntityName2Id(name: string) {
         try {
+            // Made independant of prefix
+            name = name.replace('$','');
+
             return this.userState[UserStates.ENTITYLOOKUP][name];
         }
         catch (Error)
@@ -42,7 +94,7 @@ export class BlisMemory {
         }
     }
 
-    public EntityName(id: string) {
+    public EntityId2Name(id: string) {
         try {
             for (let name in this.userState[UserStates.ENTITYLOOKUP])
             {
@@ -90,9 +142,10 @@ export class BlisMemory {
         return names;
     }
 
-    public Remember(key: string, value: string) {
+    /** Remember a EntityId / value */
+    public RememberEntity(entityId: string, value: string) {
         try {
-            this.userState[UserStates.MEMORY][key] = value;
+            this.userState[UserStates.MEMORY][entityId] = value;
         }
         catch (Error)
         {
@@ -101,12 +154,12 @@ export class BlisMemory {
     }  
 
     // Return array of entityIds for which I've remembered something
-    public RememberedIds() : string[]
+    public EntityIds() : string[]
     {
         return Object.keys(this.userState[UserStates.MEMORY]);
     }
 
-    public Forget(key: string) {
+    public ForgetEntity(key: string) {
         try {
             this.userState[UserStates.MEMORY].delete[key];
         }
@@ -125,9 +178,7 @@ export class BlisMemory {
                 // Key is in form of $entityName
                 let entityName = word.substr(1, word.length-1);
 
-                // Get entityId for the key
-                let entityId = this.EntityId(entityName);
-                let entityValue = this.userState[UserStates.MEMORY][entityId];
+                let entityValue = this.EntityValue(entityName);
                 if (entityValue) {
                     text = text.replace(word, entityValue);
                 }
@@ -136,18 +187,27 @@ export class BlisMemory {
         return text;
     }
 
-    public SetLastInput(input: string) : void {
-        this.userState[UserStates.LASTINPUT] = input;
+    public RememberLastStep(saveStep: string, input: string) : void {
+        if (this.userState[UserStates.LASTSTEP] == null)
+        {
+            this.userState[UserStates.LASTSTEP] = new TrainStep();
+        }
+        this.userState[UserStates.LASTSTEP][saveStep] = input;
     }
 
-    public GetLastInput() : string {
-        return this.userState[UserStates.LASTINPUT];
+    public LastStep(saveStep: string) : string {
+        if (!this.userState[UserStates.LASTSTEP])
+        {
+            return null;
+        }
+        return this.userState[UserStates.LASTSTEP][saveStep];
     }
 
     //--------------------------------------------------------
-    public SaveTrainStep(saveStep: string, value: string) : void {
+    public RememberTrainStep(saveStep: string, value: string) : void {
         if (!this.userState[UserStates.TRAINSTEPS]) {
             this.userState[UserStates.TRAINSTEPS] = [];
+            this.userState[UserStates.TRAINSTEPS][SaveStep.API] = [];
         }
         let curStep = null;
         if (saveStep == SaveStep.INPUT)
@@ -168,15 +228,19 @@ export class BlisMemory {
             {
                 curStep[SaveStep.RESPONSE] = value;
             }
+            else if (saveStep = SaveStep.API)
+            {
+                // Can be mulitple API steps
+                curStep[SaveStep.API].push(value);
+            }
             else
             {
                 console.log(`Unknown SaveStep value ${saveStep}`);
             }
-        }
-        
+        }   
     }
 
-    public GetTrainSteps() : TrainStep[] {
+    public TrainSteps() : TrainStep[] {
         return this.userState[UserStates.TRAINSTEPS];
     }
 
@@ -202,7 +266,7 @@ export class BlisMemory {
         for (let entityId in this.userState[UserStates.MEMORY])
         {
             if (memory) memory += ", ";
-            let entityName = this.EntityName(entityId);
+            let entityName = this.EntityId2Name(entityId);
             let entityValue = this.userState[UserStates.MEMORY][entityId];
             memory += `[$${entityName} : ${entityValue}]`;
         }
@@ -219,8 +283,10 @@ export class BlisMemory {
         text += `Session: ${this.userState[UserStates.SESSION]}\n\n`;
         text += `InTeach: ${this.userState[UserStates.TEACH]}\n\n`;
         text += `InDebug: ${this.userState[UserStates.TEACH]}\n\n`;
+        text += `LastStep: ${JSON.stringify(this.userState[UserStates.LASTSTEP])}\n\n`;
         text += `Memory: {${this.DumpEntities()}}\n\n`;
         text += `EntityLookup: ${JSON.stringify(this.userState[UserStates.ENTITYLOOKUP])}\n\n`;
+        text += `SaveLookup: ${JSON.stringify(this.userState[UserStates.SAVELOOKUP])}\n\n`;
         return text;
     }
 }

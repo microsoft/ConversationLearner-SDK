@@ -2,6 +2,9 @@ import { JsonProperty } from 'json-typescript-mapper';
 
 export class Entity
 {
+    @JsonProperty('id')
+    public id : string;
+
     @JsonProperty('EntityType')
     public entityType : string;
 
@@ -9,10 +12,11 @@ export class Entity
     public luisPreName : string;
 
     @JsonProperty('name')
-    public name : number;
+    public name : string;
     
     public constructor(init?:Partial<Entity>)
     {
+        this.id = undefined;
         this.entityType = undefined;
         this.luisPreName = undefined;
         this.name = undefined;

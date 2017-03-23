@@ -26,22 +26,31 @@ export class BlisUserState {
             }
             else if (!session.userData.Blis)
             {
-                session.userData.Blis = {};
-                session.userData.Blis[UserStates.APP] = defaultApp;
-                session.userData.Blis[UserStates.MODEL] = null;
-                session.userData.Blis[UserStates.SESSION] = null;
-                session.userData.Blis[UserStates.TEACH] = false;
-                session.userData.Blis[UserStates.DEBUG] = false;
-                session.userData.Blis[UserStates.MEMORY] = {};
-                session.userData.Blis[UserStates.ENTITYLOOKUP] = {};
-                session.userData.Blis[UserStates.LASTINPUT] = null;
-                session.userData.Blis[UserStates.TRAINSTEPS] = [];
+                session.userData.Blis = this.InitState(defaultApp);
                 cb(null, session.userData.Blis, true);
             }
             else {
                 cb(null, session.userData.Blis, false);
             }
         });
+    }
+
+    public static InitState(appId : string, userState? : BlisUserState, ) : void
+    {
+        if (!userState)
+        {
+            userState = new BlisUserState();
+        }
+        userState[UserStates.APP] = appId;
+        userState[UserStates.MODEL] = null;
+        userState[UserStates.SESSION] = null;
+        userState[UserStates.TEACH] = false;
+        userState[UserStates.DEBUG] = false;
+        userState[UserStates.MEMORY] = {};
+        userState[UserStates.ENTITYLOOKUP] = {};
+        userState[UserStates.LASTSTEP] = null;
+        userState[UserStates.SAVELOOKUP] = {};
+        userState[UserStates.TRAINSTEPS] = [];
     }
 
     public static Save(bot : builder.UniversalBot, address : builder.IAddress, userData : BlisUserState)  
@@ -64,7 +73,8 @@ export class BlisUserState {
                 session.userData.Blis[UserStates.DEBUG] = userData[UserStates.DEBUG];
                 session.userData.Blis[UserStates.MEMORY] = userData[UserStates.MEMORY];
                 session.userData.Blis[UserStates.ENTITYLOOKUP] = userData[UserStates.ENTITYLOOKUP];
-                session.userData.Blis[UserStates.LASTINPUT] = userData[UserStates.LASTINPUT];
+                session.userData.Blis[UserStates.LASTSTEP] = userData[UserStates.LASTSTEP];
+                session.userData.Blis[UserStates.SAVELOOKUP] = userData[UserStates.SAVELOOKUP];
                 session.userData.Blis[UserStates.TRAINSTEPS] = userData[UserStates.TRAINSTEPS];
                 session.save();
             }

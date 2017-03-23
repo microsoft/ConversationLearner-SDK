@@ -28,7 +28,8 @@ export const SaveStep =
 {
     INPUT : "input",
     ENTITY : "entity",
-    RESPONSE : "response"
+    RESPONSE : "response",
+    API : "api"
 }
 
 export const Commands =
@@ -62,6 +63,12 @@ export const IntCommands =
     SAVETEACH: "~saveteach",
 }
 
+// Internal commands. (Not for user)
+export const APICalls =
+{
+    SAVEENTITY : "saveEntity"
+}
+
 export const Help =
 {
     NEWAPP : "#newapp"
@@ -76,6 +83,7 @@ export const UserStates =
     DEBUG: "DEBUG",
     MEMORY: "MEMORY",
     ENTITYLOOKUP: "ENTITYLOOKUP",
-    LASTINPUT: "LASTINPUT",
+    LASTSTEP: "LASTSTEP", 
+    SAVELOOKUP: "SAVELOOKUP",           // ENTITY NAME -> SAVE API ACTION ID 
     TRAINSTEPS: "TRAINSTEPS"
 }
