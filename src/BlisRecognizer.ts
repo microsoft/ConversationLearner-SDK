@@ -682,7 +682,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             let responses = [];
             for (let dialog of dialogs) {
                 responses.push(dialog.text);
-                responses.push(this.MakeHero(null, null, null, { "Delete" : `${IntCommands.DELETEDIALOG} ${dialog.dialogId}`}));
+                responses.push(this.MakeHero(null, dialog.dialogId, null, { "Delete" : `${IntCommands.DELETEDIALOG} ${dialog.dialogId}`}));
             }
 
             cb(responses);
@@ -692,6 +692,35 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             BlisDebug.Error(error);
             cb(error.message);
         }
+    }
+
+    /** Return text of current training steps */
+    private TrainStepText(userState : BlisUserState) : string
+    {
+        let memory = new BlisMemory(userState);
+        let trainSteps = memory.TrainSteps();
+        let msg = "** New Dialog Summary **\n\n";
+        msg += `-----------------------------\n\n`;
+
+        for (let trainstep of trainSteps)
+        {
+            msg += trainstep.input;
+
+            if (trainstep.entity)
+            {
+                msg += `    _${trainstep.entity}_\n\n`;
+            }
+            else
+            {
+                msg += "\n\n";
+            }
+            for (let api of trainstep.api)
+            {              
+                msg += `     {${api}}\n\n`
+            }
+            msg += `     ${trainstep.response}\n\n`
+        }
+        return msg;
     }
 
     private Help(command : string) : string
@@ -858,7 +887,9 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             BlisDebug.Log(`Started session ${sessionId}`)   
             if (teach)
             {
-                let card = this.MakeHero("Teach mode started", null, "Provide your first input", null);
+                let body = "Provide your first input for this teach dialog.\n\n\n\n";
+                let subtext = `At any point type _${Commands.ABANDON}_ to abort`;
+                let card = this.MakeHero("Teach mode started", subtext, body, null);
                 cb([card]);
             }
             else {
@@ -945,6 +976,13 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
 
     private SendResult(address : builder.IAddress, userState : BlisUserState, cb: (error: Error, result: IBlisResult) => void, responses : (string|builder.IIsAttachment)[]) 
     {
+        if (!responses)
+        {
+            BlisDebug.Error("Send result with empty response");
+            responses = [];
+        }
+        BlisDebug.Verbose(`SendResult: ${responses[0]}`);
+
         // Save user state
         BlisUserState.Save(this.bot, address, userState);
 
@@ -968,7 +1006,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         command = command.toLowerCase();
 
         //---------------------------------------------------
-        // Commands allowed both in TEACH and non-TEACH mode
+        // Commands allowed at any time
         if (command == Commands.ACTIONS)
         {
             this.GetActions(userState, arg, (text) => {
@@ -981,17 +1019,46 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                 cb(responses, true);
             });
         }
+        else if (command == Commands.DEBUG)
+        {
+            userState[UserStates.DEBUG] = !userState[UserStates.DEBUG];
+            BlisDebug.enabled = userState[UserStates.DEBUG];
+            cb(["Debug " + (BlisDebug.enabled ? "Enabled" : "Disabled")]);
+        }
+        else if (command == Commands.DEBUGHELP)
+        {
+            cb([this.DebugHelp()]);
+        }
+        else if (command == Commands.DUMP)
+        {
+            let memory = new BlisMemory(userState);
+            cb([memory.Dump()]);
+        }
         else if (command == Commands.ENTITIES)
         {
             this.GetEntities(userState, arg, (text) => {
                 cb([text]);
             });
         }
-        else if (userState[UserStates.TEACH] && (command != Commands.DUMP) && (command != "!debug")  && (command != Commands.TEACH)) {
-           cb([`_Command not valid while in Teach mode_`]);
+        else if (command == Commands.HELP)
+        {
+            cb([this.Help(arg)]);
         }
         //---------------------------------------------------
-        // Commands only allowed in non-TEACH mode
+        // Command only allowed in TEACH
+        else if (userState[UserStates.TEACH])
+        {
+            if (command == Commands.ABANDON)
+            {
+                  this.HandleIntCommand(IntCommands.FORGETTEACH, address, userState, cb);
+            }
+            else
+            {
+                cb([`_Command only valid while in Teach mode_`]);
+            }
+        }
+        //---------------------------------------------------
+        // Commands only allowed when not in TEACH mode
         else {
             if (command == Commands.ADDAPIACTION)
             {
@@ -1033,40 +1100,17 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                     cb([text]);
                 });
             }
-            else if (command == IntCommands.DONETEACH)
-            {
-                cb([`_I wasn't in teach mode. Type _${Commands.TEACH}_ to begin teaching_`]);
-            }
             else if (command == Commands.DELETEAPP)
             {
                 this.DeleteApp(userState, arg, (text) => {
                     cb( [text]);
                 });
             }
-            else if (command == Commands.DEBUG)
-            {
-                userState[UserStates.DEBUG] = !userState[UserStates.DEBUG];
-                BlisDebug.enabled = userState[UserStates.DEBUG];
-                cb(["Debug " + (BlisDebug.enabled ? "Enabled" : "Disabled")]);
-            }
-            else if (command == Commands.DEBUGHELP)
-            {
-                cb([this.DebugHelp()]);
-            }
-            else if (command == Commands.DUMP)
-            {
-                let memory = new BlisMemory(userState);
-                cb([memory.Dump()]);
-            }
             else if (command == Commands.EXPORTAPP)
             {
                 this.ExportApp(userState[UserStates.APP], address, (text) => {
                     cb([text]);
                 });
-            }
-            else if (command == Commands.HELP)
-            {
-                cb([this.Help(arg)]);
             }
             else if (command == Commands.IMPORTAPP)
             {
@@ -1111,77 +1155,55 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             }
             else 
             {
-                let text = "_Not a valid command._\n\n\n\n" + this.Help(null);
+                let text = "_Command unrecognized or not valid in Teach mode_\n\n\n\n" + this.Help(null);
                 cb([text]);
             }
         }
     }
 
-    private HandleIntCommand(input : string, address : builder.IAddress, userState : BlisUserState, cb: (error: Error, result: IBlisResult) => void) : void 
-    {
+    private HandleIntCommand(input : string, address : builder.IAddress, userState : BlisUserState, 
+         cb: (responses : (string|builder.IIsAttachment)[], retrain? : boolean) => void) : void {
+    
         let [command, arg, arg2, arg3] = input.split(' ');
         command = command.toLowerCase();
 
-        //-------- Only not in Teach ------------------//
+        //-------- Only valid in Teach ------------------//
         if (userState[UserStates.TEACH]) {
             if (command == IntCommands.SAVETEACH) {
                 let card = this.MakeHero("Dialog Trained", null, null, {"Start Bot" : Commands.START, "Teach Bot" : Commands.TEACH, "Add Entities & Actions" : Help.NEWAPP});
                 this.EndSession(userState, (text) => {
-                    this.SendResult(address, userState, cb, [card]);
+                    cb([card]);
                 });
             }
             else if (command == IntCommands.FORGETTEACH) {
                 // TODO: flag to not save training
                 let card = this.MakeHero("Dialog Abandoned", null, null, {"Start Bot" : Commands.START, "Teach Bot" : Commands.TEACH, "Add Entities & Actions" : Help.NEWAPP});
                 this.EndSession(userState, (text) => {
-                    this.SendResult(address, userState, cb, [card]);
+                    cb([card]);
                 });
             }
             else if (command == IntCommands.DONETEACH) {
-
-                let memory = new BlisMemory(userState);
-                let trainSteps = memory.TrainSteps();
-                let msg = "** New Dialog Summary **\n\n";
-                msg += `-----------------------------\n\n`;
-
-                for (let trainstep of trainSteps)
-                {
-                    msg += trainstep.input;
-
-                    if (trainstep.entity)
-                    {
-                        msg += `    _${trainstep.entity}_\n\n`;
-                    }
-                    else
-                    {
-                        msg += "\n\n";
-                    }
-                    for (let api of trainstep.api)
-                    {              
-                        msg += `     {${api}}\n\n`
-                    }
-                    msg += `     ${trainstep.response}\n\n`
-                }
+                let steps = this.TrainStepText(userState);
                 let card = this.MakeHero("", "", "Does this look good?", 
                     { "Save" : IntCommands.SAVETEACH , "Abandon" : IntCommands.FORGETTEACH});
 
-                this.SendResult(address, userState, cb, [msg, card]);
+                cb([steps, card]);
             }
             else 
             {
-                this.SendResult(address, userState, cb, [`_In teaching mode. The only valid command is_ ${IntCommands.DONETEACH}`]);
+                cb([`_In teaching mode. The only valid command is_ ${IntCommands.DONETEACH}`]);
             }
         }
         //-------- Valid not in Teach ------------------//
         else if (command == IntCommands.DELETEDIALOG) {
             this.DeleteTrainDialog(userState, arg, (text) => {
-                this.SendResult(address, userState, cb, [text]);
+                cb([text]);
             });
         }
         else 
-        {
+        {   
             let text = "_Not a valid command._\n\n\n\n" + this.Help(null);
-            this.SendResult(address, userState, cb, [text]);
+            cb([text]);
         }
     }
 
@@ -1215,6 +1237,8 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                     /** Process Label Entity Step */
                     let ProcessLabelEntity = function(ttResponse : TakeTurnResponse, responses: (string | builder.IIsAttachment)[]) : void
                     {
+                        BlisDebug.Verbose("ProcessLabelEntity");
+
                          // Clear memory of last entities that were detected
                         memory.RememberLastStep(SaveStep.ENTITY, null);
 
@@ -1254,8 +1278,8 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                             for (let i in ttResponse.teachLabelEntities)
                             {
                                 let labelEntity = ttResponse.teachLabelEntities[i];
-                                let entityType = memory.EntityId2Name(labelEntity.entityId);
-                                entities += `[$${entityType}: ${labelEntity.entityValue}]    _Score: ${labelEntity.score.toFixed(3)}_\n\n`;
+                                let entityName = memory.EntityId2Name(labelEntity.entityId);
+                                entities += `[$${entityName}: ${labelEntity.entityValue}]    _Score: ${labelEntity.score.toFixed(3)}_\n\n`;
                             }
                             responses.push(entities);
                             memory.RememberLastStep(SaveStep.ENTITY, entities);
@@ -1267,6 +1291,8 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                     /** Process Label Entity Step */
                     let ProcessLabelAction = function(ttResponse : TakeTurnResponse, responses: (string | builder.IIsAttachment)[]) : void
                     {
+                        BlisDebug.Verbose("ProcessLabelEntity");
+
                         // If a SuggestedEntity (i.e. !entity) was in previous bot response, the entity wasn't already assigned
                         // and no different entities were selected by the user, call saveEntity API
                         let lastResponse = memory.LastStep(SaveStep.RESPONSE);
@@ -1285,6 +1311,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                                     {
                                         let userInput = (+i+1).toString(); // Incriment string number
                                         memory.RememberLastStep(SaveStep.RESPONSE, userInput);
+                                        memory.RememberTrainStep(SaveStep.ENTITY,memory.DumpEntities());
                                         that.TakeTurn(userState, userInput, TakeTurnCallback);
                                         return;
                                     }
@@ -1327,6 +1354,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
 
                     let TakeTurnCallback = function(ttResponse : TakeTurnResponse) : void 
                     { 
+                        BlisDebug.Verbose("TakeTurnCallback");
                         let responses: (string | builder.IIsAttachment)[] = [];
                         
                         if (ttResponse.mode == TakeTurnModes.TEACH)
@@ -1374,7 +1402,10 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                         {
                             responses.push(`Don't know mode: ${ttResponse.mode}`);
                         }
-                        that.SendResult(address, userState, cb, responses);
+                        if (responses && responses.length > 0)
+                        {
+                            that.SendResult(address, userState, cb, responses);
+                        }
                     }
 
                     this.SendTyping(address);
@@ -1412,7 +1443,10 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                             });
                     }
                     else if (userInput.startsWith('~')) {
-                        this.HandleIntCommand(userInput, address, userState, cb);
+                        this.HandleIntCommand(userInput, address, userState, (responses : (string|builder.IIsAttachment)[], retrain: boolean) => 
+                            {
+                                this.SendResult(address, userState, cb, responses);
+                            });
                     }
                     else if (userInput.startsWith('#'))
                     {
@@ -1440,6 +1474,8 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     public async TakeTurn(userState : BlisUserState, payload : string | TakeTurnRequest,
             cb: (response : TakeTurnResponse) => void) : Promise<void>
         {
+        BlisDebug.Verbose("TakeTurn");
+
         // Error checking
         if (userState[UserStates.APP]  == null)
         {
@@ -1455,7 +1491,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         }
         else if (!userState[UserStates.SESSION] )
         {
-            let response = this.ErrorResponse("Start the bot first with _!start_ or train more with _!teach_.");
+            let response = this.ErrorResponse("Start the bot first with _!start_ or train more with _!teach_");
             cb(response);
             return;
         }
@@ -1474,8 +1510,6 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         try
         {
             var takeTurnResponse = await this.blisClient.SendTurnRequest(userState, requestBody)
-
-            BlisDebug.LogObject(takeTurnResponse);
 
             // Check that expected mode matches
             if (!takeTurnResponse.mode || expectedNextModes.indexOf(takeTurnResponse.mode) < 0)
@@ -1537,7 +1571,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                         let memory = new BlisMemory(userState);
                         let takeTurnRequest = api(memory, arg);
                         memory.RememberTrainStep(SaveStep.API, `${apiName} ${arg}`);
-                        BlisDebug.Log(`{${apiName} ${arg}}`);
+                        BlisDebug.Verbose(`API: {${apiName} ${arg}}`);
                         expectedNextModes = [TakeTurnModes.ACTION, TakeTurnModes.TEACH];
                         await this.TakeTurn(userState, takeTurnRequest, cb);
                     }
@@ -1561,7 +1595,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     private SaveEntityCB(memory : BlisMemory, arg : string) : TakeTurnRequest
     {
         let lastInput = memory.LastStep(SaveStep.INPUT);
-        let entityId = memory.EntityId2Name(arg);
+        let entityId = memory.EntityName2Id(arg);
         memory.RememberEntity(entityId, lastInput);
         let entityIds = memory.EntityIds();
         return new TakeTurnRequest({entities: entityIds});

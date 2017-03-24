@@ -34,6 +34,7 @@ export const SaveStep =
 
 export const Commands =
 {
+    ABANDON: "!abandon",
     ACTIONS : "!actions",
     ADDENTITY : "!addentity",
     ADDTEXTACTION : "!addtextaction",

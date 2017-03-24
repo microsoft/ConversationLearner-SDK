@@ -31,7 +31,6 @@ export class BlisClient {
         this.credentials = new Credentials(user, secret);
     }
 
-    // TODO: eliminate all uses of .then pattern
     // TODO: switch remaining to not userstate
     public AddAction(appId : string, content : string, actionType : string, requiredEntityList : string[] = [], negativeEntityList : string[] = [], prebuiltEntityName : string = null) : Promise<string>
     {

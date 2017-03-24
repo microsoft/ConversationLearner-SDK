@@ -78,6 +78,11 @@ export class BlisHelp {
         let info = {};
         switch (name)
         {
+            case Commands.ABANDON:
+                return new Command(
+                    name,
+                    "Abandon the current teach dialog",
+                    "",null);
             case Commands.ACTIONS:
                 return new Command(
                     name,
@@ -148,6 +153,11 @@ export class BlisHelp {
                     name,
                     "List Entities on the Application.  If 'Verbose' option provided, include Entity IDs",
                     "{_Verbose_ (Optional)}", null);
+            case Commands.EXPORTAPP:
+                return new Command(
+                    name,
+                    "Export application",
+                    "", null);
             case Commands.HELP:
                 return new Command(
                     name,

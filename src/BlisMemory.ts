@@ -81,9 +81,10 @@ export class BlisMemory {
         return this.userState[UserStates.MEMORY][entityId];
     }
 
+    /** Convert EntityName to EntityId */
     public EntityName2Id(name: string) {
         try {
-            // Made independant of prefix
+            // Make independant of prefix
             name = name.replace('$','');
 
             return this.userState[UserStates.ENTITYLOOKUP][name];
@@ -94,6 +95,7 @@ export class BlisMemory {
         }
     }
 
+    /** Convert EntityId to EntityName */
     public EntityId2Name(id: string) {
         try {
             for (let name in this.userState[UserStates.ENTITYLOOKUP])
@@ -104,6 +106,7 @@ export class BlisMemory {
                     return name;
                 }
             }
+            BlisDebug.Error(`Missing Entity: ${id}`);
             return null;
         }
         catch (error)
@@ -112,7 +115,7 @@ export class BlisMemory {
         }
     }
 
-    // Converst array entity IDs into an array of entity Names
+    /** Convert array entityIds into an array of entityNames */
     public EntityNames(ids: string[]) : string[] {
         let names = [];
         try {
@@ -142,10 +145,10 @@ export class BlisMemory {
         return names;
     }
 
-    /** Remember a EntityId / value */
-    public RememberEntity(entityId: string, value: string) {
+    /** Remember a EntityId - EntityValue pair */
+    public RememberEntity(entityId: string, entityValue: string) {
         try {
-            this.userState[UserStates.MEMORY][entityId] = value;
+            this.userState[UserStates.MEMORY][entityId] = entityValue;
         }
         catch (error)
         {
@@ -153,15 +156,16 @@ export class BlisMemory {
         }
     }  
 
-    // Return array of entityIds for which I've remembered something
+    /** Return array of entityIds for which I've remembered something */
     public EntityIds() : string[]
     {
         return Object.keys(this.userState[UserStates.MEMORY]);
     }
 
-    public ForgetEntity(key: string) {
+    /** Forget the EntityId that I've remembered */
+    public ForgetEntity(entityId: string) {
         try {
-            this.userState[UserStates.MEMORY].delete[key];
+            this.userState[UserStates.MEMORY].delete[entityId];
         }
         catch (error)
         {

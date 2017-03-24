@@ -6,6 +6,7 @@ export class BlisDebug {
     public static address : any;
     public static cache : string = "";
     public static enabled : boolean;
+    public static verbose : boolean = true;
 
     public static InitLogger(bot : builder.UniversalBot)
     {
@@ -40,6 +41,13 @@ export class BlisDebug {
 
     public static Error(text : string) {
         BlisDebug.Log(`ERROR: ${text}`);
+    }
+
+    public static Verbose(text : string) {
+        if (this.verbose)
+        {
+            BlisDebug.Log(`ERROR: ${text}`);
+        }
     }
 
     public static LogObject(obj : any) {

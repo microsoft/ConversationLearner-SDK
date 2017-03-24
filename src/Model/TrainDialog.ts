@@ -151,7 +151,7 @@ export class TrainDialog
     public async toText(client : BlisClient, appId : string) : Promise<string>
     {
         let dialogText = await this.dialog.toText(client, appId);
-        return `**${this.id}**\n\n${dialogText}`;
+        return `${dialogText}`;
     }
 
     public constructor(init?:Partial<TrainDialog>)
