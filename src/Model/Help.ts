@@ -55,7 +55,7 @@ export class BlisHelp {
         return "Sorry. No help for this topic yet.";
     }
 
-    public static CommandHelpString(name : string) : string {
+    public static CommandHelpString(name : string, error? : string) : string {
         let command = this.CommandHelp(name);
         let help = command.description + "\n\n"
         help += `>> ${command.args}\n\n`;
@@ -66,6 +66,9 @@ export class BlisHelp {
             {
                 help += `     ${example}\n\n`;
             }
+        }
+        if (error) {
+            help = `$**{error}**\n\n\n\n${help}`;
         }
         return help;
     }
@@ -150,6 +153,11 @@ export class BlisHelp {
                     name,
                     "List commands or help for a specific command",
                     "{_command_ (optional)}", null);
+            case Commands.IMPORTAPP:
+                return new Command(
+                    name,
+                    "Import application by GUID and merge with current application",
+                    "{_App ID_}", null);
             case Commands.LOADAPP:
                 return new Command(
                     name,

@@ -82,7 +82,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             this.blisCallback = options.blisCallback ? options.blisCallback : this.DefaultBlisCallback;
         }
         catch (error) {
-            BlisDebug.Log(`ERROR: ${error.message}`);
+            BlisDebug.Error(error);
         }
     }
 
@@ -114,19 +114,28 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
 
     private async AddAction(userState : BlisUserState, content : string, actionType : string, cb : (responses : (string | builder.IIsAttachment)[]) => void) : Promise<void>
     {
-       BlisDebug.Log(`AddAction`);
+        BlisDebug.Log(`AddAction`);
 
-       let memory = new BlisMemory(userState);
-
-        if (!content)
-        {   //TODO
-            let msg = `You must provide the ID of the action to delete.\n\n     ${Commands.DELETEACTION} {app ID}`;
-            cb([msg]);
-            return;
+       let error = null;
+        if (content.split(' ').length < 2)
+        {  
+            error = `You must provide content for the action.`;
         }
         if (!actionType)
-        {   //TODO
-            let msg = `You must provide the ID of the action to delete.\n\n     ${Commands.DELETEACTION} {app ID}`;
+        {
+            error = `You must provide the actionType.`;
+        }
+        if (error) 
+        {
+            let msg = null;
+            if (actionType == ActionTypes.API)
+            {
+                msg = BlisHelp.CommandHelpString(Commands.ADDAPIACTION, error);
+            }
+            else
+            {
+                 msg = BlisHelp.CommandHelpString(Commands.ADDTEXTACTION, error);
+            }
             cb([msg]);
             return;
         }
@@ -145,177 +154,178 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         }
         let actionText = (cut > 0) ? content.slice(0,cut-1) : content;
 
-        // Extract negative and positive entities
-        let negIds = [];
-        let posIds = [];
-        let negNames = [];
-        let posNames = [];
-        let saveName = null;
-        let saveId = null;
-        let words = Action.Split(actionText);
-        for (let word of words)
-        {
-            // Add requirement for entity when used for substitution
-            if (word.startsWith('$'))
+        let memory = new BlisMemory(userState);
+
+        try
+        {        
+            // Extract negative and positive entities
+            let negIds = [];
+            let posIds = [];
+            let negNames = [];
+            let posNames = [];
+            let saveName = null;
+            let saveId = null;
+            let words = Action.Split(actionText);
+            for (let word of words)
             {
-                let posName = word.slice(1);
-                if (posNames.indexOf(posName) < 0)
+                // Add requirement for entity when used for substitution
+                if (word.startsWith('$'))
                 {
-                    let posID = memory.EntityId2Name(posName);
-                    if (posID)
+                    let posName = word.slice(1);
+                    if (posNames.indexOf(posName) < 0)
                     {
-                        posIds.push(posID);
-                        posNames.push(posName);
+                        let posID = memory.EntityName2Id(posName);
+                        if (posID)
+                        {
+                            posIds.push(posID);
+                            posNames.push(posName);
+                        }
+                        else
+                        {
+                            cb([`Entity $${posName} not found.`]);
+                            return;
+                        }
                     }
-                    else
+                }
+                // Extract suggested entities
+                else if (word.startsWith('!'))
+                {
+                    // Only allow one suggested entity
+                    if (saveName) 
                     {
-                        cb([`Entity $${posName} not found.`]);
+                        cb([`Only one entity suggestion (denoted by "!_ENTITY_") allowed per Action`]);
+                        return;
+                    } 
+                    if (actionType == ActionTypes.API)
+                    {
+                        cb([`Suggested entities can't be added to API Actions`]);
                         return;
                     }
+                    saveName = word.slice(1);
+                    saveId = memory.EntityName2Id(saveName);
+                    if (!saveId)
+                    {
+                        cb([`Entity $${saveName} not found.`]);
+                        return;
+                    }
+                    // Add to negative entities
+                    if (negNames.indexOf(saveName) < 0)
+                    {
+                        negIds.push(saveId);
+                        negNames.push(saveName);
+                    }
                 }
-            }
-            // Extract suggested entities
-            else if (word.startsWith('!'))
-            {
-                // Only allow one suggested entity
-                if (saveName) 
+                else if (word.startsWith('--'))
                 {
-                    cb([`Only one entity suggestion (denoted by "!_ENTITY_") allowed per Action`]);
-                    return;
-                } 
-                if (actionType == ActionTypes.API)
-                {
-                    cb([`Suggested entities can't be added to API Actions`]);
-                    return;
-                }
-                saveName = word.slice(1);
-                saveId = memory.EntityId2Name(saveName);
-                if (!saveId)
-                {
-                    cb([`Entity $${saveName} not found.`]);
-                    return;
-                }
-                // Add to negative entities
-                if (negNames.indexOf(saveName) < 0)
-                {
-                    negIds.push(saveId);
-                    negNames.push(saveName);
-                }
-            }
-            else if (word.startsWith('--'))
-            {
-                let negName = word.slice(2);
-                let negID = memory.EntityId2Name(negName);
-                if (negID) {
-                    negIds.push(negID);
-                    negNames.push(negName);
-                }  
-                else
-                {
-                    cb([`Entity $${negName} not found.`]);
-                    return;
-                }
-            }
-            else if (word.startsWith('++')) {
-                let posName = word.slice(2);
-                if (posNames.indexOf(posName) < 0)
-                {
-                    let posID = memory.EntityId2Name(posName);
-                    if (posID) {
-                        posIds.push(posID);
-                        posNames.push(posName);
+                    let negName = word.slice(2);
+                    let negID = memory.EntityName2Id(negName);
+                    if (negID) {
+                        negIds.push(negID);
+                        negNames.push(negName);
                     }  
                     else
                     {
-                        cb([`Entity $${posName} not found.`]);
+                        cb([`Entity $${negName} not found.`]);
                         return;
                     }
                 }
+                else if (word.startsWith('++')) {
+                    let posName = word.slice(2);
+                    if (posNames.indexOf(posName) < 0)
+                    {
+                        let posID = memory.EntityName2Id(posName);
+                        if (posID) {
+                            posIds.push(posID);
+                            posNames.push(posName);
+                        }  
+                        else
+                        {
+                            cb([`Entity $${posName} not found.`]);
+                            return;
+                        }
+                    }
+                }
             }
-        }
 
-        // If suggested entity exists create API call for saving item
-        if (saveId) 
+            // If suggested entity exists create API call for saving item
+            if (saveId) 
+            {
+                // Make sure it hasn't aleady been added
+                let saveAPI = memory.APILookup(saveName);
+                if (!saveAPI) {
+                    let apiCall = `${APICalls.SAVEENTITY} ${saveName}`;
+                    // TODO - consider sending neg entity if entity is already set...
+                    let apiActionId = await this.blisClient.AddAction(userState[UserStates.APP], apiCall, ActionTypes.API, [], [saveId])
+                    memory.AddAPILookup(saveName, apiActionId);
+                }
+            }
+
+            let actionId = await this.blisClient.AddAction(userState[UserStates.APP], actionText, actionType, posIds, negIds)
+            let substr = "";
+            if (posIds.length > 0) 
+            {
+                substr += `++[${posNames.toLocaleString()}]\n\n`;
+            }
+            if (negIds.length > 0) 
+            {
+                substr += `--[${negNames.toLocaleString()}]`;
+            }
+            let card = this.MakeHero("Created Action", /* actionId + "\n\n" +*/ substr + "\n\n", actionText, null);
+            cb([card])
+        }
+        catch (error)
         {
-            // Make sure it hasn't aleady been added
-            let saveAPI = memory.APILookup(saveName);
-            if (!saveAPI) {
-                let apiCall = `${APICalls.SAVEENTITY} ${saveName}`;
-                // TODO - consider sending neg entity if entity is already set...
-                await this.blisClient.AddAction(userState[UserStates.APP], apiCall, ActionTypes.API, [], [saveId])
-                    .then((actionId) => 
-                    {
-                        // Remember save API for later
-                        memory.AddAPILookup(saveName, actionId);
-                    })
-                    .catch((error) => 
-                    {
-                        cb([error]);
-                        return;
-                    });
-            }
+            BlisDebug.Error(error);
+            cb(error);
         }
-
-        await this.blisClient.AddAction(userState[UserStates.APP], actionText, actionType, posIds, negIds)
-            .then((actionId) => 
-                {
-                    let substr = "";
-                    if (posIds.length > 0) 
-                    {
-                        substr += `++[${posNames.toLocaleString()}]\n\n`;
-                    }
-                    if (negIds.length > 0) 
-                    {
-                        substr += `--[${negNames.toLocaleString()}]`;
-                    }
-                    let card = this.MakeHero("Created Action", /* actionId + "\n\n" +*/ substr + "\n\n", actionText, null);
-                    cb([card])
-        
-                })
-            .catch((text) => cb([text]));
     }
 
     private async AddEntity(userState : BlisUserState, entityName : string, entityType : string, prebuiltName : string, cb : (responses : (string | builder.IIsAttachment)[]) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Add Entity ${entityName}`);
 
-        if (!entityName)
+        try 
         {
-            let msg = `You must provide an entity name for the entity to create.\n\n     ${Commands.ADDENTITY} {entitiyName} {LUIS | LOCAL} {prebuiltName?}`;
-            cb([msg]);
-            return;
-        }
-        if (!entityType)
-        {
-            let msg = `You must provide an entity type for the entity to create.\n\n     ${Commands.ADDENTITY} {entitiyName} {LUIS | LOCAL} {prebuiltName?}`;
-            cb([msg]);
-            return;
-        }
-        entityType = entityType.toUpperCase();
-        if (entityType != EntityTypes.LOCAL && entityType != EntityTypes.LUIS)
-        {
-            let msg = `Entity type must be 'LOCAL' or 'LUIS'\n\n     ${Commands.ADDENTITY} {entitiyName} {LUIS | LOCAL} {prebuiltName?}`;
-            cb([msg]);
-            return;
-        }
-        if (entityType == EntityTypes.LOCAL && prebuiltName != null)
-        {
-            let msg = `LOCAL entities shouldn't include a prebuilt name\n\n     ${Commands.ADDENTITY} {entitiyName} {LUIS | LOCAL} {prebuiltName?}`;
-            cb([msg]);
-            return;
-        }
+            let error = null;
+            if (!entityName)
+            {  
+                error = `You must provide an entity name for the entity to create.`;
+            }
+            if (!entityType)
+            {
+                error = `You must provide an entity type for the entity to create.`;
+            }
+            if (error) 
+            {
+                let msg = BlisHelp.CommandHelpString(Commands.ADDENTITY, error);
+                cb([msg]);
+                return;
+            }
 
-       await this.blisClient.AddEntity(userState[UserStates.APP], entityName, entityType, prebuiltName)
-        .then((entityId) => 
-        {
+            entityType = entityType.toUpperCase();
+            if (entityType != EntityTypes.LOCAL && entityType != EntityTypes.LUIS)
+            {
+                let msg = `Entity type must be 'LOCAL' or 'LUIS'\n\n     ${Commands.ADDENTITY} {entitiyName} {LUIS | LOCAL} {prebuiltName?}`;
+                cb([msg]);
+                return;
+            }
+            if (entityType == EntityTypes.LOCAL && prebuiltName != null)
+            {
+                let msg = `LOCAL entities shouldn't include a prebuilt name\n\n     ${Commands.ADDENTITY} {entitiyName} {LUIS | LOCAL} {prebuiltName?}`;
+                cb([msg]);
+                return;
+            }
+
+            let entityId = await this.blisClient.AddEntity(userState[UserStates.APP], entityName, entityType, prebuiltName)
             let memory = new BlisMemory(userState);
             memory.AddEntityLookup(entityName, entityId);
             let card = this.MakeHero("Created Entity", entityId, entityName, null);
             cb([card]); 
-        })
-        .catch((text) => 
-            cb([text])
-        );
+        }
+        catch (error) {
+            BlisDebug.Error(error);
+            cb([error]);
+        }
     } 
 
     private async CreateApp(userState : BlisUserState,  appName : string, luisKey, cb : (responses: (string | builder.IIsAttachment)[]) => void) : Promise<void>
@@ -346,14 +356,20 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             return;
         }
 
-        await this.blisClient.CreateApp(appName, luisKey)
-            .then((appId) => 
-            {
-                userState = new BlisUserState(appId);
-                let card = this.MakeHero("Created App", appId, null, {"Help" : Help.NEWAPP});
-                cb([card]);
-            })
-            .catch((text) => cb([text]));
+        try
+        {       
+            let appId = await this.blisClient.CreateApp(appName, luisKey)
+
+            // Initialize
+            Object.assign(userState, new BlisUserState(appId));
+
+            let card = this.MakeHero("Created App", appId, null, {"Help" : Help.NEWAPP});
+            cb([card]);
+        }
+        catch (error) {
+            BlisDebug.Error(error);
+            cb([error]);
+        }
     } 
 
     private DebugHelp() : string
@@ -369,6 +385,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         return text;
     }
 
+    /** Delete Action with the given actionId */
     private async DeleteAction(userState : BlisUserState, actionId : string, cb : (text) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Delete Action`);
@@ -380,38 +397,42 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             return;
         }
 
-        // TODO clear savelookup
-       await this.blisClient.DeleteAction(userState[UserStates.APP], actionId)
-        .then((text) => cb(`Deleted Action ${actionId}`))
-        .catch((text) => cb(text));
+        try
+        {        
+            // TODO clear savelookup
+            await this.blisClient.DeleteAction(userState[UserStates.APP], actionId)
+            cb(`Deleted Action ${actionId}`);
+        }
+        catch (error)
+        {
+            BlisDebug.Error(error);
+            cb(error);
+        }
     }
 
     private async DeleteAllApps(userState : BlisUserState, cb : (text) => void) : Promise<void>
     {
-       BlisDebug.Log(`Trying to Delete All Applications`);
+        BlisDebug.Log(`Trying to Delete All Applications`);
 
-        // Get app ids
-        let appIds = [];
-        let fail = null;
-        await this.blisClient.GetApps()
-            .then((json) => {
-                appIds = JSON.parse(json)['ids'];
-                BlisDebug.Log(`Found ${appIds.length} apps`);
-            })
-            .catch(error => fail = error);
-
-        if (fail) 
+        try
         {
-            BlisDebug.Log(fail);
-            return fail;
-        }
+            // Get app ids
+            let appIds = [];
+            let json = await this.blisClient.GetApps()
+            appIds = JSON.parse(json)['ids'];
+            BlisDebug.Log(`Found ${appIds.length} apps`);
 
-        for (let appId of appIds){
-            await this.blisClient.DeleteApp(userState, appId)
-            .then((text) => BlisDebug.Log(`Deleted ${appId} apps`))
-            .catch((text) => BlisDebug.Log(`Failed to delete ${appId}`));
+            for (let appId of appIds){
+                let text = await this.blisClient.DeleteApp(userState, appId)
+                BlisDebug.Log(`Deleted ${appId} apps`);
+            }
+            cb("Done");
         }
-        cb("Done");
+        catch (error)
+        {
+            BlisDebug.Error(error);
+            cb([error]);
+        }
     }
 
     private async DeleteApp(userState : BlisUserState, appId : string, cb : (text) => void) : Promise<void>
@@ -424,12 +445,15 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             return;
         }
 
-       await this.blisClient.DeleteApp(userState, appId)
-        .then((text) => 
-        {
+        try
+        {       
+            await this.blisClient.DeleteApp(userState, appId)
             cb(`Deleted App ${appId}`)
-        })
-        .catch((text) => cb(text));
+        }
+        catch (error) {
+            BlisDebug.Error(error);
+            cb(error);
+        }
     }
 
     private async DeleteTrainDialog(userState : BlisUserState, dialogId : string, cb : (text) => void) : Promise<void>
@@ -443,231 +467,203 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             return;
         }
 
-        // TODO clear savelookup
-       await this.blisClient.DeleteTrainDialog(userState[UserStates.APP], dialogId)
-        .then((text) => cb(`Deleted TrainDialog ${dialogId}`))
-        .catch((text) => cb(text));
+        try
+        {        
+            // TODO clear savelookup
+            await this.blisClient.DeleteTrainDialog(userState[UserStates.APP], dialogId)
+            cb(`Deleted TrainDialog ${dialogId}`);
+        }
+        catch (error) {
+            BlisDebug.Error(error);
+            cb(error);
+        }
     }
 
     private async EndSession(userState : BlisUserState, cb : (text) => void) : Promise<void>
     {
-        // Ending teaching session
-        await this.blisClient.EndSession(userState)
-        .then(async (sessionId) => {
-            // Update the model
-            await this.blisClient.GetModel(userState)
-            .then((text) => {
-                cb(sessionId)
-            })
-            .catch((error) => 
-            {
-                BlisDebug.Log(error);
-                cb(error)
-            });
-        })
-        .catch((error) => 
+        try
+        {        
+            // Ending teaching session (which trains the model if necessary), update modelId
+            let sessionId = await this.blisClient.EndSession(userState);
+            let modelId = await this.blisClient.GetModel(userState);
+            cb(sessionId);
+        }
+        catch (error)
         {
-            BlisDebug.Log(error);
-            cb(error)
-        });
+            BlisDebug.Error(error);
+            cb(error);
+        }
     }
 
     private async ExportApp(userState : BlisUserState, address : builder.IAddress, cb : (text) => void) : Promise<void>
     {
         BlisDebug.Log(`Exporting App`);
 
-        // Get actions
-        let dialogIds = [];
-        let fail = null;
-        await this.blisClient.ExportApp(userState[UserStates.APP])
-            .then((blisapp) => {
-                let msg = JSON.stringify(blisapp);
-                if (address.channelId == "emulator")
-                {
-                    cb(msg);
-                }
-                else
-                {
-                    this.SendAsAttachment(address, msg);
-                    cb("");
-                }
-            })
-            .catch(error => cb(error));
+        try
+        {        
+            // Get actions
+            let dialogIds = [];
+            let blisapp = await this.blisClient.ExportApp(userState[UserStates.APP])
+            let msg = JSON.stringify(blisapp);
+            if (address.channelId == "emulator")
+            {
+                cb(msg);
+            }
+            else
+            {
+                this.SendAsAttachment(address, msg);
+                cb("");
+            }
+        }
+        catch (error) {
+            BlisDebug.Error(error);
+            cb(error);
+        }
     }
 
     private async GetActions(userState : BlisUserState, detail : string, cb : (text) => void) : Promise<void>
     {
         BlisDebug.Log(`Getting actions`);
 
-        // Get actions
-        let actionIds = [];
-        let fail = null;
-        await this.blisClient.GetActions(userState[UserStates.APP])
-            .then((json) => {
-                actionIds = JSON.parse(json)['ids'];
-                BlisDebug.Log(`Found ${actionIds.length} actions`);
-            })
-            .catch(error => fail = error);
-
-        if (fail) 
-        {
-            BlisDebug.Log(fail);
-            cb(fail);
-        }
-
-        let textactions = "";
-        let apiactions = "";
-        for (let actionId of actionIds)
-        {
-            await this.blisClient.GetAction(userState[UserStates.APP], actionId)
-                .then((action : Action) => {
-                    var memory = new BlisMemory(userState);
-                    let posstring = memory.EntityNames(action.requiredEntities);
-                    let negstring = memory.EntityNames(action.negativeEntities);
-                    let atext = `${action.content}`;
-                    
-                    if (posstring.length > 0) {
-                        atext += `  ++[${posstring}]`;
-                    }
-                    if (negstring.length > 0) {
-                        atext += `  --[${negstring}]`;
-                    }
-                    // Show detail if requested
-                    atext += detail ?  `: _${actionId}_\n\n` : `\n\n`
-
-                    if (action.actionType == ActionTypes.API)
-                    {
-                        apiactions += atext;
-
-                        // Create lookup for saveEntity actions
-                        if (action.content.startsWith(APICalls.SAVEENTITY))
-                        {
-                            let name = Action.Split(action.content)[1];
-                            memory.AddAPILookup(name, actionId);
-                        }
-                    }
-                    else if (action.actionType == ActionTypes.TEXT) 
-                    {
-                        textactions += atext;
-                    }
-                    BlisDebug.Log(`Action lookup: ${action.content} : ${action.actionType}`);
-                })
-                .catch(error => fail = error); 
-        }
-        if (fail) 
-        {
-            BlisDebug.Log(fail);
-            cb(fail);
-        }
-
-        let msg = "";
-        if (apiactions)
+        try
         {   
-            msg += "**API Actions**\n\n" + apiactions;
+            // Get actions
+            let actionIds = [];
+            let json = await this.blisClient.GetActions(userState[UserStates.APP])
+            actionIds = JSON.parse(json)['ids'];
+            BlisDebug.Log(`Found ${actionIds.length} actions`);
+
+            let textactions = "";
+            let apiactions = "";
+            for (let actionId of actionIds)
+            {
+                let action = await this.blisClient.GetAction(userState[UserStates.APP], actionId)
+
+                var memory = new BlisMemory(userState);
+                let posstring = memory.EntityNames(action.requiredEntities);
+                let negstring = memory.EntityNames(action.negativeEntities);
+                let atext = `${action.content}`;
+                
+                if (posstring.length > 0) {
+                    atext += `  ++[${posstring}]`;
+                }
+                if (negstring.length > 0) {
+                    atext += `  --[${negstring}]`;
+                }
+                // Show detail if requested
+                atext += detail ?  `: _${actionId}_\n\n` : `\n\n`
+
+                if (action.actionType == ActionTypes.API)
+                {
+                    apiactions += atext;
+
+                    // Create lookup for saveEntity actions
+                    if (action.content.startsWith(APICalls.SAVEENTITY))
+                    {
+                        let name = Action.Split(action.content)[1];
+                        memory.AddAPILookup(name, actionId);
+                    }
+                }
+                else if (action.actionType == ActionTypes.TEXT) 
+                {
+                    textactions += atext;
+                }
+                BlisDebug.Log(`Action lookup: ${action.content} : ${action.actionType}`);
+            }
+
+            let msg = "";
+            if (apiactions)
+            {   
+                msg += "**API Actions**\n\n" + apiactions;
+            }
+            if (textactions)
+            {   
+                msg += "**TEXT Actions**\n\n" + textactions;
+            }
+            if (!msg) {
+                msg = "This application contains no actions.";
+            }
+            cb(msg);
         }
-        if (textactions)
-        {   
-            msg += "**TEXT Actions**\n\n" + textactions;
+        catch (error)
+        {
+            BlisDebug.Error(error);
+            cb(error);
         }
-        if (!msg) {
-            msg = "This application contains no actions.";
-        }
-        cb(msg);
     }
 
     private async GetApps(cb : (text) => void) : Promise<void>
     {
         BlisDebug.Log(`Getting apps`);
 
-        // Get app ids
-        let appIds = [];
-        let fail = null;
-        await this.blisClient.GetApps()
-            .then((json) => {
-                appIds = JSON.parse(json)['ids'];
-                BlisDebug.Log(`Found ${appIds.length} apps`);
-            })
-            .catch(error => fail = error);
+        try
+        { 
+            // Get app ids
+            let appIds = [];
+            let json = await this.blisClient.GetApps()
+            appIds = JSON.parse(json)['ids'];
+            BlisDebug.Log(`Found ${appIds.length} apps`);
 
-        if (fail) 
-        {
-            BlisDebug.Log(fail);
-            return fail;
-        }
+            let msg = "";
+            for (let appId of appIds)
+            {
+                let ajson = await this.blisClient.GetApp(appId)
+                let name = ajson['app-name'];
+                let id = ajson['model-id'];
+                msg += `${name} : ${id}\n\n`;
+                BlisDebug.Log(`App lookup: ${name} : ${id}`);
+            }
 
-        let msg = "";
-        for (let appId of appIds)
-        {
-            await this.blisClient.GetApp(appId)
-                .then((json) => {
-                    let name = json['app-name'];
-                    let id = json['model-id'];
-                    msg += `${name} : ${id}\n\n`;
-                    BlisDebug.Log(`App lookup: ${name} : ${id}`);
-                })
-                .catch(error => fail = error); 
+            if (!msg) {
+                msg = "This account contains no apps.";
+            }
+            cb(msg);
         }
-        if (fail) 
-        {
-            BlisDebug.Log(fail);
-            return fail;
+        catch (error) {
+            BlisDebug.Error(error);
+            cb(error);
         }
-        if (!msg) {
-            msg = "This account contains no apps.";
-        }
-        cb(msg);
     }
 
     private async GetEntities(userState : BlisUserState, detail : string, cb : (text) => void) : Promise<void>
     {
         BlisDebug.Log(`Getting entities`);
 
-        let entityIds = [];
-        let fail = null;
-        await this.blisClient.GetEntities(userState[UserStates.APP])
-            .then((json) => {
-                entityIds = JSON.parse(json)['ids'];
-                BlisDebug.Log(`Found ${entityIds.length} entities`);
-            })
-            .catch(error => fail = error); 
+        try
+        {        
+            let entityIds = [];
+            let json = await this.blisClient.GetEntities(userState[UserStates.APP])
+            entityIds = JSON.parse(json)['ids'];
+            BlisDebug.Log(`Found ${entityIds.length} entities`);
 
-        if (fail) 
-        {
-            BlisDebug.Log(fail);
-            return fail;
-        }
+            let memory = new BlisMemory(userState);
+            let msg = "**Entities**\n\n";
+            for (let entityId of entityIds)
+            {
+                let entity = await this.blisClient.GetEntity(userState[UserStates.APP], entityId)
 
-        let memory = new BlisMemory(userState);
-        let msg = "**Entities**\n\n";
-        for (let entityId of entityIds)
-        {
-            await this.blisClient.GetEntity(userState[UserStates.APP], entityId)
-                .then((entity) => {
-     
-                    // Add to entity lookup table
-                    memory.AddEntityLookup(entity.name, entityId);
+                // Add to entity lookup table
+                memory.AddEntityLookup(entity.name, entityId);
 
-                    BlisDebug.Log(`Entity lookup: ${entityId} : ${entity.name}`);
-                    if (detail == 'Y') 
-                    {
-                        msg += `$${entity.name} : ${entityId}\n\n`;
-                    } 
-                    else
-                    {
-                        msg += `$${entity.name}\n\n`; 
-                    }
-                })
-                .catch(error => fail = error); 
+                BlisDebug.Log(`Entity lookup: ${entityId} : ${entity.name}`);
+                if (detail == 'Y') 
+                {
+                    msg += `$${entity.name} : ${entityId}\n\n`;
+                } 
+                else
+                {
+                    msg += `$${entity.name}\n\n`; 
+                }
+            }
+            if (!msg) {
+                msg = "This application contains no entities.";
+            }
+            cb(msg);
         }
-        if (fail) 
-        {
-            BlisDebug.Log(fail);
-            return cb(fail);
+        catch (error) {
+            BlisDebug.Error(error);
+            cb(error);
         }
-        if (!msg) {
-            msg = "This application contains no entities.";
-        }
-        cb(msg);
     }
 
     private async GetTrainDialogs(userState : BlisUserState, address : builder.IAddress, searchTerm : string, cb : (text) => void) : Promise<void>
@@ -693,6 +689,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         }
         catch (error)
         {
+            BlisDebug.Error(error);
             cb(error.message);
         }
     }
@@ -732,106 +729,91 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     {
         BlisDebug.Log(`Trying to load Application ${appId}`);
 
-        // TODO - temp debug
-        if (appId == '*')
-        {
-            appId = '0241bae4-ebba-45ca-88b2-2543339c4e6d';
-        }
+        try {
+            // TODO - temp debug
+            if (appId == '*')
+            {
+                appId = '0241bae4-ebba-45ca-88b2-2543339c4e6d';
+            }
 
-        if (!appId)
-        {
-            let msg = `You must provide the ID of the application to load.\n\n     !loadapp {app ID}`;
-            cb(msg);
-            return;
-        }
+            if (!appId)
+            {
+                let msg = `You must provide the ID of the application to load.\n\n     !loadapp {app ID}`;
+                cb(msg);
+                return;
+            }
 
-        // Initialize
-        Object.assign(userState, new BlisUserState(appId));
+            // Initialize
+            Object.assign(userState, new BlisUserState(appId));
 
-        let fail = null;
+            // Validate appId
+            let loadedId = await this.blisClient.GetApp(appId)
+            BlisDebug.Log(`Found App: ${loadedId}`);
 
-        // Validate appId
-        await this.blisClient.GetApp(appId)
-            .then((appId) => {
-                BlisDebug.Log(`Found App: ${appId}`);
-            })
-            .catch(error => fail = error); 
+            // Validate modelId
+            let modelId = await this.blisClient.GetModel(userState)
+            BlisDebug.Log(`Found Model: ${appId}`);
 
-        if (fail) 
-        {
-            BlisDebug.Log(fail);
-            cb(fail);
-            return;
-        }
+            // Train the model if needed
+            if (!userState[UserStates.MODEL])
+            {        
+                BlisDebug.Log(`Training the model...`)    
+                let text = await this.blisClient.TrainModel(userState)
+                BlisDebug.Log(`Model trained: ${text}`);
+            }
 
-        // Validate modelId
-        await this.blisClient.GetModel(userState)
-            .then((appId) => {
-                BlisDebug.Log(`Found Model: ${appId}`);
-            })
-            .catch(error => fail = error); 
+            // Load entities to generate lookup table
+            await this.GetEntities(userState, null, (text) =>
+            {
+                BlisDebug.Log(`Entity lookup generated`);
+            }); 
 
-        if (fail) 
-        {
-            BlisDebug.Log(fail);
-            cb(fail);
-            return;
-        }
+            // Load actions to generate lookup table
+            await this.GetActions(userState, null, (text) =>
+            {
+                BlisDebug.Log(`Action lookup generated`);
+            }); 
 
-        // Train the model if needed
-        if (!userState[UserStates.MODEL])
-        {        
-            BlisDebug.Log(`Training the model...`)    
-            await this.blisClient.TrainModel(userState)
-            .then((text) => BlisDebug.Log(`Model trained: ${text}`))
-            .catch(error => fail = error); 
-        }
-
-        if (fail) 
-        {
-            BlisDebug.Log(fail);
-            cb(fail);
-            return;
-        }
-
-        // Load entities to generate lookup table
-        await this.GetEntities(userState, null, (text) =>
-        {
-           BlisDebug.Log(`Entity lookup generated`);
-        }); 
-
-        if (fail) 
-        {
-            BlisDebug.Log(fail);
-            cb(fail);
-            return;
-        }
-
-        // Load actions to generate lookup table
-        await this.GetActions(userState, null, (text) =>
-        {
-           BlisDebug.Log(`Action lookup generated`);
-        }); 
-
-        if (fail) 
-        {
-            BlisDebug.Log(fail);
-            cb(fail);
-            return;
-        }
-
-        // Create session
-        BlisDebug.Log(`Creating session...`);
-        let sessionId = await this.blisClient.StartSession(userState[UserStates.APP])
-        .then(sessionId => {
+            // Create session
+            BlisDebug.Log(`Creating session...`);
+            let sessionId = await this.blisClient.StartSession(userState[UserStates.APP])
             BlisDebug.Log(`Stared Session: ${appId}`);
             new BlisMemory(userState).StartSession(sessionId, false);
             cb("Application loaded and Session started.");
-        })
-        .catch(error => cb(error));
+        }
+        catch (error)
+        {
+            BlisDebug.Error(error);
+            cb(error);
+        }
     }
 
-    private async ImportApp(userState : BlisUserState, attachment : builder.IAttachment, cb : (text) => void) : Promise<void>
+    /** Import (and merge) application with given appId */
+    private async ImportApp(userState : BlisUserState, appId : string, cb : (text) => void) : Promise<void>
+    {
+        try
+        {
+            // Import application
+            let importApp = await this.blisClient.ExportApp(userState[UserStates.APP]);
+
+            // Merge with new one
+            let mergedApp = await this.blisClient.ImportApp(userState[UserStates.APP], importApp);
+
+            // reload
+            let memory = new BlisMemory(userState);
+            this.LoadApp(userState, memory.AppId(), (text) => {
+                cb(text);
+            });
+        }
+        catch (error)
+        {
+            BlisDebug.Error(error);
+            cb(error.message);
+        }
+    }
+
+    /** Import application from sent attachment */
+    private async ImportAppAttachment(userState : BlisUserState, attachment : builder.IAttachment, cb : (text) => void) : Promise<void>
     {
         if (attachment.contentType != "text/plain")
         {
@@ -839,44 +821,40 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             return;
         }
 
-        var text = await this.ReadFromFile(attachment.contentUrl)
-            .then((text:string) => {
-                try 
-                { 
-                    // Import new training data
-                    let json = JSON.parse(text);
-                    this.blisClient.ImportApp(userState[UserStates.APP], json)
-                        .then(blisapp => 
-                        {
-                            // Reload the app
-                            let memory = new BlisMemory(userState);
-                            this.LoadApp(userState, memory.AppId(), (text) => {
-                                cb(text);
-                            });
-                        })
-                        .catch(error => cb(`Failed to Import App: ${error}`));
-                }
-                catch (error)
-                {
-                    cb(`Failed to Import App: ${error.message}`);
-                }
-            })
-            .catch((text) => cb(text));
+        try 
+        {
+            var text = await this.ReadFromFile(attachment.contentUrl)
+
+            // Import new training data
+            let json = JSON.parse(text);
+            let blisApp = deserialize(BlisApp, json);
+            let newApp = await this.blisClient.ImportApp(userState[UserStates.APP], json)
+            
+            // Reload the app
+            let memory = new BlisMemory(userState);
+            this.LoadApp(userState, memory.AppId(), (text) => {
+                cb(text);
+            });
+        }
+        catch (error) 
+        {
+            BlisDebug.Error(error);
+            cb(text);
+        }
     }
 
     private async NewSession(userState : BlisUserState, teach : boolean, cb : (results : (string | builder.IIsAttachment)[]) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to create new session, Teach = ${teach}`);
 
-       // Close any existing session
-       await this.blisClient.EndSession(userState)
-       .then(sessionId => BlisDebug.Log(`Ended session ${sessionId}`))
-       .catch(error  => BlisDebug.Log(`${error}`));
-       
-       await this.blisClient.StartSession(userState[UserStates.APP], teach)
-        .then((sessionId) => 
-        {
-            new BlisMemory(userState).StartSession(sessionId, false);
+       try {
+            // Close any existing session
+            let endId = await this.blisClient.EndSession(userState);
+            BlisDebug.Log(`Ended session ${endId}`);
+
+            // Start a new session
+            let sessionId = await this.blisClient.StartSession(userState[UserStates.APP], teach);
+            new BlisMemory(userState).StartSession(sessionId, teach);
             BlisDebug.Log(`Started session ${sessionId}`)   
             if (teach)
             {
@@ -886,8 +864,12 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             else {
                 cb([`_Bot started..._`]);
             }
-        })
-        .catch((text) => cb([text]));
+       }
+       catch (error) {
+           BlisDebug.Error(error);
+           userState[UserStates.SESSION] = null;  // Clear the bad session
+           cb([error]);
+       }
     }
 
     private SendTyping(address : any)
@@ -1015,7 +997,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             {
                 let firstSpace = input.indexOf(' ');
                 let start = input.slice(firstSpace+1);
-                this.AddAction(userState[UserStates.APP], start, ActionTypes.API, (responses) => {
+                this.AddAction(userState, start, ActionTypes.API, (responses) => {
                     cb(responses);
                 });
             }
@@ -1023,7 +1005,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             {
                 let firstSpace = input.indexOf(' ');
                 let start = input.slice(firstSpace+1);
-                this.AddAction(userState[UserStates.APP], start, ActionTypes.TEXT, (responses) => {
+                this.AddAction(userState, start, ActionTypes.TEXT, (responses) => {
                     cb(responses);
                 });
             }
@@ -1086,6 +1068,12 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             {
                 cb([this.Help(arg)]);
             }
+            else if (command == Commands.IMPORTAPP)
+            {
+                this.ImportApp(userState[UserStates.APP], arg, (text) => {
+                    cb([text]);
+                });
+            }
             else if (command == Commands.LOADAPP)
             {
                 this.LoadApp(userState, arg, (text) => {
@@ -1134,7 +1122,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         let [command, arg, arg2, arg3] = input.split(' ');
         command = command.toLowerCase();
 
-        //-------- Valid not in Teach ------------------//
+        //-------- Only not in Teach ------------------//
         if (userState[UserStates.TEACH]) {
             if (command == IntCommands.SAVETEACH) {
                 let card = this.MakeHero("Dialog Trained", null, null, {"Start Bot" : Commands.START, "Teach Bot" : Commands.TEACH, "Add Entities & Actions" : Help.NEWAPP});
@@ -1212,7 +1200,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                 if (context.message.attachments && context.message.attachments.length > 0)
                 {
                     this.SendMessage(address, "Importing application...");
-                    this.ImportApp(userState, context.message.attachments[0] ,(text) => {
+                    this.ImportAppAttachment(userState, context.message.attachments[0] ,(text) => {
                         this.SendResult(address, userState, cb, [text]);
                     });
                     return;
@@ -1442,9 +1430,10 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                 }
             });                
         }
-        catch (Error)
+        catch (error)
         {
-            cb(Error, null);
+            BlisDebug.Error(error);
+            cb(error, null);
         }
     }
 
@@ -1482,8 +1471,10 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             requestBody = payload.ToJSON();
         }
 
-        await this.blisClient.SendTurnRequest(userState, requestBody)
-        .then(async (takeTurnResponse) => {
+        try
+        {
+            var takeTurnResponse = await this.blisClient.SendTurnRequest(userState, requestBody)
+
             BlisDebug.LogObject(takeTurnResponse);
 
             // Check that expected mode matches
@@ -1491,6 +1482,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             {
                 var response = new TakeTurnResponse({ mode : TakeTurnModes.ERROR, error: `Unexpected mode ${takeTurnResponse.mode}`} );
                 cb(response);
+                return;
             }
 
             // LUIS CALLBACK
@@ -1512,6 +1504,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             else if (takeTurnResponse.mode == TakeTurnModes.TEACH)
             {
                 cb(takeTurnResponse);
+                return;
             }
 
             // ACTION
@@ -1522,6 +1515,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                 if (action.actionType == ActionTypes.TEXT)
                 {
                     cb(takeTurnResponse);
+                    return;
                 }
                 else if (action.actionType == ActionTypes.API)
                 {
@@ -1554,11 +1548,11 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                     }
                 }
             }
-        })
-        .catch((text) => {
-            var response = this.ErrorResponse(text);
-            cb(response);
-        });
+        }
+        catch (error) {
+            BlisDebug.Error(error);
+            cb(error);
+        }
     }
 
     //====================================================

@@ -33,7 +33,7 @@ export class Entity
         }
         catch (error)
         {
-            BlisDebug.Log(`ERROR: ${error}`);
+            BlisDebug.Error(error);
             throw(error);
         }
     }

@@ -36,9 +36,9 @@ export class BlisMemory {
         try {
             return this.userState[UserStates.SAVELOOKUP][entityName];
         }
-        catch (Error)
+        catch (error)
         {
-            BlisDebug.Log(Error);
+            BlisDebug.Error(error);
         }
     }
 
@@ -50,9 +50,9 @@ export class BlisMemory {
         try {
             this.userState[UserStates.SAVELOOKUP][entityName] = null;
         }
-        catch (Error)
+        catch (error)
         {
-             BlisDebug.Log(Error);
+             BlisDebug.Error(error);
         }  
     }
 
@@ -64,9 +64,9 @@ export class BlisMemory {
         try {
             this.userState[UserStates.ENTITYLOOKUP][entityName] = null;
         }
-        catch (Error)
+        catch (error)
         {
-             BlisDebug.Log(Error);
+             BlisDebug.Error(error);
         }  
     }
 
@@ -88,9 +88,9 @@ export class BlisMemory {
 
             return this.userState[UserStates.ENTITYLOOKUP][name];
         }
-        catch (Error)
+        catch (error)
         {
-            BlisDebug.Log(Error);
+            BlisDebug.Error(error);
         }
     }
 
@@ -106,9 +106,9 @@ export class BlisMemory {
             }
             return null;
         }
-        catch (Error)
+        catch (error)
         {
-            BlisDebug.Log(Error);
+            BlisDebug.Error(error);
         }
     }
 
@@ -131,13 +131,13 @@ export class BlisMemory {
                 if (!found)
                 {
                     names.push("{UNKNOWN}");
-                    BlisDebug.Log(`Missing entity name: ${id}`);
+                    BlisDebug.Error(`Missing entity name: ${id}`);
                 }        
             }
         }
-        catch (Error)
+        catch (error)
         {
-            BlisDebug.Log(Error);
+            BlisDebug.Error(error);
         }
         return names;
     }
@@ -147,9 +147,9 @@ export class BlisMemory {
         try {
             this.userState[UserStates.MEMORY][entityId] = value;
         }
-        catch (Error)
+        catch (error)
         {
-            BlisDebug.Log(Error);
+            BlisDebug.Error(error);
         }
     }  
 
@@ -163,9 +163,9 @@ export class BlisMemory {
         try {
             this.userState[UserStates.MEMORY].delete[key];
         }
-        catch (Error)
+        catch (error)
         {
-             BlisDebug.Log(Error);
+             BlisDebug.Error(error);
         }  
     }
 

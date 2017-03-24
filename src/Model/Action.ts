@@ -55,7 +55,7 @@ export class Action
         }
         catch (error)
         {
-            BlisDebug.Log(`ERROR: ${error}`);
+            BlisDebug.Error(error);
             throw(error);
         }
     }

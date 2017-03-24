@@ -38,6 +38,10 @@ export class BlisDebug {
         console.log(text);
     }
 
+    public static Error(text : string) {
+        BlisDebug.Log(`ERROR: ${text}`);
+    }
+
     public static LogObject(obj : any) {
         this.Log(JSON.stringify(obj));
     }
