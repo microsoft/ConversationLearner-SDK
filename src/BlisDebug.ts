@@ -46,7 +46,7 @@ export class BlisDebug {
     public static Verbose(text : string) {
         if (this.verbose)
         {
-            BlisDebug.Log(`ERROR: ${text}`);
+            BlisDebug.Log(`${text}`);
         }
     }
 

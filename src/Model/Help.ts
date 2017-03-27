@@ -68,7 +68,7 @@ export class BlisHelp {
             }
         }
         if (error) {
-            help = `$**{error}**\n\n\n\n${help}`;
+            help = `**${error}**\n\n\n\n${help}`;
         }
         return help;
     }

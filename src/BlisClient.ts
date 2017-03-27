@@ -1,5 +1,5 @@
 const request = require('request');
-import { deserialize } from 'json-typescript-mapper';
+import { deserialize, serialize } from 'json-typescript-mapper';
 import { Credentials } from './Http/Credentials';
 import { LuisEntity } from './Model/LuisEntity';
 import { Action } from './Model/Action'
@@ -57,7 +57,7 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(body.message);
+                        reject(body);
                     }
                     else {
                         resolve(body.id);
@@ -91,7 +91,7 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(body.message);
+                        reject(body);
                     }
                     else {
                         resolve(body.id);
@@ -124,7 +124,7 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(body.message);
+                        reject(body);
                     }
                     else {
                         var appId = body.id;
@@ -221,7 +221,7 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(body.message);
+                        reject(body);
                     }
                     else {
                         resolve(body);
@@ -231,15 +231,15 @@ export class BlisClient {
         )
     }
 
-    public EndSession(userState : BlisUserState, ) : Promise<string>
+    public EndSession(appId : string, sessionId : string) : Promise<string>
     {
-        BlisDebug.Log(`Deleting existing session ${userState[UserStates.SESSION]}`);
-        let apiPath = `app/${userState[UserStates.APP]}/session2/${userState[UserStates.SESSION]}`;
+        BlisDebug.Log(`Deleting existing session ${sessionId}`);
+        let apiPath = `app/${appId}/session2/${sessionId}`;
 
         return new Promise(
             (resolve, reject) => {
                 
-                if (!userState[UserStates.SESSION])
+                if (!sessionId)
                 {
                     resolve("No Session");
                     return;
@@ -258,7 +258,6 @@ export class BlisClient {
                         reject(JSON.parse(body).message);
                     }
                     else {
-                        new BlisMemory(userState).EndSession();
                         resolve(body.id);
                     }
                 });
@@ -285,7 +284,7 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(body.message);
+                        reject(body);
                     }
                     else {
                         var blisApp = deserialize(BlisApp, body);
@@ -350,7 +349,7 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(body.message);
+                        reject(body);
                     }
                     else {
                         var action = deserialize(Action, body);
@@ -444,7 +443,7 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(body.message);
+                        reject(body);
                     }
                     else {
                         var entity = deserialize(Entity, body);
@@ -484,12 +483,9 @@ export class BlisClient {
         )
     }
 
-    public GetModel(userState : BlisUserState) : Promise<string>
-    {
-        // Clear existing modelId
-        userState[UserStates.MODEL]  = null;
-        
-        let apiPath = `app/${userState[UserStates.APP]}/model`;
+    public GetModel(appId : string) : Promise<string>
+    {  
+        let apiPath = `app/${appId}/model`;
         return new Promise(
             (resolve, reject) => {
                const requestData = {
@@ -505,11 +501,10 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(body.message);
+                        reject(body);
                     }
                     else {
                         let modelId = body.ids[0];
-                        userState[UserStates.MODEL]  = modelId;
                         resolve(modelId);
                     }
                 });
@@ -585,7 +580,7 @@ export class BlisClient {
                         'Cookie' : this.credentials.Cookiestring()
                     },
                     json: true,
-                    body: blisApp
+                    body: serialize(blisApp)   
                 }
 
                 request.post(requestData, (error, response, body) => {
@@ -593,7 +588,7 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(body.message);
+                        reject(body);
                     }
                     else {
                         var blisApp = deserialize(BlisApp, body);
@@ -622,7 +617,7 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(body.message);
+                        reject(body);
                     }
                     else {
                         if (typeof body === "string") {
@@ -659,7 +654,7 @@ export class BlisClient {
                         reject(error.message);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(body.message);
+                        reject(body);
                     }
                     else {
                         let sessionId = body.id;                      
@@ -695,7 +690,7 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(body.message);
+                        reject(body);
                     }
                     else {
                         let modelId = body.id;
@@ -726,7 +721,7 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(body.message);
+                        reject(body);
                     }
                     else {
                         if (typeof body === "string") {

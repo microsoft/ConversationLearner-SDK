@@ -15,8 +15,8 @@ export class BlisApp
     @JsonProperty({clazz: TrainDialog, name: 'traindialogs'})
     public trainDialogs : TrainDialog[];
 
-    @JsonProperty({clazz: TrainDialog, name: 'blis-app-version'})
-    public appVersion : string[];
+    @JsonProperty('blis-app-version')
+    public appVersion : string;
 
     public constructor(init?:Partial<BlisApp>)
     {
