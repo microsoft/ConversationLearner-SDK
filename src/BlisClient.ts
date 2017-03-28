@@ -202,6 +202,33 @@ export class BlisClient {
         )
     }
 
+    public DeleteEntity(appId : string, entityId : string) : Promise<string>
+    {
+        let apiPath = `app/${appId}/entity/${entityId}`;
+
+        return new Promise(
+            (resolve, reject) => {
+                let url = this.serviceUri+apiPath;
+                const requestData = {
+                    headers: {
+                        'Cookie' : this.credentials.Cookiestring()
+                    }
+                }
+                request.delete(url, requestData, (error, response, body) => {
+                    if (error) {
+                        reject(error);
+                    }
+                    else if (response.statusCode >= 300) {
+                        reject(JSON.parse(body).message);
+                    }
+                    else {
+                        resolve(body.id);
+                    }
+                });
+            }
+        )
+    }
+
     public DeleteTrainDialog(appId : string, dialogId : string) : Promise<string>
     {
         let apiPath = `app/${appId}/traindialog/${dialogId}`;

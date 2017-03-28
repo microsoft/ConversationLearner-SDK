@@ -46,6 +46,7 @@ export const Commands =
     DELETEACTION : "!deleteaction",
     DELETEALLAPPS: "!deleteallapps",
     DELETEAPP : "!deleteapp",
+    DELETEENTITY : "!deleteentity",
     DUMP : "!dump",
     ENTITIES : "!entities",
     EXPORTAPP : "!exportapp",
@@ -70,6 +71,14 @@ export const IntCommands =
 export const APICalls =
 {
     SAVEENTITY : "saveEntity"
+}
+
+export const ActionCommand =
+{
+    SUGGEST : "*",
+    REQUIRE : "++",
+    BLOCK : "--",
+    SUBSTITUTE: "$"
 }
 
 export const Help =

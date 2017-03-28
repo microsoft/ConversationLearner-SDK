@@ -143,6 +143,11 @@ export class BlisHelp {
                     name,
                     "!!WARNING!! Delete all Applications associated with this BLIS account",
                     "", null);
+            case Commands.DELETEENTITY:
+                return new Command(
+                    name,
+                    "Delete an entity on current app",
+                    "{_entityId_}", null);
             case Commands.DUMP:
                 return new Command(
                     name,

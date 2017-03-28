@@ -1,6 +1,7 @@
 import { JsonProperty } from 'json-typescript-mapper';
 import { BlisClient } from '../BlisClient';
 import { BlisDebug} from '../BlisDebug';
+import { ActionCommand} from './Consts'
 
 export class Action
 { 
@@ -36,7 +37,7 @@ export class Action
         let words = this.Split(action);
         for (let word of words) 
         {
-            if (word.startsWith("!"))
+            if (word.startsWith(ActionCommand.SUGGEST))
             {
                 // Key is in form of $entityName
                 let entityName = word.substr(1, word.length-1);
@@ -61,6 +62,6 @@ export class Action
     }
 
     public static Split(action : string) : string[] {
-        return action.split(/[\s,:.?]+/);
+        return action.split(/[\s,:.?!]+/);
     }
 }

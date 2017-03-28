@@ -12,7 +12,7 @@ import { LuisEntity } from './Model/LuisEntity';
 import { Action } from './Model/Action';
 import { LabelEntity } from './Model/LabelEntity';
 import { LabelAction } from './Model/LabelAction';
-import { TakeTurnModes, EntityTypes, UserStates, TeachStep, Commands, IntCommands, ActionTypes, SaveStep, APICalls } from './Model/Consts';
+import { TakeTurnModes, EntityTypes, UserStates, TeachStep, Commands, IntCommands, ActionTypes, SaveStep, APICalls, ActionCommand } from './Model/Consts';
 import { BlisHelp, Help } from './Model/Help'; 
 import { TakeTurnResponse } from './Model/TakeTurnResponse'
 
@@ -136,8 +136,8 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         }
 
         // Strip action of any positive and negative entities
-        let firstNeg = content.indexOf('--');
-        let firstPos = content.indexOf('++');
+        let firstNeg = content.indexOf(ActionCommand.BLOCK);
+        let firstPos = content.indexOf(ActionCommand.REQUIRE);
         let cut = 0;
         if (firstNeg > 0 && firstPos > 0)
         {
@@ -160,13 +160,13 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             let posNames = [];
             let saveName = null;
             let saveId = null;
-            let words = Action.Split(actionText);
+            let words = Action.Split(content);
             for (let word of words)
             {
                 // Add requirement for entity when used for substitution
-                if (word.startsWith('$'))
+                if (word.startsWith(ActionCommand.SUBSTITUTE))
                 {
-                    let posName = word.slice(1);
+                    let posName = word.slice(ActionCommand.SUBSTITUTE.length);
                     if (posNames.indexOf(posName) < 0)
                     {
                         let posID = memory.EntityName2Id(posName);
@@ -183,7 +183,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                     }
                 }
                 // Extract suggested entities
-                else if (word.startsWith('!'))
+                else if (word.startsWith(ActionCommand.SUGGEST))
                 {
                     // Only allow one suggested entity
                     if (saveName) 
@@ -198,7 +198,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                         cb([error]);
                         return;
                     }
-                    saveName = word.slice(1);
+                    saveName = word.slice(ActionCommand.SUGGEST.length);
                     saveId = memory.EntityName2Id(saveName);
                     if (!saveId)
                     {
@@ -213,9 +213,9 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                         negNames.push(saveName);
                     }
                 }
-                else if (word.startsWith('--'))
+                else if (word.startsWith(ActionCommand.BLOCK))
                 {
-                    let negName = word.slice(2);
+                    let negName = word.slice(ActionCommand.BLOCK.length);
                     let negID = memory.EntityName2Id(negName);
                     if (negID) {
                         negIds.push(negID);
@@ -228,8 +228,8 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                         return;
                     }
                 }
-                else if (word.startsWith('++')) {
-                    let posName = word.slice(2);
+                else if (word.startsWith(ActionCommand.REQUIRE)) {
+                    let posName = word.slice(ActionCommand.REQUIRE.length);
                     if (posNames.indexOf(posName) < 0)
                     {
                         let posID = memory.EntityName2Id(posName);
@@ -263,11 +263,11 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             let substr = "";
             if (posIds.length > 0) 
             {
-                substr += `++[${posNames.toLocaleString()}]\n\n`;
+                substr += `${ActionCommand.REQUIRE}[${posNames.toLocaleString()}]\n\n`;
             }
             if (negIds.length > 0) 
             {
-                substr += `--[${negNames.toLocaleString()}]`;
+                substr += `${ActionCommand.BLOCK}[${negNames.toLocaleString()}]`;
             }
             let card = this.MakeHero("Created Action", /* actionId + "\n\n" +*/ substr + "\n\n", actionText, null);
             cb([card])
@@ -462,6 +462,32 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         }
     }
 
+    /** Delete Entity with the given entityId */
+    private async DeleteEntity(userState : BlisUserState, entityId : string, cb : (text) => void) : Promise<void>
+    {
+       BlisDebug.Log(`Trying to Delete Entity`);
+
+        if (!entityId)
+        {
+            let msg = `You must provide the ID of the entity to delete.\n\n     ${Commands.DELETEENTITY} {app ID}`;
+            cb(msg);
+            return;
+        }
+
+        try
+        {        
+            // TODO clear savelookup
+            await this.blisClient.DeleteEntity(userState[UserStates.APP], entityId)
+            cb(`Deleted Entity ${entityId}`);
+        }
+        catch (error)
+        {
+            let errMsg = this.ErrorString(error);
+            BlisDebug.Error(errMsg);
+            cb(errMsg);
+        }
+    }
+
     private async DeleteTrainDialog(userState : BlisUserState, dialogId : string, cb : (text) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Delete Training Dialog`);
@@ -532,7 +558,8 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         }
     }
 
-    private async GetActions(userState : BlisUserState, detail : string, cb : (text) => void) : Promise<void>
+    /** Get actions.  Return count of actions */
+    private async GetActions(userState : BlisUserState, detail : string, cb : (text) => void) : Promise<number>
     {
         BlisDebug.Log(`Getting actions`);
 
@@ -556,10 +583,10 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                 let atext = `${action.content}`;
                 
                 if (posstring.length > 0) {
-                    atext += `  ++[${posstring}]`;
+                    atext += `  ${ActionCommand.REQUIRE}[${posstring}]`;
                 }
                 if (negstring.length > 0) {
-                    atext += `  --[${negstring}]`;
+                    atext += `  ${ActionCommand.BLOCK}[${negstring}]`;
                 }
                 // Show detail if requested
                 atext += detail ?  `: _${actionId}_\n\n` : `\n\n`
@@ -595,6 +622,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                 msg = "This application contains no actions.";
             }
             cb(msg);
+            return actionIds.length;
         }
         catch (error)
         {
@@ -660,19 +688,13 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             for (let entityId of entityIds)
             {
                 let entity = await this.blisClient.GetEntity(userState[UserStates.APP], entityId)
+                msg += `${entity.name}`;
 
                 // Add to entity lookup table
                 memory.AddEntityLookup(entity.name, entityId);
 
-                BlisDebug.Log(`Entity lookup: ${entityId} : ${entity.name}`);
-                if (detail == 'Y') 
-                {
-                    msg += `$${entity.name} : ${entityId}\n\n`;
-                } 
-                else
-                {
-                    msg += `$${entity.name}\n\n`; 
-                }
+                // Show detail if requested
+                msg += detail ?  `: _${entityId}_\n\n` : `\n\n`
             }
             if (!msg) {
                 msg = "This application contains no entities.";
@@ -800,6 +822,23 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             let loadedId = await this.blisClient.GetApp(appId)
             BlisDebug.Log(`Loaded App: ${loadedId}`);
 
+            // Load entities to generate lookup table
+            await this.GetEntities(userState, null, (text) =>
+            {
+                BlisDebug.Log(`Entity lookup generated`);
+            }); 
+
+            // Load actions to generate lookup table
+            let numActions = await this.GetActions(userState, null, (text) =>
+            {
+                BlisDebug.Log(`Action lookup generated`);
+            }); 
+
+            if (numActions == 0)
+            {
+                cb("Application loaded.  No Actions found.");
+                return;
+            }
             // Load or train a new modelId
             let modelId = await this.blisClient.GetModel(userState[UserStates.APP]);
             if (!userState[UserStates.MODEL])
@@ -810,18 +849,6 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             }
             BlisDebug.Log(`Loaded Model: ${modelId}`);
             userState[UserStates.MODEL]  = modelId;
-
-            // Load entities to generate lookup table
-            await this.GetEntities(userState, null, (text) =>
-            {
-                BlisDebug.Log(`Entity lookup generated`);
-            }); 
-
-            // Load actions to generate lookup table
-            await this.GetActions(userState, null, (text) =>
-            {
-                BlisDebug.Log(`Action lookup generated`);
-            }); 
 
             // Create session
             BlisDebug.Log(`Creating session...`);
@@ -838,17 +865,93 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         }
     }
 
+    /** Swap matched entities in swapList */
+    private SwapEntities(entityIds : string[], swapList : {})
+    {
+        if (Object.keys(swapList).length == 0)
+        {
+            return entityIds;
+        }
+        let swappedEntities = [];
+        for (let entityId in entityIds)
+        {
+            if (swapList[entityId])
+            {
+                swappedEntities.push(swapList[entityId]);
+            }
+            else
+            {
+                swappedEntities.push(entityId);
+            }
+        }
+        return swappedEntities;
+    }
+    /** Merge entites */
+    private MergeEntities(app1 : BlisApp, app2 : BlisApp) : BlisApp
+    {
+        // Find duplicate entities, use originals from app1
+        let mergedEntities = [];
+        let swapList = {};
+        for (let entity2 of app2.entities)
+        {
+            let swap = false;
+            for (let entity1 of app1.entities)
+            {
+                // If entity name is same, use original entity
+                if (entity1.name == entity2.name) 
+                {
+                    if ((entity1.entityType == entity2.entityType) &&
+                        (entity2.luisPreName == entity2.luisPreName))
+                    {
+                        mergedEntities.push(entity1);
+                        swapList[entity2.id] = entity1.id;
+                        swap = true;
+                        break;
+                    }
+                }
+            }
+            if (!swap) {
+                mergedEntities.push(entity2);
+            }
+        }
+        app2.entities = mergedEntities;
+
+        // Make sure all other entity references are correct
+        for (let action of app2.actions)
+        {
+            // Swap entities
+            action.negativeEntities = this.SwapEntities(action.negativeEntities, swapList);
+            action.requiredEntities = this.SwapEntities(action.requiredEntities, swapList);
+        }
+        
+        // Now swap entities for training dialogs
+        for (let trainDialog of app2.trainDialogs)
+        {
+            for (let turn of trainDialog.dialog.turns)
+            {
+                turn.input.entityIds = this.SwapEntities(turn.input.entityIds, swapList);
+            }       
+        }
+        return app2;
+    }
+
     /** Import (and merge) application with given appId */
     private async ImportApp(userState : BlisUserState, address : builder.IAddress, appId : string, cb : (text) => void) : Promise<void>
     {
         this.SendMessage(address, "Importing app...");
         try
         {
-            // Get imported app
-            let importApp = await this.blisClient.ExportApp(appId);
+            // Get current app
+            let currentApp = await this.blisClient.ExportApp(userState[UserStates.APP]);
 
-            // Merge with new one
-            let mergedApp = await this.blisClient.ImportApp(userState[UserStates.APP], importApp);
+            // Get imported app
+            let mergeApp = await this.blisClient.ExportApp(appId);
+
+            // Merge any duplicate entities
+            mergeApp = this.MergeEntities(currentApp, mergeApp);
+
+            // Upload merged app to currentApp
+            let finalApp = await this.blisClient.ImportApp(userState[UserStates.APP], mergeApp);
 
             // reload
             let memory = new BlisMemory(userState);
@@ -1128,6 +1231,12 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                     cb( [text]);
                 });
             }
+            else if (command == Commands.DELETEENTITY)
+            {
+                this.DeleteEntity(userState, arg, (text) => {
+                    cb([text]);
+                });
+            }
             else if (command == Commands.EXPORTAPP)
             {
                 this.ExportApp(userState, address, (text) => {
@@ -1155,19 +1264,10 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             else if (command == Commands.TEACH)
             {
                 let memory = new BlisMemory(userState);
-
-                if (memory.HasEntities()) 
-                {
-                    memory.ClearTrainSteps();
-                    this.NewSession(userState, true, (results) => {
-                        cb(results);
-                    });
-                }
-                else 
-                {
-                    let card = this.MakeHero("", "", "First define some Entities", {"Help" : Help.NEWAPP});
-                    cb([card]);
-                }
+                memory.ClearTrainSteps();
+                this.NewSession(userState, true, (results) => {
+                    cb(results);
+                });
             }
             else if (command == Commands.TRAINDIALOGS)
             {
@@ -1315,7 +1415,14 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                     {
                         BlisDebug.Verbose("ProcessLabelEntity");
 
-                        // If a SuggestedEntity (i.e. !entity) was in previous bot response, the entity wasn't already assigned
+                        // If app contains no entities, LabelEntity skip is stepped, so input must still be saved
+                        if (userInput) 
+                        {
+                            memory.RememberTrainStep(SaveStep.INPUT, userInput);
+                            memory.RememberLastStep(SaveStep.INPUT,userInput);
+                        }
+
+                        // If a SuggestedEntity (i.e. *entity) was in previous bot response, the entity wasn't already assigned
                         // and no different entities were selected by the user, call saveEntity API
                         let lastResponse = memory.LastStep(SaveStep.RESPONSE);
                         let entities = memory.LastStep(SaveStep.ENTITY);
