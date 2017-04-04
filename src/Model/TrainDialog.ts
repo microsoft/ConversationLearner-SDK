@@ -1,6 +1,12 @@
+import * as builder from 'botbuilder';
 import { JsonProperty } from 'json-typescript-mapper';
-import { BlisUserState } from '../BlisUserState';
+import { BlisHelp, Help } from '../Model/Help'; 
+import { BlisUserState} from '../BlisUserState';
+import { BlisDebug} from '../BlisDebug';
 import { BlisClient } from '../BlisClient';
+import { TakeTurnModes, EntityTypes, UserStates, TeachStep, Commands, IntCommands, ActionTypes, SaveStep, APICalls, ActionCommand } from '../Model/Consts';
+import { BlisMemory } from '../BlisMemory';
+import { Utils } from '../Utils';
 import { Action } from './Action';
 import { Entity } from './Entity';
 
@@ -59,14 +65,25 @@ export class Input
     public async toText(client : BlisClient, appId : string) : Promise<string>
     {
         // TODO = add masked-actions and context
-        let text = `${this.text}`;
-        for (let entityId of this.entityIds)
+        if (this.text)
         {
-            let entityName = await Entity.toText(client, appId, entityId)
-            let entityValue = this.EntityValue(entityId);
-            text += ` [${entityName} ${entityValue}]`;
+            let text = `${this.text}`;
+            for (let entityId of this.entityIds)
+            {
+                let entityName = await Entity.toText(client, appId, entityId)
+                let entityValue = this.EntityValue(entityId);
+                if (entityValue)
+                {
+                    text += ` [${entityName} ${entityValue}]`;
+                }
+                else
+                {
+                    text += ` [${entityName}]`;
+                }       
+            }
+            return text;
         }
-        return text;
+        return null;
     }
 
     private EntityValue(entityId)
@@ -105,8 +122,11 @@ export class Turn
     {
         let inputText = await this.input.toText(client, appId);
         let actionText = await Action.toText(client, appId, this.actionId);
-        let text = `${inputText}\n\n     ${actionText}`;
-        return text;
+        if (inputText)
+        {
+            return `${inputText}\n\n     ${actionText}`;
+        }
+        return `     ${actionText}`
     }
 
     public constructor(init?:Partial<Turn>) 
@@ -159,6 +179,60 @@ export class TrainDialog
         this.id = undefined;
         this.dialog = undefined;
         (<any>Object).assign(this, init);
+    }
+    
+    public static async Delete(blisClient : BlisClient, userState : BlisUserState, dialogId : string, cb : (text) => void) : Promise<void>
+    {
+       BlisDebug.Log(`Trying to Delete Training Dialog`);
+
+        if (!dialogId)
+        {
+            let msg = `You must provide the ID of the dialog to delete.\n\n     ${IntCommands.DELETEDIALOG} {dialogId}`;
+            cb(msg);
+            return;
+        }
+
+        try
+        {        
+            // TODO clear savelookup
+            await blisClient.DeleteTrainDialog(userState[UserStates.APP], dialogId)
+            cb(`Deleted TrainDialog ${dialogId}`);
+        }
+        catch (error) {
+            let errMsg = Utils.ErrorString(error);
+            BlisDebug.Error(errMsg);
+            cb(errMsg);
+        }
+    }
+
+    public static async Get(blisClient : BlisClient, userState : BlisUserState, 
+        address : builder.IAddress, searchTerm : string, cb : (text) => void) : Promise<void>
+    {
+        try 
+        {
+            let blisApp = await blisClient.ExportApp(userState[UserStates.APP]);
+            let dialogs = await blisApp.FindTrainDialogs(blisClient, userState[UserStates.APP], searchTerm);
+
+            if (dialogs.length == 0)
+            {
+                cb(["No maching dialogs found."]);
+                return;
+            }
+            // Add delete buttons
+            let responses = [];
+            for (let dialog of dialogs) {
+                responses.push(dialog.text);
+                responses.push(Utils.MakeHero(null, dialog.dialogId, null, { "Delete" : `${IntCommands.DELETEDIALOG} ${dialog.dialogId}`}));
+            }
+
+            cb(responses);
+        }
+        catch (error)
+        {
+            let errMsg = Utils.ErrorString(error);
+            BlisDebug.Error(errMsg);
+            cb(errMsg);
+        }
     }
 }
     

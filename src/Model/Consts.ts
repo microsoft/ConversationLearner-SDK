@@ -48,6 +48,8 @@ export const Commands =
     DELETEAPP : "!deleteapp",
     DELETEENTITY : "!deleteentity",
     DUMP : "!dump",
+    EDITACTION : "!editaction",
+    EDITENTITY : "!editentity",
     ENTITIES : "!entities",
     EXPORTAPP : "!exportapp",
     HELP : "!help",
@@ -61,8 +63,11 @@ export const Commands =
 // Internal commands. (Not for user)
 export const IntCommands =
 {
+    DELETEAPP : '~deleteapp',
     DELETEDIALOG : '~deletedialog',
     DONETEACH : "~doneteach",
+    EDITACTION : "~editaction",
+    EDITENTITY : "~editentity",
     FORGETTEACH : "~forgetteach",
     SAVETEACH: "~saveteach",
 }
@@ -78,7 +83,8 @@ export const ActionCommand =
     SUGGEST : "*",
     REQUIRE : "++",
     BLOCK : "--",
-    SUBSTITUTE: "$"
+    SUBSTITUTE: "$",
+    BUCKET: "#"
 }
 
 export const Help =
@@ -96,6 +102,8 @@ export const UserStates =
     MEMORY: "MEMORY",
     ENTITYLOOKUP: "ENTITYLOOKUP",
     LASTSTEP: "LASTSTEP", 
-    SAVELOOKUP: "SAVELOOKUP",           // ENTITY NAME -> SAVE API ACTION ID 
-    TRAINSTEPS: "TRAINSTEPS"
+    APILOOKUP: "APILOOKUP",           // ENTITY NAME -> SAVE API ACTION ID 
+    CURSTEP: "CURSTEP", 
+    TRAINSTEPS: "TRAINSTEPS",
+    EDITCOMMAND: "EDITCOMMAND"
 }

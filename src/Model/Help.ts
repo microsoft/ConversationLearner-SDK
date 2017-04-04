@@ -153,6 +153,16 @@ export class BlisHelp {
                     name,
                     "Show the current state of the Application",
                     "", null);
+            case Commands.EDITACTION:
+                return new Command(
+                    name,
+                    "Edit an action on current app",
+                    "{_actionId_} {_Action Text_} --{Entity that blocks action} ++{Entity required for action}", null);
+            case Commands.EDITENTITY:
+                return new Command(
+                    name,
+                    "Edit an entity on current app",
+                    "{_entityId_} {_entitiyName_} {_LUIS | LOCAL_} {_prebuildName?_}", null);
             case Commands.ENTITIES:
                 return new Command(
                     name,

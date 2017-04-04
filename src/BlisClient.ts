@@ -258,6 +258,78 @@ export class BlisClient {
         )
     }
 
+    public EditAction(appId : string, actionId : string, content : string, actionType : string, requiredEntityList : string[] = [], negativeEntityList : string[] = [], prebuiltEntityName : string = null) : Promise<string>
+    {
+        let apiPath = `app/${appId}/action/${actionId}`;
+
+        return new Promise(
+            (resolve, reject) => {
+               const requestData = {
+                    url: this.serviceUri+apiPath,
+                    headers: {
+                        'Cookie' : this.credentials.Cookiestring()
+                    },
+                    body: {
+                        content: content,
+                        RequiredEntities: requiredEntityList,
+                        NegativeEntities: negativeEntityList,
+                        //action_type: actionType
+                    },
+                    json: true
+                }
+
+                request.put(requestData, (error, response, body) => {
+                    if (error) {
+                        reject(error);
+                    }
+                    else if (response.statusCode >= 300) {
+                        reject(body);
+                    }
+                    else {
+                        // Service returns a 204
+                        resolve(body);
+                    }
+                });
+            }
+        )
+    }
+
+    public EditEntity(appId : string, entityId: string, entityName : string, entityType : string, prebuiltEntityName : string) : Promise<string>
+    { 
+        let apiPath = `app/${appId}/entity/${entityId}`;
+
+        this.entityCache.del(entityId);
+
+        return new Promise(
+            (resolve, reject) => {
+               const requestData = {
+                    url: this.serviceUri+apiPath,
+                    headers: {
+                        'Cookie' : this.credentials.Cookiestring()
+                    },
+                    body: {
+                        name: entityName,
+                        EntityType: entityType,
+                        LUISPreName: prebuiltEntityName
+                    },
+                    json: true
+                }
+
+                request.put(requestData, (error, response, body) => {
+                    if (error) {
+                        reject(error);
+                    }
+                    else if (response.statusCode >= 300) {
+                        reject(body);
+                    }
+                    else {
+                        resolve(body);
+                    }
+                });
+            }
+        )
+    }
+
     public EndSession(appId : string, sessionId : string) : Promise<string>
     {
         BlisDebug.Log(`Deleting existing session ${sessionId}`);

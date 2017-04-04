@@ -20,8 +20,12 @@ export class LabelEntity
     public startIndex : number;
 
     /** The entityID of the matched entity */
-    @JsonProperty('type')
+    @JsonProperty('id')
     public entityId : string;
+
+    /** The entityID of the matched entity or prebuld name */
+    @JsonProperty('type')
+    public type : string;
 
     public constructor(init?:Partial<LabelEntity>)
     {
@@ -30,6 +34,7 @@ export class LabelEntity
         this.score = null;
         this.startIndex = null;
         this.entityId = null;
+        this.type = null;
         (<any>Object).assign(this, init);
     }
 }

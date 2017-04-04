@@ -3,6 +3,10 @@ import { LuisEntity } from './LuisEntity';
 
 export class TakeTurnRequest
 {
+    /** User's input */
+    @JsonProperty('text')
+    public input : {};
+
     /** Array of Entity GUIDS */
     @JsonProperty('entities')
     public entities : string[]; 
@@ -17,6 +21,7 @@ export class TakeTurnRequest
  
     public constructor(init?:Partial<TakeTurnRequest>)
     {
+        this.input = undefined;
         this.entities = undefined;
         this.context = undefined;      
         this.actionMask = undefined;

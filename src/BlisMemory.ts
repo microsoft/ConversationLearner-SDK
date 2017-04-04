@@ -1,6 +1,8 @@
 import { BlisUserState} from './BlisUserState';
 import { UserStates, SaveStep } from './Model/Consts';
 import { BlisDebug} from './BlisDebug';
+import { ActionCommand} from './Model/Consts';
+import { EditCommand} from './Model/EditCommand';
 
 export class TrainStep {
     public input : string = null;
@@ -34,7 +36,7 @@ export class BlisMemory {
     /** Return ActionId for saveEntity API for the given name */
     public APILookup(entityName: string) {
         try {
-            return this.userState[UserStates.SAVELOOKUP][entityName];
+            return this.userState[UserStates.APILOOKUP][entityName];
         }
         catch (error)
         {
@@ -43,12 +45,12 @@ export class BlisMemory {
     }
 
     public AddAPILookup(entityName: string, apiActionId : string) {
-        this.userState[UserStates.SAVELOOKUP][entityName] = apiActionId;
+        this.userState[UserStates.APILOOKUP][entityName] = apiActionId;
     }
 
     public RemoveAPILookup(entityName: string) {
         try {
-            this.userState[UserStates.SAVELOOKUP][entityName] = null;
+            this.userState[UserStates.APILOOKUP][entityName] = null;
         }
         catch (error)
         {
@@ -78,7 +80,12 @@ export class BlisMemory {
     public EntityValue(entityName : string) : string
     {
         let entityId = this.EntityName2Id(entityName);
-        return this.userState[UserStates.MEMORY][entityId];
+        let value = this.userState[UserStates.MEMORY][entityId];
+        if (typeof value == 'string')
+        {
+            return value;
+        }
+        return value;  //TODO add and
     }
 
     /** Convert EntityName to EntityId */
@@ -116,7 +123,7 @@ export class BlisMemory {
     }
 
     /** Convert array entityIds into an array of entityNames */
-    public EntityNames(ids: string[]) : string[] {
+    public EntityIds2Names(ids: string[]) : string[] {
         let names = [];
         try {
             for (let id of ids) 
@@ -145,10 +152,30 @@ export class BlisMemory {
         return names;
     }
 
+    /** Remember a EntityName - EntityValue pair */
+    public RememberEntityByName(entityName: string, entityValue: string) {
+        let entityId = this.EntityName2Id(entityName);
+        this.RememberEntityById(entityId, entityValue);
+    }
+
     /** Remember a EntityId - EntityValue pair */
-    public RememberEntity(entityId: string, entityValue: string) {
+    public RememberEntityById(entityId: string, entityValue: string) {
+
         try {
-            this.userState[UserStates.MEMORY][entityId] = entityValue;
+            // Check if entity buckets values
+            let entityName = this.EntityId2Name(entityId);
+            if (entityName.startsWith(ActionCommand.BUCKET))
+            {
+                if (!this.userState[UserStates.MEMORY][entityId])
+                {
+                    this.userState[UserStates.MEMORY][entityId] = [];
+                }
+                this.userState[UserStates.MEMORY][entityId].push(entityValue);
+            }
+            else
+            {
+                this.userState[UserStates.MEMORY][entityId] = entityValue;
+            }
         }
         catch (error)
         {
@@ -162,10 +189,39 @@ export class BlisMemory {
         return Object.keys(this.userState[UserStates.MEMORY]);
     }
 
+    /** Forget an EntityName - EntityValue pair */
+    public ForgetEntityByName(entityName: string, entityValue: string) {
+        let entityId = this.EntityName2Id(entityName);
+        this.ForgetEntityById(entityId, entityValue);
+    }
+
     /** Forget the EntityId that I've remembered */
-    public ForgetEntity(entityId: string) {
+    public ForgetEntityById(entityId: string, entityValue : string) {
         try {
-            this.userState[UserStates.MEMORY].delete[entityId];
+            // Check if entity buckets values
+            let entityName = this.EntityId2Name(entityId);
+            if (entityName.startsWith(ActionCommand.BUCKET))
+            {
+                // Find case insensitive index
+                let lowerCaseNames = this.userState[UserStates.MEMORY][entityId].map(function(value) {
+                    return value.toLowerCase();
+                });
+
+                let index = lowerCaseNames.indexOf(entityValue.toLowerCase());
+                if (index > -1)
+                {
+                    this.userState[UserStates.MEMORY][entityId].splice(index, 1);
+                    if (this.userState[UserStates.MEMORY][entityId].length == 0)
+                    {
+                        delete this.userState[UserStates.MEMORY][entityId];
+                    }
+                }    
+                
+            }
+            else
+            {
+                delete this.userState[UserStates.MEMORY][entityId];
+            }        
         }
         catch (error)
         {
@@ -173,11 +229,14 @@ export class BlisMemory {
         }  
     }
 
-    public Substitute(text: string) : string {
-        let words = text.split(/[\s,:.?]+/);
+    //--------------------------------------------------------
+    // SUBSTITUTE
+    //--------------------------------------------------------
+    public SubstituteEntities(text: string) : string {
+        let words = BlisMemory.Split(text);
         for (let word of words) 
         {
-            if (word.startsWith("$"))
+            if (word.startsWith(ActionCommand.SUBSTITUTE))
             {
                 // Key is in form of $entityName
                 let entityName = word.substr(1, word.length-1);
@@ -191,6 +250,67 @@ export class BlisMemory {
         return text;
     }
 
+    /** Remove all bracketed text from a string */
+    public IgnoreBrackets(text : string) : string {
+
+        let start = text.indexOf('[');
+        let end = text.indexOf(']');
+
+        // If no legal contingency found
+        if (start < 0 || end < 0 || end < start) 
+        {
+            return text;
+        }
+        text = text.substring(0, start) + text.substring(end-1, text.length-1);
+        return this.IgnoreBrackets(text);
+    }
+
+    /** Extract contigent phrases (i.e. [,$name]) */
+    private SubstituteBrackets(text : string) : string {
+        
+        let start = text.indexOf('[');
+        let end = text.indexOf(']');
+
+        // If no legal contingency found
+        if (start < 0 || end < 0 || end < start) 
+        {
+            return text;
+        }
+
+        let phrase = text.substring(start+1, end);
+
+        // If phrase still contains unmatched entities, cut phrase
+        if (phrase.indexOf(ActionCommand.SUBSTITUTE) > 0)
+        {
+            text = text.replace(`[${phrase}]`, "");
+        }
+        // Otherwise just remove brackets
+        else
+        {
+            text = text.replace(`[${phrase}]`, phrase);
+        }
+        return text;
+    }
+
+    public static Split(action : string) : string[] {
+        return action.split(/[\s,:.?!\[\]]+/);
+    }
+
+    public Substitute(text: string) : string {
+        // Clear suggestions
+        text = text.replace(` ${ActionCommand.SUGGEST}`," ");
+
+        // First replace all entities
+        text = this.SubstituteEntities(text);
+
+        // Remove contingent entities
+        text = this.SubstituteBrackets(text);
+        return text;
+    }
+
+    //--------------------------------------------------------
+    // LAST STEP
+    //--------------------------------------------------------
     public RememberLastStep(saveStep: string, input: string) : void {
         if (this.userState[UserStates.LASTSTEP] == null)
         {
@@ -208,40 +328,60 @@ export class BlisMemory {
     }
 
     //--------------------------------------------------------
+    // TRAIN STEPS
+    //--------------------------------------------------------
     public RememberTrainStep(saveStep: string, value: string) : void {
-        if (!this.userState[UserStates.TRAINSTEPS]) {
-            this.userState[UserStates.TRAINSTEPS] = [];
-            this.userState[UserStates.TRAINSTEPS][SaveStep.API] = [];
+
+        if (!this.userState[UserStates.CURSTEP])
+        {
+            this.userState[UserStates.CURSTEP] = new TrainStep();
         }
-        let curStep = null;
+        let curStep = this.userState[UserStates.CURSTEP];
+
         if (saveStep == SaveStep.INPUT)
         {
-            curStep = new TrainStep();
             curStep[SaveStep.INPUT] = value;
-            this.userState[UserStates.TRAINSTEPS].push(curStep);
         }
-        else 
+        else if (saveStep == SaveStep.ENTITY)
         {
-            let lastIndex = this.userState[UserStates.TRAINSTEPS].length - 1;
-            curStep = this.userState[UserStates.TRAINSTEPS][lastIndex];
-            if (saveStep == SaveStep.ENTITY)
-            {
-                curStep[SaveStep.ENTITY] = value;
-            }
-            else if (saveStep == SaveStep.RESPONSE)
-            {
-                curStep[SaveStep.RESPONSE] = value;
-            }
-            else if (saveStep = SaveStep.API)
-            {
-                // Can be mulitple API steps
-                curStep[SaveStep.API].push(value);
-            }
-            else
-            {
-                console.log(`Unknown SaveStep value ${saveStep}`);
-            }
+            curStep[SaveStep.ENTITY] = value;
+        }
+        else if (saveStep == SaveStep.RESPONSE)
+        {
+            curStep[SaveStep.RESPONSE] = value;
+
+            // Final step so put onto history stack
+            this.FinishTrainStep();
+        }
+        else if (saveStep = SaveStep.API)
+        {
+            // Can be mulitple API steps
+            curStep[SaveStep.API].push(value);
+        }
+        else
+        {
+            console.log(`Unknown SaveStep value ${saveStep}`);
         }   
+    }
+
+    /** Push current training step onto the training step history */
+    private FinishTrainStep() : void {
+        if (!this.userState[UserStates.TRAINSTEPS]) {
+            this.userState[UserStates.TRAINSTEPS] = [];
+        }
+        let curStep = this.userState[UserStates.CURSTEP];
+        this.userState[UserStates.TRAINSTEPS].push(curStep);
+        this.userState[UserStates.CURSTEP] = null;
+    }
+
+    /** Returns input of current train step */ 
+    public TrainStepInput() : TrainStep {
+        let curStep = this.userState[UserStates.CURSTEP];
+        if (curStep)
+        {
+            return curStep[SaveStep.INPUT];
+        }
+        return null;
     }
 
     public TrainSteps() : TrainStep[] {
@@ -249,8 +389,22 @@ export class BlisMemory {
     }
 
     public ClearTrainSteps() : void {
+        this.userState[UserStates.CURSTEP] = null;
         this.userState[UserStates.TRAINSTEPS] = [];
     }
+
+    //--------------------------------------------------------
+    // EDIT COMMAND
+    //--------------------------------------------------------
+
+    public SetEditCommand(editCommand : EditCommand) : void {
+        this.userState[UserStates.EDITCOMMAND] = editCommand;
+    }
+
+    public EditCommand() : EditCommand {
+        return this.userState[UserStates.EDITCOMMAND];
+    }
+
     //--------------------------------------------------------
 
     public AppId() : string
@@ -290,7 +444,7 @@ export class BlisMemory {
         text += `LastStep: ${JSON.stringify(this.userState[UserStates.LASTSTEP])}\n\n`;
         text += `Memory: {${this.DumpEntities()}}\n\n`;
         text += `EntityLookup: ${JSON.stringify(this.userState[UserStates.ENTITYLOOKUP])}\n\n`;
-        text += `SaveLookup: ${JSON.stringify(this.userState[UserStates.SAVELOOKUP])}\n\n`;
+        text += `SaveLookup: ${JSON.stringify(this.userState[UserStates.APILOOKUP])}\n\n`;
         return text;
     }
 }

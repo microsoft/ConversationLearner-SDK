@@ -26,8 +26,10 @@ export class BlisUserState {
         this[UserStates.MEMORY] = {};
         this[UserStates.ENTITYLOOKUP] = {};
         this[UserStates.LASTSTEP] = null;
-        this[UserStates.SAVELOOKUP] = {};
+        this[UserStates.APILOOKUP] = {};
+        this[UserStates.CURSTEP] = null;
         this[UserStates.TRAINSTEPS] = [];
+        this[UserStates.EDITCOMMAND] = null;
     }
 
     public static Get(bot : builder.UniversalBot, address : builder.IAddress, defaultApp : string,
@@ -70,8 +72,10 @@ export class BlisUserState {
                 session.userData.Blis[UserStates.MEMORY] = userData[UserStates.MEMORY];
                 session.userData.Blis[UserStates.ENTITYLOOKUP] = userData[UserStates.ENTITYLOOKUP];
                 session.userData.Blis[UserStates.LASTSTEP] = userData[UserStates.LASTSTEP];
-                session.userData.Blis[UserStates.SAVELOOKUP] = userData[UserStates.SAVELOOKUP];
+                session.userData.Blis[UserStates.APILOOKUP] = userData[UserStates.APILOOKUP];
+                session.userData.Blis[UserStates.CURSTEP] = userData[UserStates.CURSTEP];
                 session.userData.Blis[UserStates.TRAINSTEPS] = userData[UserStates.TRAINSTEPS];
+                session.userData.Blis[UserStates.EDITCOMMAND] = userData[UserStates.EDITCOMMAND];
                 session.save();
             }
         });

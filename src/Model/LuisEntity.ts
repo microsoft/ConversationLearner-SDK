@@ -2,21 +2,25 @@ import { JsonProperty } from 'json-typescript-mapper';
 
 export class LuisEntity
 {
-    // "City"
+    // Guid for Entity
+    @JsonProperty('id')
+    public id : string;
+
+    // Guid for Entity or Pre-Build Name
     @JsonProperty('type')
     public type : string;
 
-    // "Seattle"
+    // Entity Value
     @JsonProperty('entity')
-    public entity : string;
+    public value : string;
 
-    @JsonProperty('resolution')
-    public resolution : {}; 
+    public resolution : any; 
 
     public constructor(init?:Partial<LuisEntity>)
     {
+        this.id = undefined;
         this.type = undefined;
-        this.entity = undefined;
+        this.value = undefined;
         this.resolution = undefined;
         (<any>Object).assign(this, init);
     }
