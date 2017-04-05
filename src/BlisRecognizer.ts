@@ -1,6 +1,7 @@
 import * as builder from 'botbuilder';
 import { TakeTurnRequest } from './Model/TakeTurnRequest'
 import { BlisApp } from './Model/BlisApp'
+import { BlisAppContent } from './Model/BlisAppContent'
 import { BlisClient } from './BlisClient';
 import { BlisMemory } from './BlisMemory';
 import { BlisDebug} from './BlisDebug';
@@ -106,7 +107,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         {
             let errMsg = Utils.ErrorString(error);
             BlisDebug.Error(errMsg);
-            cb(errMsg);
+            cb([errMsg]);
         }
     }
 
@@ -129,7 +130,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         {
             let errMsg = Utils.ErrorString(error);
             BlisDebug.Error(errMsg);
-            cb(errMsg);
+            cb([errMsg]);
         }
     }
 
@@ -203,24 +204,15 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             {
                 command = "!"+command;
             }
-            let comObj = BlisHelp.CommandHelp(command);
-            let msg = `${command} ${comObj.args}\n\n     ${comObj.description}\n\n`;
-            if (comObj.examples && comObj.examples.length > 0)
-            {
-                msg += "For example:\n\n"
-                for (let example of comObj.examples)
-                {
-                    msg += `     ${example}\n\n`;
-                }
-            }
-            return msg;
+            let helpmsg = BlisHelp.CommandHelpString(command);
+            return helpmsg;
         }
         let text = "";
         for (let item in Commands)
         {
             let key = Commands[item];
             let comObj = BlisHelp.CommandHelp(key);
-            text += `${key} ${comObj.args}\n\n     ${comObj.description}\n\n`;
+            text += `${key} ${comObj.args}\n\n     ${comObj.description}\n\n\n\n`;
         }
         return text;
     }
@@ -265,7 +257,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             if (isNew)
             {                        
                 // Attempt to load the application
-                BlisApp.Load(this.blisClient, userState, address, this.defaultApp, (text) => 
+                BlisAppContent.Load(this.blisClient, userState, address, this.defaultApp, (text) => 
                 {
                     BlisDebug.Log(text);
                     cb(null, userState);
@@ -313,8 +305,8 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             }
             else if (editCommand.commandName == Commands.EDITENTITY)  
             {         
-                let [name, type, prebuilt] = input.split(' ');   
-                Entity.Add(this.blisClient, userState, editCommand.id /*entityId*/, name, type, prebuilt, (responses) => {
+                let [name, type] = input.split(' ');   
+                Entity.Add(this.blisClient, userState, editCommand.id /*entityId*/, name, type, (responses) => {
                     cb(responses);
                 });
             }
@@ -354,7 +346,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         }
         else if (command == Commands.ADDENTITY)
         {
-            Entity.Add(this.blisClient, userState, null, arg, arg2, arg3, (responses) => {
+            Entity.Add(this.blisClient, userState, null, arg, arg2, (responses) => {
                 cb(responses, true);
             });
         }
@@ -375,6 +367,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         }
         else if (command == Commands.ENTITIES)
         {
+            let arg = this.RemoveCommandWord(input);  
             Entity.Get(this.blisClient, userState, arg, (responses) => {
                 cb(responses);
             });
@@ -446,8 +439,8 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             }
             else if (command == Commands.DELETEENTITY)
             {
-                Entity.Delete(this.blisClient, userState, arg, (text) => {
-                    cb([text]);
+                Entity.Delete(this.blisClient, userState, arg, (responses) => {
+                    cb(responses);
                 });
             }
             else if (command == Commands.EDITACTION)  // TODO text or API
@@ -459,27 +452,27 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             }
             else if (command == Commands.EDITENTITY)  
             {          
-                Entity.Add(this.blisClient, userState, arg /*entityId*/, arg2, arg3, arg4, (responses) => {
+                Entity.Add(this.blisClient, userState, arg /*entityId*/, arg2, arg3, (responses) => {
                     cb(responses);
                 });
             }
             else if (command == Commands.EXPORTAPP)
             {
-                BlisApp.Export(this.blisClient, userState, address, this.bot, (text) => {
+                BlisAppContent.Export(this.blisClient, userState, address, this.bot, (text) => {
                     cb([text]);
                 });
             }
             else if (command == Commands.IMPORTAPP)
             {
                 Utils.SendMessage(this.bot, address, "Importing app...");
-                BlisApp.Import(this.blisClient, userState, address, arg, (text) => {
+                BlisAppContent.Import(this.blisClient, userState, address, arg, (text) => {
                     cb([text]); 
                 });
             }
             else if (command == Commands.LOADAPP)
             {
                 Utils.SendMessage(this.bot, address, "Loading app...");
-                BlisApp.Load(this.blisClient, userState, address, arg, (text) => {
+                BlisAppContent.Load(this.blisClient, userState, address, arg, (text) => {
                     cb([text]);
                 });
             }
@@ -587,7 +580,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                 if (context.message.attachments && context.message.attachments.length > 0)
                 {
                     Utils.SendMessage(this.bot, address, "Importing application...");
-                    BlisApp.ImportAttachment(this.blisClient, userState, address, context.message.attachments[0] ,(text) => {
+                    BlisAppContent.ImportAttachment(this.blisClient, userState, address, context.message.attachments[0] ,(text) => {
                         this.SendResult(address, userState, cb, [text]);
                     });
                     return;
@@ -879,19 +872,34 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         // Error checking
         if (userState[UserStates.APP]  == null)
         {
-            let response = this.ErrorResponse("No Application has been loaded.\n\nTry _!createapp_, _!loadapp_ or _!help_ for more info.");
+            let card = Utils.MakeHero("No Application has been loaded..", null , null,
+            { 
+                    "My Apps" : `${Commands.APPS}`,
+                    "Help" : `${Commands.HELP}`,
+            })
+            let response = this.ErrorResponse(card);
             cb(response);
             return;
         }
         else if (!userState[UserStates.MODEL]  && !userState[UserStates.TEACH] )
         {
-            let response = this.ErrorResponse("This application needs to be trained first.\n\nTry _!teach, _!traindialogs_ or _!help_ for more info.");
+            let card = Utils.MakeHero("This application needs to be trained first.", null , null,
+            { 
+                    "Teach" : `${Commands.TEACH}`,
+                    "Help" : `${Commands.HELP}`,
+            })
+            let response = this.ErrorResponse(card);
             cb(response);
             return;
         }
         else if (!userState[UserStates.SESSION] )
         {
-            let response = this.ErrorResponse("Start the bot first with _!start_ or train more with _!teach_");
+            let card = Utils.MakeHero("Start the app or add more training dialogs first.", null , null,
+            { 
+                    "Start" : `${Commands.START}`,
+                    "Teach" : `${Commands.TEACH}`
+            })
+            let response = this.ErrorResponse(card);
             cb(response);
             return;
         }
@@ -1007,9 +1015,9 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     }
     //====================================================
 
-    private ErrorResponse(text : string) : TakeTurnResponse
+    private ErrorResponse(error : (string | builder.IIsAttachment)) : TakeTurnResponse
     {
-        return new TakeTurnResponse({ mode : TakeTurnModes.ERROR, error: text} );
+        return new TakeTurnResponse({ mode : TakeTurnModes.ERROR, error: error});
     }
 
     /** Remove first work (i.e. command) from command string */
@@ -1046,7 +1054,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             var entityName = memory.EntityId2Name(entity.id);
             
             // Tilda indicates a 'not' action on memory
-            if (entityName.startsWith('~'))
+            if (entityName.startsWith(ActionCommand.NEGATIVE))
             {
                 let notEntityName = entityName.slice(1);
                 memory.ForgetEntityByName(notEntityName, entity.value);

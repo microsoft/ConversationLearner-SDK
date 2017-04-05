@@ -87,7 +87,20 @@ export class Action
         return action.split(/[\[\]\s,:.?!]+/);
     }
 
-        public static async Add(blisClient : BlisClient, userState : BlisUserState, 
+    public static Sort(actions : Action[]) : Action[]
+    {
+        return actions.sort((n1, n2) => {
+            if (n1.content > n2.content) {
+                return 1;
+            }
+            if (n1.content < n2.content){
+                return -1;
+            }
+            return 0;
+        });
+    }
+
+    public static async Add(blisClient : BlisClient, userState : BlisUserState, 
         content : string, actionType : string, actionId : string, cb : (responses : (string | builder.IIsAttachment)[]) => void) : Promise<void>
     {
         BlisDebug.Log(`AddAction`);
@@ -95,7 +108,7 @@ export class Action
        let error = null;
         if (!content)
         {  
-            error = `You must provide content for the action.`;
+            error = `You must provide action text for the action.`;
         }
         if (!actionType && !actionId)
         {
@@ -285,7 +298,8 @@ export class Action
         {        
             // TODO clear savelookup
             await blisClient.DeleteAction(userState[UserStates.APP], actionId)
-            cb(`Deleted Action ${actionId}`);
+            let card = Utils.MakeHero(`Deleted Action`, null, actionId, null);
+            cb(card);
         }
         catch (error)
         {
@@ -297,74 +311,92 @@ export class Action
 
     /** Get actions.  Return count of actions */
     public static async Get(blisClient : BlisClient, userState : BlisUserState, 
-            detail : string, cb : (text) => void) : Promise<number>
+            search : string, cb : (text) => void) : Promise<number>
     {
         BlisDebug.Log(`Getting actions`);
 
         try
         {   
+            let debug = false;
+            if (search && search.indexOf(ActionCommand.DEBUG) > -1)
+            {
+                debug = true;
+                search = search.replace(ActionCommand.DEBUG, "");
+            }
+
             // Get actions
             let actionIds = [];
+            let responses = [];
             let json = await blisClient.GetActions(userState[UserStates.APP])
             actionIds = JSON.parse(json)['ids'];
             BlisDebug.Log(`Found ${actionIds.length} actions`);
 
-            let responses = [];
+            if (actionIds.length == 0)
+            {
+                responses.push("This application contains no actions.");
+                cb(responses); 
+                return;
+            }
+
             let textactions = "";
             let apiactions = "";
+            let actions : Action[] = [];
+            let memory = new BlisMemory(userState);
             for (let actionId of actionIds)
             {
                 let action = await blisClient.GetAction(userState[UserStates.APP], actionId)
 
-                var memory = new BlisMemory(userState);
-                let posstring = memory.EntityIds2Names(action.requiredEntities);
-                let negstring = memory.EntityIds2Names(action.negativeEntities);
-                let atext = `${action.content}`;
-                
-                let postext = (posstring.length > 0) ? `  ${ActionCommand.REQUIRE}[${posstring}]`: "";
-                let negtext = (negstring.length > 0) ? `  ${ActionCommand.BLOCK}[${negstring}]` : "";
-
-                if (action.actionType == ActionTypes.API)
-                {          
-                    if (detail)
-                    {
-                        responses.push(Utils.MakeHero(`API Action`, postext+negtext, atext, 
-                        { 
-                            "Edit" : `${IntCommands.EDITACTION} ${actionId}`,
-                            "Delete" : `${Commands.DELETEACTION} ${actionId}`,
-                        }));
-                    }
-                    else
-                    {
-                        apiactions += atext + postext + negtext + "\n\n";
-                    }
+                if (!search || action.content.indexOf(search) > -1)
+                { 
+                    actions.push(action);
 
                     // Create lookup for saveEntity actions
-                    if (action.content.startsWith(APICalls.SAVEENTITY))
-                    {
+                    if (action.actionType == ActionTypes.API && action.content.startsWith(APICalls.SAVEENTITY))
+                    {        
                         let name = Action.Split(action.content)[1];
                         memory.AddAPILookup(name, actionId);
                     }
+
+                    BlisDebug.Log(`Action lookup: ${action.content} : ${action.actionType}`);
                 }
-                else if (action.actionType == ActionTypes.TEXT) 
-                {
-                    if (detail)
-                    {
-                        responses.push(Utils.MakeHero(`TEXT Action`, postext+negtext, atext, 
-                        { 
-                            "Edit" : `${IntCommands.EDITACTION} ${actionId}`,
-                            "Delete" : `${Commands.DELETEACTION} ${actionId}`,
-                        }));
-                    }
-                    else
-                    {
-                        textactions += atext + postext + negtext + "\n\n";
-                    }
-                }
-                BlisDebug.Log(`Action lookup: ${action.content} : ${action.actionType}`);
             }
 
-            if (!detail)
+            // Sort
+            actions = Action.Sort(actions);
+
+            // Generate output
+            for (let action of actions)
+            {
+                    let posstring = memory.EntityIds2Names(action.requiredEntities);
+                    let negstring = memory.EntityIds2Names(action.negativeEntities);
+                    let atext = `${action.content}`;
+                    
+                    let postext = (posstring.length > 0) ? `  ${ActionCommand.REQUIRE}[${posstring}]`: "";
+                    let negtext = (negstring.length > 0) ? `  ${ActionCommand.BLOCK}[${negstring}]` : "";
+
+                    if (debug)
+                    {
+                        let line = atext + postext + negtext + action.id + "\n\n";
+                        if (action.actionType == ActionTypes.API)
+                        {
+                            apiactions += line;
+                        }
+                        else
+                        {
+                            textactions += line;
+                        }
+                    }       
+                    else
+                    {
+                        let type = (action.actionType == ActionTypes.API) ? "API" : "TEXT";
+                        responses.push(Utils.MakeHero(atext, `${type} Action ` + postext+negtext, null, 
+                        { 
+                            "Edit" : `${IntCommands.EDITACTION} ${action.id}`,
+                            "Delete" : `${Commands.DELETEACTION} ${action.id}`,
+                        }));
+                    }
+            }
+            if (debug)
             {
                 let msg = "";
                 if (apiactions)
@@ -375,12 +407,13 @@ export class Action
                 {   
                     msg += "**TEXT Actions**\n\n" + textactions;
                 }
-                if (!msg) {
-                    msg = "This application contains no actions.";
-                }
                 responses.push(msg);
             }
 
+            if (responses.length == 0)
+            {
+                responses.push("No Actions match your query.")
+            }
             cb(responses);
             return actionIds.length;
         }

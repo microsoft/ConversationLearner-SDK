@@ -4,7 +4,8 @@ import { Credentials } from './Http/Credentials';
 import { LuisEntity } from './Model/LuisEntity';
 import { Action } from './Model/Action'
 import { BlisApp } from './Model/BlisApp'
-import { Entity } from './Model/Entity'
+import { BlisAppContent } from './Model/BlisAppContent'
+import { Entity, EntityMetaData } from './Model/Entity'
 import { TakeTurnModes, ActionTypes, UserStates, APICalls } from './Model/Consts';
 import { TakeTurnResponse } from './Model/TakeTurnResponse'
 import { TakeTurnRequest } from './Model/TakeTurnRequest'
@@ -51,7 +52,7 @@ export class BlisClient {
                     },
                     json: true
                 }
-
+                BlisDebug.LogRequest("POST",apiPath, requestData);
                 request.post(requestData, (error, response, body) => {
                     if (error) {
                         reject(error);
@@ -67,7 +68,7 @@ export class BlisClient {
         )
     }
 
-    public AddEntity(appId : string, entityName : string, entityType : string, prebuiltEntityName : string) : Promise<string>
+    public AddEntity(appId : string, entityName : string, entityType : string, prebuiltEntityName : string, metaData : EntityMetaData) : Promise<string>
     {
         let apiPath = `app/${appId}/entity`;
 
@@ -81,11 +82,12 @@ export class BlisClient {
                     body: {
                         name: entityName,
                         EntityType: entityType,
-                        LUISPreName: prebuiltEntityName
+                        LUISPreName: prebuiltEntityName,
+                        metadata : metaData
                     },
                     json: true
                 }
-
+                BlisDebug.LogRequest("POST",apiPath, requestData);
                 request.post(requestData, (error, response, body) => {
                     if (error) {
                         reject(error);
@@ -118,7 +120,7 @@ export class BlisClient {
                     },
                     json: true
                 }
-            
+                BlisDebug.LogRequest("POST",apiPath, requestData);
                 request.post(requestData, (error, response, body) => {
                     if (error) {
                         reject(error);
@@ -147,6 +149,7 @@ export class BlisClient {
                         'Cookie' : this.credentials.Cookiestring()
                     }
                 }
+                BlisDebug.LogRequest("DELETE",apiPath, requestData);
                 request.delete(url, requestData, (error, response, body) => {
                     if (error) {
                         reject(error);
@@ -180,6 +183,7 @@ export class BlisClient {
                         'Cookie' : this.credentials.Cookiestring()
                     }
                 }
+                BlisDebug.LogRequest("DELETE",apiPath, requestData);
                 request.delete(url, requestData, (error, response, body) => {
                     if (error) {
                         reject(error);
@@ -214,6 +218,7 @@ export class BlisClient {
                         'Cookie' : this.credentials.Cookiestring()
                     }
                 }
+                BlisDebug.LogRequest("DELETE",apiPath, requestData);
                 request.delete(url, requestData, (error, response, body) => {
                     if (error) {
                         reject(error);
@@ -242,7 +247,7 @@ export class BlisClient {
                     },
                     json: true
                 }
-
+                BlisDebug.LogRequest("DELETE",apiPath, requestData);
                 request.delete(requestData, (error, response, body) => {
                     if (error) {
                         reject(error);
@@ -262,6 +267,9 @@ export class BlisClient {
     {
         let apiPath = `app/${appId}/action/${actionId}`;
 
+       // Clear old one from cache
+        this.actionCache.del(actionId);
+
         return new Promise(
             (resolve, reject) => {
                const requestData = {
@@ -278,6 +286,7 @@ export class BlisClient {
                     json: true
                 }
 
+                BlisDebug.LogRequest("PUT",apiPath, requestData);
                 request.put(requestData, (error, response, body) => {
                     if (error) {
                         reject(error);
@@ -294,10 +303,11 @@ export class BlisClient {
         )
     }
 
-    public EditEntity(appId : string, entityId: string, entityName : string, entityType : string, prebuiltEntityName : string) : Promise<string>
+    public EditEntity(appId : string, entityId: string, entityName : string, entityType : string, prebuiltEntityName : string, metaData : EntityMetaData) : Promise<string>
     { 
         let apiPath = `app/${appId}/entity/${entityId}`;
 
+        // Clear old one from cache
         this.entityCache.del(entityId);
 
         return new Promise(
@@ -309,12 +319,14 @@ export class BlisClient {
                     },
                     body: {
                         name: entityName,
-                        EntityType: entityType,
-                        LUISPreName: prebuiltEntityName
+                  //    EntityType: entityType,   Immutable
+                  //    LUISPreName: prebuiltEntityName,   Immutable
+                        metadata: metaData
                     },
                     json: true
                 }
 
+                BlisDebug.LogRequest("PUT",apiPath, requestData);
                 request.put(requestData, (error, response, body) => {
                     if (error) {
                         reject(error);
@@ -349,6 +361,7 @@ export class BlisClient {
                         'Cookie' : this.credentials.Cookiestring()
                     }
                 }
+                BlisDebug.LogRequest("DELETE",apiPath, requestData);
                 request.delete(url, requestData, (error, response, body) => {
                     if (error) {
                         reject(error);
@@ -364,7 +377,7 @@ export class BlisClient {
         )
     }
 
-    public ExportApp(appId : string) : Promise<BlisApp>
+    public ExportApp(appId : string) : Promise<BlisAppContent>
     {
         let apiPath = `app/${appId}/source`;
 
@@ -377,7 +390,7 @@ export class BlisClient {
                     },
                     json: true
                 }
-
+                BlisDebug.LogRequest("GET",apiPath, requestData);
                 request.get(requestData, (error, response, body) => {
                     if (error) {
                         reject(error);
@@ -386,15 +399,15 @@ export class BlisClient {
                         reject(body);
                     }
                     else {
-                        var blisApp = deserialize(BlisApp, body);
-                        resolve(blisApp);
+                        var blisAppContent = deserialize(BlisAppContent, body);
+                        resolve(blisAppContent);
                     }
                 });
             }
         )
     }
 
-    public GetApp(appId : string) : Promise<string>
+    public GetApp(appId : string) : Promise<BlisApp>
     {
         let apiPath = `app/${appId}`;
 
@@ -404,18 +417,21 @@ export class BlisClient {
                 const requestData = {
                     headers: {
                         'Cookie' : this.credentials.Cookiestring()
-                    }
+                    },
+                    json: true
                 }
+                BlisDebug.LogRequest("GET",apiPath, requestData);
                 request.get(url, requestData, (error, response, body) => {
-                    let payload = JSON.parse(body);
                     if (error) {
                          reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(payload.message);
+                        reject(body);
                     }
                     else {
-                        resolve(payload);
+                        var blisApp = deserialize(BlisApp, body);
+                        blisApp.id = appId;
+                        resolve(blisApp);
                     }
                 });
             }
@@ -442,7 +458,7 @@ export class BlisClient {
                         },
                         json: true
                     }
-
+                BlisDebug.LogRequest("GET",apiPath, requestData);
                 request.get(requestData, (error, response, body) => {
                     if (error) {
                         reject(error);
@@ -452,6 +468,7 @@ export class BlisClient {
                     }
                     else {
                         var action = deserialize(Action, body);
+                        action.id = actionId;
                         this.actionCache.set(actionId, action);
                         resolve(action);
                     }
@@ -472,7 +489,7 @@ export class BlisClient {
                         'Cookie' : this.credentials.Cookiestring()
                     }
                 }
-
+                BlisDebug.LogRequest("GET",apiPath, requestData);
                 request.get(requestData, (error, response, body) => {
                     if (error) {
                         reject(error);
@@ -501,6 +518,7 @@ export class BlisClient {
                     }
                 }
 
+                BlisDebug.LogRequest("GET",apiPath, requestData);
                 request.get(requestData, (error, response, body) => {
                     if (error) {
                         reject(error);
@@ -527,7 +545,6 @@ export class BlisClient {
                     return;
                 }
 
-                // Call API
                let apiPath = `app/${appId}/entity/${entityId}`;
                const requestData = {
                     url: this.serviceUri+apiPath,
@@ -536,7 +553,7 @@ export class BlisClient {
                     },
                     json: true
                 }
-
+                BlisDebug.LogRequest("GET",apiPath, requestData);
                 request.get(requestData, (error, response, body) => {
                     if (error) {
                         reject(error);
@@ -546,6 +563,11 @@ export class BlisClient {
                     }
                     else {
                         var entity = deserialize(Entity, body);
+                        entity.id = entityId;
+                        if (!entity.metadata)
+                        {
+                            entity.metadata = new EntityMetaData();
+                        }
                         this.entityCache.set(entityId, entity);
                         resolve(entity);
                     }
@@ -566,7 +588,7 @@ export class BlisClient {
                         'Cookie' : this.credentials.Cookiestring()
                     }
                 }
-
+                BlisDebug.LogRequest("GET",apiPath, requestData);
                 request.get(requestData, (error, response, body) => {
                     if (error) {
                         reject(error);
@@ -594,7 +616,7 @@ export class BlisClient {
                     },
                     json: true
                 }
-
+                BlisDebug.LogRequest("GET",apiPath, requestData);
                 request.get(requestData, (error, response, body) => {
                     if (error) {
                         reject(error);
@@ -623,7 +645,7 @@ export class BlisClient {
                         'Cookie' : this.credentials.Cookiestring()
                     }
                 }
-
+                BlisDebug.LogRequest("GET",apiPath, requestData);
                 request.get(requestData, (error, response, body) => {
                     if (error) {
                         reject(error);
@@ -651,7 +673,7 @@ export class BlisClient {
                         'Cookie' : this.credentials.Cookiestring()
                     }
                 }
-
+                BlisDebug.LogRequest("GET",apiPath, requestData);
                 request.get(requestData, (error, response, body) => {
                     if (error) {
                         reject(error);
@@ -667,7 +689,7 @@ export class BlisClient {
         )
     }
 
-    public ImportApp(appId : string, blisApp : BlisApp) : Promise<BlisApp>
+    public ImportApp(appId : string, blisAppContent : BlisAppContent) : Promise<BlisAppContent>
     { 
         let apiPath = `app/${appId}/source`;
 
@@ -679,9 +701,9 @@ export class BlisClient {
                         'Cookie' : this.credentials.Cookiestring()
                     },
                     json: true,
-                    body: serialize(blisApp)   
+                    body: serialize(blisAppContent)   
                 }
-
+                BlisDebug.LogRequest("POST",apiPath, requestData);
                 request.post(requestData, (error, response, body) => {
                     if (error) {
                         reject(error);
@@ -690,8 +712,8 @@ export class BlisClient {
                         reject(body);
                     }
                     else {
-                        var blisApp = deserialize(BlisApp, body);
-                        resolve(blisApp);
+                        var blisAppContent = deserialize(BlisAppContent, body);
+                        resolve(blisAppContent);
                     }
                 });
             }
@@ -710,7 +732,7 @@ export class BlisClient {
                     },
                     json: true
                 }
-
+                BlisDebug.LogRequest("PUT",apiPath, requestData);
                 request.put(requestData, (error, response, body) => {
                     if (error) {
                         reject(error);
@@ -748,6 +770,7 @@ export class BlisClient {
                     },
                     json: true
                 }
+                BlisDebug.LogRequest("POST",apiPath, requestData);
                 request.post(requestData, (error, response, body) => {
                     if (error) {
                         reject(error.message);
@@ -783,7 +806,7 @@ export class BlisClient {
                     },
                     json: true
                 }
-
+                BlisDebug.LogRequest("POST",apiPath, requestData);
                 request.post(requestData, (error, response, body) => {
                     if (error) {
                         reject(error);
@@ -815,6 +838,7 @@ export class BlisClient {
                 }
                 requestData['body'] = body;
 
+                BlisDebug.LogRequest("PUT",apiPath, requestData);
                 request.put(requestData, (error, response, body) => {
                     if (error) {
                         reject(error);

@@ -1,3 +1,4 @@
+import * as builder from 'botbuilder';
 import { JsonProperty } from 'json-typescript-mapper';
 import { LuisEntity } from './LuisEntity';
 import { Action } from './Action';
@@ -34,7 +35,7 @@ export class TakeTurnResponse
     public teachError : string;
 
     @JsonProperty('error')
-    public error : string;
+    public error : (string | builder.IIsAttachment);
 
     public constructor(init?:Partial<TakeTurnResponse>)
     {
@@ -49,15 +50,5 @@ export class TakeTurnResponse
         this.teachError = undefined;
         this.error = undefined;
         (<any>Object).assign(this, init);
-    }
-    
-    public ToJSON() : {}
-    {
-        var json = {};
-        if (this.originalText)  
-            json['text'] = this.originalText;
-        if (this.entities)  
-            json['entities'] = this.entities;
-        return json;
     }
 }

@@ -48,17 +48,31 @@ export class BlisDialog extends builder.Dialog {
         // TODO: Consider adding threshold
         var blisResult = recognizeResult as IBlisResult;
 
+        let carousel = null;
         for (let response of blisResult.responses)
         {
             if (typeof response == 'string')
             {
+                // Send existing carousel if next entry is text
+                if (carousel)
+                {
+                    session.send(carousel);
+                    carousel = null
+                }
                 session.send(response);
             }
             else
             {
-                var msg = new builder.Message(session).addAttachment(response);
-                session.send(msg);
+                if (!carousel)
+                {
+                    carousel = new builder.Message(session).attachmentLayout(builder.AttachmentLayout.carousel);
+                }
+                carousel.addAttachment(response);
             }
+        }
+        if (carousel)
+        {
+            session.send(carousel);
         }
     }
 

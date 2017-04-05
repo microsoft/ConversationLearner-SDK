@@ -84,7 +84,9 @@ export const ActionCommand =
     REQUIRE : "++",
     BLOCK : "--",
     SUBSTITUTE: "$",
-    BUCKET: "#"
+    BUCKET: "#",
+    NEGATIVE: "~",       // Remove the entity
+    DEBUG: "/d"
 }
 
 export const Help =

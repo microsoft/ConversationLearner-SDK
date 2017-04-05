@@ -39,6 +39,17 @@ export class BlisDebug {
         console.log(text);
     }
 
+    public static LogRequest(method : string, path : string, payload : any) {
+        if (this.enabled)
+        {
+            let text = JSON.stringify(payload.body);
+            this.cache += (this.cache ? "\n\n" : "") + method + ": //" + path + "\n\n" + text;
+        }
+        this.SendCache();
+
+        console.log(path);
+    }
+
     public static Error(text : string) {
         BlisDebug.Log(`ERROR: ${text}`);
     }
