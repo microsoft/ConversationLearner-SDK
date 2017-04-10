@@ -19,8 +19,8 @@ export class BlisHelp {
         switch (name)
         {
             case Help.ADDACTION:
-                help = this.CommandHelpString(Commands.ADDTEXTACTION) + "\n\n";
-                help += this.CommandHelpString(Commands.ADDAPIACTION);
+                help = this.CommandHelpString(Commands.ADDRESPONSE) + "\n\n";
+                help += this.CommandHelpString(Commands.ADDAPICALL);
                 return help;
             case Help.DELETEACTION:
                 command = this.CommandHelp(Commands.DELETEAPP);
@@ -42,8 +42,8 @@ export class BlisHelp {
             case Help.NEWAPP:
                 help += `Add entities and actions to your application using:\n\n`;
                 help += `>> ${Commands.ADDENTITY}\n\n`;
-                help += `>> ${Commands.ADDTEXTACTION}\n\n`;
-                help += `>> ${Commands.ADDAPIACTION}\n\n`;
+                help += `>> ${Commands.ADDRESPONSE}\n\n`;
+                help += `>> ${Commands.ADDAPICALL}\n\n`;
                 help += `Then train your app using:\n\n`;
                 help += `>> ${Commands.TEACH}\n\n`;
                 help += `For help with any command type:\n\n`;
@@ -92,13 +92,13 @@ export class BlisHelp {
                 return new Command(
                     name,
                     "Abandon the current teach dialog", null, "",null);
-            case Commands.ACTIONS:
+            case Commands.RESPONSES:
                 return new Command(
                     name,
                     "List Actions in current Application.  If search term provided, filters by serach term",
                     null,
                     "{Search (Optional)}", null);
-            case Commands.ADDAPIACTION:
+            case Commands.ADDAPICALL:
                 return new Command(
                     name,
                     "Add API call to this Application",
@@ -123,7 +123,7 @@ export class BlisHelp {
                         "!addentity ~authenticated local",
                         "!addentity when datetime"
                     ]);
-            case Commands.ADDTEXTACTION:
+            case Commands.ADDRESPONSE:
                 return new Command(
                     name,
                     "Add Text response to this Application.",
@@ -194,7 +194,7 @@ export class BlisHelp {
                     null,
                     "", null);
             case Commands.EDITACTION:
-                let command = BlisHelp.CommandHelp(Commands.ADDTEXTACTION);
+                let command = BlisHelp.CommandHelp(Commands.ADDRESPONSE);
                 command.description = "Edit an action on current app";
                 return command;
             case Commands.EDITENTITY:

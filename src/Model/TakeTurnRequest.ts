@@ -1,5 +1,4 @@
 import { JsonProperty } from 'json-typescript-mapper';
-import { LuisEntity } from './LuisEntity';
 
 export class TakeTurnRequest
 {

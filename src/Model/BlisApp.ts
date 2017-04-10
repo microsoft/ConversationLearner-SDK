@@ -9,7 +9,9 @@ import { BlisMemory } from '../BlisMemory';
 import { Action } from '../Model/Action';
 import { Utils } from '../Utils';import { JsonProperty } from 'json-typescript-mapper';
 import { Entity } from './Entity';
+import { BlisContext } from '../BlisContext';
 import { TrainDialog } from './TrainDialog';
+import { Menu } from '../Menu';
 
 export class BlisApp
 {
@@ -29,18 +31,30 @@ export class BlisApp
     public static Sort(apps : BlisApp[]) : BlisApp[]
     {
         return apps.sort((n1, n2) => {
-            if (n1.name > n2.name) {
+            let c1 = n1.name.toLowerCase();
+            let c2 = n2.name.toLowerCase();
+            if (c1 > c2) {
                 return 1;
             }
-            if (n1.name < n2.name){
+            if (c1 < c2){
                 return -1;
             }
             return 0;
         });
     }
 
-    public static async Create(blisClient: BlisClient, userState : BlisUserState,  
-            appName : string, luisKey, cb : (responses: (string | builder.IIsAttachment)[]) => void) : Promise<void>
+    /** Send No App card and return false if no app loaded */
+    public static HaveApp(context : BlisContext, cb : (responses: (string | builder.IIsAttachment)[]) => void) : boolean
+    {
+        if (context.state[UserStates.APP] == null)
+        {
+            cb(Menu.Apps('No Application has been loaded'));
+            return false
+        }
+        return true;
+    }
+
+    public static async Create(context : BlisContext,  appName : string, luisKey, cb : (responses: (string | builder.IIsAttachment)[]) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Create Application`);
 
@@ -58,25 +72,27 @@ export class BlisApp
         if (!appName)
         {
             let msg = BlisHelp.CommandHelpString(Commands.CREATEAPP, `You must provide a name for your application.`);
-            cb([msg]);
+            cb(Menu.Apps(msg));
             return;
         }
         if (!luisKey)
         {
             let msg = BlisHelp.CommandHelpString(Commands.CREATEAPP, `You must provide a luisKey for your application.`);
-            cb([msg]);
+            cb(Menu.Apps(msg));
             return;
         }
 
         try
         {       
-            let appId = await blisClient.CreateApp(appName, luisKey)
+            let appId = await context.client.CreateApp(appName, luisKey)
 
             // Initialize
-            Object.assign(userState, new BlisUserState(appId));
+            Object.assign(context.state, new BlisUserState(appId));
 
-            let card = Utils.MakeHero("Created App", appName, null, {"Help" : Help.NEWAPP});
-            cb([card]);
+            let responses = [];
+            responses.push(Menu.Home("Created App", appName));
+            responses = responses.concat(Menu.EditApp(true));
+            cb(responses);
         }
         catch (error) {
             let errMsg = Utils.ErrorString(error);
@@ -86,8 +102,7 @@ export class BlisApp
     } 
 
     /** Get all apps, filter by Search term */
-    public static async GetAll(blisClient : BlisClient, address : builder.IAddress, 
-        search : string, cb : (text) => void) : Promise<void>
+    public static async GetAll(context : BlisContext, search : string, cb : (text) => void) : Promise<void>
     {
         BlisDebug.Log(`Getting apps`);
 
@@ -102,21 +117,23 @@ export class BlisApp
 
             // Get app ids
             let appIds = [];
-            let json = await blisClient.GetApps()
+            let json = await context.client.GetApps()
             appIds = JSON.parse(json)['ids'];
             BlisDebug.Log(`Found ${appIds.length} apps`);
 
             if (appIds.length == 0) {
-                cb(["This account contains no apps."]);
+                cb(Menu.Apps("This account contains no apps."));
             }
             let msg = "";
             let responses = [];
             let apps : BlisApp[] = [];
+            if (search) search = search.toLowerCase();
+
             for (let appId of appIds)
             {   
-                let blisApp = await blisClient.GetApp(appId)
+                let blisApp = await context.client.GetApp(appId)
 
-                if (!search || blisApp.name.indexOf(search) > -1)
+                if (!search || blisApp.name.toLowerCase().indexOf(search) > -1)
                 { 
                     apps.push(blisApp);
                     BlisDebug.Log(`App lookup: ${blisApp.name} : ${blisApp.id}`);
@@ -135,13 +152,22 @@ export class BlisApp
                 }
                 else
                 {
-                    responses.push(Utils.MakeHero(app.name, null, null, 
-                    { 
-                        "Load" : `${Commands.LOADAPP} ${app.id}`,
-                        "Import" : `${Commands.IMPORTAPP} ${app.id}`,
-                        "Delete" : `${IntCommands.DELETEAPP} ${app.id}`,
-                        // "Clone" : `${IntCommands.DELETEAPP} ${appId}`,
-                    }));
+                    if (app.id == context.state[UserStates.APP])
+                    {
+                        responses.push(Utils.MakeHero(app.name + " (LOADED)", null, null, { 
+                            "Delete" : `${IntCommands.DELETEAPP} ${app.id}`
+                        }));
+                    }
+                    else
+                    {
+                        responses.push(Utils.MakeHero(app.name, null, null, 
+                        { 
+                            "Load" : `${Commands.LOADAPP} ${app.id}`,
+                            "Import" : `${Commands.IMPORTAPP} ${app.id}`,
+                            "Delete" : `${IntCommands.DELETEAPP} ${app.id}`,
+                            // "Clone" : `${IntCommands.DELETEAPP} ${appId}`,
+                        }));
+                    }
                 }
             }
 
@@ -161,8 +187,7 @@ export class BlisApp
     }
 
     /** Delete all apps associated with this account */
-    public static async DeleteAll(blisClient : BlisClient, userState : BlisUserState,
-        address : builder.IAddress, cb : (text) => void) : Promise<void>
+    public static async DeleteAll(context : BlisContext, cb : (text) => void) : Promise<void>
     {
         BlisDebug.Log(`Trying to Delete All Applications`);
        
@@ -170,12 +195,12 @@ export class BlisApp
         {
             // Get app ids
             let appIds = [];
-            let json = await blisClient.GetApps()
+            let json = await context.client.GetApps()
             appIds = JSON.parse(json)['ids'];
             BlisDebug.Log(`Found ${appIds.length} apps`);
 
             for (let appId of appIds){
-                let text = await blisClient.DeleteApp(userState, appId)
+                let text = await context.client.DeleteApp(context.state, appId)
                 BlisDebug.Log(`Deleted ${appId} apps`);
             }
             cb("Done");
@@ -188,8 +213,7 @@ export class BlisApp
         }
     }
 
-    public static async Delete(blisClient : BlisClient, userState : BlisUserState, 
-        appId : string, cb : (text) => void) : Promise<void>
+    public static async Delete(context : BlisContext, appId : string, cb : (text) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Delete Application`);
         if (!appId)
@@ -201,8 +225,15 @@ export class BlisApp
 
         try
         {       
-            await blisClient.DeleteApp(userState, appId)
-            let card = Utils.MakeHero("Deleted App", appId, null, null);
+            await context.client.DeleteApp(context.state, appId)
+
+            let card = Menu.NotLoaded("Deleted App", appId, null);
+
+            // Did I delete my loaded app
+            if (appId == context.state[UserStates.APP])
+            {
+                context.state[UserStates.APP] = null;
+            }
             cb(card);
         }
         catch (error) {

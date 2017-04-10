@@ -9,6 +9,7 @@ import { BlisMemory } from '../BlisMemory';
 import { Utils } from '../Utils';
 import { Action } from './Action';
 import { Entity } from './Entity';
+import { BlisContext } from '../BlisContext';
 
 export class AltText
 {
@@ -181,7 +182,7 @@ export class TrainDialog
         (<any>Object).assign(this, init);
     }
     
-    public static async Delete(blisClient : BlisClient, userState : BlisUserState, dialogId : string, cb : (text) => void) : Promise<void>
+    public static async Delete(context : BlisContext, dialogId : string, cb : (text) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Delete Training Dialog`);
 
@@ -195,7 +196,7 @@ export class TrainDialog
         try
         {        
             // TODO clear savelookup
-            await blisClient.DeleteTrainDialog(userState[UserStates.APP], dialogId)
+            await context.client.DeleteTrainDialog(context.state[UserStates.APP], dialogId)
             cb(`Deleted TrainDialog ${dialogId}`);
         }
         catch (error) {
@@ -205,13 +206,12 @@ export class TrainDialog
         }
     }
 
-    public static async Get(blisClient : BlisClient, userState : BlisUserState, 
-        address : builder.IAddress, searchTerm : string, cb : (text) => void) : Promise<void>
+    public static async Get(context : BlisContext, searchTerm : string, cb : (text) => void) : Promise<void>
     {
         try 
         {
-            let blisApp = await blisClient.ExportApp(userState[UserStates.APP]);
-            let dialogs = await blisApp.FindTrainDialogs(blisClient, userState[UserStates.APP], searchTerm);
+            let blisApp = await context.client.ExportApp(context.state[UserStates.APP]);
+            let dialogs = await blisApp.FindTrainDialogs(context.client, context.state[UserStates.APP], searchTerm);
 
             if (dialogs.length == 0)
             {

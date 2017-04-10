@@ -1,12 +1,15 @@
 import * as builder from 'botbuilder';
 import { JsonProperty } from 'json-typescript-mapper';
 import { BlisHelp, Help } from '../Model/Help'; 
+import { BlisApp } from '../Model/BlisApp'; 
 import { BlisUserState} from '../BlisUserState';
 import { BlisDebug} from '../BlisDebug';
 import { BlisClient } from '../BlisClient';
 import { TakeTurnModes, EntityTypes, UserStates, TeachStep, Commands, IntCommands, ActionTypes, SaveStep, APICalls, ActionCommand } from '../Model/Consts';
 import { BlisMemory } from '../BlisMemory';
 import { Utils } from '../Utils';
+import { Menu } from '../Menu';
+import { BlisContext } from '../BlisContext';
 
 export class Action
 { 
@@ -90,32 +93,64 @@ export class Action
     public static Sort(actions : Action[]) : Action[]
     {
         return actions.sort((n1, n2) => {
-            if (n1.content > n2.content) {
+            let c1 = n1.content.toLowerCase();
+            let c2 = n2.content.toLowerCase();
+            if (c1 > c2) {
                 return 1;
             }
-            if (n1.content < n2.content){
+            if (c1 < c2){
                 return -1;
             }
             return 0;
         });
     }
 
-    public static async Add(blisClient : BlisClient, userState : BlisUserState, 
-        content : string, actionType : string, actionId : string, cb : (responses : (string | builder.IIsAttachment)[]) => void) : Promise<void>
+    /** Is the Activity used anywhere */
+    private async InUse(context : BlisContext) : Promise<boolean>
+    {
+        let appContent = await context.client.ExportApp(context.state[UserStates.APP]);
+
+        // Clear actions
+        appContent.actions = null;
+        
+        // Fast search by converting to string and looking for ID
+        let appString = JSON.stringify(appContent);
+
+        // Negative also can't be in use
+        return (appString.indexOf(this.id) > -1);
+    }
+
+    private static Buttons(id : string) : {}
+    {
+        let buttons = 
+        { 
+            "Edit" : `${IntCommands.EDITACTION} ${id}`,
+            "Delete" : `${Commands.DELETEACTION} ${id}`,
+        };
+        return buttons;
+    }
+
+    public static async Add(context : BlisContext, actionId : string, actionType : string, 
+        content : string, cb : (responses : (string | builder.IIsAttachment)[]) => void) : Promise<void>
     {
         BlisDebug.Log(`AddAction`);
 
-       let error = null;
+        if (!BlisApp.HaveApp(context, cb))
+        {
+            return;
+        }
+
+        let error = null;
         if (!content)
         {  
             error = `You must provide action text for the action.`;
         }
-        if (!actionType && !actionId)
+        else if (!actionType && !actionId)
         {
             error = `You must provide the actionType.`;
         }
 
-        var commandHelp = actionType == ActionTypes.API ? Commands.ADDAPIACTION : Commands.ADDTEXTACTION;
+        var commandHelp = actionType == ActionTypes.API ? Commands.ADDAPICALL : Commands.ADDRESPONSE;
         if (error) 
         {
             let msg = BlisHelp.CommandHelpString(commandHelp, error);
@@ -137,7 +172,7 @@ export class Action
         }
         let actionText = (cut > 0) ? content.slice(0,cut-1) : content;
 
-        let memory = new BlisMemory(userState);
+        let memory = new BlisMemory(context);
 
         try
         {        
@@ -246,21 +281,21 @@ export class Action
                 let saveAPI = memory.APILookup(saveName);
                 if (!saveAPI) {
                     let apiCall = `${APICalls.SAVEENTITY} ${saveName}`;
-                    let apiActionId = await blisClient.AddAction(userState[UserStates.APP], apiCall, ActionTypes.API, [], [saveId])
+                    let apiActionId = await context.client.AddAction(context.state[UserStates.APP], apiCall, ActionTypes.API, [], [saveId])
                     memory.AddAPILookup(saveName, apiActionId);
                 }
             }
 
-            let changeType = "";
+            let changeType = (actionType == ActionTypes.TEXT) ? "Response" : "Api Call";
             if (actionId) 
             {
-                actionId = await blisClient.EditAction(userState[UserStates.APP], actionId, actionText, actionType, posIds, negIds);
-                changeType = "Edited";
+                actionId = await context.client.EditAction(context.state[UserStates.APP], actionId, actionText, actionType, posIds, negIds);
+                changeType = changeType + ` Edited`;
             }
             else 
             {
-                actionId = await blisClient.AddAction(userState[UserStates.APP], actionText, actionType, posIds, negIds);
-                changeType = "Created";
+                actionId = await context.client.AddAction(context.state[UserStates.APP], actionText, actionType, posIds, negIds);
+                changeType = changeType + ` Created`;
             }
             let substr = "";
             if (posIds.length > 0) 
@@ -271,8 +306,12 @@ export class Action
             {
                 substr += `${ActionCommand.BLOCK}[${negNames.toLocaleString()}]`;
             } 
-            let card = Utils.MakeHero(`${changeType} Action`, substr + "\n\n", actionText, null);
-            cb([card])
+            let card = Utils.MakeHero(`${changeType}`, substr + "\n\n", actionText, Action.Buttons(actionId));
+
+            let responses = [];
+            responses.push(card);
+            responses = responses.concat(Menu.EditApp(true));
+            cb(responses);
         }
         catch (error)
         {
@@ -283,7 +322,7 @@ export class Action
     }
 
     /** Delete Action with the given actionId */
-    public static async Delete(blisClient : BlisClient, userState : BlisUserState, actionId : string, cb : (text) => void) : Promise<void>
+    public static async Delete(context : BlisContext, actionId : string, cb : (text) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Delete Action`);
 
@@ -295,10 +334,20 @@ export class Action
         }
 
         try
-        {        
+        {    
+            let action = await context.client.GetAction(context.state[UserStates.APP], actionId);  
+            let inUse = await action.InUse(context);
+
+            if (inUse)
+            {
+                let card = Utils.MakeHero("Delete Failed", action.content, "Action is being used by App", null);
+                cb(card);
+                return;
+            }
+
             // TODO clear savelookup
-            await blisClient.DeleteAction(userState[UserStates.APP], actionId)
-            let card = Utils.MakeHero(`Deleted Action`, null, actionId, null);
+            await context.client.DeleteAction(context.state[UserStates.APP], actionId)
+            let card = Utils.MakeHero(`Deleted Action`, null, action.content, null);
             cb(card);
         }
         catch (error)
@@ -310,13 +359,18 @@ export class Action
     }
 
     /** Get actions.  Return count of actions */
-    public static async Get(blisClient : BlisClient, userState : BlisUserState, 
-            search : string, cb : (text) => void) : Promise<number>
+    public static async Get(context : BlisContext, actionType : string, search : string,
+            cb : (text) => void) : Promise<number>
     {
         BlisDebug.Log(`Getting actions`);
 
         try
         {   
+            if (!BlisApp.HaveApp(context, cb))
+            {
+                return;
+            }
+
             let debug = false;
             if (search && search.indexOf(ActionCommand.DEBUG) > -1)
             {
@@ -327,7 +381,7 @@ export class Action
             // Get actions
             let actionIds = [];
             let responses = [];
-            let json = await blisClient.GetActions(userState[UserStates.APP])
+            let json = await context.client.GetActions(context.state[UserStates.APP])
             actionIds = JSON.parse(json)['ids'];
             BlisDebug.Log(`Found ${actionIds.length} actions`);
 
@@ -341,12 +395,14 @@ export class Action
             let textactions = "";
             let apiactions = "";
             let actions : Action[] = [];
-            let memory = new BlisMemory(userState);
+            let memory = new BlisMemory(context);
+            if (search) search = search.toLowerCase();
+
             for (let actionId of actionIds)
             {
-                let action = await blisClient.GetAction(userState[UserStates.APP], actionId)
+                let action = await context.client.GetAction(context.state[UserStates.APP], actionId)
 
-                if (!search || action.content.indexOf(search) > -1)
+                if ((!search || action.content.toLowerCase().indexOf(search) > -1) && (!actionType || action.actionType == actionType))
                 { 
                     actions.push(action);
 
@@ -389,11 +445,7 @@ export class Action
                     else
                     {
                         let type = (action.actionType == ActionTypes.API) ? "API" : "TEXT";
-                        responses.push(Utils.MakeHero(atext, `${type} Action ` + postext+negtext, null, 
-                        { 
-                            "Edit" : `${IntCommands.EDITACTION} ${action.id}`,
-                            "Delete" : `${Commands.DELETEACTION} ${action.id}`,
-                        }));
+                        responses.push(Utils.MakeHero(atext, `${type} Action ` + postext+negtext, null, Action.Buttons(action.id)));
                     }
             }
             if (debug)

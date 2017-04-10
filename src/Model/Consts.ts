@@ -35,10 +35,11 @@ export const SaveStep =
 export const Commands =
 {
     ABANDON: "!abandon",
-    ACTIONS : "!actions",
+    ACTIONS: "!actions",
     ADDENTITY : "!addentity",
-    ADDTEXTACTION : "!addtextaction",
-    ADDAPIACTION : "!addapiaction",
+    ADDAPICALL : "!addapicall",   // Duplicates for usablitity
+    ADDRESPONSE: "!addresponse",  // Duplicates for usablitity
+    APICALLS: "!apicalls",
     APPS : "!apps",
     CREATEAPP : "!createapp",
     DEBUG : "!debug",
@@ -55,6 +56,7 @@ export const Commands =
     HELP : "!help",
     IMPORTAPP : "!importapp",
     LOADAPP: "!loadapp",
+    RESPONSES : "!responses",
     START: "!start",
     TEACH : "!teach",
     TRAINDIALOGS : "!traindialogs"
@@ -63,12 +65,18 @@ export const Commands =
 // Internal commands. (Not for user)
 export const IntCommands =
 {
+    ADDAPICALL : '~addapicall',
+    ADDENTITY : '~addentity',
+    ADDRESPONSE : '~addresponse',
+    CREATEAPP : '~createapp',
     DELETEAPP : '~deleteapp',
     DELETEDIALOG : '~deletedialog',
     DONETEACH : "~doneteach",
     EDITACTION : "~editaction",
+    EDITAPP : "~editapp",
     EDITENTITY : "~editentity",
     FORGETTEACH : "~forgetteach",
+    HOME: "~home",
     SAVETEACH: "~saveteach",
 }
 
@@ -107,5 +115,5 @@ export const UserStates =
     APILOOKUP: "APILOOKUP",           // ENTITY NAME -> SAVE API ACTION ID 
     CURSTEP: "CURSTEP", 
     TRAINSTEPS: "TRAINSTEPS",
-    EDITCOMMAND: "EDITCOMMAND"
+    CUECOMMAND: "CUECOMMAND"
 }

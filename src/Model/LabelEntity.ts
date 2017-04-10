@@ -1,4 +1,5 @@
 import { JsonProperty } from 'json-typescript-mapper';
+import { EntityMetaData } from './Entity';
 
 /** Entity matched in a user's string */
 export class LabelEntity
@@ -9,7 +10,7 @@ export class LabelEntity
 
     /** Matched entity value */
     @JsonProperty('entity')
-    public entityValue : string;
+    public value : string;
 
     /** Match score (0-1) */
     @JsonProperty('score')
@@ -21,20 +22,28 @@ export class LabelEntity
 
     /** The entityID of the matched entity */
     @JsonProperty('id')
-    public entityId : string;
+    public id : string;
+
+    /** The metadate for the entity */
+    @JsonProperty({clazz: EntityMetaData, name: 'metadata'})
+    public metadata : EntityMetaData;
 
     /** The entityID of the matched entity or prebuld name */
     @JsonProperty('type')
     public type : string;
 
+    public resolution : any; 
+
     public constructor(init?:Partial<LabelEntity>)
     {
         this.endIndex = null;
-        this.entityValue = null;
+        this.value = null;
         this.score = null;
         this.startIndex = null;
-        this.entityId = null;
+        this.id = null;
+        this.metadata = null;
         this.type = null;
+        this.resolution = null;
         (<any>Object).assign(this, init);
     }
 }

@@ -1,6 +1,7 @@
 import * as builder from 'botbuilder';
 import * as util from 'util';
 import * as request from 'request';
+import { BlisContext } from './BlisContext';
 
 export class Utils  {
     
@@ -30,10 +31,10 @@ export class Utils  {
     }
 
     /** Send an out of band message */
-    public static SendMessage(bot : builder.UniversalBot, address : any, content : string | builder.IIsAttachment)
+    public static SendMessage(context : BlisContext, content : string | builder.IIsAttachment)
     { 
         let message = new builder.Message()
-			.address(address);
+			.address(context.address);
 
         if (typeof content == 'string')
         {
@@ -43,24 +44,24 @@ export class Utils  {
         {
             message.addAttachment(content);
         }
-         bot.send(message);
+        context.bot.send(message);
     }
 
     /** Send a group of out of band message */
-    public static SendResponses(bot : builder.UniversalBot, address : any, responses : (string|builder.IIsAttachment)[])
+    public static SendResponses(context : BlisContext, responses : (string|builder.IIsAttachment)[])
     {
         for (let response of responses)
         {
-            Utils.SendMessage(bot, address, response);
+            Utils.SendMessage(context, response);
         }
     }
 
-    public static SendAsAttachment(bot : builder.UniversalBot, address : any, content: string)
+    public static SendAsAttachment(context : BlisContext, content: string)
     {
         var base64 = Buffer.from(content).toString('base64');
 
         let msg =  new builder.Message();
-        (<any>msg).data.address = address;
+        (<any>msg).data.address = context.address;
         let contentType = "text/plain";
         let attachment : builder.IAttachment =  
         {
@@ -69,7 +70,7 @@ export class Utils  {
             content: content
         }
         msg.addAttachment(attachment);
-        bot.send(msg);
+        context.bot.send(msg);
     }
 
     /** Handle that catch clauses can be any type */

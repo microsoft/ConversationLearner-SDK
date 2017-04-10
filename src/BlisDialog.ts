@@ -61,6 +61,15 @@ export class BlisDialog extends builder.Dialog {
                 }
                 session.send(response);
             }
+            else if (response == null) 
+            {
+                // Send existing carousel if empty entry
+                if (carousel)
+                {
+                    session.send(carousel);
+                    carousel = null
+                }
+            }
             else
             {
                 if (!carousel)

@@ -1,6 +1,7 @@
 import * as builder from 'botbuilder';
 import { UserStates } from './Model/Consts';
 import { BlisDebug} from './BlisDebug';
+import { BlisContext} from './BlisContext';
 
 export class BlisUserState {
 
@@ -29,7 +30,7 @@ export class BlisUserState {
         this[UserStates.APILOOKUP] = {};
         this[UserStates.CURSTEP] = null;
         this[UserStates.TRAINSTEPS] = [];
-        this[UserStates.EDITCOMMAND] = null;
+        this[UserStates.CUECOMMAND] = null;
     }
 
     public static Get(bot : builder.UniversalBot, address : builder.IAddress, defaultApp : string,
@@ -51,9 +52,9 @@ export class BlisUserState {
         });
     }
 
-    public static Save(bot : builder.UniversalBot, address : builder.IAddress, userData : BlisUserState)  
+    public static Save(context : BlisContext)  
     {
-        bot.loadSession(address, (error, session) => 
+        context.bot.loadSession(context.address, (error, session) => 
         {
             if (error) {
                 BlisDebug.LogObject(error);
@@ -64,18 +65,18 @@ export class BlisUserState {
                 {
                     session.userData.Blis = {};
                 }
-                session.userData.Blis[UserStates.APP] = userData[UserStates.APP];
-                session.userData.Blis[UserStates.MODEL] = userData[UserStates.MODEL];
-                session.userData.Blis[UserStates.SESSION] = userData[UserStates.SESSION];
-                session.userData.Blis[UserStates.TEACH] = userData[UserStates.TEACH];
-                session.userData.Blis[UserStates.DEBUG] = userData[UserStates.DEBUG];
-                session.userData.Blis[UserStates.MEMORY] = userData[UserStates.MEMORY];
-                session.userData.Blis[UserStates.ENTITYLOOKUP] = userData[UserStates.ENTITYLOOKUP];
-                session.userData.Blis[UserStates.LASTSTEP] = userData[UserStates.LASTSTEP];
-                session.userData.Blis[UserStates.APILOOKUP] = userData[UserStates.APILOOKUP];
-                session.userData.Blis[UserStates.CURSTEP] = userData[UserStates.CURSTEP];
-                session.userData.Blis[UserStates.TRAINSTEPS] = userData[UserStates.TRAINSTEPS];
-                session.userData.Blis[UserStates.EDITCOMMAND] = userData[UserStates.EDITCOMMAND];
+                session.userData.Blis[UserStates.APP] = context.state[UserStates.APP];
+                session.userData.Blis[UserStates.MODEL] = context.state[UserStates.MODEL];
+                session.userData.Blis[UserStates.SESSION] = context.state[UserStates.SESSION];
+                session.userData.Blis[UserStates.TEACH] = context.state[UserStates.TEACH];
+                session.userData.Blis[UserStates.DEBUG] = context.state[UserStates.DEBUG];
+                session.userData.Blis[UserStates.MEMORY] = context.state[UserStates.MEMORY];
+                session.userData.Blis[UserStates.ENTITYLOOKUP] = context.state[UserStates.ENTITYLOOKUP];
+                session.userData.Blis[UserStates.LASTSTEP] = context.state[UserStates.LASTSTEP];
+                session.userData.Blis[UserStates.APILOOKUP] = context.state[UserStates.APILOOKUP];
+                session.userData.Blis[UserStates.CURSTEP] = context.state[UserStates.CURSTEP];
+                session.userData.Blis[UserStates.TRAINSTEPS] = context.state[UserStates.TRAINSTEPS];
+                session.userData.Blis[UserStates.CUECOMMAND] = context.state[UserStates.CUECOMMAND];
                 session.save();
             }
         });

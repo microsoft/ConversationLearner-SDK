@@ -2,7 +2,10 @@ import { BlisUserState} from './BlisUserState';
 import { UserStates, SaveStep } from './Model/Consts';
 import { BlisDebug} from './BlisDebug';
 import { ActionCommand} from './Model/Consts';
-import { EditCommand} from './Model/EditCommand';
+import { LabelEntity} from './Model/LabelEntity';
+import { Entity} from './Model/Entity';
+import { BlisContext} from './BlisContext';
+import { CueCommand} from './Model/CueCommand';
 
 export class TrainStep {
     public input : string = null;
@@ -13,7 +16,11 @@ export class TrainStep {
 
 export class BlisMemory {
 
-    constructor(private userState : BlisUserState){
+    private userState : BlisUserState;
+        
+    constructor(context : BlisContext)
+    {
+        this.userState = context.state;
     }
 
     /** Clear memory associated with a session */
@@ -85,7 +92,24 @@ export class BlisMemory {
         {
             return value;
         }
-        return value;  //TODO add and
+
+        // Print out list in friendly manner
+        let group = "";
+        for (let key in value)
+        {
+            let index = +key;
+            let prefix = "";
+            if (value.length != 1 && index == value.length-1)
+            {
+                prefix = " and ";
+            }
+            else if (index != 0)
+            {
+                prefix = ", ";
+            }
+            group += `${prefix}${value[key]}`;
+        }
+        return group;  
     }
 
     /** Convert EntityName to EntityId */
@@ -152,13 +176,13 @@ export class BlisMemory {
         return names;
     }
 
-    /** Remember a EntityName - EntityValue pair */
+    // OBSOLETE
     public RememberEntityByName(entityName: string, entityValue: string) {
         let entityId = this.EntityName2Id(entityName);
         this.RememberEntityById(entityId, entityValue);
     }
 
-    /** Remember a EntityId - EntityValue pair */
+    // OBSOLETE
     public RememberEntityById(entityId: string, entityValue: string) {
 
         try {
@@ -183,19 +207,42 @@ export class BlisMemory {
         }
     }  
 
+    /** Remember entity value */
+    public RememberEntity(entity : LabelEntity) {
+        try {
+            // Check if entity buckets values
+            if (entity.metadata && entity.metadata.bucket)
+            {
+                if (!this.userState[UserStates.MEMORY][entity.id])
+                {
+                    this.userState[UserStates.MEMORY][entity.id] = [];
+                }
+                this.userState[UserStates.MEMORY][entity.id].push(entity.value);
+            }
+            else
+            {
+                this.userState[UserStates.MEMORY][entity.id] = entity.value;
+            }
+        }
+        catch (error)
+        {
+            BlisDebug.Error(error);
+        }
+    }  
+
     /** Return array of entityIds for which I've remembered something */
     public EntityIds() : string[]
     {
         return Object.keys(this.userState[UserStates.MEMORY]);
     }
 
-    /** Forget an EntityName - EntityValue pair */
-    public ForgetEntityByName(entityName: string, entityValue: string) {
+    //OBSOLETE
+    public ForgetEntityByName(entityName : string, entityValue : string) {
         let entityId = this.EntityName2Id(entityName);
         this.ForgetEntityById(entityId, entityValue);
     }
 
-    /** Forget the EntityId that I've remembered */
+    // OBSOLETE
     public ForgetEntityById(entityId: string, entityValue : string) {
         try {
             // Check if entity buckets values
@@ -221,6 +268,46 @@ export class BlisMemory {
             else
             {
                 delete this.userState[UserStates.MEMORY][entityId];
+            }        
+        }
+        catch (error)
+        {
+             BlisDebug.Error(error);
+        }  
+    }
+
+    /** Forget the EntityId that I've remembered */
+    public ForgetEntity(entity : LabelEntity) {
+
+        try {
+            let positiveId = entity.metadata.positive;
+
+            if (!positiveId)
+            {
+                throw new Error('ForgetEntity called with no PositiveId');
+            }
+
+            if (entity.metadata && entity.metadata.bucket)
+            {
+                // Find case insensitive index
+                let lowerCaseNames = this.userState[UserStates.MEMORY][positiveId].map(function(value) {
+                    return value.toLowerCase();
+                });
+
+                let index = lowerCaseNames.indexOf(entity.value.toLowerCase());
+                if (index > -1)
+                {
+                    this.userState[UserStates.MEMORY][positiveId].splice(index, 1);
+                    if (this.userState[UserStates.MEMORY][positiveId].length == 0)
+                    {
+                        delete this.userState[UserStates.MEMORY][positiveId];
+                    }
+                }             
+            }
+            else
+            {
+                let positiveId = entity.metadata.positive;
+                delete this.userState[UserStates.MEMORY][positiveId];
             }        
         }
         catch (error)
@@ -261,7 +348,7 @@ export class BlisMemory {
         {
             return text;
         }
-        text = text.substring(0, start) + text.substring(end-1, text.length-1);
+        text = text.substring(0, start) + text.substring(end, text.length);
         return this.IgnoreBrackets(text);
     }
 
@@ -394,15 +481,15 @@ export class BlisMemory {
     }
 
     //--------------------------------------------------------
-    // EDIT COMMAND
+    // Cue COMMAND
     //--------------------------------------------------------
 
-    public SetEditCommand(editCommand : EditCommand) : void {
-        this.userState[UserStates.EDITCOMMAND] = editCommand;
+    public SetCueCommand(cueCommand : CueCommand) : void {
+        this.userState[UserStates.CUECOMMAND] = cueCommand;
     }
 
-    public EditCommand() : EditCommand {
-        return this.userState[UserStates.EDITCOMMAND];
+    public CueCommand() : CueCommand {
+        return this.userState[UserStates.CUECOMMAND];
     }
 
     //--------------------------------------------------------
@@ -423,10 +510,10 @@ export class BlisMemory {
         let memory = "";
         for (let entityId in this.userState[UserStates.MEMORY])
         {
-            if (memory) memory += ", ";
+            if (memory) memory += " ";
             let entityName = this.EntityId2Name(entityId);
             let entityValue = this.userState[UserStates.MEMORY][entityId];
-            memory += `[$${entityName} : ${entityValue}]`;
+            memory += `[${entityName} : ${entityValue}]`;
         }
         if (memory == "") {
             memory = '[ - none - ]';

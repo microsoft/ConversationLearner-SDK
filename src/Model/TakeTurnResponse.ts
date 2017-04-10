@@ -1,6 +1,5 @@
 import * as builder from 'botbuilder';
 import { JsonProperty } from 'json-typescript-mapper';
-import { LuisEntity } from './LuisEntity';
 import { Action } from './Action';
 import { LabelEntity } from './LabelEntity';
 import { LabelAction } from './LabelAction';
@@ -10,8 +9,8 @@ export class TakeTurnResponse
     @JsonProperty('orig-text')
     public originalText : string;
 
-    @JsonProperty({clazz: LuisEntity, name: 'entities'})
-    public entities : LuisEntity[];
+    @JsonProperty({clazz: LabelEntity, name: 'entities'})
+    public entities : LabelEntity[];
 
     @JsonProperty('mode')
     public mode : string;

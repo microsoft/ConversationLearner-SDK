@@ -1,7 +1,6 @@
 const request = require('request');
 import { deserialize, serialize } from 'json-typescript-mapper';
 import { Credentials } from './Http/Credentials';
-import { LuisEntity } from './Model/LuisEntity';
 import { Action } from './Model/Action'
 import { BlisApp } from './Model/BlisApp'
 import { BlisAppContent } from './Model/BlisAppContent'
@@ -848,7 +847,7 @@ export class BlisClient {
                     }
                     else {
                         if (typeof body === "string") {
-                            body = JSON.parse(body);
+                           reject("Service returned invalid JSON");
                         }
                         var ttresponse = deserialize(TakeTurnResponse, body);
                         resolve(ttresponse);
