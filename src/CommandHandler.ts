@@ -56,6 +56,22 @@ export class CommandHandler
                 });
                 cb([card]);
             }
+            else if (command == Commands.APICALLS)
+            {
+                let card = Utils.MakeHero(`Find API call`, null, "Enter search term", 
+                {  
+                //     "Cancel" : Commands.CANCEL
+                });
+                cb([card]);
+            }
+            else if (command == Commands.APPS)
+            {
+                let card = Utils.MakeHero(`Find App`, null, "Enter search term", 
+                {  
+                //     "Cancel" : Commands.CANCEL
+                });
+                cb([card]);
+            }
             else if (command == Commands.CREATEAPP)
             {
                 let card = Utils.MakeHero(`Create App`, '{appName} {LUIS key}', "Enter new App name and Luis Key", null);
@@ -72,6 +88,30 @@ export class CommandHandler
                 let entity = await context.client.GetEntity(context.state[UserStates.APP], args);
                 let type = entity.luisPreName ? entity.luisPreName : entity.entityType;
                 let card = Utils.MakeHero(`Edit: (${entity.name})`, type, "Enter new Entity name", null);
+                cb([card]);
+            }
+            else if (command == Commands.ENTITIES)
+            {
+                let card = Utils.MakeHero(`Find Entity`, null, "Enter search term", 
+                {  
+                //     "Cancel" : Commands.CANCEL
+                });
+                cb([card]);
+            }
+            else if (command == Commands.RESPONSES)
+            {
+                let card = Utils.MakeHero(`Find Response`, null, "Enter search term", 
+                {  
+                //     "Cancel" : Commands.CANCEL
+                });
+                cb([card]);
+            }
+            else if (command == Commands.TRAINDIALOGS)
+            {
+                let card = Utils.MakeHero(`Find Training Dialog`, null, "Enter search term", 
+                {  
+                //     "Cancel" : Commands.CANCEL
+                });
                 cb([card]);
             }
         }
@@ -112,7 +152,7 @@ export class CommandHandler
             }
             else 
             {
-                cb([`_In teaching mode. The only valid command is_ ${IntCommands.DONETEACH}`]);
+                cb([`Action can't be performed while teaching.`]);
             }
         }
         //-------- Valid not in Teach ------------------//
@@ -131,14 +171,29 @@ export class CommandHandler
                 cb(responses);
             });
         }
+        else if (command == IntCommands.APICALLS) {
+            this.CueCommand(context, Commands.APICALLS, arg, (responses) => {
+                cb(responses);
+            });
+        }
+        else if (command == IntCommands.APPS) {
+            this.CueCommand(context, Commands.APPS, arg, (responses) => {
+                cb(responses);
+            });
+        }
+        else if (command == IntCommands.CREATEAPP) {
+            this.CueCommand(context, Commands.CREATEAPP, null, (responses) => {
+                cb(responses);
+            });
+        }
         else if (command == IntCommands.DELETEAPP) {
-            BlisApp.Delete(context, arg, (text) => {
-                cb([text]);
+            BlisApp.Delete(context, arg, (responses) => {
+                cb(responses);
             });
         }
         else if (command == IntCommands.DELETEDIALOG) {
-            TrainDialog.Delete(context, arg, (text) => {
-                cb([text]);
+            TrainDialog.Delete(context, arg, (responses) => {
+                cb(responses);
             });
         }
         else if (command == IntCommands.EDITACTION) {
@@ -154,11 +209,21 @@ export class CommandHandler
                 cb(responses);
             });
         }
+        else if (command == IntCommands.ENTITIES) {
+            this.CueCommand(context, Commands.ENTITIES, arg, (responses) => {
+                cb(responses);
+            });
+        }
         else if (command == IntCommands.HOME) {
             cb(Menu.Home(""));
         }
-        else if (command == IntCommands.CREATEAPP) {
-            this.CueCommand(context, Commands.CREATEAPP, null, (responses) => {
+        else if (command == IntCommands.RESPONSES) {
+            this.CueCommand(context, Commands.RESPONSES, arg, (responses) => {
+                cb(responses);
+            });
+        }
+        else if (command == IntCommands.TRAINDIALOGS) {
+            this.CueCommand(context, Commands.TRAINDIALOGS, arg, (responses) => {
                 cb(responses);
             });
         }
@@ -182,7 +247,7 @@ export class CommandHandler
         // Commands allowed at any time
         if (command == Commands.ACTIONS)
         {
-            Action.Get(context, null, args, (responses) => {
+            Action.GetAll(context, null, args, (responses) => {
                 cb(responses);
             });
         }
@@ -195,7 +260,7 @@ export class CommandHandler
         }
         else if (command == Commands.APICALLS)
         {
-            Action.Get(context, ActionTypes.API, args, (responses) => {
+            Action.GetAll(context, ActionTypes.API, args, (responses) => {
                 cb(responses);
             });
         }
@@ -226,7 +291,7 @@ export class CommandHandler
         }
         else if (command == Commands.RESPONSES)
         {
-            Action.Get(context, ActionTypes.TEXT, args, (responses) => {
+            Action.GetAll(context, ActionTypes.TEXT, args, (responses) => {
                 cb(responses);
             });
         }
@@ -261,8 +326,8 @@ export class CommandHandler
             }
             else if (command == Commands.APPS)
             {
-                BlisApp.GetAll(context, args, (text) => {
-                    cb(text);
+                BlisApp.GetAll(context, args, (responses) => {
+                    cb(responses);
                 });
             }
             else if (command == Commands.CREATEAPP)
@@ -274,23 +339,23 @@ export class CommandHandler
             }
             else if (command == Commands.DELETEALLAPPS)
             {
-                BlisApp.DeleteAll(context, (text) => {
-                    cb([text]);
+                BlisApp.DeleteAll(context, (responses) => {
+                    cb(responses);
                 });
             }
             else if (command == Commands.DELETEACTION)
             {
                 let [actionId] = args.split(' ');
-                Action.Delete(context, actionId, (text) => {
-                    cb([text]);
+                Action.Delete(context, actionId, (responses) => {
+                    cb(responses);
                 });
             }
             else if (command == Commands.DELETEAPP)
             {
                 Utils.SendMessage(context, "Deleting app...");
                 let [appid] = args.split(' ');
-                BlisApp.Delete(context, appid, (text) => {
-                    cb([text]);
+                BlisApp.Delete(context, appid, (responses) => {
+                    cb(responses);
                 });
             }
             else if (command == Commands.DELETEENTITY)
@@ -316,24 +381,24 @@ export class CommandHandler
             }
             else if (command == Commands.EXPORTAPP)
             {
-                BlisAppContent.Export(context, (text) => {
-                    cb([text]);
+                BlisAppContent.Export(context, (responses) => {
+                    cb(responses);
                 });
             }
             else if (command == Commands.IMPORTAPP)
             {
                 Utils.SendMessage(context, "Importing app...");
                 let [appId] = args.split(' ');   
-                BlisAppContent.Import(context, appId, (text) => {
-                    cb([text]); 
+                BlisAppContent.Import(context, appId, (responses) => {
+                    cb(responses); 
                 });
             }
             else if (command == Commands.LOADAPP)
             {
                 Utils.SendMessage(context, "Loading app...");
                 let [appId] = args.split(' ');
-                BlisAppContent.Load(context, appId, (text) => {
-                    cb([text]);
+                BlisAppContent.Load(context, appId, (responses) => {
+                    cb(responses);
                 });
             }
             else if (command == Commands.START)
@@ -346,15 +411,15 @@ export class CommandHandler
             {
                 let memory = new BlisMemory(context);
                 memory.ClearTrainSteps();
-                BlisSession.NewSession(context, true, (results) => {
-                    cb(results);
+                BlisSession.NewSession(context, true, (responses) => {
+                    cb(responses);
                 });
             }
             else if (command == Commands.TRAINDIALOGS)
             {
                 let [search] = args.split(' ');
-                TrainDialog.Get(context, search, (text) => {
-                    cb(text);
+                TrainDialog.Get(context, search, (responses) => {
+                    cb(responses);
                 });
             }
             else 

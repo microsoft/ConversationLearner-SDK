@@ -88,6 +88,11 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         }
     }
 
+    private IsInternalApi(apicall : string) : boolean
+    {
+        let [apiName] = apicall.split(' ');
+        return (this.intApiCallbacks[apiName] != null);
+    }
     public LoadUser(address : builder.IAddress, 
                         cb : (err: Error, context: BlisContext) => void )
     {
@@ -98,9 +103,8 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             if (isNew)
             {                        
                 // Attempt to load the application
-                BlisAppContent.Load(context, this.defaultApp, (text) => 
+                BlisAppContent.Load(context, this.defaultApp, (responses) => 
                 {
-                    BlisDebug.Log(text);
                     cb(null, context);
                 });
             }
@@ -254,29 +258,39 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                         let body = ttResponse.teachLabelActions.length == 0 ? 'No actions matched' : 'Select Action by number or enter a new one';
                         responses.push(Utils.MakeHero(title, null, body, { "Add Action" : Help.ADDACTION} ));
 
-
+                        let choices = {};
                         if (ttResponse.teachLabelActions.length > 0) 
                         {
                             let body = `${memory.DumpEntities()}\n\n`;
-                            responses.push(Utils.MakeHero(" ", null, body, null));
+                            responses.push(Utils.MakeHero("Memory", null, body, null));
 
                             let msg = "";
+                            let displayIndex = 1;
                             for (let i in ttResponse.teachLabelActions)
                             {
                                 let labelAction = ttResponse.teachLabelActions[i];
-                                if (labelAction.available)
-                                {
-                                    let score = labelAction.score ? labelAction.score.toFixed(3) : "*UNKNOWN*";
-                                    msg += `(${1+Number(i)}) ${labelAction.content} _(${labelAction.actionType.toUpperCase()})_ Score: ${score}\n\n`;
-                                }
-                                else
-                                {
-                                    msg += `_(${1+Number(i)}) ${labelAction.content}_ _(${labelAction.actionType.toUpperCase()})_ DISQUALIFIED\n\n`;
 
+                                // Don't show internal API calls to developer
+                                if (!that.IsInternalApi(labelAction.content))
+                                {      
+                                    if (labelAction.available)
+                                    {
+                                        let score = labelAction.score ? labelAction.score.toFixed(3) : "*UNKNOWN*";
+                                        msg += `(${displayIndex}) ${labelAction.content} _(${labelAction.actionType.toUpperCase()})_ Score: ${score}\n\n`;
+                                        choices[displayIndex] = (1+Number(i)).toString();
+                                    }
+                                    else
+                                    {
+                                        msg += `(  ) ${labelAction.content} _(${labelAction.actionType.toUpperCase()})_ DISQUALIFIED\n\n`;
+                                    }
+                                    displayIndex++;
                                 }
                             }
+
                             responses.push(msg);
-                           
+
+                            // Remember valid choices
+                            memory.RememberLastStep(SaveStep.CHOICES, choices);
                         }
                                 
                     }
@@ -316,8 +330,6 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                             output = output ? output.replace(" !"," ") : output;
 
                             // Allow for dev to update
-                            
-                            
                             let outText = null;
                             if (that.blisCallback)
                             {
@@ -410,12 +422,28 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                     }
                     else 
                     {
+                        if (inTeach)
+                        {
+                            // Check if user has limited set of choices
+                            let choices = memory.LastStep(SaveStep.CHOICES);
+                            if (choices && Object.keys(choices).length > 0)
+                            {
+                                if (!choices[userInput])
+                                {
+                                    let msg = "Please select one of the action from above or click 'Add Action' for a new Action";
+                                    this.SendResult(context, cb, [msg]);
+                                    return;
+                                }
+                                userInput = choices[userInput];
+                                memory.RememberLastStep(SaveStep.CHOICES, null);
+                            }
+                        }
                         // If not in teach mode remember last user input
-                        if (!inTeach)
+                        else
                         {
                             memory.RememberLastStep(SaveStep.INPUT, userInput);
                         }
-                        BlisDebug.LogObject(context.state[UserStates.LASTSTEP]);
+                        
                         this.TakeTurn(context, userInput, TakeTurnCallback);
                     } 
                 }
@@ -437,7 +465,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         // Error checking
         if (context.state[UserStates.APP]  == null)
         {
-            let card = Menu.NotLoaded("No Application has been loaded..");
+            let card = Menu.Apps("No Application has been loaded..");
             let response = this.ErrorResponse(card[0]);
             cb(response);
             return;

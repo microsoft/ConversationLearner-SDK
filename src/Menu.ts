@@ -10,34 +10,34 @@ export class Menu {
         if (newLine) cards.push(null);
         cards.push(Utils.MakeHero("Entities", null, null, 
         {
-            "View" : Commands.ENTITIES, 
+            "List" : Commands.ENTITIES, 
+            "Search" : IntCommands.ENTITIES, 
             "Add" : IntCommands.ADDENTITY
         }));
         cards.push(Utils.MakeHero("Responses", null, null, 
         {
-            "View" : Commands.RESPONSES, 
+            "List" : Commands.RESPONSES,
+            "Search" : IntCommands.RESPONSES, 
             "Add" : IntCommands.ADDRESPONSE
         }));
         cards.push(Utils.MakeHero("API Calls", null, null, 
         {
-            "View" : Commands.APICALLS, 
+            "List" : Commands.APICALLS, 
+            "Search" : IntCommands.APICALLS, 
             "Add" : IntCommands.ADDAPICALL
         }));
-        cards = cards.concat(this.Apps("Apps"));
-        cards.push(Utils.MakeHero(null, null, null, 
+        cards.push(null);
+        cards.push(Utils.MakeHero("Train Dialogs", null, null, 
         {
-            "DONE" : IntCommands.HOME
+            "List" : Commands.TRAINDIALOGS, 
+            "Search" : IntCommands.TRAINDIALOGS, 
+            "Add" : Commands.TEACH
         }));
-        return cards;
-    }
-
-    public static NotLoaded(title : string, subheader? : string, body? : string) : (string|builder.IIsAttachment)[]
-    { 
-        let cards = [];
-        cards.push(Utils.MakeHero(title, subheader, body, 
+        cards = cards.concat(this.Apps("Apps"));
+        cards.push(Utils.MakeHero("Bot", null, null, 
         {
-            "My Apps" : `${Commands.APPS}`,
-            "Create" : `${Commands.CREATEAPP}`,
+            "Start" : Commands.START, 
+            "Teach" : Commands.TEACH,
         }));
         return cards;
     }
@@ -59,9 +59,17 @@ export class Menu {
         let cards = [];
         cards.push(Utils.MakeHero(title, subheader, body, 
         {
-            "View" : Commands.APPS,
-            "Create" : Commands.CREATEAPP
+            "List" : Commands.APPS,
+            "Search" : IntCommands.APPS, 
+            "Create" : IntCommands.CREATEAPP
         }));
         return cards;
+    }
+
+    public static EditError(message : string | builder.IIsAttachment) : (string | builder.IIsAttachment)[]
+    {
+        let responses = [];
+        responses.push(message);
+        return responses.concat(Menu.EditApp(true));
     }
 }

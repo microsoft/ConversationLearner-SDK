@@ -71,13 +71,13 @@ export class BlisApp
 
         if (!appName)
         {
-            let msg = BlisHelp.CommandHelpString(Commands.CREATEAPP, `You must provide a name for your application.`);
+            let msg = `You must provide a name for your application.`;
             cb(Menu.Apps(msg));
             return;
         }
         if (!luisKey)
         {
-            let msg = BlisHelp.CommandHelpString(Commands.CREATEAPP, `You must provide a luisKey for your application.`);
+            let msg = `You must provide a luisKey for your application.`;
             cb(Menu.Apps(msg));
             return;
         }
@@ -89,8 +89,7 @@ export class BlisApp
             // Initialize
             Object.assign(context.state, new BlisUserState(appId));
 
-            let responses = [];
-            responses.push(Menu.Home("Created App", appName));
+            let responses = Menu.Home("Created App", appName);
             responses = responses.concat(Menu.EditApp(true));
             cb(responses);
         }
@@ -102,7 +101,7 @@ export class BlisApp
     } 
 
     /** Get all apps, filter by Search term */
-    public static async GetAll(context : BlisContext, search : string, cb : (text) => void) : Promise<void>
+    public static async GetAll(context : BlisContext, search : string, cb : (responses: (string | builder.IIsAttachment)[]) => void) : Promise<void>
     {
         BlisDebug.Log(`Getting apps`);
 
@@ -187,7 +186,7 @@ export class BlisApp
     }
 
     /** Delete all apps associated with this account */
-    public static async DeleteAll(context : BlisContext, cb : (text) => void) : Promise<void>
+    public static async DeleteAll(context : BlisContext, cb : (responses: (string | builder.IIsAttachment)[]) => void) : Promise<void>
     {
         BlisDebug.Log(`Trying to Delete All Applications`);
        
@@ -203,7 +202,7 @@ export class BlisApp
                 let text = await context.client.DeleteApp(context.state, appId)
                 BlisDebug.Log(`Deleted ${appId} apps`);
             }
-            cb("Done");
+            cb(["Done"]);
         }
         catch (error)
         {
@@ -213,13 +212,13 @@ export class BlisApp
         }
     }
 
-    public static async Delete(context : BlisContext, appId : string, cb : (text) => void) : Promise<void>
+    public static async Delete(context : BlisContext, appId : string, cb : (responses: (string | builder.IIsAttachment)[]) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Delete Application`);
         if (!appId)
         {
             let msg = BlisHelp.Get(Help.DELETEAPP);
-            cb(msg);
+            cb([msg]);
             return;
         }
 
@@ -227,7 +226,7 @@ export class BlisApp
         {       
             await context.client.DeleteApp(context.state, appId)
 
-            let card = Menu.NotLoaded("Deleted App", appId, null);
+            let card = Menu.Apps("Deleted App", appId, null);
 
             // Did I delete my loaded app
             if (appId == context.state[UserStates.APP])
@@ -239,7 +238,7 @@ export class BlisApp
         catch (error) {
             let errMsg = Utils.ErrorString(error);
             BlisDebug.Error(errMsg);
-            cb(errMsg);
+            cb([errMsg]);
         }
     }
 }

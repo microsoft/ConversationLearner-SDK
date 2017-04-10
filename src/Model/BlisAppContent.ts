@@ -38,10 +38,11 @@ export class BlisAppContent
     public async FindTrainDialogs(client : BlisClient, appId : string, searchTerm : string) : Promise<{'dialogId': string, 'text': string}[]>
     {
         let dialogs = [];
+        searchTerm = searchTerm.toLowerCase();
         for (let trainDialog of this.trainDialogs)
         {
             let dialog = await trainDialog.toText(client, appId);
-            if (!searchTerm || dialog.indexOf(searchTerm) > 0)
+            if (!searchTerm || dialog.toLowerCase().indexOf(searchTerm) > 0)
             {
                 dialogs.push({'dialogId' : trainDialog.id, 'text' : dialog});
             }
@@ -49,7 +50,7 @@ export class BlisAppContent
         return dialogs;
     }
 
-    public static async Export(context : BlisContext, cb : (text) => void) : Promise<void>
+    public static async Export(context : BlisContext, cb : (responses: (string | builder.IIsAttachment)[]) => void) : Promise<void>
     {
         BlisDebug.Log(`Exporting App`);
 
@@ -61,23 +62,23 @@ export class BlisAppContent
             let msg = JSON.stringify(BlisAppContent);
             if (context.address.channelId == "emulator")
             {
-                cb(msg);
+                cb([msg]);
             }
             else
             {
                 Utils.SendAsAttachment(context, msg);
-                cb("");
+                cb([""]);
             }
         }
         catch (error) {
             let errMsg = Utils.ErrorString(error);
             BlisDebug.Error(errMsg);
-            cb(errMsg);
+            cb([errMsg]);
         }
     }
 
     /** Import (and merge) application with given appId */
-    public static async Import(context : BlisContext, appId : string, cb : (text) => void) : Promise<void>
+    public static async Import(context : BlisContext, appId : string, cb : (responses: (string | builder.IIsAttachment)[]) => void) : Promise<void>
     {
         try
         {
@@ -98,15 +99,15 @@ export class BlisAppContent
 
             // reload
             let memory = new BlisMemory(context);
-            this.Load(context, memory.AppId(), (text) => {
-                cb(text);
+            this.Load(context, memory.AppId(), (responses) => {
+                cb(responses);
             });
         }
         catch (error)
         {
             let errMsg = Utils.ErrorString(error);
             BlisDebug.Error(errMsg);
-            cb(errMsg);
+            cb([errMsg]);
         }
     }
 
@@ -141,7 +142,7 @@ export class BlisAppContent
         }
     }
 
-    public static async Load(context : BlisContext, appId : string, cb : (text) => void) : Promise<void>
+    public static async Load(context : BlisContext, appId : string, cb : (responses: (string | builder.IIsAttachment)[]) => void) : Promise<void>
     {
         try {
             // TODO - temp debug
@@ -153,7 +154,7 @@ export class BlisAppContent
             if (!appId)
             {
                 let msg = BlisHelp.CommandHelpString(Commands.LOADAPP, `You must provide the ID of the application to load.`);
-                cb(msg);
+                cb([msg]);
                 return;
             }
 
@@ -171,14 +172,14 @@ export class BlisAppContent
             }); 
 
             // Load actions to generate lookup table
-            let numActions = await Action.Get(context, null, null, (text) =>
+            let numActions = await Action.GetAll(context, null, null, (text) =>
             {
                 BlisDebug.Log(`Action lookup generated`);
             }); 
 
             if (numActions == 0)
             {
-                cb("Application loaded.  No Actions found.");
+                cb(["Application loaded.  No Actions found."]);
                 return;
             }
             // Load or train a new modelId
@@ -197,13 +198,13 @@ export class BlisAppContent
             let sessionId = await context.client.StartSession(context.state[UserStates.APP])
             BlisDebug.Log(`Stared Session: ${appId}`);
             new BlisMemory(context).StartSession(sessionId, false);
-            cb("Application loaded and Session started.");
+            cb(["Application loaded and Session started."]);
         }
         catch (error)
         {
             let errMsg = Utils.ErrorString(error);
             BlisDebug.Error(errMsg);
-            cb(errMsg);
+            cb([errMsg]);
         }
     }
 

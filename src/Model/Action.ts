@@ -11,6 +11,19 @@ import { Utils } from '../Utils';
 import { Menu } from '../Menu';
 import { BlisContext } from '../BlisContext';
 
+export class ActionMetaData
+{
+    /** Is this action an internal api call */
+    @JsonProperty('internal')  
+    public internal : boolean;
+
+    public constructor(init?:Partial<ActionMetaData>)
+    {
+        this.internal = undefined;
+        (<any>Object).assign(this, init);
+    }
+}
+
 export class Action
 { 
     @JsonProperty('id')
@@ -28,6 +41,9 @@ export class Action
     @JsonProperty('RequiredEntities')
     public requiredEntities : string[];
 
+    @JsonProperty({clazz: ActionMetaData, name: 'metadata'})
+    public metadata : ActionMetaData;
+
     public constructor(init?:Partial<Action>)
     {
         this.id = undefined;
@@ -35,6 +51,7 @@ export class Action
         this.content = undefined;
         this.negativeEntities = undefined;
         this.requiredEntities = undefined;
+        this.metadata = new ActionMetaData();
         (<any>Object).assign(this, init);
     }
 
@@ -140,21 +157,14 @@ export class Action
             return;
         }
 
-        let error = null;
         if (!content)
         {  
-            error = `You must provide action text for the action.`;
+           cb(Menu.EditError(`You must provide action text for the action.`));
+           return;
         }
         else if (!actionType && !actionId)
         {
-            error = `You must provide the actionType.`;
-        }
-
-        var commandHelp = actionType == ActionTypes.API ? Commands.ADDAPICALL : Commands.ADDRESPONSE;
-        if (error) 
-        {
-            let msg = BlisHelp.CommandHelpString(commandHelp, error);
-            cb([msg]);
+            cb(Menu.EditError(`You must provide the actionType.`));
             return;
         }
 
@@ -204,7 +214,7 @@ export class Action
                         }
                         else
                         {
-                            cb([`Entity $${posName} not found.`]);
+                            cb(Menu.EditError(`Entity $${posName} not found.`));
                             return;
                         }
                     }
@@ -215,22 +225,19 @@ export class Action
                     // Only allow one suggested entity
                     if (saveName) 
                     {
-                        error = BlisHelp.CommandHelpString(commandHelp, `Only one entity suggestion (denoted by "!_ENTITY_") allowed per Action`);
-                        cb([error]);
+                        cb(Menu.EditError(`Only one entity suggestion (denoted by "!_ENTITY_") allowed per Action`));
                         return;
                     } 
                     if (actionType == ActionTypes.API)
                     {
-                        error = BlisHelp.CommandHelpString(commandHelp, `Suggested entities can't be added to API Actions`);
-                        cb([error]);
+                        cb(Menu.EditError(`Suggested entities can't be added to API Actions`));
                         return;
                     }
                     saveName = word.slice(ActionCommand.SUGGEST.length);
                     saveId = memory.EntityName2Id(saveName);
                     if (!saveId)
                     {
-                        error = BlisHelp.CommandHelpString(commandHelp, `Entity $${saveName} not found.`);
-                        cb([error]);
+                        cb(Menu.EditError(`Entity $${saveName} not found.`));
                         return;
                     }
                     // Add to negative entities
@@ -250,8 +257,7 @@ export class Action
                     }  
                     else
                     {
-                        error = BlisHelp.CommandHelpString(commandHelp, `Entity $${negName} not found.`);
-                        cb([error]);
+                        cb(Menu.EditError(`Entity ${negName} not found.`));
                         return;
                     }
                 }
@@ -266,8 +272,7 @@ export class Action
                         }  
                         else
                         {
-                            error = BlisHelp.CommandHelpString(commandHelp, `Entity $${posName} not found.`);
-                            cb([error]);
+                            cb(Menu.EditError(`Entity $${posName} not found.`));
                             return;
                         }
                     }
@@ -281,7 +286,8 @@ export class Action
                 let saveAPI = memory.APILookup(saveName);
                 if (!saveAPI) {
                     let apiCall = `${APICalls.SAVEENTITY} ${saveName}`;
-                    let apiActionId = await context.client.AddAction(context.state[UserStates.APP], apiCall, ActionTypes.API, [], [saveId])
+                    let metadata = new ActionMetaData({internal : true});
+                    let apiActionId = await context.client.AddAction(context.state[UserStates.APP], apiCall, ActionTypes.API, [], [saveId], null, metadata)
                     memory.AddAPILookup(saveName, apiActionId);
                 }
             }
@@ -294,7 +300,7 @@ export class Action
             }
             else 
             {
-                actionId = await context.client.AddAction(context.state[UserStates.APP], actionText, actionType, posIds, negIds);
+                actionId = await context.client.AddAction(context.state[UserStates.APP], actionText, actionType, posIds, negIds, null, null);
                 changeType = changeType + ` Created`;
             }
             let substr = "";
@@ -359,7 +365,7 @@ export class Action
     }
 
     /** Get actions.  Return count of actions */
-    public static async Get(context : BlisContext, actionType : string, search : string,
+    public static async GetAll(context : BlisContext, actionType : string, search : string,
             cb : (text) => void) : Promise<number>
     {
         BlisDebug.Log(`Getting actions`);
@@ -387,7 +393,7 @@ export class Action
 
             if (actionIds.length == 0)
             {
-                responses.push("This application contains no actions.");
+                responses.push(`This application contains no ${(actionType == ActionTypes.API) ? "API Calls" : "Responses"}`);
                 cb(responses); 
                 return;
             }
@@ -402,18 +408,22 @@ export class Action
             {
                 let action = await context.client.GetAction(context.state[UserStates.APP], actionId)
 
-                if ((!search || action.content.toLowerCase().indexOf(search) > -1) && (!actionType || action.actionType == actionType))
-                { 
-                    actions.push(action);
+                // Don't display internal APIs
+                if (!action.metadata || !action.metadata.internal)
+                {
+                    if ((!search || action.content.toLowerCase().indexOf(search) > -1) && (!actionType || action.actionType == actionType))
+                    { 
+                        actions.push(action);
 
-                    // Create lookup for saveEntity actions
-                    if (action.actionType == ActionTypes.API && action.content.startsWith(APICalls.SAVEENTITY))
-                    {        
-                        let name = Action.Split(action.content)[1];
-                        memory.AddAPILookup(name, actionId);
+                        // Create lookup for saveEntity actions
+                        if (action.actionType == ActionTypes.API && action.content.startsWith(APICalls.SAVEENTITY))
+                        {        
+                            let name = Action.Split(action.content)[1];
+                            memory.AddAPILookup(name, actionId);
+                        }
+
+                        BlisDebug.Log(`Action lookup: ${action.content} : ${action.actionType}`);
                     }
-
-                    BlisDebug.Log(`Action lookup: ${action.content} : ${action.actionType}`);
                 }
             }
 
@@ -444,8 +454,8 @@ export class Action
                     }       
                     else
                     {
-                        let type = (action.actionType == ActionTypes.API) ? "API" : "TEXT";
-                        responses.push(Utils.MakeHero(atext, `${type} Action ` + postext+negtext, null, Action.Buttons(action.id)));
+                        let typeDesc = (action.actionType == ActionTypes.API) ? "API Call" : "Response";
+                        responses.push(Utils.MakeHero(atext, `${typeDesc} ` + postext+negtext, null, Action.Buttons(action.id)));
                     }
             }
             if (debug)

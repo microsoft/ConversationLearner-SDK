@@ -1,7 +1,7 @@
 const request = require('request');
 import { deserialize, serialize } from 'json-typescript-mapper';
 import { Credentials } from './Http/Credentials';
-import { Action } from './Model/Action'
+import { Action, ActionMetaData } from './Model/Action'
 import { BlisApp } from './Model/BlisApp'
 import { BlisAppContent } from './Model/BlisAppContent'
 import { Entity, EntityMetaData } from './Model/Entity'
@@ -32,7 +32,7 @@ export class BlisClient {
     }
 
     // TODO: switch remaining to not userstate
-    public AddAction(appId : string, content : string, actionType : string, requiredEntityList : string[] = [], negativeEntityList : string[] = [], prebuiltEntityName : string = null) : Promise<string>
+    public AddAction(appId : string, content : string, actionType : string, requiredEntityList : string[] = [], negativeEntityList : string[] = [], prebuiltEntityName : string, metaData : ActionMetaData) : Promise<string>
     {
         let apiPath = `app/${appId}/action`;
 
@@ -47,7 +47,8 @@ export class BlisClient {
                         content: content,
                         RequiredEntities: requiredEntityList,
                         NegativeEntities: negativeEntityList,
-                        action_type: actionType
+                        action_type: actionType,
+                        metadata : metaData
                     },
                     json: true
                 }
@@ -847,7 +848,7 @@ export class BlisClient {
                     }
                     else {
                         if (typeof body === "string") {
-                           reject("Service returned invalid JSON");
+                           reject("Service returned invalid JSON\n\n" + body);
                         }
                         var ttresponse = deserialize(TakeTurnResponse, body);
                         resolve(ttresponse);

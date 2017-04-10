@@ -398,15 +398,15 @@ export class BlisMemory {
     //--------------------------------------------------------
     // LAST STEP
     //--------------------------------------------------------
-    public RememberLastStep(saveStep: string, input: string) : void {
+    public RememberLastStep(saveStep: string, value: any) : void {
         if (this.userState[UserStates.LASTSTEP] == null)
         {
             this.userState[UserStates.LASTSTEP] = new TrainStep();
         }
-        this.userState[UserStates.LASTSTEP][saveStep] = input;
+        this.userState[UserStates.LASTSTEP][saveStep] = value;
     }
 
-    public LastStep(saveStep: string) : string {
+    public LastStep(saveStep: string) : any {
         if (!this.userState[UserStates.LASTSTEP])
         {
             return null;

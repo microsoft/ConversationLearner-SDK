@@ -185,15 +185,9 @@ export class Entity
                 return;
             }
 
-            let error = null;
             if (!content)
             {  
-                error = `You must provide an entity name for the entity to create.`;
-            }
-            if (error) 
-            {
-                let msg = BlisHelp.CommandHelpString(Commands.ADDENTITY, error);
-                cb([msg]);
+                cb(Menu.EditError(`You must provide an entity name for the entity to create.`));
                 return;
             }
 
@@ -368,7 +362,7 @@ export class Entity
             if (inUse)
             {
                 let card = Utils.MakeHero("Delete Failed", entity.name, "Entity is being used by App", null);
-                cb([card]);
+                cb(Menu.EditError(card));
                 return;
             }
             // TODO clear api save lookup

@@ -182,14 +182,14 @@ export class TrainDialog
         (<any>Object).assign(this, init);
     }
     
-    public static async Delete(context : BlisContext, dialogId : string, cb : (text) => void) : Promise<void>
+    public static async Delete(context : BlisContext, dialogId : string, cb : (responses: (string | builder.IIsAttachment)[]) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Delete Training Dialog`);
 
         if (!dialogId)
         {
             let msg = `You must provide the ID of the dialog to delete.\n\n     ${IntCommands.DELETEDIALOG} {dialogId}`;
-            cb(msg);
+            cb([msg]);
             return;
         }
 
@@ -197,16 +197,16 @@ export class TrainDialog
         {        
             // TODO clear savelookup
             await context.client.DeleteTrainDialog(context.state[UserStates.APP], dialogId)
-            cb(`Deleted TrainDialog ${dialogId}`);
+            cb([`Deleted TrainDialog ${dialogId}`]);
         }
         catch (error) {
             let errMsg = Utils.ErrorString(error);
             BlisDebug.Error(errMsg);
-            cb(errMsg);
+            cb([errMsg]);
         }
     }
 
-    public static async Get(context : BlisContext, searchTerm : string, cb : (text) => void) : Promise<void>
+    public static async Get(context : BlisContext, searchTerm : string, cb : (responses: (string | builder.IIsAttachment)[]) => void) : Promise<void>
     {
         try 
         {
@@ -231,7 +231,7 @@ export class TrainDialog
         {
             let errMsg = Utils.ErrorString(error);
             BlisDebug.Error(errMsg);
-            cb(errMsg);
+            cb([errMsg]);
         }
     }
 }

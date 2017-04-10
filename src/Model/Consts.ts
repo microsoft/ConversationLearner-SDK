@@ -29,7 +29,8 @@ export const SaveStep =
     INPUT : "input",
     ENTITY : "entity",
     RESPONSE : "response",
-    API : "api"
+    API : "api",
+    CHOICES: "choices"
 }
 
 export const Commands =
@@ -68,6 +69,8 @@ export const IntCommands =
     ADDAPICALL : '~addapicall',
     ADDENTITY : '~addentity',
     ADDRESPONSE : '~addresponse',
+    APICALLS : `~apicalls`,
+    APPS : `~apps`,
     CREATEAPP : '~createapp',
     DELETEAPP : '~deleteapp',
     DELETEDIALOG : '~deletedialog',
@@ -75,9 +78,12 @@ export const IntCommands =
     EDITACTION : "~editaction",
     EDITAPP : "~editapp",
     EDITENTITY : "~editentity",
+    ENTITIES: `~entities`,
     FORGETTEACH : "~forgetteach",
     HOME: "~home",
+    RESPONSES: "~responses",
     SAVETEACH: "~saveteach",
+    TRAINDIALOGS: "~traindialogs"
 }
 
 // Internal commands. (Not for user)
