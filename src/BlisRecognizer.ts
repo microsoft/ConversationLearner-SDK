@@ -10,7 +10,7 @@ import { BlisUserState} from './BlisUserState';
 import { LabelEntity } from './Model/LabelEntity';
 import { Action } from './Model/Action';
 import { TrainDialog } from './Model/TrainDialog';
-import { TakeTurnModes, EntityTypes, UserStates, TeachStep, Commands, IntCommands, ActionTypes, SaveStep, APICalls, ActionCommand } from './Model/Consts';
+import { TakeTurnModes, EntityTypes, UserStates, TeachStep, TeachAction, Commands, IntCommands, ActionTypes, SaveStep, APICalls, ActionCommand } from './Model/Consts';
 import { BlisHelp, Help } from './Model/Help'; 
 import { TakeTurnResponse } from './Model/TakeTurnResponse'
 import { Utils } from './Utils';
@@ -145,237 +145,281 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             let address = reginput.message.address;
             this.LoadUser(address, (error, context) => {
 
-                if (reginput.message.attachments && reginput.message.attachments.length > 0)
+                let that = this;
+                let inTeach = context.state[UserStates.TEACH];
+                let memory = new BlisMemory(context);
+                let userInput = reginput.message ? reginput.message.text.trim() : null;
+
+                /** Process result before sending to user */
+                let ProcessResult = function(context : BlisContext, cb: (error: Error, result: IBlisResult) => void, responses : (string|builder.IIsAttachment)[], teachAction?: string, actionData? : string) 
                 {
-                    Utils.SendMessage(context, "Importing application...");
-                    BlisAppContent.ImportAttachment(context, reginput.message.attachments[0] ,(text) => {
-                        this.SendResult(context, cb, [text]);
-                    });
-                    return;
+                    // Some commands require taking a post command TeachAction (if user is in teach mode)
+                    if (inTeach && teachAction) 
+                    {
+                        if (teachAction == TeachAction.RETRAIN)
+                        {
+                            // Send command response out of band
+                            responses.push("Retraining...");
+                            Utils.SendResponses(context, responses);
+
+                            // Retrain the model
+                            that.blisClient.Retrain(context.state[UserStates.APP], context.state[UserStates.SESSION])
+                                .then(async (takeTurnResponse) => 
+                                {
+                                    // Continue teach session
+                                    TakeTurnCallback(takeTurnResponse);
+                                })
+                                .catch((error) => {
+                                    that.SendResult(context, cb, [error])
+                                });
+                        }
+                        else if (teachAction == TeachAction.PICKACTION && actionData != null)
+                        {
+                            // Send command response out of band
+                            responses.push("Retraining...");
+                            Utils.SendResponses(context, responses);
+
+                            // Retrain the model
+                            that.blisClient.Retrain(context.state[UserStates.APP], context.state[UserStates.SESSION])
+                                .then(async (takeTurnResponse) => 
+                                {
+                                    /// Take the next turn
+                                    that.TakeTurn(context, userInput, actionData, TakeTurnCallback);
+                                })
+                                .catch((error) => {
+                                    that.SendResult(context, cb, [error])
+                                });
+
+                             
+                        }
+                    }
+                    else 
+                    {
+                        that.SendResult(context, cb, responses);
+                    }
+                }
+
+                /** Process Label Entity Step */
+                let ProcessLabelEntity = function(ttResponse : TakeTurnResponse, responses: (string | builder.IIsAttachment)[]) : void
+                {
+                    BlisDebug.Verbose("ProcessLabelEntity");
+
+                    if (ttResponse.teachError) {
+                        let title = `**ERROR**\n\n`;
+                        let body = `Input did not match original text. Let's try again.\n\n`;
+                        responses.push(Utils.MakeHero(title, body, null, null));
+                    }
+                    else
+                    {
+                        memory.RememberTrainStep(SaveStep.INPUT, userInput);
+                        memory.RememberLastStep(SaveStep.INPUT,userInput);
+                    }
+                    let cardtitle = "Teach Step: Detected Entities";
+                    if (ttResponse.teachLabelEntities.length == 0)
+                    {
+                        // Look for suggested entity in previous response
+                        let lastResponse = memory.LastStep(SaveStep.RESPONSE);
+                        let suggestedEntity = Action.GetEntitySuggestion(lastResponse); 
+                        if (suggestedEntity)
+                        {
+                            // If one exist let user pick it 
+                            responses.push(`[${suggestedEntity} ${userInput}]`);
+                            let body = "Click Correct if suggested entity is valid or indicate entities in input string"
+                            responses.push(Utils.MakeHero(cardtitle, null, body, { "Correct" : "1", "Help" : Help.PICKENTITY}));
+                        }
+                        else 
+                        {
+                            let cardsub = `No new entities found.\n\n`;
+                            let cardtext = "Click None if correct or indicate entities in input string"
+                            responses.push(Utils.MakeHero(cardtitle, cardsub, cardtext, { "None" : "1", "Help" : Help.PICKENTITY}));
+                        }
+                    }
+                    else 
+                    {
+                        let entities = "";
+                        for (let i in ttResponse.teachLabelEntities)
+                        {
+                            let labelEntity = ttResponse.teachLabelEntities[i];
+                            let entityName = memory.EntityId2Name(labelEntity.id);
+
+                            // Prebuild entities don't have a score
+                            let score = labelEntity.score ? `_Score: ${labelEntity.score.toFixed(3)}_` : "";
+                            entities += `[$${entityName}: ${labelEntity.value}]    ${score}\n\n`;
+                        }
+                        responses.push(entities);
+                        let body = "Click Correct if entities are valid or indicate entities in input string"
+                        responses.push(Utils.MakeHero(cardtitle, null, body, { "Correct" : "1", "Help" : Help.PICKENTITY}));
+                    }
+                }
+
+                /** Process Label Entity Step */
+                let ProcessLabelAction = function(ttResponse : TakeTurnResponse, responses: (string | builder.IIsAttachment)[]) : void
+                {
+                    BlisDebug.Verbose("ProcessLabelEntity");
+
+                    // If app contains no entities, LabelEntity skip is stepped, so input must still be saved
+                    if (!memory.TrainStepInput())
+                    {
+                        // Only run if no suggested entity is found
+                        memory.RememberTrainStep(SaveStep.INPUT, userInput);
+                        memory.RememberLastStep(SaveStep.INPUT, userInput);
+                    }
+
+                    // If a SuggestedEntity (i.e. *entity) was in previous bot response, the entity wasn't already assigned
+                    // and no different entities were selected by the user, call saveEntity API
+                    let lastResponse = memory.LastStep(SaveStep.RESPONSE);
+                    let entities = memory.LastStep(SaveStep.ENTITY);
+                    let suggestedEntity = Action.GetEntitySuggestion(lastResponse); 
+                    if (!entities && suggestedEntity && !memory.EntityValue(suggestedEntity))
+                    { 
+                        let apiId = memory.APILookup(suggestedEntity);
+                        if (apiId)
+                        {
+                            // Find the saveEntity action and take it
+                            for (let i in ttResponse.teachLabelActions)
+                            {                                  
+                                let labelAction = ttResponse.teachLabelActions[i];
+                                if (labelAction.id == apiId)
+                                {
+                                    let userInput = (+i+1).toString(); // Incriment string number
+                                    memory.RememberLastStep(SaveStep.RESPONSE, userInput);
+                                    memory.RememberTrainStep(SaveStep.ENTITY,memory.DumpEntities());
+                                    that.TakeTurn(context, userInput, null, TakeTurnCallback);
+                                    return;
+                                }
+                            }
+                        }
+                    }
+
+                    memory.RememberTrainStep(SaveStep.ENTITY,memory.DumpEntities());
+
+                    let title = `Teach Step: Select Action`;
+                    let body = ttResponse.teachLabelActions.length == 0 ? 'No actions matched' : 'Select Action by number or enter a new one';
+                    responses.push(Utils.MakeHero(title, null, body, 
+                        { 
+                            "Add Response" : IntCommands.ADDRESPONSE,
+                            "Add API" : IntCommands.ADDAPICALL
+                        } ));
+
+                    let choices = {};
+                    if (ttResponse.teachLabelActions.length > 0) 
+                    {
+                        let body = `${memory.DumpEntities()}\n\n`;
+                        responses.push(Utils.MakeHero("Memory", null, body, null));
+
+                        let msg = "";
+                        let displayIndex = 1;
+                        for (let i in ttResponse.teachLabelActions)
+                        {
+                            let labelAction = ttResponse.teachLabelActions[i];
+
+                            // Don't show internal API calls to developer
+                            if (!that.IsInternalApi(labelAction.content))
+                            {      
+                                if (labelAction.available)
+                                {
+                                    let score = labelAction.score ? labelAction.score.toFixed(3) : "*UNKNOWN*";
+                                    msg += `(${displayIndex}) ${labelAction.content} _(${labelAction.actionType.toUpperCase()})_ Score: ${score}\n\n`;
+                                    choices[displayIndex] = (1+Number(i)).toString();
+                                }
+                                else
+                                {
+                                    msg += `(  ) ${labelAction.content} _(${labelAction.actionType.toUpperCase()})_ DISQUALIFIED\n\n`;
+                                }
+                                displayIndex++;
+                            }
+                        }
+
+                        responses.push(msg);
+
+                        // Remember valid choices
+                        memory.RememberLastStep(SaveStep.CHOICES, choices);
+                    }
+                            
+                }
+
+                let TakeTurnCallback = function(ttResponse : TakeTurnResponse, error? : string) : void 
+                { 
+                    BlisDebug.Verbose("TakeTurnCallback");
+
+                    if (error)
+                    {
+                        ProcessResult(context, cb, [error]);
+                        return;
+                    }
+
+                    let responses: (string | builder.IIsAttachment)[] = [];
+                    
+                    if (ttResponse.mode == TakeTurnModes.TEACH)
+                    {
+                        if (ttResponse.teachStep == TeachStep.LABELENTITY) {
+                            ProcessLabelEntity(ttResponse, responses);
+                        }
+                        else if (ttResponse.teachStep == TeachStep.LABELACTION)
+                        {
+                            ProcessLabelAction(ttResponse, responses);
+                        }
+                        else
+                        {
+                            responses.push(`Unrecognized TeachStep ${ttResponse.teachStep}`);
+                        }
+                    }
+                    else if (ttResponse.mode == TakeTurnModes.ACTION)
+                    {
+                        let output = ttResponse.actions[0].content;
+                        memory.RememberLastStep(SaveStep.RESPONSE, output);
+
+                        // Clear any suggested entity hints from response
+                        output = output ? output.replace(" !"," ") : output;
+
+                        // Allow for dev to update
+                        let outText = null;
+                        if (that.blisCallback)
+                        {
+                            outText = that.blisCallback(output, memory);
+                        }
+                        else
+                        {
+                            outText = that.DefaultBlisCallback(output, memory);
+                        }
+
+                        if (inTeach)
+                        {
+                            memory.RememberTrainStep(SaveStep.RESPONSE, outText);
+                            responses.push(Utils.MakeHero('Trained Response:', outText + "\n\n", "Type next user input for this Dialog or" , 
+                            { "Dialog Complete" : IntCommands.DONETEACH}));
+                        }
+                        else
+                        {
+                            responses.push(outText);
+                        }
+                        
+                    } 
+                    else if (ttResponse.mode == TakeTurnModes.ERROR)
+                    {
+                        responses.push(ttResponse.error);
+                    }
+                    else 
+                    {
+                        responses.push(`Don't know mode: ${ttResponse.mode}`);
+                    }
+                    if (responses && responses.length > 0)
+                    {
+                        ProcessResult(context, cb, responses);
+                    }
                 }
 
                 if (reginput.message.text) 
                 {
-                    let inTeach = context.state[UserStates.TEACH];
-                    let that = this;
-                    let memory = new BlisMemory(context);
-
-                    /** Process Label Entity Step */
-                    let ProcessLabelEntity = function(ttResponse : TakeTurnResponse, responses: (string | builder.IIsAttachment)[]) : void
-                    {
-                        BlisDebug.Verbose("ProcessLabelEntity");
-
-                        if (ttResponse.teachError) {
-                            let title = `**ERROR**\n\n`;
-                            let body = `Input did not match original text. Let's try again.\n\n`;
-                            responses.push(Utils.MakeHero(title, body, null, null));
-                        }
-                        else
-                        {
-                            memory.RememberTrainStep(SaveStep.INPUT, userInput);
-                            memory.RememberLastStep(SaveStep.INPUT,userInput);
-                        }
-                        let cardtitle = "Teach Step: Detected Entities";
-                        if (ttResponse.teachLabelEntities.length == 0)
-                        {
-                            // Look for suggested entity in previous response
-                            let lastResponse = memory.LastStep(SaveStep.RESPONSE);
-                            let suggestedEntity = Action.GetEntitySuggestion(lastResponse); 
-                            if (suggestedEntity)
-                            {
-                                // If one exist let user pick it 
-                                responses.push(`[${suggestedEntity} ${userInput}]`);
-                                let body = "Click Correct if suggested entity is valid or indicate entities in input string"
-                                responses.push(Utils.MakeHero(cardtitle, null, body, { "Correct" : "1", "Help" : Help.PICKENTITY}));
-                            }
-                            else 
-                            {
-                                let cardsub = `No new entities found.\n\n`;
-                                let cardtext = "Click None if correct or indicate entities in input string"
-                                responses.push(Utils.MakeHero(cardtitle, cardsub, cardtext, { "None" : "1", "Help" : Help.PICKENTITY}));
-                            }
-                        }
-                        else 
-                        {
-                            let entities = "";
-                            for (let i in ttResponse.teachLabelEntities)
-                            {
-                                let labelEntity = ttResponse.teachLabelEntities[i];
-                                let entityName = memory.EntityId2Name(labelEntity.id);
-
-                                // Prebuild entities don't have a score
-                                let score = labelEntity.score ? `_Score: ${labelEntity.score.toFixed(3)}_` : "";
-                                entities += `[$${entityName}: ${labelEntity.value}]    ${score}\n\n`;
-                            }
-                            responses.push(entities);
-                            let body = "Click Correct if entities are valid or indicate entities in input string"
-                            responses.push(Utils.MakeHero(cardtitle, null, body, { "Correct" : "1", "Help" : Help.PICKENTITY}));
-                        }
-                    }
-
-                    /** Process Label Entity Step */
-                    let ProcessLabelAction = function(ttResponse : TakeTurnResponse, responses: (string | builder.IIsAttachment)[]) : void
-                    {
-                        BlisDebug.Verbose("ProcessLabelEntity");
-
-                        // If app contains no entities, LabelEntity skip is stepped, so input must still be saved
-                        if (!memory.TrainStepInput())
-                        {
-                            // Only run if no suggested entity is found
-                            memory.RememberTrainStep(SaveStep.INPUT, userInput);
-                            memory.RememberLastStep(SaveStep.INPUT, userInput);
-                        }
-
-                        // If a SuggestedEntity (i.e. *entity) was in previous bot response, the entity wasn't already assigned
-                        // and no different entities were selected by the user, call saveEntity API
-                        let lastResponse = memory.LastStep(SaveStep.RESPONSE);
-                        let entities = memory.LastStep(SaveStep.ENTITY);
-                        let suggestedEntity = Action.GetEntitySuggestion(lastResponse); 
-                        if (!entities && suggestedEntity && !memory.EntityValue(suggestedEntity))
-                        { 
-                            let apiId = memory.APILookup(suggestedEntity);
-                            if (apiId)
-                            {
-                                // Find the saveEntity action and take it
-                                for (let i in ttResponse.teachLabelActions)
-                                {                                  
-                                    let labelAction = ttResponse.teachLabelActions[i];
-                                    if (labelAction.id == apiId)
-                                    {
-                                        let userInput = (+i+1).toString(); // Incriment string number
-                                        memory.RememberLastStep(SaveStep.RESPONSE, userInput);
-                                        memory.RememberTrainStep(SaveStep.ENTITY,memory.DumpEntities());
-                                        that.TakeTurn(context, userInput, TakeTurnCallback);
-                                        return;
-                                    }
-                                }
-                            }
-                        }
-
-                        memory.RememberTrainStep(SaveStep.ENTITY,memory.DumpEntities());
-
-                        let title = `Teach Step: Select Action`;
-                        let body = ttResponse.teachLabelActions.length == 0 ? 'No actions matched' : 'Select Action by number or enter a new one';
-                        responses.push(Utils.MakeHero(title, null, body, { "Add Action" : Help.ADDACTION} ));
-
-                        let choices = {};
-                        if (ttResponse.teachLabelActions.length > 0) 
-                        {
-                            let body = `${memory.DumpEntities()}\n\n`;
-                            responses.push(Utils.MakeHero("Memory", null, body, null));
-
-                            let msg = "";
-                            let displayIndex = 1;
-                            for (let i in ttResponse.teachLabelActions)
-                            {
-                                let labelAction = ttResponse.teachLabelActions[i];
-
-                                // Don't show internal API calls to developer
-                                if (!that.IsInternalApi(labelAction.content))
-                                {      
-                                    if (labelAction.available)
-                                    {
-                                        let score = labelAction.score ? labelAction.score.toFixed(3) : "*UNKNOWN*";
-                                        msg += `(${displayIndex}) ${labelAction.content} _(${labelAction.actionType.toUpperCase()})_ Score: ${score}\n\n`;
-                                        choices[displayIndex] = (1+Number(i)).toString();
-                                    }
-                                    else
-                                    {
-                                        msg += `(  ) ${labelAction.content} _(${labelAction.actionType.toUpperCase()})_ DISQUALIFIED\n\n`;
-                                    }
-                                    displayIndex++;
-                                }
-                            }
-
-                            responses.push(msg);
-
-                            // Remember valid choices
-                            memory.RememberLastStep(SaveStep.CHOICES, choices);
-                        }
-                                
-                    }
-
-                    let TakeTurnCallback = function(ttResponse : TakeTurnResponse, error? : string) : void 
-                    { 
-                        BlisDebug.Verbose("TakeTurnCallback");
-
-                        if (error)
-                        {
-                            that.SendResult(context, cb, [error]);
-                            return;
-                        }
-
-                        let responses: (string | builder.IIsAttachment)[] = [];
-                        
-                        if (ttResponse.mode == TakeTurnModes.TEACH)
-                        {
-                            if (ttResponse.teachStep == TeachStep.LABELENTITY) {
-                                ProcessLabelEntity(ttResponse, responses);
-                            }
-                            else if (ttResponse.teachStep == TeachStep.LABELACTION)
-                            {
-                                ProcessLabelAction(ttResponse, responses);
-                            }
-                            else
-                            {
-                                responses.push(`Unrecognized TeachStep ${ttResponse.teachStep}`);
-                            }
-                        }
-                        else if (ttResponse.mode == TakeTurnModes.ACTION)
-                        {
-                            let output = ttResponse.actions[0].content;
-                            memory.RememberLastStep(SaveStep.RESPONSE, output);
-
-                            // Clear any suggested entity hints from response
-                            output = output ? output.replace(" !"," ") : output;
-
-                            // Allow for dev to update
-                            let outText = null;
-                            if (that.blisCallback)
-                            {
-                                outText = that.blisCallback(output, memory);
-                            }
-                            else
-                            {
-                                outText = that.DefaultBlisCallback(output, memory);
-                            }
-
-                            if (inTeach)
-                            {
-                                memory.RememberTrainStep(SaveStep.RESPONSE, outText);
-                                responses.push(Utils.MakeHero('Trained Response:', outText + "\n\n", "Type next user input for this Dialog or" , 
-                                { "Dialog Complete" : IntCommands.DONETEACH}));
-                            }
-                            else
-                            {
-                                responses.push(outText);
-                            }
-                            
-                        } 
-                        else if (ttResponse.mode == TakeTurnModes.ERROR)
-                        {
-                            responses.push(ttResponse.error);
-                        }
-                        else 
-                        {
-                            responses.push(`Don't know mode: ${ttResponse.mode}`);
-                        }
-                        if (responses && responses.length > 0)
-                        {
-                            that.SendResult(context, cb, responses);
-                        }
-                    }
-
                     Utils.SendTyping(this.bot, address);
                     BlisDebug.SetAddress(address);   
-                    let userInput = reginput.message.text.trim();
 
                     // Check for Edit Commands
                     if (memory.CueCommand())
                     {
-                        CommandHandler.HandleCueCommand(context, userInput, (responses : (string|builder.IIsAttachment)[], retrain: boolean) => 
+                        CommandHandler.HandleCueCommand(context, userInput, (responses : (string|builder.IIsAttachment)[], teachAction: string, actionData : string) => 
                             {
-                                this.SendResult(context, cb, responses);
+                                ProcessResult(context, cb, responses, teachAction, actionData);
                             });
                     }
 
@@ -383,42 +427,21 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                     else if (userInput.startsWith('!')) {
 
                         CommandHandler.HandleCommandLine(context, userInput, 
-                            (responses : (string|builder.IIsAttachment)[], retrain: boolean) => 
+                            (responses : (string|builder.IIsAttachment)[], teachAction: string, actionData : string) => 
                             {
-                                // Some commands require retraining if user is in teach mode
-                                if (inTeach && retrain) 
-                                {
-                                    // Send command response out of band
-                                    responses.push("Retraining...");
-                                    Utils.SendResponses(context, responses);
-
-                                    // Retrain the model
-                                    this.blisClient.Retrain(context.state[UserStates.APP], context.state[UserStates.APP])
-                                        .then(async (takeTurnResponse) => 
-                                        {
-                                            // Continue teach session
-                                            TakeTurnCallback(takeTurnResponse);
-                                        })
-                                        .catch((error) => {
-                                            this.SendResult(context, cb, [error])
-                                        });
-                                }
-                                else 
-                                {
-                                    this.SendResult(context, cb, responses);
-                                }
+                                ProcessResult(context, cb, responses, teachAction, actionData);
                             });
                     }
                     else if (userInput.startsWith('~')) {
-                        CommandHandler.HandleIntCommand(context, userInput, (responses : (string|builder.IIsAttachment)[], retrain: boolean) => 
+                        CommandHandler.HandleIntCommand(context, userInput, (responses : (string|builder.IIsAttachment)[], teachAction: string, actionData: string) => 
                             {
-                                this.SendResult(context, cb, responses);
+                                ProcessResult(context, cb, responses, teachAction, actionData);
                             });
                     }
                     else if (userInput.startsWith('#'))
                     {
                         let help = BlisHelp.Get(userInput);
-                        this.SendResult(context, cb, [help]);
+                        ProcessResult(context, cb, [help]);
                     }
                     else 
                     {
@@ -431,7 +454,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                                 if (!choices[userInput])
                                 {
                                     let msg = "Please select one of the action from above or click 'Add Action' for a new Action";
-                                    this.SendResult(context, cb, [msg]);
+                                    ProcessResult(context, cb, [msg]);
                                     return;
                                 }
                                 userInput = choices[userInput];
@@ -444,8 +467,16 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                             memory.RememberLastStep(SaveStep.INPUT, userInput);
                         }
                         
-                        this.TakeTurn(context, userInput, TakeTurnCallback);
+                        this.TakeTurn(context, userInput, null, TakeTurnCallback);
                     } 
+                }
+                else if (reginput.message.attachments && reginput.message.attachments.length > 0)
+                {
+                    Utils.SendMessage(context, "Importing application...");
+                    BlisAppContent.ImportAttachment(context, reginput.message.attachments[0] ,(text) => {
+                        ProcessResult(context, cb, [text]);
+                    });
+                    return;
                 }
             });                
         }
@@ -457,7 +488,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         }
     }
 
-    public async TakeTurn(context : BlisContext, payload : string | TakeTurnRequest,
+    public async TakeTurn(context : BlisContext, payload : string | TakeTurnRequest, actionId : string,
             cb: (response : TakeTurnResponse, error? : string) => void) : Promise<void>
         {
         BlisDebug.Verbose("TakeTurn");
@@ -487,10 +518,19 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
 
         let expectedNextModes;
         let requestBody : {};
-        if (typeof payload == 'string') {
+
+        // If passed an existing actionId take a turn with that
+        if (actionId)
+        {
+            expectedNextModes = [TakeTurnModes.CALLBACK, TakeTurnModes.ACTION, TakeTurnModes.TEACH];
+            requestBody = { 'selected-action-id' : actionId};
+        }
+        // If a string payload, send that (i.e. a "1", "2" choice)
+        else if (typeof payload == 'string') {
             expectedNextModes = [TakeTurnModes.CALLBACK, TakeTurnModes.ACTION, TakeTurnModes.TEACH];
             requestBody = { text : payload};
         }
+        // Otherwise send payload as JSON
         else {
             expectedNextModes = [TakeTurnModes.ACTION, TakeTurnModes.TEACH]
             requestBody = payload.ToJSON();  // TODO use serializer
@@ -521,7 +561,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                 {
                     takeTurnRequest = this.DefaultLuisCallback(takeTurnResponse.originalText, takeTurnResponse.entities, memory);
                 } 
-                await this.TakeTurn(context, takeTurnRequest, cb);
+                await this.TakeTurn(context, takeTurnRequest, null, cb);
             }
             // TEACH
             else if (takeTurnResponse.mode == TakeTurnModes.TEACH)
@@ -567,7 +607,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                         }
                         BlisDebug.Verbose(`API: {${apiName} ${arg}}`);
                         expectedNextModes = [TakeTurnModes.ACTION, TakeTurnModes.TEACH];
-                        await this.TakeTurn(context, takeTurnRequest, cb);
+                        await this.TakeTurn(context, takeTurnRequest, null, cb);
                     }
                     else 
                     {

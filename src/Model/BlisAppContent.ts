@@ -4,11 +4,12 @@ import { BlisUserState} from '../BlisUserState';
 import { BlisDebug} from '../BlisDebug';
 import { BlisClient } from '../BlisClient';
 import { TakeTurnModes, EntityTypes, UserStates, TeachStep, Commands, IntCommands, ActionTypes, SaveStep, APICalls, ActionCommand } from '../Model/Consts';
-import { BlisHelp, Help } from '../Model/Help'; 
+import { BlisHelp, Help } from './Help'; 
 import { BlisMemory } from '../BlisMemory';
-import { Action } from '../Model/Action';
+import { Action } from './Action';
 import { Utils } from '../Utils';import { JsonProperty } from 'json-typescript-mapper';
 import { Entity } from './Entity';
+import { Menu } from '../Menu';
 import { TrainDialog } from './TrainDialog';
 import { BlisContext } from '../BlisContext';
 
@@ -153,8 +154,7 @@ export class BlisAppContent
 
             if (!appId)
             {
-                let msg = BlisHelp.CommandHelpString(Commands.LOADAPP, `You must provide the ID of the application to load.`);
-                cb([msg]);
+                cb(Menu.Home(`You must provide the ID of the application to load.`));
                 return;
             }
 
@@ -179,7 +179,7 @@ export class BlisAppContent
 
             if (numActions == 0)
             {
-                cb(["Application loaded.  No Actions found."]);
+                cb(Menu.Home("Application loaded.  No Actions found."));
                 return;
             }
             // Load or train a new modelId
@@ -193,12 +193,12 @@ export class BlisAppContent
             BlisDebug.Log(`Loaded Model: ${modelId}`);
             context.state[UserStates.MODEL]  = modelId;
 
-            // Create session
-            BlisDebug.Log(`Creating session...`);
+            // Create session  TODO TEMP?
+ /*           BlisDebug.Log(`Creating session...`);
             let sessionId = await context.client.StartSession(context.state[UserStates.APP])
             BlisDebug.Log(`Stared Session: ${appId}`);
-            new BlisMemory(context).StartSession(sessionId, false);
-            cb(["Application loaded and Session started."]);
+            new BlisMemory(context).StartSession(sessionId, false);*/
+            cb(Menu.Home("Application loaded and Session started."));
         }
         catch (error)
         {

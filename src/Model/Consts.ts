@@ -24,6 +24,13 @@ export const TeachStep =
     LABELACTION : "label_action"
 }
 
+
+export const TeachAction =
+{
+    RETRAIN : "retrain",
+    PICKACTION : "pickaction"
+}
+
 export const SaveStep =
 {
     INPUT : "input",
@@ -71,6 +78,7 @@ export const IntCommands =
     ADDRESPONSE : '~addresponse',
     APICALLS : `~apicalls`,
     APPS : `~apps`,
+    CANCEL : `~cancel`,
     CREATEAPP : '~createapp',
     DELETEAPP : '~deleteapp',
     DELETEDIALOG : '~deletedialog',

@@ -14,7 +14,7 @@ import { Entity } from './Model/Entity';
 import { BlisContext } from './BlisContext';
 import { BlisAppContent } from './Model/BlisAppContent'
 import { Utils } from './Utils';
-import { UserStates, Commands, IntCommands, ActionCommand, ActionTypes } from './Model/Consts';
+import { UserStates, Commands, IntCommands, ActionCommand, ActionTypes, TeachAction } from './Model/Consts';
 
 export class CommandHandler
 { 
@@ -34,7 +34,7 @@ export class CommandHandler
                 let card = Utils.MakeHero(`Add API Call`, null, "Enter new API Call",  
                     {  
                     //      "Help" : Commands.HELP,   TODO
-                    //     "Cancel" : Commands.CANCEL
+                         "Cancel" : IntCommands.CANCEL
                     });
                 cb([card]);
             }
@@ -43,7 +43,7 @@ export class CommandHandler
                 let card = Utils.MakeHero(`Add Entity`, null, "Enter new Entity", 
                 {  
                 //      "Help" : Commands.HELP,   TODO
-                //     "Cancel" : Commands.CANCEL
+                     "Cancel" : IntCommands.CANCEL
                 });
                 cb([card]);
             }
@@ -52,7 +52,7 @@ export class CommandHandler
                 let card = Utils.MakeHero(`Add Response`, null, "Enter new Response",  
                 {  
                 //      "Help" : Commands.HELP,   TODO
-                //     "Cancel" : Commands.CANCEL
+                     "Cancel" : IntCommands.CANCEL
                 });
                 cb([card]);
             }
@@ -60,7 +60,7 @@ export class CommandHandler
             {
                 let card = Utils.MakeHero(`Find API call`, null, "Enter search term", 
                 {  
-                //     "Cancel" : Commands.CANCEL
+                     "Cancel" : IntCommands.CANCEL
                 });
                 cb([card]);
             }
@@ -68,33 +68,42 @@ export class CommandHandler
             {
                 let card = Utils.MakeHero(`Find App`, null, "Enter search term", 
                 {  
-                //     "Cancel" : Commands.CANCEL
+                     "Cancel" : IntCommands.CANCEL
                 });
                 cb([card]);
             }
             else if (command == Commands.CREATEAPP)
             {
-                let card = Utils.MakeHero(`Create App`, '{appName} {LUIS key}', "Enter new App name and Luis Key", null);
+                let card = Utils.MakeHero(`Create App`, '{appName} {LUIS key}', "Enter new App name and Luis Key",
+                {  
+                     "Cancel" : IntCommands.CANCEL
+                });
                 cb([card]);
             }
             else if (command == Commands.EDITACTION)
             {
                 let action = await context.client.GetAction(context.state[UserStates.APP], args);
-                let card = Utils.MakeHero(`Edit Action`, action.content, "Enter new Action context", null);
+                let card = Utils.MakeHero(`Edit Action`, action.content, "Enter new Action context", 
+                {  
+                     "Cancel" : IntCommands.CANCEL
+                });
                 cb([card]);
             }
             else if (command == Commands.EDITENTITY)
             {
                 let entity = await context.client.GetEntity(context.state[UserStates.APP], args);
                 let type = entity.luisPreName ? entity.luisPreName : entity.entityType;
-                let card = Utils.MakeHero(`Edit: (${entity.name})`, type, "Enter new Entity name", null);
+                let card = Utils.MakeHero(`Edit: (${entity.name})`, type, "Enter new Entity name",
+                {  
+                     "Cancel" : IntCommands.CANCEL
+                });
                 cb([card]);
             }
             else if (command == Commands.ENTITIES)
             {
                 let card = Utils.MakeHero(`Find Entity`, null, "Enter search term", 
                 {  
-                //     "Cancel" : Commands.CANCEL
+                     "Cancel" : IntCommands.CANCEL
                 });
                 cb([card]);
             }
@@ -102,15 +111,15 @@ export class CommandHandler
             {
                 let card = Utils.MakeHero(`Find Response`, null, "Enter search term", 
                 {  
-                //     "Cancel" : Commands.CANCEL
+                     "Cancel" : IntCommands.CANCEL
                 });
                 cb([card]);
             }
-            else if (command == Commands.TRAINDIALOGS)
+            else if (command == IntCommands.TRAINDIALOGS)
             {
                 let card = Utils.MakeHero(`Find Training Dialog`, null, "Enter search term", 
                 {  
-                //     "Cancel" : Commands.CANCEL
+                     "Cancel" : IntCommands.CANCEL
                 });
                 cb([card]);
             }
@@ -123,14 +132,24 @@ export class CommandHandler
         }
     }
 
-    public static HandleIntCommand(context : BlisContext, input : string, cb: (responses : (string|builder.IIsAttachment)[], retrain? : boolean) => void) : void {
+    public static HandleIntCommand(context : BlisContext, input : string, cb: (responses : (string|builder.IIsAttachment)[], teachAction? : string, actionData? : string) => void) : void {
     
         let [command, arg, arg2, arg3] = input.split(' ');
         command = command.toLowerCase();
 
         //-------- Only valid in Teach ------------------//
         if (context.state[UserStates.TEACH]) {
-            if (command == IntCommands.SAVETEACH) {
+            if (command == IntCommands.ADDRESPONSE) {
+                this.CueCommand(context, Commands.ADDRESPONSE, null, (responses) => {
+                    cb(responses);
+                });
+            }
+            else if (command == IntCommands.APICALLS) {
+                this.CueCommand(context, Commands.APICALLS, arg, (responses) => {
+                    cb(responses);
+                });
+            }
+            else if (command == IntCommands.SAVETEACH) {
                 let cards = Menu.Home("Dialog Trained");
                 BlisSession.EndSession(context, (text) => {
                     cb(cards);
@@ -163,16 +182,6 @@ export class CommandHandler
         }
         else if (command == IntCommands.ADDENTITY) {
             this.CueCommand(context, Commands.ADDENTITY, null, (responses) => {
-                cb(responses);
-            });
-        }
-        else if (command == IntCommands.ADDRESPONSE) {
-            this.CueCommand(context, Commands.ADDRESPONSE, null, (responses) => {
-                cb(responses);
-            });
-        }
-        else if (command == IntCommands.APICALLS) {
-            this.CueCommand(context, Commands.APICALLS, arg, (responses) => {
                 cb(responses);
             });
         }
@@ -234,14 +243,14 @@ export class CommandHandler
         }
     }
 
-    public static HandleCommandLine(context : BlisContext, input : string, cb: (responses : (string|builder.IIsAttachment)[], retrain? : boolean) => void) : void 
+    public static HandleCommandLine(context : BlisContext, input : string, cb: (responses : (string|builder.IIsAttachment)[], teachAction? : string, actionData? : string) => void) : void 
     {
         let [command] = input.split(' ');
         let args = this.RemoveCommandWord(input); 
         this.ProcessCommand(context, command, args, cb);
     }
 
-    private static ProcessCommand(context : BlisContext, command : string, args : string, cb: (responses : (string|builder.IIsAttachment)[], retrain? : boolean) => void) : void 
+    private static ProcessCommand(context : BlisContext, command : string, args : string, cb: (responses : (string|builder.IIsAttachment)[], teachAction? : string, actionData? : string) => void) : void 
     {
         //---------------------------------------------------
         // Commands allowed at any time
@@ -251,11 +260,24 @@ export class CommandHandler
                 cb(responses);
             });
         }
-        if (command == Commands.ADDENTITY)
+        else if (command == Commands.ADDAPICALL)
+        {
+            Action.Add(context, null, ActionTypes.API, args, (responses, actionId) => {
+                cb(responses, TeachAction.PICKACTION, actionId);
+            });
+        }
+        else if (command == Commands.ADDRESPONSE)
+        {
+            
+            Action.Add(context, null, ActionTypes.TEXT, args, (responses, actionId) => {
+                cb(responses, TeachAction.PICKACTION, actionId);
+            });
+        }
+        else if (command == Commands.ADDENTITY)
         {
             let [content, type] = args.split(' ');
             Entity.Add(context, null, type, content, (responses) => {
-                cb(responses, true);
+                cb(responses, TeachAction.RETRAIN);
             });
         }
         else if (command == Commands.APICALLS)
@@ -311,20 +333,7 @@ export class CommandHandler
         //---------------------------------------------------
         // Commands only allowed when not in TEACH mode
         else {
-            if (command == Commands.ADDAPICALL)
-            {
-                Action.Add(context, null, ActionTypes.API, args, (responses) => {
-                    cb(responses);
-                });
-            }
-            else if (command == Commands.ADDRESPONSE)
-            {
-               
-                Action.Add(context, null, ActionTypes.TEXT, args, (responses) => {
-                    cb(responses);
-                });
-            }
-            else if (command == Commands.APPS)
+            if (command == Commands.APPS)
             {
                 BlisApp.GetAll(context, args, (responses) => {
                     cb(responses);
@@ -431,11 +440,18 @@ export class CommandHandler
     }
        
     // For handling buttons that require subsequent text input
-    public static HandleCueCommand(context : BlisContext, input : string, cb: (responses : (string|builder.IIsAttachment)[], retrain? : boolean) => void) : void {
+    public static HandleCueCommand(context : BlisContext, input : string, cb: (responses : (string|builder.IIsAttachment)[], teachAction? : string, actionData? : string) => void) : void {
         
         let memory =  new BlisMemory(context);
         try
-        {        
+        {         
+            // Check for cancel action
+            if (input == IntCommands.CANCEL) {
+                let responses = [];
+                responses.push("Cancelled...");
+                cb(Menu.EditApp(true));
+                return;
+            }   
             let cueCommand = memory.CueCommand();
             let args = cueCommand.args ? `${cueCommand.args} ` : "";
             this.ProcessCommand(context, cueCommand.commandName, `${args}${input}` , cb);

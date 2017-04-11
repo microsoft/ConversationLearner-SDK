@@ -1,8 +1,19 @@
 import * as builder from 'botbuilder';
-import { Commands, IntCommands } from './Model/Consts';
+import { Commands, IntCommands, UserStates } from './Model/Consts';
 import { Utils } from './Utils';
+import { BlisContext} from './BlisContext';
 
 export class Menu {
+
+    public static AddEditApp(context : BlisContext, responses : (string|builder.IIsAttachment)[]) : (string|builder.IIsAttachment)[]
+    {
+        // Only add edit menu when not in teach mode
+        if (context.state[UserStates.TEACH])
+        {
+            return responses;
+        }
+        return responses.concat(Menu.EditApp(true));
+    }
 
     public static EditApp(newLine? : boolean) : (string|builder.IIsAttachment)[]
     {
@@ -64,12 +75,5 @@ export class Menu {
             "Create" : IntCommands.CREATEAPP
         }));
         return cards;
-    }
-
-    public static EditError(message : string | builder.IIsAttachment) : (string | builder.IIsAttachment)[]
-    {
-        let responses = [];
-        responses.push(message);
-        return responses.concat(Menu.EditApp(true));
     }
 }

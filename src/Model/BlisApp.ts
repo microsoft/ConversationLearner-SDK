@@ -44,7 +44,7 @@ export class BlisApp
     }
 
     /** Send No App card and return false if no app loaded */
-    public static HaveApp(context : BlisContext, cb : (responses: (string | builder.IIsAttachment)[]) => void) : boolean
+    public static HaveApp(context : BlisContext, cb : (responses: (string | builder.IIsAttachment)[], actionId? : string) => void) : boolean
     {
         if (context.state[UserStates.APP] == null)
         {
@@ -88,10 +88,9 @@ export class BlisApp
 
             // Initialize
             Object.assign(context.state, new BlisUserState(appId));
-
-            let responses = Menu.Home("Created App", appName);
-            responses = responses.concat(Menu.EditApp(true));
-            cb(responses);
+            
+            let card = Utils.MakeHero("Created App", appName, null, null);
+            cb(Menu.AddEditApp(context,[card])); 
         }
         catch (error) {
             let errMsg = Utils.ErrorString(error);
@@ -176,7 +175,7 @@ export class BlisApp
             {
                 responses.push("No Apps match your query.")
             }
-            cb(responses);
+            cb(Menu.AddEditApp(context,responses));
         }
         catch (error) {
             let errMsg = Utils.ErrorString(error);
@@ -202,7 +201,7 @@ export class BlisApp
                 let text = await context.client.DeleteApp(context.state, appId)
                 BlisDebug.Log(`Deleted ${appId} apps`);
             }
-            cb(["Done"]);
+            cb(Menu.AddEditApp(context,["Done"]));
         }
         catch (error)
         {

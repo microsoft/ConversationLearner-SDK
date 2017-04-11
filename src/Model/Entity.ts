@@ -187,7 +187,7 @@ export class Entity
 
             if (!content)
             {  
-                cb(Menu.EditError(`You must provide an entity name for the entity to create.`));
+                cb(Menu.AddEditApp(context, [`You must provide an entity name for the entity to create.`]));
                 return;
             }
 
@@ -362,7 +362,7 @@ export class Entity
             if (inUse)
             {
                 let card = Utils.MakeHero("Delete Failed", entity.name, "Entity is being used by App", null);
-                cb(Menu.EditError(card));
+                cb(Menu.AddEditApp(context,[card]));
                 return;
             }
             // TODO clear api save lookup
@@ -419,19 +419,13 @@ export class Entity
 
             if (entityIds.length == 0)
             {
-                cb(["This app contains no Entities."]);
+                cb(Menu.AddEditApp(context,["This app contains no Entities."]));
                 return;
             }
             let msg = "**Entities**\n\n";
             let responses = [];
             let entities = [];
 
-            if (entityIds.length == 0)
-            {
-                responses.push(["This application contains no entities."]);
-                cb(responses); 
-                return;
-            }
             if (search) search = search.toLowerCase();
 
             for (let entityId of entityIds)
@@ -469,7 +463,8 @@ export class Entity
             
             if (responses.length == 0)
             {
-                responses.push("No Entities match your query.")
+                cb(Menu.AddEditApp(context, ["No Entities match your query."]));
+                return;
             }
             cb(responses);
         }

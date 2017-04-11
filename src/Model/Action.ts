@@ -148,7 +148,7 @@ export class Action
     }
 
     public static async Add(context : BlisContext, actionId : string, actionType : string, 
-        content : string, cb : (responses : (string | builder.IIsAttachment)[]) => void) : Promise<void>
+        content : string, cb : (responses : (string | builder.IIsAttachment)[], actionId : string) => void) : Promise<void>
     {
         BlisDebug.Log(`AddAction`);
 
@@ -159,12 +159,12 @@ export class Action
 
         if (!content)
         {  
-           cb(Menu.EditError(`You must provide action text for the action.`));
-           return;
+            cb(Menu.AddEditApp(context,[`You must provide action text for the action.`]), null);
+            return;
         }
         else if (!actionType && !actionId)
         {
-            cb(Menu.EditError(`You must provide the actionType.`));
+            cb(Menu.AddEditApp(context,[`You must provide the actionType.`]), null);
             return;
         }
 
@@ -214,8 +214,8 @@ export class Action
                         }
                         else
                         {
-                            cb(Menu.EditError(`Entity $${posName} not found.`));
-                            return;
+                            cb(Menu.AddEditApp(context,[`Entity $${posName} not found.`]), null);
+                            return; 
                         }
                     }
                 }
@@ -225,19 +225,19 @@ export class Action
                     // Only allow one suggested entity
                     if (saveName) 
                     {
-                        cb(Menu.EditError(`Only one entity suggestion (denoted by "!_ENTITY_") allowed per Action`));
+                        cb(Menu.AddEditApp(context,[`Only one entity suggestion (denoted by "!_ENTITY_") allowed per Action`]), null);
                         return;
                     } 
                     if (actionType == ActionTypes.API)
                     {
-                        cb(Menu.EditError(`Suggested entities can't be added to API Actions`));
+                        cb(Menu.AddEditApp(context,[`Suggested entities can't be added to API Actions`]), null);
                         return;
                     }
                     saveName = word.slice(ActionCommand.SUGGEST.length);
                     saveId = memory.EntityName2Id(saveName);
                     if (!saveId)
                     {
-                        cb(Menu.EditError(`Entity $${saveName} not found.`));
+                        cb(Menu.AddEditApp(context,[`Entity $${saveName} not found.`]), null);
                         return;
                     }
                     // Add to negative entities
@@ -257,7 +257,7 @@ export class Action
                     }  
                     else
                     {
-                        cb(Menu.EditError(`Entity ${negName} not found.`));
+                        cb(Menu.AddEditApp(context,[`Entity ${negName} not found.`]), null);
                         return;
                     }
                 }
@@ -272,7 +272,7 @@ export class Action
                         }  
                         else
                         {
-                            cb(Menu.EditError(`Entity $${posName} not found.`));
+                            cb(Menu.AddEditApp(context,[`Entity $${posName} not found.`]), null);
                             return;
                         }
                     }
@@ -313,29 +313,24 @@ export class Action
                 substr += `${ActionCommand.BLOCK}[${negNames.toLocaleString()}]`;
             } 
             let card = Utils.MakeHero(`${changeType}`, substr + "\n\n", actionText, Action.Buttons(actionId));
-
-            let responses = [];
-            responses.push(card);
-            responses = responses.concat(Menu.EditApp(true));
-            cb(responses);
+            cb(Menu.AddEditApp(context,[card]), actionId);
         }
         catch (error)
         {
             let errMsg = Utils.ErrorString(error);
             BlisDebug.Error(errMsg);
-            cb([errMsg]);
+            cb([errMsg], null);
         }
     }
 
     /** Delete Action with the given actionId */
-    public static async Delete(context : BlisContext, actionId : string, cb : (text) => void) : Promise<void>
+    public static async Delete(context : BlisContext, actionId : string, cb : (responses : (string | builder.IIsAttachment)[]) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Delete Action`);
 
         if (!actionId)
         {
-            let msg = `You must provide the ID of the action to delete.\n\n     ${Commands.DELETEACTION} {app ID}`;
-            cb(msg);
+            cb(Menu.AddEditApp(context,[`You must provide the ID of the action to delete.`]));
             return;
         }
 
@@ -347,26 +342,26 @@ export class Action
             if (inUse)
             {
                 let card = Utils.MakeHero("Delete Failed", action.content, "Action is being used by App", null);
-                cb(card);
+                cb(Menu.AddEditApp(context,[card]));
                 return;
             }
 
             // TODO clear savelookup
             await context.client.DeleteAction(context.state[UserStates.APP], actionId)
             let card = Utils.MakeHero(`Deleted Action`, null, action.content, null);
-            cb(card);
+            cb(Menu.AddEditApp(context,[card]));
         }
         catch (error)
         {
             let errMsg = Utils.ErrorString(error);
             BlisDebug.Error(errMsg);
-            cb(errMsg);
+            cb([errMsg]);
         }
     }
 
     /** Get actions.  Return count of actions */
     public static async GetAll(context : BlisContext, actionType : string, search : string,
-            cb : (text) => void) : Promise<number>
+            cb : (responses : (string | builder.IIsAttachment)[]) => void) : Promise<number>
     {
         BlisDebug.Log(`Getting actions`);
 
@@ -394,7 +389,7 @@ export class Action
             if (actionIds.length == 0)
             {
                 responses.push(`This application contains no ${(actionType == ActionTypes.API) ? "API Calls" : "Responses"}`);
-                cb(responses); 
+                cb(Menu.AddEditApp(context,responses)); 
                 return;
             }
 

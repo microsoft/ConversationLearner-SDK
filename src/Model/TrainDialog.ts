@@ -9,6 +9,7 @@ import { BlisMemory } from '../BlisMemory';
 import { Utils } from '../Utils';
 import { Action } from './Action';
 import { Entity } from './Entity';
+import { Menu } from '../Menu';
 import { BlisContext } from '../BlisContext';
 
 export class AltText
@@ -197,7 +198,7 @@ export class TrainDialog
         {        
             // TODO clear savelookup
             await context.client.DeleteTrainDialog(context.state[UserStates.APP], dialogId)
-            cb([`Deleted TrainDialog ${dialogId}`]);
+            cb(Menu.AddEditApp(context,[`Deleted TrainDialog ${dialogId}`]));
         }
         catch (error) {
             let errMsg = Utils.ErrorString(error);
@@ -215,7 +216,7 @@ export class TrainDialog
 
             if (dialogs.length == 0)
             {
-                cb(["No maching dialogs found."]);
+                cb(Menu.AddEditApp(context,["No dialogs found."]));
                 return;
             }
             // Add delete buttons
@@ -224,8 +225,7 @@ export class TrainDialog
                 responses.push(dialog.text);
                 responses.push(Utils.MakeHero(null, dialog.dialogId, null, { "Delete" : `${IntCommands.DELETEDIALOG} ${dialog.dialogId}`}));
             }
-
-            cb(responses);
+            cb(Menu.AddEditApp(context,responses));
         }
         catch (error)
         {
