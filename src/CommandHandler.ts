@@ -137,14 +137,22 @@ export class CommandHandler
         let [command, arg, arg2, arg3] = input.split(' ');
         command = command.toLowerCase();
 
+        //-------- Valid any time -----------------------//
+        if (command == IntCommands.ADDRESPONSE) {
+            this.CueCommand(context, Commands.ADDRESPONSE, null, (responses) => {
+                cb(responses);
+            });
+            return;
+        } 
+        else if (command == IntCommands.ADDAPICALL) {
+            this.CueCommand(context, Commands.ADDAPICALL, null, (responses) => {
+                cb(responses);
+            });
+            return;
+        }
         //-------- Only valid in Teach ------------------//
         if (context.state[UserStates.TEACH]) {
-            if (command == IntCommands.ADDRESPONSE) {
-                this.CueCommand(context, Commands.ADDRESPONSE, null, (responses) => {
-                    cb(responses);
-                });
-            }
-            else if (command == IntCommands.APICALLS) {
+            if (command == IntCommands.APICALLS) {
                 this.CueCommand(context, Commands.APICALLS, arg, (responses) => {
                     cb(responses);
                 });
@@ -165,8 +173,10 @@ export class CommandHandler
             else if (command == IntCommands.DONETEACH) {
                 let steps = BlisSession.TrainStepText(context);
                 let card = Utils.MakeHero("", "", "Does this look good?", 
-                    { "Save" : IntCommands.SAVETEACH , "Abandon" : IntCommands.FORGETTEACH});
-
+                    { 
+                        "Save" : IntCommands.SAVETEACH , 
+                        "Abandon" : IntCommands.FORGETTEACH
+                    });
                 cb([steps, card]);
             }
             else 
@@ -175,71 +185,68 @@ export class CommandHandler
             }
         }
         //-------- Valid not in Teach ------------------//
-        else if (command == IntCommands.ADDAPICALL) {
-            this.CueCommand(context, Commands.ADDAPICALL, null, (responses) => {
-                cb(responses);
-            });
-        }
-        else if (command == IntCommands.ADDENTITY) {
-            this.CueCommand(context, Commands.ADDENTITY, null, (responses) => {
-                cb(responses);
-            });
-        }
-        else if (command == IntCommands.APPS) {
-            this.CueCommand(context, Commands.APPS, arg, (responses) => {
-                cb(responses);
-            });
-        }
-        else if (command == IntCommands.CREATEAPP) {
-            this.CueCommand(context, Commands.CREATEAPP, null, (responses) => {
-                cb(responses);
-            });
-        }
-        else if (command == IntCommands.DELETEAPP) {
-            BlisApp.Delete(context, arg, (responses) => {
-                cb(responses);
-            });
-        }
-        else if (command == IntCommands.DELETEDIALOG) {
-            TrainDialog.Delete(context, arg, (responses) => {
-                cb(responses);
-            });
-        }
-        else if (command == IntCommands.EDITACTION) {
-            this.CueCommand(context, Commands.EDITACTION, arg, (responses) => {
-                cb(responses);
-            });
-        }
-        else if (command == IntCommands.EDITAPP) {
-            cb(Menu.EditApp());
-        }
-        else if (command == IntCommands.EDITENTITY) {
-            this.CueCommand(context, Commands.EDITENTITY, arg, (responses) => {
-                cb(responses);
-            });
-        }
-        else if (command == IntCommands.ENTITIES) {
-            this.CueCommand(context, Commands.ENTITIES, arg, (responses) => {
-                cb(responses);
-            });
-        }
-        else if (command == IntCommands.HOME) {
-            cb(Menu.Home(""));
-        }
-        else if (command == IntCommands.RESPONSES) {
-            this.CueCommand(context, Commands.RESPONSES, arg, (responses) => {
-                cb(responses);
-            });
-        }
-        else if (command == IntCommands.TRAINDIALOGS) {
-            this.CueCommand(context, Commands.TRAINDIALOGS, arg, (responses) => {
-                cb(responses);
-            });
-        }
         else 
-        {   
-            let text = "_Not a valid command._\n\n\n\n" + this.Help(null);
-            cb([text]);
+        { 
+            if (command == IntCommands.ADDENTITY) {
+                this.CueCommand(context, Commands.ADDENTITY, null, (responses) => {
+                    cb(responses);
+                });
+            }
+            else if (command == IntCommands.APPS) {
+                this.CueCommand(context, Commands.APPS, arg, (responses) => {
+                    cb(responses);
+                });
+            }
+            else if (command == IntCommands.CREATEAPP) {
+                this.CueCommand(context, Commands.CREATEAPP, null, (responses) => {
+                    cb(responses);
+                });
+            }
+            else if (command == IntCommands.DELETEAPP) {
+                BlisApp.Delete(context, arg, (responses) => {
+                    cb(responses);
+                });
+            }
+            else if (command == IntCommands.DELETEDIALOG) {
+                TrainDialog.Delete(context, arg, (responses) => {
+                    cb(responses);
+                });
+            }
+            else if (command == IntCommands.EDITACTION) {
+                this.CueCommand(context, Commands.EDITACTION, arg, (responses) => {
+                    cb(responses);
+                });
+            }
+            else if (command == IntCommands.EDITAPP) {
+                cb(Menu.EditApp());
+            }
+            else if (command == IntCommands.EDITENTITY) {
+                this.CueCommand(context, Commands.EDITENTITY, arg, (responses) => {
+                    cb(responses);
+                });
+            }
+            else if (command == IntCommands.ENTITIES) {
+                this.CueCommand(context, Commands.ENTITIES, arg, (responses) => {
+                    cb(responses);
+                });
+            }
+            else if (command == IntCommands.HOME) {
+                cb(Menu.Home(""));
+            }
+            else if (command == IntCommands.RESPONSES) {
+                this.CueCommand(context, Commands.RESPONSES, arg, (responses) => {
+                    cb(responses);
+                });
+            }
+            else if (command == IntCommands.TRAINDIALOGS) {
+                this.CueCommand(context, Commands.TRAINDIALOGS, arg, (responses) => {
+                    cb(responses);
+                });
+            }
+            else 
+            {   
+                cb(["Not a valid command or only available in Teach mode."]);
+            }
         }
     }
 
