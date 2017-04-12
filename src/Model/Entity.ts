@@ -2,12 +2,13 @@ import * as builder from 'botbuilder';
 import { BlisUserState} from '../BlisUserState';
 import { BlisDebug} from '../BlisDebug';
 import { BlisClient } from '../BlisClient';
-import { TakeTurnModes, EntityTypes, UserStates, TeachStep, Commands, IntCommands, ActionTypes, SaveStep, APICalls, ActionCommand } from '../Model/Consts';
+import { TakeTurnModes, EntityTypes, UserStates, TeachStep, ActionTypes, SaveStep, APICalls, ActionCommand } from '../Model/Consts';
 import { BlisHelp, Help } from '../Model/Help'; 
 import { BlisApp } from '../Model/BlisApp';
 import { BlisAppContent } from '../Model/BlisAppContent';
 import { BlisMemory } from '../BlisMemory';
 import { Utils } from '../Utils';
+import { IntCommands, LineCommands } from '../CommandHandler';
 import { Menu } from '../Menu';
 import { JsonProperty } from 'json-typescript-mapper';
 import { BlisContext } from '../BlisContext';
@@ -136,7 +137,7 @@ export class Entity
         let buttons = 
             { 
                 "Edit" : `${IntCommands.EDITENTITY} ${id}`,
-                "Delete" : `${Commands.DELETEENTITY} ${id}`,
+                "Delete" : `${LineCommands.DELETEENTITY} ${id}`,
             };
         return buttons;
     }
@@ -339,7 +340,7 @@ export class Entity
 
         if (!entityId)
         {
-            let msg = `You must provide the ID of the entity to delete.\n\n     ${Commands.DELETEENTITY} {app ID}`;
+            let msg = `You must provide the ID of the entity to delete.\n\n     ${LineCommands.DELETEENTITY} {app ID}`;
             cb(msg);
             return;
         }

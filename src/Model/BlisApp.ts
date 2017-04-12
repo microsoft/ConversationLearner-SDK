@@ -3,7 +3,8 @@ import { deserialize } from 'json-typescript-mapper';
 import { BlisUserState} from '../BlisUserState';
 import { BlisDebug} from '../BlisDebug';
 import { BlisClient } from '../BlisClient';
-import { TakeTurnModes, EntityTypes, UserStates, TeachStep, Commands, IntCommands, ActionTypes, SaveStep, APICalls, ActionCommand } from '../Model/Consts';
+import { TakeTurnModes, EntityTypes, UserStates, TeachStep, ActionTypes, SaveStep, APICalls, ActionCommand } from '../Model/Consts';
+import { IntCommands, LineCommands } from '../CommandHandler';
 import { BlisHelp, Help } from '../Model/Help'; 
 import { BlisMemory } from '../BlisMemory';
 import { Action } from '../Model/Action';
@@ -48,7 +49,7 @@ export class BlisApp
     {
         if (context.state[UserStates.APP] == null)
         {
-            cb(Menu.Apps('No Application has been loaded'));
+            cb(Menu.AppPanel('No Application has been loaded'));
             return false
         }
         return true;
@@ -72,13 +73,13 @@ export class BlisApp
         if (!appName)
         {
             let msg = `You must provide a name for your application.`;
-            cb(Menu.Apps(msg));
+            cb(Menu.AppPanel(msg));
             return;
         }
         if (!luisKey)
         {
             let msg = `You must provide a luisKey for your application.`;
-            cb(Menu.Apps(msg));
+            cb(Menu.AppPanel(msg));
             return;
         }
 
@@ -120,7 +121,7 @@ export class BlisApp
             BlisDebug.Log(`Found ${appIds.length} apps`);
 
             if (appIds.length == 0) {
-                cb(Menu.Apps("This account contains no apps."));
+                cb(Menu.AppPanel("This account contains no apps."));
             }
             let msg = "";
             let responses = [];
@@ -160,8 +161,8 @@ export class BlisApp
                     {
                         responses.push(Utils.MakeHero(app.name, null, null, 
                         { 
-                            "Load" : `${Commands.LOADAPP} ${app.id}`,
-                            "Import" : `${Commands.IMPORTAPP} ${app.id}`,
+                            "Load" : `${LineCommands.LOADAPP} ${app.id}`,
+                            "Import" : `${LineCommands.IMPORTAPP} ${app.id}`,
                             "Delete" : `${IntCommands.DELETEAPP} ${app.id}`,
                             // "Clone" : `${IntCommands.DELETEAPP} ${appId}`,
                         }));
@@ -175,7 +176,7 @@ export class BlisApp
             {
                 responses.push("No Apps match your query.")
             }
-            cb(Menu.AddEditApp(context,responses));
+            cb(responses);
         }
         catch (error) {
             let errMsg = Utils.ErrorString(error);
@@ -217,7 +218,7 @@ export class BlisApp
         if (!appId)
         {
             let msg = BlisHelp.Get(Help.DELETEAPP);
-            cb([msg]);
+            cb(msg);
             return;
         }
 
@@ -225,7 +226,7 @@ export class BlisApp
         {       
             await context.client.DeleteApp(context.state, appId)
 
-            let card = Menu.Apps("Deleted App", appId, null);
+            let card = Menu.AppPanel("Deleted App", appId, null);
 
             // Did I delete my loaded app
             if (appId == context.state[UserStates.APP])

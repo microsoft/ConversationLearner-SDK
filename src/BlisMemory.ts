@@ -337,21 +337,6 @@ export class BlisMemory {
         return text;
     }
 
-    /** Remove all bracketed text from a string */
-    public IgnoreBrackets(text : string) : string {
-
-        let start = text.indexOf('[');
-        let end = text.indexOf(']');
-
-        // If no legal contingency found
-        if (start < 0 || end < 0 || end < start) 
-        {
-            return text;
-        }
-        text = text.substring(0, start) + text.substring(end, text.length);
-        return this.IgnoreBrackets(text);
-    }
-
     /** Extract contigent phrases (i.e. [,$name]) */
     private SubstituteBrackets(text : string) : string {
         
@@ -376,7 +361,7 @@ export class BlisMemory {
         {
             text = text.replace(`[${phrase}]`, phrase);
         }
-        return text;
+        return this.SubstituteBrackets(text);
     }
 
     public static Split(action : string) : string[] {

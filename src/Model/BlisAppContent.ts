@@ -3,7 +3,8 @@ import { deserialize } from 'json-typescript-mapper';
 import { BlisUserState} from '../BlisUserState';
 import { BlisDebug} from '../BlisDebug';
 import { BlisClient } from '../BlisClient';
-import { TakeTurnModes, EntityTypes, UserStates, TeachStep, Commands, IntCommands, ActionTypes, SaveStep, APICalls, ActionCommand } from '../Model/Consts';
+import { TakeTurnModes, EntityTypes, UserStates, TeachStep, ActionTypes, SaveStep, APICalls, ActionCommand } from '../Model/Consts';
+import { IntCommands, LineCommands } from '../CommandHandler';
 import { BlisHelp, Help } from './Help'; 
 import { BlisMemory } from '../BlisMemory';
 import { Action } from './Action';
@@ -177,7 +178,7 @@ export class BlisAppContent
                 BlisDebug.Log(`Action lookup generated`);
             }); 
 
-            if (numActions == 0)
+            if (!numActions)
             {
                 cb(Menu.Home("Application loaded.  No Actions found."));
                 return;
@@ -192,13 +193,7 @@ export class BlisAppContent
             }
             BlisDebug.Log(`Loaded Model: ${modelId}`);
             context.state[UserStates.MODEL]  = modelId;
-
-            // Create session  TODO TEMP?
- /*           BlisDebug.Log(`Creating session...`);
-            let sessionId = await context.client.StartSession(context.state[UserStates.APP])
-            BlisDebug.Log(`Stared Session: ${appId}`);
-            new BlisMemory(context).StartSession(sessionId, false);*/
-            cb(Menu.Home("Application loaded and Session started."));
+            cb(Menu.Home("Application loaded."));
         }
         catch (error)
         {

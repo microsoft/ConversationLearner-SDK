@@ -1,65 +1,86 @@
-import { Commands } from './Consts';
+import * as builder from 'botbuilder';
+import { LineCommands } from '../CommandHandler';
 import { Command } from './Command';
+import { Menu } from '../Menu';
 
+const PREFIX = "%?"
 export const Help =
 {
-    ADDACTION: "#addaction",
-    DELETEACTION: "#deleteaction",
-    DELETEAPP : "#deleteapp",
-    PICKENTITY : "#pickentity",
-    NEWAPP : "#newapp"
+    ADDAPICALL: PREFIX+"addapicall",
+    ADDENTITY: PREFIX+"addentity",
+    ADDRESPONSE: PREFIX+"addresponse",
+    DELETEACTION: PREFIX+"deleteaction",
+    DELETEAPP : PREFIX+"deleteapp",
+    EDITAPICALL: PREFIX+"addapicall",
+    EDITENTITY: PREFIX+"addentity",
+    EDITRESPONSE: PREFIX+"addresponse",
+    PICKENTITY : PREFIX+"pickentity"
 }
 
 export class BlisHelp {
 
-    public static Get(name: string) : string {
+    public static IsHelpCommand(text: string) : boolean
+    {
+        return text.startsWith(PREFIX);
+    }
+
+    public static Get(name: string) : (string|builder.IIsAttachment)[] {
         
-        let help = "";
+        let helptext = "";
+        let card = null;
         let command : Command = null;
         switch (name)
         {
-            case Help.ADDACTION:
-                help = this.CommandHelpString(Commands.ADDRESPONSE) + "\n\n";
-                help += this.CommandHelpString(Commands.ADDAPICALL);
-                return help;
+            case Help.ADDAPICALL:
+                helptext = this.CommandHelpString(LineCommands.ADDAPICALL);
+                card = Menu.AddAPICall()
+                return [helptext, card];
+            case Help.ADDENTITY:
+                helptext = this.CommandHelpString(LineCommands.ADDENTITY);
+                card = Menu.AddEntity();
+                return [helptext, card];
+            case Help.ADDRESPONSE:
+                helptext = this.CommandHelpString(LineCommands.ADDRESPONSE);
+                card = Menu.AddResponse();
+                return [helptext, card];
             case Help.DELETEACTION:
-                command = this.CommandHelp(Commands.DELETEAPP);
-                help += command.description + "\n\n"
-                help += `>> ${command.name} ${command.args}\n\n`;
-                return help;
+                command = this.CommandHelp(LineCommands.DELETEAPP);
+                helptext += command.description + "\n\n"
+                helptext += `>> ${command.name} ${command.args}\n\n`;
+                return [helptext];
             case Help.DELETEAPP:
-                command = this.CommandHelp(Commands.DELETEAPP);
-                help += command.description + "\n\n"
-                help += `>> ${command.name} ${command.args}\n\n`;
-                return help;
+                command = this.CommandHelp(LineCommands.DELETEAPP);
+                helptext += command.description + "\n\n"
+                helptext += `>> ${command.name} ${command.args}\n\n`;
+                return [helptext];
+            case Help.EDITAPICALL:
+                helptext = this.CommandHelpString(LineCommands.EDITAPICALL);
+                card = Menu.EditAPICall();
+                return [helptext, card];
+            case Help.EDITENTITY:
+                helptext = this.CommandHelpString(LineCommands.EDITENTITY);
+                card = Menu.AddEntity();
+                return [helptext, card];
+            case Help.EDITRESPONSE:
+                helptext = this.CommandHelpString(LineCommands.EDITRESPONSE);
+                card = Menu.EditResponse();
+                return [helptext, card];
             case Help.PICKENTITY:
-                help += "Indicate one or more entities by repeating the previous entry and puting entities in brackets:\n\n";
-                help += ">> [{_entity name_} {_words or phrase_}]\n\n";
-                help += "For example:\n\n"
-                help += ">> I want to go to [City New Orleans]\n\n";
-                help += ">> I like [Food Pizza] and [Dancing Activity]";
-                return help;
-            case Help.NEWAPP:
-                help += `Add entities and actions to your application using:\n\n`;
-                help += `>> ${Commands.ADDENTITY}\n\n`;
-                help += `>> ${Commands.ADDRESPONSE}\n\n`;
-                help += `>> ${Commands.ADDAPICALL}\n\n`;
-                help += `Then train your app using:\n\n`;
-                help += `>> ${Commands.TEACH}\n\n`;
-                help += `For help with any command type:\n\n`;
-                help += `>> ${Commands.HELP} {command name}\n\n`;
-                help += `To see all commands type:\n\n`;
-                help += `>> ${Commands.HELP}\n\n`;
-                return help;
+                helptext += "Indicate one or more entities by repeating the previous entry and puting entities in brackets:\n\n";
+                helptext += ">> [{_entity name_} {_words or phrase_}]\n\n";
+                helptext += "For example:\n\n"
+                helptext += ">> I want to go to [City New Orleans]\n\n";
+                helptext += ">> I like [Food Pizza] and [Dancing Activity]";
+                return [helptext];
         }
-        return "Sorry. No help for this topic yet.";
+        return ["Sorry. No help for this topic yet."];
     }
 
     public static CommandHelpString(name : string, error? : string) : string {
         let command = this.CommandHelp(name);
         let help = `**${command.description}**\n\n`
 
-        help += `>> ${command.args}\n\n`;
+        help += `    ${command.args}\n\n`;
 
         if (command.detail && command.detail.length > 0)
         {
@@ -71,7 +92,7 @@ export class BlisHelp {
 
         if (command.examples && command.examples.length > 0)
         {
-            help += "For example:\n\n"
+            help += "\n\nFor example:\n\n"
             for (let example of command.examples)
             {
                 help += `     ${example}\n\n`;
@@ -88,42 +109,43 @@ export class BlisHelp {
         let info = {};
         switch (name)
         {
-            case Commands.ABANDON:
+            case LineCommands.ABANDON:
                 return new Command(
                     name,
                     "Abandon the current teach dialog", null, "",null);
-            case Commands.RESPONSES:
+            case LineCommands.RESPONSES:
                 return new Command(
                     name,
                     "List Actions in current Application.  If search term provided, filters by serach term",
                     null,
                     "{Search (Optional)}", null);
-            case Commands.ADDAPICALL:
+            case LineCommands.ADDAPICALL:
                 return new Command(
                     name,
-                    "Add API call to this Application",
+                    "Add name of API call to add to this Application",
                     null,
                     "{_API Name_}", null);
-            case Commands.ADDENTITY:
+            case LineCommands.ADDENTITY:
                 return new Command(
                     name,
                     "Add a new entity",
                     [
                         "LUIS entities are extracted by LUIS",
-                        "LOCAL entities are not procesed by LUIS",
-                        "PREBUILD entites are existing pre-programmed LUIS entities",
-                        "Assumes entity type LUIS if not type given",
+                        "LOCAL entities are not extracted by LUIS",
+                        "PREBUILT entites are existing pre-programmed LUIS entities",
+                        "   (Assumes entity type LUIS if not type given)",
                         "Entities prefixed with a # will accumulate values (i.e. sausage, olives and cheese)",
-                        "Entities prefix with a ~ will support entity negation",
+                        "Entities prefix with a ~ will support entity negation / deletion",
                     ],
-                    "!addentity ~#{_entitiyName_} {_LUIS | LOCAL | prebuilt name_}", 
+                    "~#{_entitiyName_} {_LUIS | LOCAL | prebuilt name_}", 
                      [
-                        "!addentity name luis",
-                        "!addentity #pizzatoppings luis",
-                        "!addentity ~authenticated local",
-                        "!addentity when datetime"
+                        "name luis",
+                        "#pizzatoppings luis",
+                        "~authenticated local",
+                        "when datetime"
                     ]);
-            case Commands.ADDRESPONSE:
+            case LineCommands.ADDRESPONSE:
+            case LineCommands.EDITRESPONSE:
                 return new Command(
                     name,
                     "Add Text response to this Application.",
@@ -132,118 +154,124 @@ export class BlisHelp {
                         "Indicate suggested entities with a '*' prefix",
                         "Text enclosed in brackets will only be displayed if enclosing entities are present"
                     ],
-                    "!addtextaction {_Action Text_} --{Entity that blocks action} ++{Entity required for action}", 
+                    "{_Response Text_ [contingent text]} // --{Entity that blocks action} ++{Entity required for action} *{suggested entity}", 
                     [
-                        "!addtextaction What's your *name?", 
-                        "!addtextaction What's your favorite *color, $name?",
-                        "!addtextaction Nice to meet you[ $name].",
+                        "What's your *name?",
+                        "Where are you? // *location",
+                        "What's your favorite *color, $name?",
+                        "Nice to meet you[ $name].",
+                        "What is my account balance? // ++authenticated"
                     ]);
-            case Commands.APPS:
+            case LineCommands.APPS:
                 return new Command(
                     name,
                     "List your Applications.  If search term provided, filters by serach term",
                     null,
                     "{Search (Optional)}", null);
-            case Commands.CREATEAPP:
+            case LineCommands.CREATEAPP:
                 return new Command(
                     name,
                     "Create new application",
                     null,
                     "{_appName_} {_luisKey_}", null);
-            case Commands.DEBUG:
+            case LineCommands.DEBUG:
                 return new Command(
                     name,
                     "Toggle debugging mode",
                     null,
                     "", 
                     null);
-            case Commands.DEBUGHELP:
+            case LineCommands.DEBUGHELP:
                 return new Command(
                     name,
                     "List debugging commands or help for a specific command",
                     null,
                     "{_command_ (optional)}", null);
-            case Commands.DELETEAPP:
+            case LineCommands.DELETEAPP:
                 return new Command(
                     name,
                     "Provide the ID of the application to delete",
                     null,
                     "{_application id_}", null);
-            case Commands.DELETEACTION:
+            case LineCommands.DELETEACTION:
                 return new Command(
                     name,
                     "Delete an action on current app",
                     null,
                     "{_actionId_}", null);
-            case Commands.DELETEALLAPPS:
+            case LineCommands.DELETEALLAPPS:
                 return new Command(
                     name,
                     "!!WARNING!! Delete all Applications associated with this BLIS account",
                     null,
                     "", null);
-            case Commands.DELETEENTITY:
+            case LineCommands.DELETEENTITY:
                 return new Command(
                     name,
                     "Delete an entity on current app",
                     null,
                     "{_entityId_}", null);
-            case Commands.DUMP:
+            case LineCommands.DUMP:
                 return new Command(
                     name,
                     "Show the current state of the Application",
                     null,
                     "", null);
-            case Commands.EDITACTION:
-                let command = BlisHelp.CommandHelp(Commands.ADDRESPONSE);
-                command.description = "Edit an action on current app";
+            case LineCommands.EDITAPICALL:
+                let acommand = BlisHelp.CommandHelp(LineCommands.ADDAPICALL);
+                acommand.description = "Edit a response on current app";
+                return acommand;
+            case LineCommands.EDITRESPONSE:
+                let command = BlisHelp.CommandHelp(LineCommands.ADDRESPONSE);
+                command.description = "Edit a response on current app";
                 return command;
-            case Commands.EDITENTITY:
-                let eCommand = BlisHelp.CommandHelp(Commands.ADDENTITY);
+            case LineCommands.EDITENTITY:
+                let eCommand = BlisHelp.CommandHelp(LineCommands.ADDENTITY);
                 eCommand.description = "Edit an entity on current app";
                 return eCommand;
-            case Commands.ENTITIES:
+            case LineCommands.ENTITIES:
                 return new Command(
                     name,
                     "List Entities in the Application.  If search term provided, filters by search term",
                     null,
                     "{Search (Optional)}", null);
-            case Commands.EXPORTAPP:
+            case LineCommands.EXPORTAPP:
                 return new Command(
                     name,
                     "Export application",
                     null,
                     "", null);
-            case Commands.HELP:
+            case LineCommands.HELP:
                 return new Command(
                     name,
                     "List commands or help for a specific command",
                     null,
                     "{_command_ (optional)}", null);
-            case Commands.IMPORTAPP:
+            case LineCommands.IMPORTAPP:
                 return new Command(
                     name,
                     "Import application by GUID and merge with current application",
                     null,
                     "{_App ID_}", null);
-            case Commands.LOADAPP:
+            case LineCommands.LOADAPP:
                 return new Command(
                     name,
                     "Load an application",
                     null,
                     "{App ID}", null);
-            case Commands.START:
+            case LineCommands.START:
                 return new Command(
                     name,
                     "Start the bot",
                     null,
                     "", null);
-            case Commands.TEACH:
+            case LineCommands.TEACH:
                 return new Command(
                     name,
                     "Start new teaching session",
                     null,
                     "", null);
-            case Commands.TRAINDIALOGS:
+            case LineCommands.TRAINDIALOGS:
                 return new Command(
                     name,
                     "Show training dialogs for this application",

@@ -14,13 +14,85 @@ import { Entity } from './Model/Entity';
 import { BlisContext } from './BlisContext';
 import { BlisAppContent } from './Model/BlisAppContent'
 import { Utils } from './Utils';
-import { UserStates, Commands, IntCommands, ActionCommand, ActionTypes, TeachAction } from './Model/Consts';
+import { UserStates, ActionCommand, ActionTypes, TeachAction } from './Model/Consts';
+
+// Internal command prefix
+const INTPREFIX = "%~"
+
+// Command line prefix
+const COMMANDPREFIX = "!"
+
+// Internal commands. (Not for user)
+export const IntCommands =
+{
+    ADDAPICALL : INTPREFIX + "addapicall",
+    ADDENTITY : INTPREFIX + "addentity",
+    ADDRESPONSE : INTPREFIX + "addresponse",
+    APICALLS : INTPREFIX + "apicalls",
+    APPS : INTPREFIX + "apps",
+    CANCEL : INTPREFIX + "cancel",
+    CREATEAPP : INTPREFIX + "createapp",
+    DELETEAPP : INTPREFIX + "deleteapp",
+    DELETEDIALOG : INTPREFIX + "deletedialog",
+    DONETEACH : INTPREFIX + "doneteach",
+    EDITAPP : INTPREFIX + "editapp",
+    EDITAPICALL : INTPREFIX + "editapicall",
+    EDITENTITY : INTPREFIX + "editentity",
+    EDITRESPONSE : INTPREFIX + "editresponse",
+    ENTITIES: INTPREFIX + "entities",
+    FORGETTEACH : INTPREFIX + "forgetteach",
+    HOME: INTPREFIX + "home",
+    RESPONSES: INTPREFIX + "responses",
+    SAVETEACH: INTPREFIX + "saveteach",
+    TRAINDIALOGS: INTPREFIX + "traindialogs"
+}
+
+export const LineCommands =
+{
+    ABANDON: COMMANDPREFIX + "abandon",
+    ACTIONS: COMMANDPREFIX + "actions",
+    ADDENTITY : COMMANDPREFIX + "addentity",
+    ADDAPICALL : COMMANDPREFIX + "addapicall",   
+    ADDRESPONSE: COMMANDPREFIX + "addresponse",  
+    APICALLS: COMMANDPREFIX + "apicalls",
+    APPS : COMMANDPREFIX + "apps",
+    CREATEAPP : COMMANDPREFIX + "createapp",
+    DEBUG : COMMANDPREFIX + "debug",
+    DEBUGHELP : COMMANDPREFIX + "debughelp",
+    DELETEACTION : COMMANDPREFIX + "deleteaction",
+    DELETEALLAPPS: COMMANDPREFIX + "deleteallapps",
+    DELETEAPP : COMMANDPREFIX + "deleteapp",
+    DELETEENTITY : COMMANDPREFIX + "deleteentity",
+    DUMP : COMMANDPREFIX + "dump",
+    EDITAPICALL : COMMANDPREFIX + "editapicall",
+    EDITENTITY : COMMANDPREFIX + "editentity",
+    EDITRESPONSE : COMMANDPREFIX + "editresponse",
+    ENTITIES : COMMANDPREFIX + "entities",
+    EXPORTAPP : COMMANDPREFIX + "exportapp",
+    HELP : COMMANDPREFIX + "help",
+    IMPORTAPP : COMMANDPREFIX + "importapp",
+    LOADAPP: COMMANDPREFIX + "loadapp",
+    RESPONSES : COMMANDPREFIX + "responses",
+    START: COMMANDPREFIX + "start",
+    TEACH : COMMANDPREFIX + "teach",
+    TRAINDIALOGS : COMMANDPREFIX + "traindialogs"
+}
 
 export class CommandHandler
 { 
 
+    public static IsIntCommand(text : string) 
+    {
+        return text.startsWith(INTPREFIX);
+    }
+
+    public static IsCommandLine(text : string) 
+    {
+        return text.startsWith(COMMANDPREFIX);
+    }
+
     /** Next incoming text from user is a command.  Send cue card */
-    private static async CueCommand(context : BlisContext, command : string, args : string,  cb : (text) => void) : Promise<void>
+    private static async CueCommand(context : BlisContext, command : string, args : string,  cb : (cards : (string | builder.IIsAttachment)[]) => void) : Promise<void>
     {
         try
         {         
@@ -29,99 +101,56 @@ export class CommandHandler
             let memory = new BlisMemory(context);
             memory.SetCueCommand(cueCommand);
 
-            if (command == Commands.ADDAPICALL)
+            if (command == LineCommands.ADDAPICALL)
             {
-                let card = Utils.MakeHero(`Add API Call`, null, "Enter new API Call",  
-                    {  
-                    //      "Help" : Commands.HELP,   TODO
-                         "Cancel" : IntCommands.CANCEL
-                    });
-                cb([card]);
+                cb([Menu.AddAPICall()]);
             }
-            else if (command == Commands.ADDENTITY)
+            else if (command == LineCommands.ADDENTITY)
             {
-                let card = Utils.MakeHero(`Add Entity`, null, "Enter new Entity", 
-                {  
-                //      "Help" : Commands.HELP,   TODO
-                     "Cancel" : IntCommands.CANCEL
-                });
-                cb([card]);
+                cb([Menu.AddEntity()]);
             }
-            else if (command == Commands.ADDRESPONSE)
+            else if (command == LineCommands.ADDRESPONSE)
             {
-                let card = Utils.MakeHero(`Add Response`, null, "Enter new Response",  
-                {  
-                //      "Help" : Commands.HELP,   TODO
-                     "Cancel" : IntCommands.CANCEL
-                });
-                cb([card]);
+                cb([Menu.AddResponse()]);
             }
-            else if (command == Commands.APICALLS)
+            else if (command == LineCommands.APICALLS)
             {
-                let card = Utils.MakeHero(`Find API call`, null, "Enter search term", 
-                {  
-                     "Cancel" : IntCommands.CANCEL
-                });
-                cb([card]);
+                cb([Menu.APICalls()]);
             }
-            else if (command == Commands.APPS)
+            else if (command == LineCommands.APPS)
             {
-                let card = Utils.MakeHero(`Find App`, null, "Enter search term", 
-                {  
-                     "Cancel" : IntCommands.CANCEL
-                });
-                cb([card]);
+                cb([Menu.Apps()]);
             }
-            else if (command == Commands.CREATEAPP)
+            else if (command == LineCommands.CREATEAPP)
             {
-                let card = Utils.MakeHero(`Create App`, '{appName} {LUIS key}', "Enter new App name and Luis Key",
-                {  
-                     "Cancel" : IntCommands.CANCEL
-                });
-                cb([card]);
+                cb([Menu.CreateApp()]);
             }
-            else if (command == Commands.EDITACTION)
+            else if (command == LineCommands.EDITAPICALL)
             {
                 let action = await context.client.GetAction(context.state[UserStates.APP], args);
-                let card = Utils.MakeHero(`Edit Action`, action.content, "Enter new Action context", 
-                {  
-                     "Cancel" : IntCommands.CANCEL
-                });
-                cb([card]);
+                cb([Menu.EditAPICall(action)]);
             }
-            else if (command == Commands.EDITENTITY)
+            else if (command == LineCommands.EDITENTITY)
             {
                 let entity = await context.client.GetEntity(context.state[UserStates.APP], args);
-                let type = entity.luisPreName ? entity.luisPreName : entity.entityType;
-                let card = Utils.MakeHero(`Edit: (${entity.name})`, type, "Enter new Entity name",
-                {  
-                     "Cancel" : IntCommands.CANCEL
-                });
-                cb([card]);
+                cb([Menu.EditEntity(entity)]);
             }
-            else if (command == Commands.ENTITIES)
+            else if (command == LineCommands.EDITRESPONSE)
             {
-                let card = Utils.MakeHero(`Find Entity`, null, "Enter search term", 
-                {  
-                     "Cancel" : IntCommands.CANCEL
-                });
-                cb([card]);
+                let action = await context.client.GetAction(context.state[UserStates.APP], args);
+                cb([Menu.EditResponse(action)]);
             }
-            else if (command == Commands.RESPONSES)
+            else if (command == LineCommands.ENTITIES)
             {
-                let card = Utils.MakeHero(`Find Response`, null, "Enter search term", 
-                {  
-                     "Cancel" : IntCommands.CANCEL
-                });
-                cb([card]);
+                cb([Menu.Entities()]);
+            }
+            else if (command == LineCommands.RESPONSES)
+            {
+                cb([Menu.Responses()]);
             }
             else if (command == IntCommands.TRAINDIALOGS)
             {
-                let card = Utils.MakeHero(`Find Training Dialog`, null, "Enter search term", 
-                {  
-                     "Cancel" : IntCommands.CANCEL
-                });
-                cb([card]);
+                cb([Menu.TrainDialogs()]);
             }
         }
         catch (error)
@@ -139,13 +168,13 @@ export class CommandHandler
 
         //-------- Valid any time -----------------------//
         if (command == IntCommands.ADDRESPONSE) {
-            this.CueCommand(context, Commands.ADDRESPONSE, null, (responses) => {
+            this.CueCommand(context, LineCommands.ADDRESPONSE, null, (responses) => {
                 cb(responses);
             });
             return;
         } 
         else if (command == IntCommands.ADDAPICALL) {
-            this.CueCommand(context, Commands.ADDAPICALL, null, (responses) => {
+            this.CueCommand(context, LineCommands.ADDAPICALL, null, (responses) => {
                 cb(responses);
             });
             return;
@@ -153,7 +182,7 @@ export class CommandHandler
         //-------- Only valid in Teach ------------------//
         if (context.state[UserStates.TEACH]) {
             if (command == IntCommands.APICALLS) {
-                this.CueCommand(context, Commands.APICALLS, arg, (responses) => {
+                this.CueCommand(context, LineCommands.APICALLS, arg, (responses) => {
                     cb(responses);
                 });
             }
@@ -188,17 +217,17 @@ export class CommandHandler
         else 
         { 
             if (command == IntCommands.ADDENTITY) {
-                this.CueCommand(context, Commands.ADDENTITY, null, (responses) => {
+                this.CueCommand(context, LineCommands.ADDENTITY, null, (responses) => {
                     cb(responses);
                 });
             }
             else if (command == IntCommands.APPS) {
-                this.CueCommand(context, Commands.APPS, arg, (responses) => {
+                this.CueCommand(context, LineCommands.APPS, arg, (responses) => {
                     cb(responses);
                 });
             }
             else if (command == IntCommands.CREATEAPP) {
-                this.CueCommand(context, Commands.CREATEAPP, null, (responses) => {
+                this.CueCommand(context, LineCommands.CREATEAPP, null, (responses) => {
                     cb(responses);
                 });
             }
@@ -212,8 +241,8 @@ export class CommandHandler
                     cb(responses);
                 });
             }
-            else if (command == IntCommands.EDITACTION) {
-                this.CueCommand(context, Commands.EDITACTION, arg, (responses) => {
+            else if (command == IntCommands.EDITAPICALL) {
+                this.CueCommand(context, LineCommands.EDITAPICALL, arg, (responses) => {
                     cb(responses);
                 });
             }
@@ -221,12 +250,17 @@ export class CommandHandler
                 cb(Menu.EditApp());
             }
             else if (command == IntCommands.EDITENTITY) {
-                this.CueCommand(context, Commands.EDITENTITY, arg, (responses) => {
+                this.CueCommand(context, LineCommands.EDITENTITY, arg, (responses) => {
+                    cb(responses);
+                });
+            }
+            else if (command == IntCommands.EDITRESPONSE) {
+                this.CueCommand(context, LineCommands.EDITRESPONSE, arg, (responses) => {
                     cb(responses);
                 });
             }
             else if (command == IntCommands.ENTITIES) {
-                this.CueCommand(context, Commands.ENTITIES, arg, (responses) => {
+                this.CueCommand(context, LineCommands.ENTITIES, arg, (responses) => {
                     cb(responses);
                 });
             }
@@ -234,12 +268,12 @@ export class CommandHandler
                 cb(Menu.Home(""));
             }
             else if (command == IntCommands.RESPONSES) {
-                this.CueCommand(context, Commands.RESPONSES, arg, (responses) => {
+                this.CueCommand(context, LineCommands.RESPONSES, arg, (responses) => {
                     cb(responses);
                 });
             }
             else if (command == IntCommands.TRAINDIALOGS) {
-                this.CueCommand(context, Commands.TRAINDIALOGS, arg, (responses) => {
+                this.CueCommand(context, LineCommands.TRAINDIALOGS, arg, (responses) => {
                     cb(responses);
                 });
             }
@@ -261,64 +295,64 @@ export class CommandHandler
     {
         //---------------------------------------------------
         // Commands allowed at any time
-        if (command == Commands.ACTIONS)
+        if (command == LineCommands.ACTIONS)
         {
             Action.GetAll(context, null, args, (responses) => {
                 cb(responses);
             });
         }
-        else if (command == Commands.ADDAPICALL)
+        else if (command == LineCommands.ADDAPICALL)
         {
             Action.Add(context, null, ActionTypes.API, args, (responses, actionId) => {
                 cb(responses, TeachAction.PICKACTION, actionId);
             });
         }
-        else if (command == Commands.ADDRESPONSE)
+        else if (command == LineCommands.ADDRESPONSE)
         {
             
             Action.Add(context, null, ActionTypes.TEXT, args, (responses, actionId) => {
                 cb(responses, TeachAction.PICKACTION, actionId);
             });
         }
-        else if (command == Commands.ADDENTITY)
+        else if (command == LineCommands.ADDENTITY)
         {
             let [content, type] = args.split(' ');
             Entity.Add(context, null, type, content, (responses) => {
                 cb(responses, TeachAction.RETRAIN);
             });
         }
-        else if (command == Commands.APICALLS)
+        else if (command == LineCommands.APICALLS)
         {
             Action.GetAll(context, ActionTypes.API, args, (responses) => {
                 cb(responses);
             });
         }
-        else if (command == Commands.DEBUG)
+        else if (command == LineCommands.DEBUG)
         {
             context.state[UserStates.DEBUG] = !context.state[UserStates.DEBUG];
             BlisDebug.enabled = context.state[UserStates.DEBUG];
             cb(["Debug " + (BlisDebug.enabled ? "Enabled" : "Disabled")]);
         }
-        else if (command == Commands.DEBUGHELP)
+        else if (command == LineCommands.DEBUGHELP)
         {
             cb([this.DebugHelp()]);
         }
-        else if (command == Commands.DUMP)
+        else if (command == LineCommands.DUMP)
         {
             let memory = new BlisMemory(context);
             cb([memory.Dump()]);
         }
-        else if (command == Commands.ENTITIES)
+        else if (command == LineCommands.ENTITIES)
         { 
             Entity.Get(context, args, (responses) => {
                 cb(responses);
             });
         }
-        else if (command == Commands.HELP)
+        else if (command == LineCommands.HELP)
         {
             cb([this.Help(args)]);
         }
-        else if (command == Commands.RESPONSES)
+        else if (command == LineCommands.RESPONSES)
         {
             Action.GetAll(context, ActionTypes.TEXT, args, (responses) => {
                 cb(responses);
@@ -328,7 +362,7 @@ export class CommandHandler
         // Command only allowed in TEACH
         else if (context.state[UserStates.TEACH])
         {
-            if (command == Commands.ABANDON)
+            if (command == LineCommands.ABANDON)
             {
                   this.HandleIntCommand(context, IntCommands.FORGETTEACH, cb);
             }
@@ -340,33 +374,33 @@ export class CommandHandler
         //---------------------------------------------------
         // Commands only allowed when not in TEACH mode
         else {
-            if (command == Commands.APPS)
+            if (command == LineCommands.APPS)
             {
                 BlisApp.GetAll(context, args, (responses) => {
                     cb(responses);
                 });
             }
-            else if (command == Commands.CREATEAPP)
+            else if (command == LineCommands.CREATEAPP)
             {
                 let [appname, luiskey] = args.split(' ');
                 BlisApp.Create(context, appname, luiskey, (responses) => {
                     cb(responses);
                 });
             }
-            else if (command == Commands.DELETEALLAPPS)
+            else if (command == LineCommands.DELETEALLAPPS)
             {
                 BlisApp.DeleteAll(context, (responses) => {
                     cb(responses);
                 });
             }
-            else if (command == Commands.DELETEACTION)
+            else if (command == LineCommands.DELETEACTION)
             {
                 let [actionId] = args.split(' ');
                 Action.Delete(context, actionId, (responses) => {
                     cb(responses);
                 });
             }
-            else if (command == Commands.DELETEAPP)
+            else if (command == LineCommands.DELETEAPP)
             {
                 Utils.SendMessage(context, "Deleting app...");
                 let [appid] = args.split(' ');
@@ -374,34 +408,43 @@ export class CommandHandler
                     cb(responses);
                 });
             }
-            else if (command == Commands.DELETEENTITY)
+            else if (command == LineCommands.DELETEENTITY)
             {
                 let [entityId] = args.split(' ');
                 Entity.Delete(context, entityId, (responses) => {
                     cb(responses);
                 });
             }
-            else if (command == Commands.EDITACTION)  // TODO text or API
+            else if (command == LineCommands.EDITAPICALL)  
             {   
-                let [actionId, content] = args.split(' ');         
+                let [actionId] = args.split(' '); 
+                let content = this.RemoveWords(args, 1);
+                Action.Add(context, actionId, ActionTypes.API, content, (responses) => {
+                    cb(responses);
+                });
+            }
+            else if (command == LineCommands.EDITRESPONSE)  
+            {   
+                let [actionId] = args.split(' '); 
+                let content = this.RemoveWords(args, 1);
                 Action.Add(context, actionId, ActionTypes.TEXT, content, (responses) => {
                     cb(responses);
                 });
             }
-            else if (command == Commands.EDITENTITY)  
+            else if (command == LineCommands.EDITENTITY)  
             {         
                 let [entityId, content] = args.split(' ');     
                 Entity.Add(context, entityId, null, content, (responses) => {
                     cb(responses);
                 });
             }
-            else if (command == Commands.EXPORTAPP)
+            else if (command == LineCommands.EXPORTAPP)
             {
                 BlisAppContent.Export(context, (responses) => {
                     cb(responses);
                 });
             }
-            else if (command == Commands.IMPORTAPP)
+            else if (command == LineCommands.IMPORTAPP)
             {
                 Utils.SendMessage(context, "Importing app...");
                 let [appId] = args.split(' ');   
@@ -409,7 +452,7 @@ export class CommandHandler
                     cb(responses); 
                 });
             }
-            else if (command == Commands.LOADAPP)
+            else if (command == LineCommands.LOADAPP)
             {
                 Utils.SendMessage(context, "Loading app...");
                 let [appId] = args.split(' ');
@@ -417,13 +460,13 @@ export class CommandHandler
                     cb(responses);
                 });
             }
-            else if (command == Commands.START)
+            else if (command == LineCommands.START)
             {
                 BlisSession.NewSession(context, false, (responses) => {
                     cb(responses);
                 });
             }
-            else if (command == Commands.TEACH)
+            else if (command == LineCommands.TEACH)
             {
                 let memory = new BlisMemory(context);
                 memory.ClearTrainSteps();
@@ -431,7 +474,7 @@ export class CommandHandler
                     cb(responses);
                 });
             }
-            else if (command == Commands.TRAINDIALOGS)
+            else if (command == LineCommands.TRAINDIALOGS)
             {
                 let [search] = args.split(' ');
                 TrainDialog.Get(context, search, (responses) => {
@@ -481,17 +524,17 @@ export class CommandHandler
         if (command) 
         {
             // Don't require user to put ! in front of command
-            if (!command.startsWith('!'))
+            if (!command.startsWith(COMMANDPREFIX))
             {
-                command = "!"+command;
+                command = COMMANDPREFIX+command;
             }
             let helpmsg = BlisHelp.CommandHelpString(command);
             return helpmsg;
         }
         let text = "";
-        for (let item in Commands)
+        for (let item in LineCommands)
         {
-            let key = Commands[item];
+            let key = LineCommands[item];
             let comObj = BlisHelp.CommandHelp(key);
             text += `${key} ${comObj.args}\n\n     ${comObj.description}\n\n\n\n`;
         }
@@ -521,13 +564,13 @@ export class CommandHandler
     private static DebugHelp() : string
     {
         let text = "";
-        text += `${Commands.DEBUG}\n\n       Toggle debug mode\n\n`
-        text += `${Commands.DELETEAPP} {appId}\n\n       Delete specified application\n\n`
-        text += `${Commands.DUMP}\n\n       Show client state\n\n`
-        text += `${Commands.ENTITIES}\n\n       Return list of entities\n\n`
-        text += `${Commands.RESPONSES} {y/n}\n\n       Return list of actions. If 'Y' show IDs\n\n`
-        text += `${Commands.TRAINDIALOGS}\n\n       Return list of training dialogs\n\n`
-        text += `${Commands.HELP}\n\n       General help`
+        text += `${LineCommands.DEBUG}\n\n       Toggle debug mode\n\n`
+        text += `${LineCommands.DELETEAPP} {appId}\n\n       Delete specified application\n\n`
+        text += `${LineCommands.DUMP}\n\n       Show client state\n\n`
+        text += `${LineCommands.ENTITIES}\n\n       Return list of entities\n\n`
+        text += `${LineCommands.RESPONSES} {y/n}\n\n       Return list of actions. If 'Y' show IDs\n\n`
+        text += `${LineCommands.TRAINDIALOGS}\n\n       Return list of training dialogs\n\n`
+        text += `${LineCommands.HELP}\n\n       General help`
         return text;
     }
 }

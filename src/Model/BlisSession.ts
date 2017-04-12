@@ -5,7 +5,9 @@ import { BlisMemory } from '../BlisMemory';
 import { BlisClient } from '../BlisClient';
 import { Utils } from '../Utils';
 import { BlisContext} from '../BlisContext';
-import { UserStates, Commands, IntCommands, ActionCommand, ActionTypes } from './Consts';
+import { UserStates, ActionCommand, ActionTypes } from './Consts';
+import { IntCommands, LineCommands } from '../CommandHandler';
+
 export class BlisSession
 { 
     public static async EndSession(context : BlisContext, cb : (text) => void) : Promise<void>
@@ -13,8 +15,8 @@ export class BlisSession
         try
         {        
             // Ending teaching session (which trains the model if necessary), update modelId
-            let sessionId = await context.client.EndSession(context.state[UserStates.APP], context.state[UserStates.SESSION]);
             new BlisMemory(context).EndSession();
+            let sessionId = await context.client.EndSession(context.state[UserStates.APP], context.state[UserStates.SESSION]);
             let modelId = await context.client.GetModel(context.state[UserStates.APP]);
             context.state[UserStates.MODEL]  = modelId;
             cb(sessionId);
@@ -43,7 +45,7 @@ export class BlisSession
             if (teach)
             {
                 let body = "Provide your first input for this teach dialog.\n\n\n\n";
-                let subtext = `At any point type "${Commands.ABANDON}" to abort`;
+                let subtext = `At any point type "${LineCommands.ABANDON}" to abort`;
                 let card = Utils.MakeHero("Teach mode started", subtext, body, null);
                 cb([card]);
             }

@@ -40,60 +40,6 @@ export const SaveStep =
     CHOICES: "choices"
 }
 
-export const Commands =
-{
-    ABANDON: "!abandon",
-    ACTIONS: "!actions",
-    ADDENTITY : "!addentity",
-    ADDAPICALL : "!addapicall",   // Duplicates for usablitity
-    ADDRESPONSE: "!addresponse",  // Duplicates for usablitity
-    APICALLS: "!apicalls",
-    APPS : "!apps",
-    CREATEAPP : "!createapp",
-    DEBUG : "!debug",
-    DEBUGHELP : "!debughelp",
-    DELETEACTION : "!deleteaction",
-    DELETEALLAPPS: "!deleteallapps",
-    DELETEAPP : "!deleteapp",
-    DELETEENTITY : "!deleteentity",
-    DUMP : "!dump",
-    EDITACTION : "!editaction",
-    EDITENTITY : "!editentity",
-    ENTITIES : "!entities",
-    EXPORTAPP : "!exportapp",
-    HELP : "!help",
-    IMPORTAPP : "!importapp",
-    LOADAPP: "!loadapp",
-    RESPONSES : "!responses",
-    START: "!start",
-    TEACH : "!teach",
-    TRAINDIALOGS : "!traindialogs"
-}
-
-// Internal commands. (Not for user)
-export const IntCommands =
-{
-    ADDAPICALL : '~addapicall',
-    ADDENTITY : '~addentity',
-    ADDRESPONSE : '~addresponse',
-    APICALLS : `~apicalls`,
-    APPS : `~apps`,
-    CANCEL : `~cancel`,
-    CREATEAPP : '~createapp',
-    DELETEAPP : '~deleteapp',
-    DELETEDIALOG : '~deletedialog',
-    DONETEACH : "~doneteach",
-    EDITACTION : "~editaction",
-    EDITAPP : "~editapp",
-    EDITENTITY : "~editentity",
-    ENTITIES: `~entities`,
-    FORGETTEACH : "~forgetteach",
-    HOME: "~home",
-    RESPONSES: "~responses",
-    SAVETEACH: "~saveteach",
-    TRAINDIALOGS: "~traindialogs"
-}
-
 // Internal commands. (Not for user)
 export const APICalls =
 {
@@ -103,17 +49,12 @@ export const APICalls =
 export const ActionCommand =
 {
     SUGGEST : "*",
-    REQUIRE : "++",
-    BLOCK : "--",
+    REQUIRE : "+",
+    BLOCK : "-",
     SUBSTITUTE: "$",
     BUCKET: "#",
     NEGATIVE: "~",       // Remove the entity
     DEBUG: "/d"
-}
-
-export const Help =
-{
-    NEWAPP : "#newapp"
 }
 
 export const UserStates =

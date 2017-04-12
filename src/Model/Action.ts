@@ -5,7 +5,8 @@ import { BlisApp } from '../Model/BlisApp';
 import { BlisUserState} from '../BlisUserState';
 import { BlisDebug} from '../BlisDebug';
 import { BlisClient } from '../BlisClient';
-import { TakeTurnModes, EntityTypes, UserStates, TeachStep, Commands, IntCommands, ActionTypes, SaveStep, APICalls, ActionCommand } from '../Model/Consts';
+import { TakeTurnModes, EntityTypes, UserStates, TeachStep, ActionTypes, SaveStep, APICalls, ActionCommand } from '../Model/Consts';
+import { IntCommands, LineCommands } from '../CommandHandler';
 import { BlisMemory } from '../BlisMemory';
 import { Utils } from '../Utils';
 import { Menu } from '../Menu';
@@ -22,6 +23,19 @@ export class ActionMetaData
         this.internal = undefined;
         (<any>Object).assign(this, init);
     }
+}
+
+class ActionSet
+{
+    public negIds : string[] = [];
+    public posIds : string[] = [];
+    public negNames : string[] = [];
+    public posNames : string[] = [];
+    public saveId : string;
+    public saveName : string;
+
+    constructor(public actionType : string)
+    {}
 }
 
 export class Action
@@ -137,14 +151,137 @@ export class Action
         return (appString.indexOf(this.id) > -1);
     }
 
-    private static Buttons(id : string) : {}
+    private static Buttons(id : string, actionType : string) : {}
     {
+        let editCommand = (actionType == ActionTypes.API) ? IntCommands.EDITAPICALL : IntCommands.EDITRESPONSE;
         let buttons = 
         { 
-            "Edit" : `${IntCommands.EDITACTION} ${id}`,
-            "Delete" : `${Commands.DELETEACTION} ${id}`,
+            "Edit" : `${editCommand} ${id}`,
+            "Delete" : `${LineCommands.DELETEACTION} ${id}`,
         };
         return buttons;
+    }
+
+    private static ProcessCommandString(context: BlisContext, actionSet : ActionSet, commandString : string) : string
+    {
+        if (!commandString) return;
+        
+        // Process any command words
+        let memory = new BlisMemory(context);
+        let commandWords = Action.Split(commandString);
+        for (let word of commandWords)
+        {
+            if (word.startsWith(ActionCommand.BLOCK))
+            {
+                let negName = word.slice(ActionCommand.BLOCK.length);
+                let negID = memory.EntityName2Id(negName);
+                if (negID) {
+                    actionSet.negIds.push(negID);
+                    actionSet.negNames.push(negName);
+                }  
+                else
+                {
+                    return `Entity ${negName} not found.`;
+                }
+            }
+            else if (word.startsWith(ActionCommand.REQUIRE)) {
+                let posName = word.slice(ActionCommand.REQUIRE.length);
+                if (actionSet.posNames.indexOf(posName) < 0)
+                {
+                    let posID = memory.EntityName2Id(posName);
+                    if (posID) {
+                        actionSet.posIds.push(posID);
+                        actionSet.posNames.push(posName);
+                    }  
+                    else
+                    {
+                        return `Entity $${posName} not found.`;
+                    }
+                }
+            }
+            // Process suggested entities
+            else if (word.startsWith(ActionCommand.SUGGEST))
+            {
+                this.ProcessSuggestion(context, actionSet, word);
+            }
+        }
+    }
+
+    private static ProcessResponse(context: BlisContext, actionSet : ActionSet, responseString : string) : string
+    {
+        // Ignore bracketed text
+        responseString = Action.IgnoreBrackets(responseString);
+
+        let memory = new BlisMemory(context);
+        let words = Action.Split(responseString);
+        for (let word of words)
+        {
+            // Add requirement for entity when used for substitution
+            if (word.startsWith(ActionCommand.SUBSTITUTE))
+            {
+                let posName = word.slice(ActionCommand.SUBSTITUTE.length);
+                if (actionSet.posNames.indexOf(posName) < 0)
+                {
+                    let posID = memory.EntityName2Id(posName);
+                    if (posID)
+                    {
+                        actionSet.posIds.push(posID);
+                        actionSet.posNames.push(posName);
+                    }
+                    else
+                    {
+                        return `Entity $${posName} not found.`;
+                    }
+                }
+            }
+            // Extract suggested entities
+            else if (word.startsWith(ActionCommand.SUGGEST))
+            {
+                this.ProcessSuggestion(context, actionSet, word);
+            }
+        }
+    }
+
+    private static ProcessSuggestion(context: BlisContext, actionSet : ActionSet, word : string)
+    {
+        let memory = new BlisMemory(context);
+
+        // Only allow one suggested entity
+        if (actionSet.saveName) 
+        {
+            return `Only one entity suggestion (denoted by "!_ENTITY_") allowed per Action`;
+        } 
+        if (actionSet.actionType == ActionTypes.API)
+        {
+            return `Suggested entities can't be added to API Actions`;
+        }
+        actionSet.saveName = word.slice(ActionCommand.SUGGEST.length);
+        actionSet.saveId = memory.EntityName2Id(actionSet.saveName);
+        if (!actionSet.saveId)
+        {
+            return `Entity $${actionSet.saveName} not found.`;
+        }
+        // Add to negative entities
+        if (actionSet.negNames.indexOf(actionSet.saveName) < 0)
+        {
+            actionSet.negIds.push(actionSet.saveId);
+            actionSet.negNames.push(actionSet.saveName);
+        }
+    }
+
+    /** Remove all bracketed text from a string */
+    private static IgnoreBrackets(text : string) : string 
+    {
+        let start = text.indexOf('[');
+        let end = text.indexOf(']');
+
+        // If no legal contingency found
+        if (start < 0 || end < 0 || end < start) 
+        {
+            return text;
+        }
+        text = text.substring(0, start) + text.substring(end+1, text.length);
+        return this.IgnoreBrackets(text);
     }
 
     public static async Add(context : BlisContext, actionId : string, actionType : string, 
@@ -168,151 +305,63 @@ export class Action
             return;
         }
 
-        // Strip action of any positive and negative entities
-        let firstNeg = content.indexOf(ActionCommand.BLOCK);
-        let firstPos = content.indexOf(ActionCommand.REQUIRE);
-        let cut = 0;
-        if (firstNeg > 0 && firstPos > 0)
-        {
-            cut = Math.min(firstNeg,firstPos);
-        }
-        else 
-        {
-            cut = Math.max(firstNeg,firstPos);
-        }
-        let actionText = (cut > 0) ? content.slice(0,cut-1) : content;
-
-        let memory = new BlisMemory(context);
-
         try
         {        
-            // Extract negative and positive entities
-            let negIds = [];
-            let posIds = [];
-            let negNames = [];
-            let posNames = [];
-            let saveName = null;
-            let saveId = null;
+            let actionSet = new ActionSet(actionType);
 
-            // Ignore bracketed text
-            content = memory.IgnoreBrackets(content);
-
-            let words = Action.Split(content);
-            for (let word of words)
+            // Extract response and commands
+            let [response, commands] = content.split('//');
+ 
+            let error = this.ProcessCommandString(context, actionSet, commands);
+            if (error)
             {
-                // Add requirement for entity when used for substitution
-                if (word.startsWith(ActionCommand.SUBSTITUTE))
-                {
-                    let posName = word.slice(ActionCommand.SUBSTITUTE.length);
-                    if (posNames.indexOf(posName) < 0)
-                    {
-                        let posID = memory.EntityName2Id(posName);
-                        if (posID)
-                        {
-                            posIds.push(posID);
-                            posNames.push(posName);
-                        }
-                        else
-                        {
-                            cb(Menu.AddEditApp(context,[`Entity $${posName} not found.`]), null);
-                            return; 
-                        }
-                    }
-                }
-                // Extract suggested entities
-                else if (word.startsWith(ActionCommand.SUGGEST))
-                {
-                    // Only allow one suggested entity
-                    if (saveName) 
-                    {
-                        cb(Menu.AddEditApp(context,[`Only one entity suggestion (denoted by "!_ENTITY_") allowed per Action`]), null);
-                        return;
-                    } 
-                    if (actionType == ActionTypes.API)
-                    {
-                        cb(Menu.AddEditApp(context,[`Suggested entities can't be added to API Actions`]), null);
-                        return;
-                    }
-                    saveName = word.slice(ActionCommand.SUGGEST.length);
-                    saveId = memory.EntityName2Id(saveName);
-                    if (!saveId)
-                    {
-                        cb(Menu.AddEditApp(context,[`Entity $${saveName} not found.`]), null);
-                        return;
-                    }
-                    // Add to negative entities
-                    if (negNames.indexOf(saveName) < 0)
-                    {
-                        negIds.push(saveId);
-                        negNames.push(saveName);
-                    }
-                }
-                else if (word.startsWith(ActionCommand.BLOCK))
-                {
-                    let negName = word.slice(ActionCommand.BLOCK.length);
-                    let negID = memory.EntityName2Id(negName);
-                    if (negID) {
-                        negIds.push(negID);
-                        negNames.push(negName);
-                    }  
-                    else
-                    {
-                        cb(Menu.AddEditApp(context,[`Entity ${negName} not found.`]), null);
-                        return;
-                    }
-                }
-                else if (word.startsWith(ActionCommand.REQUIRE)) {
-                    let posName = word.slice(ActionCommand.REQUIRE.length);
-                    if (posNames.indexOf(posName) < 0)
-                    {
-                        let posID = memory.EntityName2Id(posName);
-                        if (posID) {
-                            posIds.push(posID);
-                            posNames.push(posName);
-                        }  
-                        else
-                        {
-                            cb(Menu.AddEditApp(context,[`Entity $${posName} not found.`]), null);
-                            return;
-                        }
-                    }
-                }
+               cb(Menu.AddEditApp(context, [error]), null);
+               return;
             }
 
+            error = this.ProcessResponse(context, actionSet, response);
+            if (error)
+            {
+               cb(Menu.AddEditApp(context, [error]), null);
+               return;
+            }
+
+           
             // If suggested entity exists create API call for saving item
-            if (saveId) 
+            if (actionSet.saveId) 
             {
                 // Make sure it hasn't aleady been added TODO
-                let saveAPI = memory.APILookup(saveName);
+                let memory = new BlisMemory(context);
+                let saveAPI = memory.APILookup(actionSet.saveName);
                 if (!saveAPI) {
-                    let apiCall = `${APICalls.SAVEENTITY} ${saveName}`;
+                    let apiCall = `${APICalls.SAVEENTITY} ${actionSet.saveName}`;
                     let metadata = new ActionMetaData({internal : true});
-                    let apiActionId = await context.client.AddAction(context.state[UserStates.APP], apiCall, ActionTypes.API, [], [saveId], null, metadata)
-                    memory.AddAPILookup(saveName, apiActionId);
+                    let apiActionId = await context.client.AddAction(context.state[UserStates.APP], apiCall, ActionTypes.API, [], [actionSet.saveId], null, metadata)
+                    memory.AddAPILookup(actionSet.saveName, apiActionId);
                 }
             }
 
             let changeType = (actionType == ActionTypes.TEXT) ? "Response" : "Api Call";
             if (actionId) 
             {
-                actionId = await context.client.EditAction(context.state[UserStates.APP], actionId, actionText, actionType, posIds, negIds);
+                actionId = await context.client.EditAction(context.state[UserStates.APP], actionId, response, actionType, actionSet.posIds, actionSet.negIds);
                 changeType = changeType + ` Edited`;
             }
             else 
             {
-                actionId = await context.client.AddAction(context.state[UserStates.APP], actionText, actionType, posIds, negIds, null, null);
+                actionId = await context.client.AddAction(context.state[UserStates.APP], response, actionType, actionSet.posIds, actionSet.negIds, null, null);
                 changeType = changeType + ` Created`;
             }
             let substr = "";
-            if (posIds.length > 0) 
+            if (actionSet.posIds.length > 0) 
             {
-                substr += `${ActionCommand.REQUIRE}[${posNames.toLocaleString()}]\n\n`;
+                substr += `${ActionCommand.REQUIRE}[${actionSet.posNames.toLocaleString()}]\n\n`;
             }
-            if (negIds.length > 0) 
+            if (actionSet.negIds.length > 0) 
             {
-                substr += `${ActionCommand.BLOCK}[${negNames.toLocaleString()}]`;
+                substr += `${ActionCommand.BLOCK}[${actionSet.negNames.toLocaleString()}]`;
             } 
-            let card = Utils.MakeHero(`${changeType}`, substr + "\n\n", actionText, Action.Buttons(actionId));
+            let card = Utils.MakeHero(`${changeType}`, substr + "\n\n", response, Action.Buttons(actionId, actionType));
             cb(Menu.AddEditApp(context,[card]), actionId);
         }
         catch (error)
@@ -403,8 +452,8 @@ export class Action
             {
                 let action = await context.client.GetAction(context.state[UserStates.APP], actionId)
 
-                // Don't display internal APIs
-                if (!action.metadata || !action.metadata.internal)
+                // Don't display internal APIs (unless in debug)
+                if (debug || !action.metadata || !action.metadata.internal)
                 {
                     if ((!search || action.content.toLowerCase().indexOf(search) > -1) && (!actionType || action.actionType == actionType))
                     { 
@@ -450,7 +499,7 @@ export class Action
                     else
                     {
                         let typeDesc = (action.actionType == ActionTypes.API) ? "API Call" : "Response";
-                        responses.push(Utils.MakeHero(atext, `${typeDesc} ` + postext+negtext, null, Action.Buttons(action.id)));
+                        responses.push(Utils.MakeHero(atext, `${typeDesc} ` + postext+negtext, null, Action.Buttons(action.id, action.actionType)));
                     }
             }
             if (debug)

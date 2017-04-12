@@ -10,7 +10,8 @@ import { BlisUserState} from './BlisUserState';
 import { LabelEntity } from './Model/LabelEntity';
 import { Action } from './Model/Action';
 import { TrainDialog } from './Model/TrainDialog';
-import { TakeTurnModes, EntityTypes, UserStates, TeachStep, TeachAction, Commands, IntCommands, ActionTypes, SaveStep, APICalls, ActionCommand } from './Model/Consts';
+import { TakeTurnModes, EntityTypes, UserStates, TeachStep, TeachAction, ActionTypes, SaveStep, APICalls, ActionCommand } from './Model/Consts';
+import { IntCommands, LineCommands } from './CommandHandler';
 import { BlisHelp, Help } from './Model/Help'; 
 import { TakeTurnResponse } from './Model/TakeTurnResponse'
 import { Utils } from './Utils';
@@ -220,7 +221,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             let output = ttResponse.actions[0].content;
             memory.RememberLastStep(SaveStep.RESPONSE, output);
 
-            // Clear any suggested entity hints from response
+            // Clear any suggested entity hints from response  TODO - this seems outdate
             output = output ? output.replace(" !"," ") : output;
 
             // Allow for dev to update
@@ -426,7 +427,15 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                     Utils.SendTyping(this.bot, address);
                     BlisDebug.SetAddress(address);   
 
-                    // Check for Edit Commands
+                    // HELP
+                    if (BlisHelp.IsHelpCommand(userInput))
+                    {
+                        let help = BlisHelp.Get(userInput);
+                        this.ProcessResult(session, help);
+                        return;
+                    }
+
+                    // CUE COMMAND
                     if (memory.CueCommand())
                     {
                         CommandHandler.HandleCueCommand(context, userInput, (responses : (string|builder.IIsAttachment)[], teachAction: string, actionData : string) => 
@@ -436,7 +445,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                     }
 
                     // Handle admin commands
-                    else if (userInput.startsWith('!')) {
+                    else if (CommandHandler.IsCommandLine(userInput)) {
 
                         CommandHandler.HandleCommandLine(context, userInput, 
                             (responses : (string|builder.IIsAttachment)[], teachAction: string, actionData : string) => 
@@ -444,16 +453,11 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                                 this.ProcessResult(session, responses, teachAction, actionData);
                             });
                     }
-                    else if (userInput.startsWith('~')) {
+                    else if (CommandHandler.IsIntCommand(userInput)) {
                         CommandHandler.HandleIntCommand(context, userInput, (responses : (string|builder.IIsAttachment)[], teachAction: string, actionData: string) => 
                             {
                                 this.ProcessResult(session, responses, teachAction, actionData);
                             });
-                    }
-                    else if (userInput.startsWith('#'))
-                    {
-                        let help = BlisHelp.Get(userInput);
-                        this.ProcessResult(session, [help]);
                     }
                     else 
                     {
@@ -509,7 +513,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         // Error checking
         if (session.context.state[UserStates.APP]  == null)
         {
-            let card = Menu.Apps("No Application has been loaded..");
+            let card = Menu.AppPanel("No Application has been loaded..");
             let response = this.ErrorResponse(card[0]);
             this.TakeTurnCallback(session, response);
             return;
