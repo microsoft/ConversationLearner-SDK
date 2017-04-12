@@ -2,6 +2,7 @@ import * as builder from 'botbuilder';
 import { LineCommands } from '../CommandHandler';
 import { Command } from './Command';
 import { Menu } from '../Menu';
+import { ActionCommand } from './Consts';
 
 const PREFIX = "%?"
 export const Help =
@@ -134,14 +135,14 @@ export class BlisHelp {
                         "LOCAL entities are not extracted by LUIS",
                         "PREBUILT entites are existing pre-programmed LUIS entities",
                         "   (Assumes entity type LUIS if not type given)",
-                        "Entities prefixed with a # will accumulate values (i.e. sausage, olives and cheese)",
-                        "Entities prefix with a ~ will support entity negation / deletion",
+                        `Entities prefixed with a ${ActionCommand.BUCKET} will accumulate values (i.e. sausage, olives and cheese)`,
+                        `Entities prefix with a ${ActionCommand.NEGATIVE} will support entity negation / deletion`,
                     ],
-                    "~#{_entitiyName_} {_LUIS | LOCAL | prebuilt name_}", 
+                    `${ActionCommand.NEGATIVE}${ActionCommand.BUCKET}{_entitiyName_} {_LUIS | LOCAL | prebuilt name_}`, 
                      [
                         "name luis",
-                        "#pizzatoppings luis",
-                        "~authenticated local",
+                        `${ActionCommand.BUCKET}pizzatoppings luis`,
+                        `${ActionCommand.NEGATIVE}authenticated local`,
                         "when datetime"
                     ]);
             case LineCommands.ADDRESPONSE:
@@ -150,17 +151,17 @@ export class BlisHelp {
                     name,
                     "Add Text response to this Application.",
                     [
-                        "Indicate substitution entities with a '$' prefix",
-                        "Indicate suggested entities with a '*' prefix",
-                        "Text enclosed in brackets will only be displayed if enclosing entities are present"
+                        `Indicate substitution entities with a '${ActionCommand.SUBSTITUTE}' prefix`,
+                        `Indicate suggested entities with a '${ActionCommand.SUGGEST}' prefix`,
+                        `Text enclosed in brackets will only be displayed if enclosing entities are present`
                     ],
-                    "{_Response Text_ [contingent text]} // --{Entity that blocks action} ++{Entity required for action} *{suggested entity}", 
+                    `{Response Text [contingent text]} // ${ActionCommand.BLOCK}{Blocking Entity} ${ActionCommand.REQUIRE}{Required Entity} ${ActionCommand.SUGGEST}{Suggested Entity}`, 
                     [
-                        "What's your *name?",
-                        "Where are you? // *location",
-                        "What's your favorite *color, $name?",
-                        "Nice to meet you[ $name].",
-                        "What is my account balance? // ++authenticated"
+                        `What's your ${ActionCommand.SUGGEST}name?`,
+                        `Where are you? // ${ActionCommand.SUGGEST}location`,
+                        `What's your favorite ${ActionCommand.SUGGEST}color, ${ActionCommand.SUBSTITUTE}name?`,
+                        `Nice to meet you[ ${ActionCommand.SUBSTITUTE}name].`,
+                        `What is my account balance? // ${ActionCommand.REQUIRE}authenticated`
                     ]);
             case LineCommands.APPS:
                 return new Command(
