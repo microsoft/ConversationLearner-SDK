@@ -218,7 +218,7 @@ export class Entity
             }
 
             let responses = [];
-            let memory = new BlisMemory(context);
+            let memory = context.Memory()
             let changeType = "";
             let negName = Entity.NegativeName(content);
             if (entityId)
@@ -348,7 +348,7 @@ export class Entity
         try
         {    
             let responses = []; 
-            let memory = new BlisMemory(context);
+            let memory = context.Memory()
 
             let entity = await context.client.GetEntity(context.state[UserStates.APP], entityId);
 
@@ -416,7 +416,7 @@ export class Entity
             entityIds = JSON.parse(json)['ids'];
             BlisDebug.Log(`Found ${entityIds.length} entities`);
 
-            let memory = new BlisMemory(context);
+            let memory = context.Memory() 
 
             if (entityIds.length == 0)
             {

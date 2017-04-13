@@ -167,7 +167,7 @@ export class Action
         if (!commandString) return;
         
         // Process any command words
-        let memory = new BlisMemory(context);
+        let memory = context.Memory();
         let commandWords = Action.Split(commandString);
         for (let word of commandWords)
         {
@@ -212,7 +212,7 @@ export class Action
         // Ignore bracketed text
         responseString = Action.IgnoreBrackets(responseString);
 
-        let memory = new BlisMemory(context);
+        let memory = context.Memory();
         let words = Action.Split(responseString);
         for (let word of words)
         {
@@ -244,7 +244,7 @@ export class Action
 
     private static ProcessSuggestion(context: BlisContext, actionSet : ActionSet, word : string)
     {
-        let memory = new BlisMemory(context);
+        let memory = context.Memory();
 
         // Only allow one suggested entity
         if (actionSet.saveName) 
@@ -331,7 +331,7 @@ export class Action
             if (actionSet.saveId) 
             {
                 // Make sure it hasn't aleady been added TODO
-                let memory = new BlisMemory(context);
+                let memory = context.Memory();
                 let saveAPI = memory.APILookup(actionSet.saveName);
                 if (!saveAPI) {
                     let apiCall = `${APICalls.SAVEENTITY} ${actionSet.saveName}`;
@@ -445,7 +445,7 @@ export class Action
             let textactions = "";
             let apiactions = "";
             let actions : Action[] = [];
-            let memory = new BlisMemory(context);
+            let memory = context.Memory();
             if (search) search = search.toLowerCase();
 
             for (let actionId of actionIds)

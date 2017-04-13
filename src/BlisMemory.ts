@@ -5,7 +5,8 @@ import { ActionCommand} from './Model/Consts';
 import { LabelEntity} from './Model/LabelEntity';
 import { Entity} from './Model/Entity';
 import { BlisContext} from './BlisContext';
-import { CueCommand} from './Model/CueCommand';
+import { CueCommand } from './Model/CueCommand';
+import { Page } from './Model/Page';
 
 export class TrainStep {
     public input : string = null;
@@ -476,6 +477,27 @@ export class BlisMemory {
     public CueCommand() : CueCommand {
         return this.userState[UserStates.CUECOMMAND];
     }
+
+    //--------------------------------------------------------
+    // Page
+    //--------------------------------------------------------
+
+    public SetPage(page : Page) : void {
+        this.userState[UserStates.PAGE] = page;
+    }
+
+    public NextPage() : Page {
+        let page = this.userState[UserStates.PAGE];
+        page.index++;
+        return page;
+    }
+
+    public PrevPage() : Page {
+        let page = this.userState[UserStates.PAGE];
+        page.index--;
+        return page;
+    }
+
 
     //--------------------------------------------------------
 

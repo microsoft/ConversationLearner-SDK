@@ -11,6 +11,7 @@ import { CueCommand } from './Model/CueCommand';
 import { BlisHelp, Help } from './Model/Help';
 import { Action } from './Model/Action';
 import { Entity } from './Model/Entity';
+import { Page } from './Model/Page';
 import { BlisContext } from './BlisContext';
 import { BlisAppContent } from './Model/BlisAppContent'
 import { Utils } from './Utils';
@@ -41,10 +42,11 @@ export const IntCommands =
     EDITRESPONSE : INTPREFIX + "editresponse",
     ENTITIES: INTPREFIX + "entities",
     FORGETTEACH : INTPREFIX + "forgetteach",
-    HOME: INTPREFIX + "home",
     RESPONSES: INTPREFIX + "responses",
     SAVETEACH: INTPREFIX + "saveteach",
-    TRAINDIALOGS: INTPREFIX + "traindialogs"
+    TRAINDIALOGS: INTPREFIX + "traindialogs",
+    TRAINDIALOG_NEXT: INTPREFIX + "nexttraindialogs",
+    TRAINDIALOG_PREV: INTPREFIX + "prevtraindialogs"
 }
 
 export const LineCommands =
@@ -63,6 +65,7 @@ export const LineCommands =
     DELETEALLAPPS: COMMANDPREFIX + "deleteallapps",
     DELETEAPP : COMMANDPREFIX + "deleteapp",
     DELETEENTITY : COMMANDPREFIX + "deleteentity",
+    DONE : COMMANDPREFIX + "done",
     DUMP : COMMANDPREFIX + "dump",
     EDITAPICALL : COMMANDPREFIX + "editapicall",
     EDITENTITY : COMMANDPREFIX + "editentity",
@@ -98,7 +101,7 @@ export class CommandHandler
         {         
             // Store edit command so I can capture the next user input as the edit
             let cueCommand = new CueCommand(command, args);
-            let memory = new BlisMemory(context);
+            let memory = context.Memory();
             memory.SetCueCommand(cueCommand);
 
             if (command == LineCommands.ADDAPICALL)
@@ -148,7 +151,7 @@ export class CommandHandler
             {
                 cb([Menu.Responses()]);
             }
-            else if (command == IntCommands.TRAINDIALOGS)
+            else if (command == LineCommands.TRAINDIALOGS)
             {
                 cb([Menu.TrainDialogs()]);
             }
@@ -264,9 +267,6 @@ export class CommandHandler
                     cb(responses);
                 });
             }
-            else if (command == IntCommands.HOME) {
-                cb(Menu.Home(""));
-            }
             else if (command == IntCommands.RESPONSES) {
                 this.CueCommand(context, LineCommands.RESPONSES, arg, (responses) => {
                     cb(responses);
@@ -274,6 +274,22 @@ export class CommandHandler
             }
             else if (command == IntCommands.TRAINDIALOGS) {
                 this.CueCommand(context, LineCommands.TRAINDIALOGS, arg, (responses) => {
+                    cb(responses);
+                });
+            }
+            else if (command == IntCommands.TRAINDIALOG_NEXT)
+            {
+                // Next page
+                let page = context.Memory().NextPage();
+                TrainDialog.Get(context, page.search, page.index, false, (responses) => {
+                    cb(responses);
+                });
+            }
+            else if (command == IntCommands.TRAINDIALOG_PREV)
+            {
+                // Next page
+                let page = context.Memory().PrevPage();
+                TrainDialog.Get(context, page.search, page.index, false, (responses) => {
                     cb(responses);
                 });
             }
@@ -339,7 +355,7 @@ export class CommandHandler
         }
         else if (command == LineCommands.DUMP)
         {
-            let memory = new BlisMemory(context);
+            let memory = context.Memory();
             cb([memory.Dump()]);
         }
         else if (command == LineCommands.ENTITIES)
@@ -415,6 +431,10 @@ export class CommandHandler
                     cb(responses);
                 });
             }
+            else if (command == LineCommands.DONE)
+            {
+                cb(Menu.Home(" "));
+            }
             else if (command == LineCommands.EDITAPICALL)  
             {   
                 let [actionId] = args.split(' '); 
@@ -468,7 +488,7 @@ export class CommandHandler
             }
             else if (command == LineCommands.TEACH)
             {
-                let memory = new BlisMemory(context);
+                let memory = context.Memory();
                 memory.ClearTrainSteps();
                 BlisSession.NewSession(context, true, (responses) => {
                     cb(responses);
@@ -477,7 +497,10 @@ export class CommandHandler
             else if (command == LineCommands.TRAINDIALOGS)
             {
                 let [search] = args.split(' ');
-                TrainDialog.Get(context, search, (responses) => {
+                // Reset paging
+                let page = new Page(0, search);
+                context.state[UserStates.PAGE] = page;
+                TrainDialog.Get(context, page.search, page.index, true, (responses) => {
                     cb(responses);
                 });
             }
@@ -492,7 +515,7 @@ export class CommandHandler
     // For handling buttons that require subsequent text input
     public static HandleCueCommand(context : BlisContext, input : string, cb: (responses : (string|builder.IIsAttachment)[], teachAction? : string, actionData? : string) => void) : void {
         
-        let memory =  new BlisMemory(context);
+        let memory =  context.Memory();
         try
         {         
             // Check for cancel action

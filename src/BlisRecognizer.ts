@@ -101,18 +101,18 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         return (this.intApiCallbacks[apiName] != null);
     }
     public LoadUser(address : builder.IAddress, 
-                        cb : (err: Error, context: BlisContext) => void )
+                        cb : (responses: (string | builder.IIsAttachment)[], context: BlisContext) => void )
     {
         // TODO handle errors
         BlisUserState.Get(this.bot, address, this.defaultApp, (error, userState, isNew) => {
             let context = new BlisContext(this.bot, this.blisClient, userState, address);
 
             if (isNew)
-            {                        
+            {                       
                 // Attempt to load the application
                 BlisAppContent.Load(context, this.defaultApp, (responses) => 
                 {
-                    cb(null, context);
+                    cb(responses, context);
                 });
             }
             else
@@ -196,7 +196,8 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
 
         if (error)
         {
-            this.ProcessResult(session, [error]);
+            let responses = Menu.AddEditApp(session.context, [error]);
+            this.ProcessResult(session, responses);
             return;
         }
 
@@ -289,13 +290,20 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                 // If one exist let user pick it 
                 responses.push(`[${suggestedEntity} ${session.userInput}]`);
                 let body = "Click Correct if suggested entity is valid or indicate entities in input string"
-                responses.push(Utils.MakeHero(cardtitle, null, body, { "Correct" : "1", "Help" : Help.PICKENTITY}));
+                responses.push(Utils.MakeHero(cardtitle, null, body, 
+                {   "Correct" : "1", 
+                    "Help" : Help.PICKENTITY
+                }));
             }
             else 
             {
                 let cardsub = `No new entities found.\n\n`;
                 let cardtext = "Click None if correct or indicate entities in input string"
-                responses.push(Utils.MakeHero(cardtitle, cardsub, cardtext, { "None" : "1", "Help" : Help.PICKENTITY}));
+                responses.push(Utils.MakeHero(cardtitle, cardsub, cardtext, 
+                {   
+                    "None" : "1", 
+                    "Help" : Help.PICKENTITY}
+                ));
             }
         }
         else 
@@ -413,13 +421,10 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             }
 
             let address = reginput.message.address;
-            this.LoadUser(address, (error, context) => {
+            this.LoadUser(address, (responses, context) => {
 
-                let that = this;
-                let inTeach = context.state[UserStates.TEACH];
-                let memory = new BlisMemory(context);
+                let memory = context.Memory();
                 let userInput = reginput.message ? reginput.message.text.trim() : null;
-
                 let session = new RecSession(context, userInput, recCb);
 
                 if (reginput.message.text) 
@@ -459,9 +464,18 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                                 this.ProcessResult(session, responses, teachAction, actionData);
                             });
                     }
+                    // No app in memory
+                    else if (!context.state[UserStates.SESSION])
+                    {
+                        // If error was thrown will be in responses
+                        if (!responses) responses = [];
+                        responses = responses.concat(Menu.AppPanel('No App Loaded','Load or Create one'));
+                        this.ProcessResult(session, responses);
+                        return;
+                    }
                     else 
                     {
-                        if (inTeach)
+                        if (context.state[UserStates.TEACH])
                         {
                             // Check if user has limited set of choices
                             let choices = memory.LastStep(SaveStep.CHOICES);

@@ -70,5 +70,6 @@ export const UserStates =
     APILOOKUP: "APILOOKUP",           // ENTITY NAME -> SAVE API ACTION ID 
     CURSTEP: "CURSTEP", 
     TRAINSTEPS: "TRAINSTEPS",
-    CUECOMMAND: "CUECOMMAND"
+    CUECOMMAND: "CUECOMMAND",       // Command to call after input prompt
+    PAGE: "PAGE"                    // Current page on paging UI
 }

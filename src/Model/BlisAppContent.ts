@@ -100,7 +100,7 @@ export class BlisAppContent
             let finalApp = await context.client.ImportApp(context.state[UserStates.APP], mergeApp);
 
             // reload
-            let memory = new BlisMemory(context);
+            let memory = context.Memory();
             this.Load(context, memory.AppId(), (responses) => {
                 cb(responses);
             });
@@ -131,7 +131,7 @@ export class BlisAppContent
             let newApp = await context.client.ImportApp(context.state[UserStates.APP], json)
             
             // Reload the app
-            let memory = new BlisMemory(context);
+            let memory = context.Memory();
             BlisAppContent.Load(context, memory.AppId(), (text) => {
                 cb(text);
             });
@@ -147,11 +147,6 @@ export class BlisAppContent
     public static async Load(context : BlisContext, appId : string, cb : (responses: (string | builder.IIsAttachment)[]) => void) : Promise<void>
     {
         try {
-            // TODO - temp debug
-            if (appId == '*')
-            {
-                appId = '0241bae4-ebba-45ca-88b2-2543339c4e6d';
-            }
 
             if (!appId)
             {
@@ -162,9 +157,18 @@ export class BlisAppContent
             // Initialize
             Object.assign(context.state, new BlisUserState(appId));
 
-            // Validate appId
-            let loadedId = await context.client.GetApp(appId)
-            BlisDebug.Log(`Loaded App: ${loadedId}`);
+            try
+            {            
+                // Validate appId, will fail if handed a bad appId
+                let loadedId = await context.client.GetApp(appId)
+                BlisDebug.Log(`Loaded App: ${loadedId}`);
+            }
+            catch (error)
+            {
+                // Bad App
+                context.state[UserStates.APP]  = null;
+                throw error;
+            }
 
             // Load entities to generate lookup table
             await Entity.Get(context, null, (text) =>
@@ -183,16 +187,31 @@ export class BlisAppContent
                 cb(Menu.Home("Application loaded.  No Actions found."));
                 return;
             }
-            // Load or train a new modelId
-            let modelId = await context.client.GetModel(context.state[UserStates.APP]);
-            if (!context.state[UserStates.MODEL])
-            {        
-                BlisDebug.Log(`Training the model...`)    
-                modelId = await context.client.TrainModel(context.state)
+
+            //------------------ Model ------------------------------
+            let modelId = null;
+            try
+            {
+                // Load or train a new modelId
+                let modelId = await context.client.GetModel(context.state[UserStates.APP]);
+                if (!context.state[UserStates.MODEL])
+                {        
+                    Utils.SendMessage(context, `Training the model...`);
+                    modelId = await context.client.TrainModel(context.state)
+                    BlisDebug.Log(`Model trained: ${modelId}`);
+                }
+            }
+            catch (error)
+            {
+                // Bad model try retraining from scratch
+                let errMsg = Utils.ErrorString(error);
+                Utils.SendMessage(context, `${errMsg}\n\n\n\nFailed. Retraining the model from scratch...`);    
+                modelId = await context.client.TrainModel(context.state, true);
                 BlisDebug.Log(`Model trained: ${modelId}`);
             }
             BlisDebug.Log(`Loaded Model: ${modelId}`);
             context.state[UserStates.MODEL]  = modelId;
+
             cb(Menu.Home("Application loaded."));
         }
         catch (error)

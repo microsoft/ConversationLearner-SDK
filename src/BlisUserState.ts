@@ -31,6 +31,7 @@ export class BlisUserState {
         this[UserStates.CURSTEP] = null;
         this[UserStates.TRAINSTEPS] = [];
         this[UserStates.CUECOMMAND] = null;
+        this[UserStates.PAGE] = null;
     }
 
     public static Get(bot : builder.UniversalBot, address : builder.IAddress, defaultApp : string,
@@ -77,6 +78,7 @@ export class BlisUserState {
                 session.userData.Blis[UserStates.CURSTEP] = context.state[UserStates.CURSTEP];
                 session.userData.Blis[UserStates.TRAINSTEPS] = context.state[UserStates.TRAINSTEPS];
                 session.userData.Blis[UserStates.CUECOMMAND] = context.state[UserStates.CUECOMMAND];
+                session.userData.Blis[UserStates.PAGE] = context.state[UserStates.PAGE];
                 session.save();
             }
         });

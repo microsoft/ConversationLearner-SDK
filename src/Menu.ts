@@ -129,9 +129,9 @@ export class Menu {
         return card;
     }
 
-   public static CreateApp() : builder.IIsAttachment
+   public static CreateApp(title = `Create App`) : builder.IIsAttachment
     {
-        let card = Utils.MakeHero(`Create App`, '{appName} {LUIS key}', "Enter new App name and Luis Key",
+        let card = Utils.MakeHero(title, '{appName} {LUIS key}', "Enter new App name and Luis Key",
         {  
                 "Cancel" : IntCommands.CANCEL
         });

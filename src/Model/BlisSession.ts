@@ -46,11 +46,18 @@ export class BlisSession
             {
                 let body = "Provide your first input for this teach dialog.\n\n\n\n";
                 let subtext = `At any point type "${LineCommands.ABANDON}" to abort`;
-                let card = Utils.MakeHero("Teach mode started", subtext, body, null);
+                let card = Utils.MakeHero("Teach mode started", subtext, body, 
+                {
+                    "Cancel" : LineCommands.ABANDON
+                });
                 cb([card]);
             }
             else {
-                cb([`_Bot started..._`]);
+                let card = Utils.MakeHero(`Bot Started`, null, 'Type !done at any time to stop', 
+                {
+                    "Cancel" : LineCommands.DONE
+                });
+                cb([card]);
             }
        }
        catch (error) {
@@ -64,7 +71,7 @@ export class BlisSession
     /** Return text of current training steps */
     public static TrainStepText(context : BlisContext) : string
     {
-        let memory = new BlisMemory(context);
+        let memory = context.Memory();
         let trainSteps = memory.TrainSteps();
         let msg = "** New Dialog Summary **\n\n";
         msg += `-----------------------------\n\n`;

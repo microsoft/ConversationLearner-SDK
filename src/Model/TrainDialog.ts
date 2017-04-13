@@ -199,7 +199,8 @@ export class TrainDialog
         {        
             // TODO clear savelookup
             await context.client.DeleteTrainDialog(context.state[UserStates.APP], dialogId)
-            cb(Menu.AddEditApp(context,[`Deleted TrainDialog ${dialogId}`]));
+            let card = Utils.MakeHero(`Deleted TrainDialog`, null, dialogId, null);
+            cb(Menu.AddEditApp(context,[card]));
         }
         catch (error) {
             let errMsg = Utils.ErrorString(error);
@@ -208,25 +209,67 @@ export class TrainDialog
         }
     }
 
-    public static async Get(context : BlisContext, searchTerm : string, cb : (responses: (string | builder.IIsAttachment)[]) => void) : Promise<void>
+    public static async Get(context : BlisContext, searchTerm : string, index: number, refreshCache: boolean, cb : (responses: (string | builder.IIsAttachment)[]) => void) : Promise<void>
     {
         try 
         {
-            let blisApp = await context.client.ExportApp(context.state[UserStates.APP]);
-            let dialogs = await blisApp.FindTrainDialogs(context.client, context.state[UserStates.APP], searchTerm);
+            let appId = context.state[UserStates.APP];
+            if (refreshCache)
+            {
+                context.client.ClearExportCache(appId)
+            }
+            let blisApp = await context.client.ExportApp(appId);
+            let dialogs = await blisApp.FindTrainDialogs(context.client, appId, searchTerm);
 
             if (dialogs.length == 0)
             {
                 cb(Menu.AddEditApp(context,["No dialogs found."]));
                 return;
             }
-            // Add delete buttons
+            
+            // Show result
             let responses = [];
-            for (let dialog of dialogs) {
-                responses.push(dialog.text);
-                responses.push(Utils.MakeHero(null, dialog.dialogId, null, { "Delete" : `${IntCommands.DELETEDIALOG} ${dialog.dialogId}`}));
+            for (let i in dialogs) {
+                let cur = +i;
+                if (cur == index)
+                {
+                    let dialog = dialogs[i];
+                    responses.push(dialog.text);
+
+                    let buttons = null;
+                    if (cur==0)
+                    {
+                        buttons = 
+                        {
+                            "Next" : IntCommands.TRAINDIALOG_NEXT,
+                            "Done" : IntCommands.EDITAPP,
+                            "Delete" : `${IntCommands.DELETEDIALOG} ${dialog.dialogId}`,
+                        };
+                    }
+                    else if (cur == dialogs.length-1)
+                    {
+                        buttons = 
+                        {
+                            "Prev" : IntCommands.TRAINDIALOG_PREV,
+                            "Done" : IntCommands.EDITAPP,
+                            "Delete" : `${IntCommands.DELETEDIALOG} ${dialog.dialogId}`,
+                        };
+                    }
+                    else
+                    {
+                        buttons = 
+                        {
+                            "Prev" : IntCommands.TRAINDIALOG_PREV,
+                            "Next" : IntCommands.TRAINDIALOG_NEXT,
+                            "Done" : IntCommands.EDITAPP,
+                            "Delete" : `${IntCommands.DELETEDIALOG} ${dialog.dialogId}`,
+                        };
+                    }
+                    responses.push(Utils.MakeHero(null, `${index+1} of ${dialogs.length}`, null, buttons));
+                    break;
+                }
             }
-            cb(Menu.AddEditApp(context,responses));
+            cb(responses);
         }
         catch (error)
         {

@@ -151,7 +151,15 @@ export class BlisApp
                 }
                 else
                 {
-                    if (app.id == context.state[UserStates.APP])
+                    if (!context.state[UserStates.APP])
+                    {
+                        responses.push(Utils.MakeHero(app.name, null, null, 
+                        { 
+                            "Load" : `${LineCommands.LOADAPP} ${app.id}`,
+                            "Delete" : `${IntCommands.DELETEAPP} ${app.id}`
+                        }));
+                    }
+                    else if (app.id == context.state[UserStates.APP])
                     {
                         responses.push(Utils.MakeHero(app.name + " (LOADED)", null, null, { 
                             "Delete" : `${IntCommands.DELETEAPP} ${app.id}`
@@ -163,8 +171,7 @@ export class BlisApp
                         { 
                             "Load" : `${LineCommands.LOADAPP} ${app.id}`,
                             "Import" : `${LineCommands.IMPORTAPP} ${app.id}`,
-                            "Delete" : `${IntCommands.DELETEAPP} ${app.id}`,
-                            // "Clone" : `${IntCommands.DELETEAPP} ${appId}`,
+                            "Delete" : `${IntCommands.DELETEAPP} ${app.id}`
                         }));
                     }
                 }
@@ -202,6 +209,12 @@ export class BlisApp
                 let text = await context.client.DeleteApp(context.state, appId)
                 BlisDebug.Log(`Deleted ${appId} apps`);
             }
+
+            // No longer have an active app
+            context.state[UserStates.APP] = null;
+            context.state[UserStates.MODEL] = null;
+            context.state[UserStates.SESSION] = null;
+
             cb(Menu.AddEditApp(context,["Done"]));
         }
         catch (error)
@@ -226,14 +239,23 @@ export class BlisApp
         {       
             await context.client.DeleteApp(context.state, appId)
 
-            let card = Menu.AppPanel("Deleted App", appId, null);
+            let cards = [];
+            cards.push(Utils.MakeHero("Deleted App", appId, null, null));
 
             // Did I delete my loaded app
             if (appId == context.state[UserStates.APP])
             {
                 context.state[UserStates.APP] = null;
+                context.state[UserStates.MODEL] = null;
+                context.state[UserStates.SESSION] = null;
+                cards.push(null);  // Line break
+                cards = cards.concat(Menu.AppPanel('No App Loaded','Load or Create one'));
+                cb(cards);
             }
-            cb(card);
+            else
+            {
+                cb(Menu.AddEditApp(context,cards));
+            }
         }
         catch (error) {
             let errMsg = Utils.ErrorString(error);

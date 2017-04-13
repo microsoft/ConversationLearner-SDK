@@ -20,6 +20,7 @@ export class BlisClient {
 
     private actionCache = new NodeCache({ stdTTL: 300, checkperiod: 600 });
     private entityCache = new NodeCache({ stdTTL: 300, checkperiod: 600 });
+    private exportCache = new NodeCache({ stdTTL: 300, checkperiod: 600 });
 
     constructor(serviceUri : string, user : string, secret : string)
     {
@@ -29,6 +30,11 @@ export class BlisClient {
         } 
         this.serviceUri = serviceUri;
         this.credentials = new Credentials(user, secret);
+    }
+
+    public ClearExportCache(appId : string) : void
+    {
+        this.exportCache.del(appId);
     }
 
     // TODO: switch remaining to not userstate
@@ -192,13 +198,6 @@ export class BlisClient {
                         reject(body);
                     }
                     else {
-                        // Did I delete my active app?
-                        if (activeApp)
-                        {
-                            userState[UserStates.APP] = null;
-                            userState[UserStates.MODEL] = null;
-                            userState[UserStates.SESSION] = null;
-                        }
                         resolve(body.id);
                     }
                 });
@@ -383,6 +382,13 @@ export class BlisClient {
 
         return new Promise(
             (resolve, reject) => {
+
+                // Check cache first
+                let blisAppContent = this.exportCache.get(appId);
+                if (blisAppContent) {
+                    resolve(blisAppContent);
+                    return;
+                }
                const requestData = {
                     url: this.serviceUri+apiPath,
                     headers: {
@@ -399,7 +405,8 @@ export class BlisClient {
                         reject(body);
                     }
                     else {
-                        var blisAppContent = deserialize(BlisAppContent, body);
+                        let blisAppContent = deserialize(BlisAppContent, body);
+                        this.exportCache.set(appId, blisAppContent);
                         resolve(blisAppContent);
                     }
                 });
@@ -752,7 +759,7 @@ export class BlisClient {
         )
     }
 
-    public StartSession(appId : string, inTeach = false, saveDialog = false) : Promise<string>
+    public StartSession(appId : string, inTeach = false, saveDialog = !inTeach) : Promise<string>
     {
         let apiPath = `app/${appId}/session2`;
 
