@@ -1,51 +1,50 @@
 import * as builder from 'botbuilder';
 import {  UserStates } from './Model/Consts';
-import { IntCommands, LineCommands } from './CommandHandler';
+import { IntCommands, LineCommands, CueCommands, HelpCommands } from './Model/Command';
 import { Utils } from './Utils';
-import { Help } from './Model/Help';
 import { Action } from './Model/Action';
 import { Entity } from './Model/Entity';
 import { BlisContext} from './BlisContext';
 
 export class Menu {
 
-    public static AddEditApp(context : BlisContext, responses : (string|builder.IIsAttachment)[]) : (string|builder.IIsAttachment)[]
+    public static AddEditCards(context : BlisContext, responses : (string|builder.IIsAttachment)[]) : (string|builder.IIsAttachment)[]
     {
         // Only add edit menu when not in teach mode
         if (context.state[UserStates.TEACH])
         {
             return responses;
         }
-        return responses.concat(Menu.EditApp(true));
+        return responses.concat(Menu.EditCards(true));
     }
 
-    public static EditApp(newLine? : boolean) : (string|builder.IIsAttachment)[]
+    public static EditCards(newLine? : boolean) : (string|builder.IIsAttachment)[]
     {
         let cards = [];
         if (newLine) cards.push(null);
         cards.push(Utils.MakeHero("Entities", null, null, 
         {
             "List" : LineCommands.ENTITIES, 
-            "Search" : IntCommands.ENTITIES, 
-            "Add" : IntCommands.ADDENTITY
+            "Search" : CueCommands.ENTITIES, 
+            "Add" : CueCommands.ADDENTITY
         }));
         cards.push(Utils.MakeHero("Responses", null, null, 
         {
             "List" : LineCommands.RESPONSES,
-            "Search" : IntCommands.RESPONSES, 
-            "Add" : IntCommands.ADDRESPONSE
+            "Search" : CueCommands.RESPONSES, 
+            "Add" : CueCommands.ADDRESPONSE
         }));
         cards.push(Utils.MakeHero("API Calls", null, null, 
         {
-            "List" : LineCommands.APICALLS, 
+            "List" : LineCommands.CUEAPICALLS, 
             "Search" : IntCommands.APICALLS, 
-            "Add" : IntCommands.ADDAPICALL
+            "Add" : IntCommands.CHOOSEAPITYPE
         }));
         cards.push(null);
         cards.push(Utils.MakeHero("Train Dialogs", null, null, 
         {
             "List" : LineCommands.TRAINDIALOGS, 
-            "Search" : IntCommands.TRAINDIALOGS, 
+            "Search" : CueCommands.TRAINDIALOGS, 
             "Add" : LineCommands.TEACH
         }));
         cards = cards.concat(this.AppPanel("Apps"));
@@ -57,16 +56,15 @@ export class Menu {
         return cards;
     }
 
-    public static Home(title : string, subheader? : string, body? : string) : (string|builder.IIsAttachment)[]
+    public static Home(title = "", subheader = "", body = "") : (string|builder.IIsAttachment)
     { 
-        let cards = [];
-        cards.push(Utils.MakeHero(title, subheader, body, 
+        let card = Utils.MakeHero(title, subheader, body, 
         {
             "Start" : LineCommands.START, 
             "Teach" : LineCommands.TEACH,
             "Edit" : IntCommands.EDITAPP
-        }));
-        return cards;
+        });
+        return card;
     }
 
     public static AppPanel(title : string, subheader? : string, body? : string) : (string|builder.IIsAttachment)[]
@@ -75,18 +73,40 @@ export class Menu {
         cards.push(Utils.MakeHero(title, subheader, body, 
         {
             "List" : LineCommands.APPS,
-            "Search" : IntCommands.APPS, 
-            "Create" : IntCommands.CREATEAPP
+            "Search" : CueCommands.APPS, 
+            "Create" : CueCommands.CREATEAPP
         }));
         return cards;
     }
 
-    public static AddAPICall() : builder.IIsAttachment
+    public static ChooseAPICall() : builder.IIsAttachment
     {
-        let card = Utils.MakeHero(`Add API Call`, null, "Enter new API Call",  
+        let card = Utils.MakeHero(`Add API Call`, null, "Local or Azure Functions call?",  
         {  
-            "Help" : Help.ADDAPICALL,
+            "Azure" : CueCommands.ADDAPIAZURE,
+            "Local" : CueCommands.ADDAPILOCAL,
+            "Help" : HelpCommands.ADDAPICALL,
             "Cancel" : IntCommands.CANCEL
+        });
+        return card;
+    }
+
+    public static AddAzureApi(title = `Add Azure Function Call`) : builder.IIsAttachment
+    {
+        let card = Utils.MakeHero(title, '{function name} {args}', "Enter Function Name and args",
+        {  
+                "Help" : HelpCommands.ADDAZUREAPI,
+                "Cancel" : IntCommands.CANCEL
+        });
+        return card;
+    }
+
+    public static AddLocalApi(title = `Add Local API Call`) : builder.IIsAttachment
+    {
+        let card = Utils.MakeHero(title, '{function name} {args}', "Enter Function Name and args",
+        {  
+                "Help" : HelpCommands.ADDAPICALL,
+                "Cancel" : IntCommands.CANCEL
         });
         return card;
     }
@@ -95,7 +115,7 @@ export class Menu {
     {
         let card = Utils.MakeHero(`Add Entity`, null, "Enter new Entity", 
         {  
-            "Help" : Help.ADDENTITY,  
+            "Help" : HelpCommands.ADDENTITY,  
             "Cancel" : IntCommands.CANCEL
         });
         return card;
@@ -105,7 +125,7 @@ export class Menu {
     {
         let card = Utils.MakeHero(`Add Response`, null, "Enter new Response",  
         {  
-            "Help" : Help.ADDRESPONSE,
+            "Help" : HelpCommands.ADDRESPONSE,
             "Cancel" : IntCommands.CANCEL
         });
         return card;
@@ -143,7 +163,7 @@ export class Menu {
         let subheader = action ? action.content : null;
         let card = Utils.MakeHero(`Edit API Call`, subheader, "Enter new API Name", 
         {  
-            "Help" : Help.EDITAPICALL,
+            "Help" : HelpCommands.EDITAPICALL,
             "Cancel" : IntCommands.CANCEL
         });
         return card;
@@ -156,7 +176,7 @@ export class Menu {
         let type = entity.luisPreName ? entity.luisPreName : entity.entityType;
         let card = Utils.MakeHero(title, subheader, "Enter new Entity name",
         {  
-            "Help" : Help.EDITENTITY,
+            "Help" : HelpCommands.EDITENTITY,
             "Cancel" : IntCommands.CANCEL
         });
         return card;
@@ -167,7 +187,7 @@ export class Menu {
         let subheader = action ? action.content : null;
         let card = Utils.MakeHero(`Edit Response`, subheader, "Enter new Response context", 
         {  
-            "Help" : Help.EDITRESPONSE,
+            "Help" : HelpCommands.EDITRESPONSE,
             "Cancel" : IntCommands.CANCEL
         });
         return card;

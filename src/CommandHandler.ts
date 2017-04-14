@@ -8,91 +8,18 @@ import { BlisMemory } from './BlisMemory';
 import { BlisDebug} from './BlisDebug';
 import { BlisSession} from './Model/BlisSession';
 import { CueCommand } from './Model/CueCommand';
-import { BlisHelp, Help } from './Model/Help';
+import { BlisHelp } from './Model/Help';
 import { Action } from './Model/Action';
 import { Entity } from './Model/Entity';
 import { Page } from './Model/Page';
 import { BlisContext } from './BlisContext';
 import { BlisAppContent } from './Model/BlisAppContent'
 import { Utils } from './Utils';
-import { UserStates, ActionCommand, ActionTypes, TeachAction } from './Model/Consts';
-
-// Internal command prefix
-const INTPREFIX = "%~"
-
-// Command line prefix
-const COMMANDPREFIX = "!"
-
-// Internal commands. (Not for user)
-export const IntCommands =
-{
-    ADDAPICALL : INTPREFIX + "addapicall",
-    ADDENTITY : INTPREFIX + "addentity",
-    ADDRESPONSE : INTPREFIX + "addresponse",
-    APICALLS : INTPREFIX + "apicalls",
-    APPS : INTPREFIX + "apps",
-    CANCEL : INTPREFIX + "cancel",
-    CREATEAPP : INTPREFIX + "createapp",
-    DELETEAPP : INTPREFIX + "deleteapp",
-    DELETEDIALOG : INTPREFIX + "deletedialog",
-    DONETEACH : INTPREFIX + "doneteach",
-    EDITAPP : INTPREFIX + "editapp",
-    EDITAPICALL : INTPREFIX + "editapicall",
-    EDITENTITY : INTPREFIX + "editentity",
-    EDITRESPONSE : INTPREFIX + "editresponse",
-    ENTITIES: INTPREFIX + "entities",
-    FORGETTEACH : INTPREFIX + "forgetteach",
-    RESPONSES: INTPREFIX + "responses",
-    SAVETEACH: INTPREFIX + "saveteach",
-    TRAINDIALOGS: INTPREFIX + "traindialogs",
-    TRAINDIALOG_NEXT: INTPREFIX + "nexttraindialogs",
-    TRAINDIALOG_PREV: INTPREFIX + "prevtraindialogs"
-}
-
-export const LineCommands =
-{
-    ABANDON: COMMANDPREFIX + "abandon",
-    ACTIONS: COMMANDPREFIX + "actions",
-    ADDENTITY : COMMANDPREFIX + "addentity",
-    ADDAPICALL : COMMANDPREFIX + "addapicall",   
-    ADDRESPONSE: COMMANDPREFIX + "addresponse",  
-    APICALLS: COMMANDPREFIX + "apicalls",
-    APPS : COMMANDPREFIX + "apps",
-    CREATEAPP : COMMANDPREFIX + "createapp",
-    DEBUG : COMMANDPREFIX + "debug",
-    DEBUGHELP : COMMANDPREFIX + "debughelp",
-    DELETEACTION : COMMANDPREFIX + "deleteaction",
-    DELETEALLAPPS: COMMANDPREFIX + "deleteallapps",
-    DELETEAPP : COMMANDPREFIX + "deleteapp",
-    DELETEENTITY : COMMANDPREFIX + "deleteentity",
-    DONE : COMMANDPREFIX + "done",
-    DUMP : COMMANDPREFIX + "dump",
-    EDITAPICALL : COMMANDPREFIX + "editapicall",
-    EDITENTITY : COMMANDPREFIX + "editentity",
-    EDITRESPONSE : COMMANDPREFIX + "editresponse",
-    ENTITIES : COMMANDPREFIX + "entities",
-    EXPORTAPP : COMMANDPREFIX + "exportapp",
-    HELP : COMMANDPREFIX + "help",
-    IMPORTAPP : COMMANDPREFIX + "importapp",
-    LOADAPP: COMMANDPREFIX + "loadapp",
-    RESPONSES : COMMANDPREFIX + "responses",
-    START: COMMANDPREFIX + "start",
-    TEACH : COMMANDPREFIX + "teach",
-    TRAINDIALOGS : COMMANDPREFIX + "traindialogs"
-}
+import { UserStates, ActionCommand, ActionTypes, TeachAction, APITypes } from './Model/Consts';
+import { COMMANDPREFIX, LineCommands, IntCommands, CueCommands, HelpCommands } from './Model/Command';
 
 export class CommandHandler
 { 
-
-    public static IsIntCommand(text : string) 
-    {
-        return text.startsWith(INTPREFIX);
-    }
-
-    public static IsCommandLine(text : string) 
-    {
-        return text.startsWith(COMMANDPREFIX);
-    }
 
     /** Next incoming text from user is a command.  Send cue card */
     private static async CueCommand(context : BlisContext, command : string, args : string,  cb : (cards : (string | builder.IIsAttachment)[]) => void) : Promise<void>
@@ -104,9 +31,13 @@ export class CommandHandler
             let memory = context.Memory();
             memory.SetCueCommand(cueCommand);
 
-            if (command == LineCommands.ADDAPICALL)
+            if (command == LineCommands.ADDAPIAZURE)
             {
-                cb([Menu.AddAPICall()]);
+                cb([Menu.AddAzureApi()]);
+            }
+            else if (command == LineCommands.ADDAPILOCAL)
+            {
+                cb([Menu.AddLocalApi()]);
             }
             else if (command == LineCommands.ADDENTITY)
             {
@@ -116,7 +47,7 @@ export class CommandHandler
             {
                 cb([Menu.AddResponse()]);
             }
-            else if (command == LineCommands.APICALLS)
+            else if (command == LineCommands.CUEAPICALLS)
             {
                 cb([Menu.APICalls()]);
             }
@@ -164,42 +95,113 @@ export class CommandHandler
         }
     }
 
+    public static HandleCueCommand(context : BlisContext, input : string, cb: (responses : (string|builder.IIsAttachment)[], teachAction? : string, actionData? : string) => void) : void {
+    
+        let [command, arg, arg2, arg3] = input.split(' ');
+        command = command.toLowerCase();
+
+        //-------- Valid any time -----------------------//
+        if (command == CueCommands.ADDRESPONSE) {
+            this.CueCommand(context, LineCommands.ADDRESPONSE, null, (responses) => {
+                cb(responses);
+            });
+            return;
+        } 
+        else if (command == CueCommands.ADDAPILOCAL) {
+            this.CueCommand(context, LineCommands.ADDAPILOCAL, null, (responses) => {
+                cb(responses);
+            });
+            return;
+        }
+        else if (command == CueCommands.ADDAPIAZURE) {
+            this.CueCommand(context, LineCommands.ADDAPIAZURE, null, (responses) => {
+                cb(responses);
+            });
+            return;
+        }
+        //-------- Only valid in Teach ------------------//
+
+        //-------- Valid not in Teach ------------------//
+        else 
+        { 
+            if (command == CueCommands.ADDENTITY) {
+                this.CueCommand(context, LineCommands.ADDENTITY, null, (responses) => {
+                    cb(responses);
+                });
+            }
+            else if (command == CueCommands.APPS) {
+                this.CueCommand(context, LineCommands.APPS, arg, (responses) => {
+                    cb(responses);
+                });
+            }
+            else if (command == CueCommands.CREATEAPP) {
+                this.CueCommand(context, LineCommands.CREATEAPP, null, (responses) => {
+                    cb(responses);
+                });
+            }
+            else if (command == CueCommands.EDITAPICALL) {
+                this.CueCommand(context, LineCommands.EDITAPICALL, arg, (responses) => {
+                    cb(responses);
+                });
+            }
+            else if (command == CueCommands.EDITENTITY) {
+                this.CueCommand(context, LineCommands.EDITENTITY, arg, (responses) => {
+                    cb(responses);
+                });
+            }
+            else if (command == CueCommands.EDITRESPONSE) {
+                this.CueCommand(context, LineCommands.EDITRESPONSE, arg, (responses) => {
+                    cb(responses);
+                });
+            }
+            else if (command == CueCommands.ENTITIES) {
+                this.CueCommand(context, LineCommands.ENTITIES, arg, (responses) => {
+                    cb(responses);
+                });
+            }
+            else if (command == CueCommands.RESPONSES) {
+                this.CueCommand(context, LineCommands.RESPONSES, arg, (responses) => {
+                    cb(responses);
+                });
+            }
+            else if (command == CueCommands.TRAINDIALOGS) {
+                this.CueCommand(context, LineCommands.TRAINDIALOGS, arg, (responses) => {
+                    cb(responses);
+                });
+            }
+            else 
+            {   
+                cb([`${command} isn't a valid cue command or can't be performed while teaching.`]);
+            }
+        }
+    }
+
     public static HandleIntCommand(context : BlisContext, input : string, cb: (responses : (string|builder.IIsAttachment)[], teachAction? : string, actionData? : string) => void) : void {
     
         let [command, arg, arg2, arg3] = input.split(' ');
         command = command.toLowerCase();
 
         //-------- Valid any time -----------------------//
-        if (command == IntCommands.ADDRESPONSE) {
-            this.CueCommand(context, LineCommands.ADDRESPONSE, null, (responses) => {
-                cb(responses);
-            });
-            return;
-        } 
-        else if (command == IntCommands.ADDAPICALL) {
-            this.CueCommand(context, LineCommands.ADDAPICALL, null, (responses) => {
-                cb(responses);
-            });
+        if (command == IntCommands.CHOOSEAPITYPE) {
+            cb([Menu.ChooseAPICall()]);
             return;
         }
         //-------- Only valid in Teach ------------------//
         if (context.state[UserStates.TEACH]) {
             if (command == IntCommands.APICALLS) {
-                this.CueCommand(context, LineCommands.APICALLS, arg, (responses) => {
+                this.CueCommand(context, LineCommands.CUEAPICALLS, arg, (responses) => {
                     cb(responses);
                 });
             }
             else if (command == IntCommands.SAVETEACH) {
-                let cards = Menu.Home("Dialog Trained");
                 BlisSession.EndSession(context, (text) => {
-                    cb(cards);
+                    cb([Menu.Home("Dialog Trained")]);
                 });
             }
             else if (command == IntCommands.FORGETTEACH) {
                 // TODO: flag to not save training
-                let cards = Menu.Home("Dialog Abandoned");
                 BlisSession.EndSession(context, (text) => {
-                    cb(cards);
+                    cb([Menu.Home("Dialog Abandoned")]);
                 });
             }
             else if (command == IntCommands.DONETEACH) {
@@ -213,28 +215,13 @@ export class CommandHandler
             }
             else 
             {
-                cb([`Action can't be performed while teaching.`]);
+                cb([`${command} isn't a valid Int command or can only be performed while teaching.`]);
             }
         }
         //-------- Valid not in Teach ------------------//
         else 
         { 
-            if (command == IntCommands.ADDENTITY) {
-                this.CueCommand(context, LineCommands.ADDENTITY, null, (responses) => {
-                    cb(responses);
-                });
-            }
-            else if (command == IntCommands.APPS) {
-                this.CueCommand(context, LineCommands.APPS, arg, (responses) => {
-                    cb(responses);
-                });
-            }
-            else if (command == IntCommands.CREATEAPP) {
-                this.CueCommand(context, LineCommands.CREATEAPP, null, (responses) => {
-                    cb(responses);
-                });
-            }
-            else if (command == IntCommands.DELETEAPP) {
+            if (command == IntCommands.DELETEAPP) {
                 BlisApp.Delete(context, arg, (responses) => {
                     cb(responses);
                 });
@@ -244,38 +231,8 @@ export class CommandHandler
                     cb(responses);
                 });
             }
-            else if (command == IntCommands.EDITAPICALL) {
-                this.CueCommand(context, LineCommands.EDITAPICALL, arg, (responses) => {
-                    cb(responses);
-                });
-            }
             else if (command == IntCommands.EDITAPP) {
-                cb(Menu.EditApp());
-            }
-            else if (command == IntCommands.EDITENTITY) {
-                this.CueCommand(context, LineCommands.EDITENTITY, arg, (responses) => {
-                    cb(responses);
-                });
-            }
-            else if (command == IntCommands.EDITRESPONSE) {
-                this.CueCommand(context, LineCommands.EDITRESPONSE, arg, (responses) => {
-                    cb(responses);
-                });
-            }
-            else if (command == IntCommands.ENTITIES) {
-                this.CueCommand(context, LineCommands.ENTITIES, arg, (responses) => {
-                    cb(responses);
-                });
-            }
-            else if (command == IntCommands.RESPONSES) {
-                this.CueCommand(context, LineCommands.RESPONSES, arg, (responses) => {
-                    cb(responses);
-                });
-            }
-            else if (command == IntCommands.TRAINDIALOGS) {
-                this.CueCommand(context, LineCommands.TRAINDIALOGS, arg, (responses) => {
-                    cb(responses);
-                });
+                cb(Menu.EditCards());
             }
             else if (command == IntCommands.TRAINDIALOG_NEXT)
             {
@@ -295,12 +252,12 @@ export class CommandHandler
             }
             else 
             {   
-                cb(["Not a valid command or only available in Teach mode."]);
+                cb([`${command} is not a valid Int command or only available in Teach mode.`]);
             }
         }
     }
 
-    public static HandleCommandLine(context : BlisContext, input : string, cb: (responses : (string|builder.IIsAttachment)[], teachAction? : string, actionData? : string) => void) : void 
+    public static HandleLineCommand(context : BlisContext, input : string, cb: (responses : (string|builder.IIsAttachment)[], teachAction? : string, actionData? : string) => void) : void 
     {
         let [command] = input.split(' ');
         let args = this.RemoveCommandWord(input); 
@@ -319,14 +276,26 @@ export class CommandHandler
         }
         else if (command == LineCommands.ADDAPICALL)
         {
-            Action.Add(context, null, ActionTypes.API, args, (responses, actionId) => {
+            Action.Add(context, null, ActionTypes.API, null, args, (responses, actionId) => {
+                cb(responses, TeachAction.PICKACTION, actionId);
+            });
+        }
+        else if (command == LineCommands.ADDAPIAZURE)
+        {
+            Action.Add(context, null, ActionTypes.API, APITypes.AZURE, args, (responses, actionId) => {
+                cb(responses, TeachAction.PICKACTION, actionId);
+            });
+        }
+        else if (command == LineCommands.ADDAPILOCAL)
+        {
+            Action.Add(context, null, ActionTypes.API, APITypes.LOCAL, args, (responses, actionId) => {
                 cb(responses, TeachAction.PICKACTION, actionId);
             });
         }
         else if (command == LineCommands.ADDRESPONSE)
         {
             
-            Action.Add(context, null, ActionTypes.TEXT, args, (responses, actionId) => {
+            Action.Add(context, null, ActionTypes.TEXT, null, args, (responses, actionId) => {
                 cb(responses, TeachAction.PICKACTION, actionId);
             });
         }
@@ -337,7 +306,7 @@ export class CommandHandler
                 cb(responses, TeachAction.RETRAIN);
             });
         }
-        else if (command == LineCommands.APICALLS)
+        else if (command == LineCommands.CUEAPICALLS)
         {
             Action.GetAll(context, ActionTypes.API, args, (responses) => {
                 cb(responses);
@@ -433,21 +402,27 @@ export class CommandHandler
             }
             else if (command == LineCommands.DONE)
             {
-                cb(Menu.Home(" "));
+                // End any open session
+                BlisSession.EndSession(context, (responses) => {
+                    cb([Menu.Home()]);
+                });/* TEMP
+                let endId = await context.client.EndSession(context.state[UserStates.APP], context.state[UserStates.SESSION]);
+                BlisDebug.Log(`Ended session ${endId}`);
+                cb([Menu.Home()]);*/
             }
-            else if (command == LineCommands.EDITAPICALL)  
+            else if (command == LineCommands.EDITAPICALL)    // TODO handle local vs azure
             {   
                 let [actionId] = args.split(' '); 
-                let content = this.RemoveWords(args, 1);
-                Action.Add(context, actionId, ActionTypes.API, content, (responses) => {
+                let content = Utils.RemoveWords(args, 1);
+                Action.Add(context, actionId, ActionTypes.API, null, content, (responses) => {
                     cb(responses);
                 });
             }
             else if (command == LineCommands.EDITRESPONSE)  
             {   
                 let [actionId] = args.split(' '); 
-                let content = this.RemoveWords(args, 1);
-                Action.Add(context, actionId, ActionTypes.TEXT, content, (responses) => {
+                let content = Utils.RemoveWords(args, 1);
+                Action.Add(context, actionId, ActionTypes.TEXT, null, content, (responses) => {
                     cb(responses);
                 });
             }
@@ -512,8 +487,8 @@ export class CommandHandler
         }
     }
        
-    // For handling buttons that require subsequent text input
-    public static HandleCueCommand(context : BlisContext, input : string, cb: (responses : (string|builder.IIsAttachment)[], teachAction? : string, actionData? : string) => void) : void {
+    // Response to cued text
+    public static ProcessCueCommand(context : BlisContext, input : string, cb: (responses : (string|builder.IIsAttachment)[], teachAction? : string, actionData? : string) => void) : void {
         
         let memory =  context.Memory();
         try
@@ -522,7 +497,7 @@ export class CommandHandler
             if (input == IntCommands.CANCEL) {
                 let responses = [];
                 responses.push("Cancelled...");
-                cb(Menu.EditApp(true));
+                cb(Menu.EditCards(true));
                 return;
             }   
             let cueCommand = memory.CueCommand();
@@ -571,19 +546,7 @@ export class CommandHandler
        return (firstSpace > 0) ? text.slice(firstSpace+1) : ""; 
     }
 
-    /** Remove words from start from command string */
-    private static RemoveWords(text : string, numWords : number) : string 
-    {
-       let firstSpace = text.indexOf(' ');
-       let remaining = (firstSpace > 0) ? text.slice(firstSpace+1) : "";
-       numWords--; 
-       if (numWords == 0)
-       {
-           return remaining;
-       }
-       return this.RemoveWords(remaining, numWords); 
-    }
-
+    // TOOD GET RID OF THIS
     private static DebugHelp() : string
     {
         let text = "";

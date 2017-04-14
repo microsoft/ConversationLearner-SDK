@@ -12,6 +12,12 @@ export const ActionTypes =
     API : "api"
 }
 
+export const APITypes =
+{
+    AZURE : "AZURE",
+    LOCAL : "LOCAL"
+}
+
 export const EntityTypes =
 {
     LOCAL : "LOCAL",
@@ -43,7 +49,9 @@ export const SaveStep =
 // Internal commands. (Not for user)
 export const APICalls =
 {
-    SAVEENTITY : "saveEntity"
+    SAVEENTITY : "saveEntity",
+    SETTASK : "setTask",
+    AZUREFUNCTION: "azureFunction"
 }
 
 export const ActionCommand =

@@ -1,29 +1,9 @@
 import * as builder from 'botbuilder';
-import { LineCommands } from '../CommandHandler';
-import { Command } from './Command';
+import { Command, HelpCommands, LineCommands } from './Command';
 import { Menu } from '../Menu';
 import { ActionCommand } from './Consts';
 
-const PREFIX = "%?"
-export const Help =
-{
-    ADDAPICALL: PREFIX+"addapicall",
-    ADDENTITY: PREFIX+"addentity",
-    ADDRESPONSE: PREFIX+"addresponse",
-    DELETEACTION: PREFIX+"deleteaction",
-    DELETEAPP : PREFIX+"deleteapp",
-    EDITAPICALL: PREFIX+"addapicall",
-    EDITENTITY: PREFIX+"addentity",
-    EDITRESPONSE: PREFIX+"addresponse",
-    PICKENTITY : PREFIX+"pickentity"
-}
-
 export class BlisHelp {
-
-    public static IsHelpCommand(text: string) : boolean
-    {
-        return text.startsWith(PREFIX);
-    }
 
     public static Get(name: string) : (string|builder.IIsAttachment)[] {
         
@@ -32,41 +12,45 @@ export class BlisHelp {
         let command : Command = null;
         switch (name)
         {
-            case Help.ADDAPICALL:
+            case HelpCommands.ADDAPICALL:
                 helptext = this.CommandHelpString(LineCommands.ADDAPICALL);
-                card = Menu.AddAPICall()
+                card = Menu.ChooseAPICall()
                 return [helptext, card];
-            case Help.ADDENTITY:
+            case HelpCommands.ADDENTITY:
                 helptext = this.CommandHelpString(LineCommands.ADDENTITY);
                 card = Menu.AddEntity();
                 return [helptext, card];
-            case Help.ADDRESPONSE:
+            case HelpCommands.ADDRESPONSE:
                 helptext = this.CommandHelpString(LineCommands.ADDRESPONSE);
                 card = Menu.AddResponse();
                 return [helptext, card];
-            case Help.DELETEACTION:
+            case HelpCommands.ADDAZUREAPI:
+                helptext = this.CommandHelpString(LineCommands.ADDRESPONSE);
+                card = Menu.AddResponse();
+                return [helptext, card];
+            case HelpCommands.DELETEACTION:
                 command = this.CommandHelp(LineCommands.DELETEAPP);
                 helptext += command.description + "\n\n"
                 helptext += `>> ${command.name} ${command.args}\n\n`;
                 return [helptext];
-            case Help.DELETEAPP:
+            case HelpCommands.DELETEAPP:
                 command = this.CommandHelp(LineCommands.DELETEAPP);
                 helptext += command.description + "\n\n"
                 helptext += `>> ${command.name} ${command.args}\n\n`;
                 return [helptext];
-            case Help.EDITAPICALL:
+            case HelpCommands.EDITAPICALL:
                 helptext = this.CommandHelpString(LineCommands.EDITAPICALL);
                 card = Menu.EditAPICall();
                 return [helptext, card];
-            case Help.EDITENTITY:
+            case HelpCommands.EDITENTITY:
                 helptext = this.CommandHelpString(LineCommands.EDITENTITY);
                 card = Menu.AddEntity();
                 return [helptext, card];
-            case Help.EDITRESPONSE:
+            case HelpCommands.EDITRESPONSE:
                 helptext = this.CommandHelpString(LineCommands.EDITRESPONSE);
                 card = Menu.EditResponse();
                 return [helptext, card];
-            case Help.PICKENTITY:
+            case HelpCommands.PICKENTITY:
                 helptext += "Indicate one or more entities by repeating the previous entry and puting entities in brackets:\n\n";
                 helptext += ">> [{_entity name_} {_words or phrase_}]\n\n";
                 helptext += "For example:\n\n"

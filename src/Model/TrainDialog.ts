@@ -1,11 +1,11 @@
 import * as builder from 'botbuilder';
 import { JsonProperty } from 'json-typescript-mapper';
-import { BlisHelp, Help } from '../Model/Help'; 
+import { BlisHelp } from '../Model/Help'; 
 import { BlisUserState} from '../BlisUserState';
 import { BlisDebug} from '../BlisDebug';
 import { BlisClient } from '../BlisClient';
 import { TakeTurnModes, EntityTypes, UserStates, TeachStep, ActionTypes, SaveStep, APICalls, ActionCommand } from '../Model/Consts';
-import { IntCommands, LineCommands } from '../CommandHandler';
+import { IntCommands, LineCommands, HelpCommands } from './Command';
 import { BlisMemory } from '../BlisMemory';
 import { Utils } from '../Utils';
 import { Action } from './Action';
@@ -200,7 +200,7 @@ export class TrainDialog
             // TODO clear savelookup
             await context.client.DeleteTrainDialog(context.state[UserStates.APP], dialogId)
             let card = Utils.MakeHero(`Deleted TrainDialog`, null, dialogId, null);
-            cb(Menu.AddEditApp(context,[card]));
+            cb(Menu.AddEditCards(context,[card]));
         }
         catch (error) {
             let errMsg = Utils.ErrorString(error);
@@ -223,7 +223,7 @@ export class TrainDialog
 
             if (dialogs.length == 0)
             {
-                cb(Menu.AddEditApp(context,["No dialogs found."]));
+                cb(Menu.AddEditCards(context,["No dialogs found."]));
                 return;
             }
             

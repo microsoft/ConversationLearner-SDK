@@ -4,8 +4,6 @@ import { BlisUserState} from '../BlisUserState';
 import { BlisDebug} from '../BlisDebug';
 import { BlisClient } from '../BlisClient';
 import { TakeTurnModes, EntityTypes, UserStates, TeachStep, ActionTypes, SaveStep, APICalls, ActionCommand } from '../Model/Consts';
-import { IntCommands, LineCommands } from '../CommandHandler';
-import { BlisHelp, Help } from './Help'; 
 import { BlisMemory } from '../BlisMemory';
 import { Action } from './Action';
 import { Utils } from '../Utils';import { JsonProperty } from 'json-typescript-mapper';
@@ -150,7 +148,7 @@ export class BlisAppContent
 
             if (!appId)
             {
-                cb(Menu.Home(`You must provide the ID of the application to load.`));
+                cb([Menu.Home(`You must provide the ID of the application to load.`)]);
                 return;
             }
 
@@ -184,7 +182,7 @@ export class BlisAppContent
 
             if (!numActions)
             {
-                cb(Menu.Home("Application loaded.  No Actions found."));
+                cb([Menu.Home("Application loaded.  No Actions found.")]);
                 return;
             }
 
@@ -212,7 +210,7 @@ export class BlisAppContent
             BlisDebug.Log(`Loaded Model: ${modelId}`);
             context.state[UserStates.MODEL]  = modelId;
 
-            cb(Menu.Home("Application loaded."));
+            cb([Menu.Home("Application loaded.")]);
         }
         catch (error)
         {

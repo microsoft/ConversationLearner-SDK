@@ -4,8 +4,8 @@ import { BlisUserState} from '../BlisUserState';
 import { BlisDebug} from '../BlisDebug';
 import { BlisClient } from '../BlisClient';
 import { TakeTurnModes, EntityTypes, UserStates, TeachStep, ActionTypes, SaveStep, APICalls, ActionCommand } from '../Model/Consts';
-import { IntCommands, LineCommands } from '../CommandHandler';
-import { BlisHelp, Help } from '../Model/Help'; 
+import { IntCommands, LineCommands, HelpCommands } from './Command';
+import { BlisHelp } from '../Model/Help'; 
 import { BlisMemory } from '../BlisMemory';
 import { Action } from '../Model/Action';
 import { Utils } from '../Utils';import { JsonProperty } from 'json-typescript-mapper';
@@ -91,7 +91,7 @@ export class BlisApp
             Object.assign(context.state, new BlisUserState(appId));
             
             let card = Utils.MakeHero("Created App", appName, null, null);
-            cb(Menu.AddEditApp(context,[card])); 
+            cb(Menu.AddEditCards(context,[card])); 
         }
         catch (error) {
             let errMsg = Utils.ErrorString(error);
@@ -183,6 +183,7 @@ export class BlisApp
             {
                 responses.push("No Apps match your query.")
             }
+            responses.push(null, Menu.Home());
             cb(responses);
         }
         catch (error) {
@@ -215,7 +216,7 @@ export class BlisApp
             context.state[UserStates.MODEL] = null;
             context.state[UserStates.SESSION] = null;
 
-            cb(Menu.AddEditApp(context,["Done"]));
+            cb(Menu.AddEditCards(context,["Done"]));
         }
         catch (error)
         {
@@ -230,7 +231,7 @@ export class BlisApp
        BlisDebug.Log(`Trying to Delete Application`);
         if (!appId)
         {
-            let msg = BlisHelp.Get(Help.DELETEAPP);
+            let msg = BlisHelp.Get(HelpCommands.DELETEAPP);
             cb(msg);
             return;
         }
@@ -254,7 +255,7 @@ export class BlisApp
             }
             else
             {
-                cb(Menu.AddEditApp(context,cards));
+                cb(Menu.AddEditCards(context,cards));
             }
         }
         catch (error) {

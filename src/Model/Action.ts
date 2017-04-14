@@ -1,12 +1,12 @@
 import * as builder from 'botbuilder';
 import { JsonProperty } from 'json-typescript-mapper';
-import { BlisHelp, Help } from '../Model/Help'; 
+import { BlisHelp } from '../Model/Help'; 
 import { BlisApp } from '../Model/BlisApp'; 
 import { BlisUserState} from '../BlisUserState';
 import { BlisDebug} from '../BlisDebug';
 import { BlisClient } from '../BlisClient';
-import { TakeTurnModes, EntityTypes, UserStates, TeachStep, ActionTypes, SaveStep, APICalls, ActionCommand } from '../Model/Consts';
-import { IntCommands, LineCommands } from '../CommandHandler';
+import { TakeTurnModes, EntityTypes, UserStates, TeachStep, ActionTypes, SaveStep, APICalls, ActionCommand, APITypes } from '../Model/Consts';
+import { IntCommands, LineCommands, CueCommands } from './Command';
 import { BlisMemory } from '../BlisMemory';
 import { Utils } from '../Utils';
 import { Menu } from '../Menu';
@@ -18,9 +18,14 @@ export class ActionMetaData
     @JsonProperty('internal')  
     public internal : boolean;
 
+    // APIType
+    @JsonProperty('type')  
+    public type : string;
+
     public constructor(init?:Partial<ActionMetaData>)
     {
         this.internal = undefined;
+        this.type = undefined;
         (<any>Object).assign(this, init);
     }
 }
@@ -153,7 +158,7 @@ export class Action
 
     private static Buttons(id : string, actionType : string) : {}
     {
-        let editCommand = (actionType == ActionTypes.API) ? IntCommands.EDITAPICALL : IntCommands.EDITRESPONSE;
+        let editCommand = (actionType == ActionTypes.API) ? CueCommands.EDITAPICALL : CueCommands.EDITRESPONSE;
         let buttons = 
         { 
             "Edit" : `${editCommand} ${id}`,
@@ -284,7 +289,7 @@ export class Action
         return this.IgnoreBrackets(text);
     }
 
-    public static async Add(context : BlisContext, actionId : string, actionType : string, 
+    public static async Add(context : BlisContext, actionId : string, actionType : string,  apiType : string,
         content : string, cb : (responses : (string | builder.IIsAttachment)[], actionId : string) => void) : Promise<void>
     {
         BlisDebug.Log(`AddAction`);
@@ -296,33 +301,48 @@ export class Action
 
         if (!content)
         {  
-            cb(Menu.AddEditApp(context,[`You must provide action text for the action.`]), null);
+            cb(Menu.AddEditCards(context,[`You must provide action text for the action.`]), null);
             return;
         }
         else if (!actionType && !actionId)
         {
-            cb(Menu.AddEditApp(context,[`You must provide the actionType.`]), null);
+            cb(Menu.AddEditCards(context,[`You must provide the actionType.`]), null);
             return;
         }
 
         try
-        {        
+        {     
+            // Handle Azure calls
+            if (actionType == ActionTypes.API)
+            {
+                if (apiType == APITypes.AZURE)   
+                { 
+                    content = `${APICalls.AZUREFUNCTION} ${content}`;
+                }
+                
+                // TODO : user should specify on command line
+                if (!apiType)
+                {
+                    apiType == APITypes.LOCAL;
+                }
+            }
+
             let actionSet = new ActionSet(actionType);
 
             // Extract response and commands
-            let [response, commands] = content.split('//');
+            let [action, commands] = content.split('//');
  
             let error = this.ProcessCommandString(context, actionSet, commands);
             if (error)
             {
-               cb(Menu.AddEditApp(context, [error]), null);
+               cb(Menu.AddEditCards(context, [error]), null);
                return;
             }
 
-            error = this.ProcessResponse(context, actionSet, response);
+            error = this.ProcessResponse(context, actionSet, action);
             if (error)
             {
-               cb(Menu.AddEditApp(context, [error]), null);
+               cb(Menu.AddEditCards(context, [error]), null);
                return;
             }
 
@@ -344,12 +364,13 @@ export class Action
             let changeType = (actionType == ActionTypes.TEXT) ? "Response" : "Api Call";
             if (actionId) 
             {
-                actionId = await context.client.EditAction(context.state[UserStates.APP], actionId, response, actionType, actionSet.posIds, actionSet.negIds);
+                actionId = await context.client.EditAction(context.state[UserStates.APP], actionId, action, actionType, actionSet.posIds, actionSet.negIds);
                 changeType = changeType + ` Edited`;
             }
             else 
             {
-                actionId = await context.client.AddAction(context.state[UserStates.APP], response, actionType, actionSet.posIds, actionSet.negIds, null, null);
+                let metadata = new ActionMetaData({type : apiType});
+                actionId = await context.client.AddAction(context.state[UserStates.APP], action, actionType, actionSet.posIds, actionSet.negIds, null, metadata);
                 changeType = changeType + ` Created`;
             }
             let substr = "";
@@ -361,8 +382,9 @@ export class Action
             {
                 substr += `${ActionCommand.BLOCK}[${actionSet.negNames.toLocaleString()}]`;
             } 
-            let card = Utils.MakeHero(`${changeType}`, substr + "\n\n", response, Action.Buttons(actionId, actionType));
-            cb(Menu.AddEditApp(context,[card]), actionId);
+            let type = apiType ? `(${apiType}) ` : "";
+            let card = Utils.MakeHero(`${changeType}`,`${type}${substr}`, action, Action.Buttons(actionId, actionType));
+            cb(Menu.AddEditCards(context,[card]), actionId);
         }
         catch (error)
         {
@@ -379,7 +401,7 @@ export class Action
 
         if (!actionId)
         {
-            cb(Menu.AddEditApp(context,[`You must provide the ID of the action to delete.`]));
+            cb(Menu.AddEditCards(context,[`You must provide the ID of the action to delete.`]));
             return;
         }
 
@@ -391,14 +413,14 @@ export class Action
             if (inUse)
             {
                 let card = Utils.MakeHero("Delete Failed", action.content, "Action is being used by App", null);
-                cb(Menu.AddEditApp(context,[card]));
+                cb(Menu.AddEditCards(context,[card]));
                 return;
             }
 
             // TODO clear savelookup
             await context.client.DeleteAction(context.state[UserStates.APP], actionId)
             let card = Utils.MakeHero(`Deleted Action`, null, action.content, null);
-            cb(Menu.AddEditApp(context,[card]));
+            cb(Menu.AddEditCards(context,[card]));
         }
         catch (error)
         {
@@ -438,7 +460,7 @@ export class Action
             if (actionIds.length == 0)
             {
                 responses.push(`This application contains no ${(actionType == ActionTypes.API) ? "API Calls" : "Responses"}`);
-                cb(Menu.AddEditApp(context,responses)); 
+                cb(Menu.AddEditCards(context,responses)); 
                 return;
             }
 
@@ -498,8 +520,9 @@ export class Action
                     }       
                     else
                     {
-                        let typeDesc = (action.actionType == ActionTypes.API) ? "API Call" : "Response";
-                        responses.push(Utils.MakeHero(atext, `${typeDesc} ` + postext+negtext, null, Action.Buttons(action.id, action.actionType)));
+                        let type = (action.metadata && action.metadata.type) ? `(${action.metadata.type}) ` : "";
+                        let subtext = `${type}${postext}${negtext}`
+                        responses.push(Utils.MakeHero(null, subtext, atext, Action.Buttons(action.id, action.actionType)));
                     }
             }
             if (debug)
@@ -520,6 +543,7 @@ export class Action
             {
                 responses.push("No Actions match your query.")
             }
+            responses.push(null, Menu.Home());
             cb(responses);
             return actionIds.length;
         }

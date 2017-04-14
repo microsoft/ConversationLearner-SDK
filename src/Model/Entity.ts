@@ -3,12 +3,12 @@ import { BlisUserState} from '../BlisUserState';
 import { BlisDebug} from '../BlisDebug';
 import { BlisClient } from '../BlisClient';
 import { TakeTurnModes, EntityTypes, UserStates, TeachStep, ActionTypes, SaveStep, APICalls, ActionCommand } from '../Model/Consts';
-import { BlisHelp, Help } from '../Model/Help'; 
+import { BlisHelp } from '../Model/Help'; 
 import { BlisApp } from '../Model/BlisApp';
 import { BlisAppContent } from '../Model/BlisAppContent';
 import { BlisMemory } from '../BlisMemory';
 import { Utils } from '../Utils';
-import { IntCommands, LineCommands } from '../CommandHandler';
+import { IntCommands, LineCommands, CueCommands } from './Command';
 import { Menu } from '../Menu';
 import { JsonProperty } from 'json-typescript-mapper';
 import { BlisContext } from '../BlisContext';
@@ -27,18 +27,23 @@ export class EntityMetaData
     @JsonProperty('positive')  
     public positive : string;
 
+    /** Optional: Task (entityId) associated with this entity */
+    @JsonProperty('task')  
+    public task : string;
+
     public constructor(init?:Partial<EntityMetaData>)
     {
         this.bucket = false;
         this.negative = undefined;
         this.positive = undefined;
+        this.task = undefined;
         (<any>Object).assign(this, init);
     }
 
     /** Make negate of given metadata */
     public MakeNegative(posId : string) : EntityMetaData
     {
-        return new EntityMetaData({ bucket : this.bucket, negative : null, positive : posId});
+        return new EntityMetaData({ bucket : this.bucket, negative : null, positive : posId, task: this.task});
     }
 
 }
@@ -136,7 +141,7 @@ export class Entity
         }
         let buttons = 
             { 
-                "Edit" : `${IntCommands.EDITENTITY} ${id}`,
+                "Edit" : `${CueCommands.EDITENTITY} ${id}`,
                 "Delete" : `${LineCommands.DELETEENTITY} ${id}`,
             };
         return buttons;
@@ -155,7 +160,10 @@ export class Entity
 
     public static Description(type : string, prebuilt : string, metadata : EntityMetaData) : string
     {
-        let description = `${prebuilt ? prebuilt : type}${metadata.bucket ? " (bucket)" : ""}${metadata.negative ? " (negatable)" : ""}${metadata.positive ? " (delete)" : ""}`;
+        let description = `${prebuilt ? prebuilt : type}${metadata.bucket ? " (bucket)" : ""}`;
+        description += `${metadata.negative ? " (negatable)" : ""}`;
+        description += `${metadata.positive ? " (delete)" : ""}`;
+        description += `${metadata.task ? ` (Task: ${metadata.task}` : ""}`;
         return description;
     }
 
@@ -175,9 +183,9 @@ export class Entity
     }
 
     public static async Add(context : BlisContext, entityId : string, entityType : string,
-        content : string, cb : (responses : (string | builder.IIsAttachment)[]) => void) : Promise<void>
+        userInput : string, cb : (responses : (string | builder.IIsAttachment)[]) => void) : Promise<void>
     {
-       BlisDebug.Log(`Trying to Add Entity ${content}`);
+       BlisDebug.Log(`Trying to Add Entity ${userInput}`);
 
         try 
         {
@@ -186,9 +194,9 @@ export class Entity
                 return;
             }
 
-            if (!content)
+            if (!userInput)
             {  
-                cb(Menu.AddEditApp(context, [`You must provide an entity name for the entity to create.`]));
+                cb(Menu.AddEditCards(context, [`You must provide an entity name for the entity to create.`]));
                 return;
             }
 
@@ -199,13 +207,30 @@ export class Entity
             }
 
             // Set metadata
-            let isBucket = content.indexOf(ActionCommand.BUCKET) > -1;
-            let isNegatable = content.indexOf(ActionCommand.NEGATIVE) > -1;
+            let isBucket = userInput.indexOf(ActionCommand.BUCKET) > -1;
+            let isNegatable = userInput.indexOf(ActionCommand.NEGATIVE) > -1;
+
+            let memory = context.Memory()
+
+            // Extract response and commands
+            let [content, task] = userInput.split('//');
 
             // Clean action Commands
             let regex = new RegExp(`#|~`, 'g');
             content = content.replace(regex, '');
 
+
+            // Determine if entity is associated with a task
+            let taskId = null;
+            if (task)
+            {
+                taskId = memory.EntityName2Id(task);
+                if (!taskId)
+                {
+                    cb(Menu.AddEditCards(context, [`Task ${task} not found.`]));
+                    return ;
+                }
+            }
             let prebuiltName = null;
             if (entityType)
             {
@@ -218,7 +243,6 @@ export class Entity
             }
 
             let responses = [];
-            let memory = context.Memory()
             let changeType = "";
             let negName = Entity.NegativeName(content);
             if (entityId)
@@ -237,13 +261,13 @@ export class Entity
                     if (isNegatable)
                     {
                         // Update Positive
-                        let metadata = new EntityMetaData({bucket : isBucket, negative : oldNegId});
+                        let metadata = new EntityMetaData({bucket : isBucket, task: taskId, negative : oldNegId});
                         await context.client.EditEntity(context.state[UserStates.APP], entityId, content, null, prebuiltName, metadata);
                         memory.AddEntityLookup(content, entityId);
                         responses.push(Entity.MakeHero("Entity Edited", content, entityId, entityType, prebuiltName, metadata)); 
 
                         // Update Negative
-                        let negmeta = new EntityMetaData({bucket : isBucket, positive : entityId});
+                        let negmeta = new EntityMetaData({bucket : isBucket, task: taskId, positive : entityId});
                         await context.client.EditEntity(context.state[UserStates.APP], oldNegId, negName, null, prebuiltName, negmeta);
                         memory.AddEntityLookup(negName, oldNegId);
                         responses.push(Entity.MakeHero("Entity Edited", negName, oldNegId, entityType, prebuiltName,  negmeta)); 
@@ -251,7 +275,7 @@ export class Entity
                     else
                     {
                         // Update Positive
-                        let metadata = new EntityMetaData({bucket : isBucket, negative : null});
+                        let metadata = new EntityMetaData({bucket : isBucket, task: taskId, negative : null});
                         await context.client.EditEntity(context.state[UserStates.APP], entityId, content, null, prebuiltName, metadata);
                         memory.AddEntityLookup(content, entityId);
                         responses.push(Entity.MakeHero("Entity Edited", content, entityId, entityType, prebuiltName, metadata));
@@ -266,13 +290,13 @@ export class Entity
                 else if (isNegatable)
                 {
                     // Add Negative
-                    let negmeta = new EntityMetaData({bucket : isBucket, positive : oldEntity.id});
+                    let negmeta = new EntityMetaData({bucket : isBucket, task: taskId, positive : oldEntity.id});
                     let newNegId = await context.client.AddEntity(context.state[UserStates.APP], negName, entityType, prebuiltName, negmeta);
                     memory.AddEntityLookup(negName, newNegId);
                     responses.push(Entity.MakeHero("Entity Added", negName, newNegId, entityType, prebuiltName, negmeta)); 
 
                     // Update Positive
-                    let metadata = new EntityMetaData({bucket : isBucket, negative : newNegId});
+                    let metadata = new EntityMetaData({bucket : isBucket, task: taskId, negative : newNegId});
                     await context.client.EditEntity(context.state[UserStates.APP], entityId, content, null, prebuiltName, metadata);
                     memory.AddEntityLookup(content, entityId);
                     responses.push(Entity.MakeHero("Entity Edited", content, entityId, entityType, prebuiltName, metadata));
@@ -280,7 +304,7 @@ export class Entity
                 else
                 {
                     // Update Positive
-                    let metadata = new EntityMetaData({bucket : isBucket});
+                    let metadata = new EntityMetaData({bucket : isBucket, task: taskId});
                     await context.client.EditEntity(context.state[UserStates.APP], entityId, content, null, prebuiltName, metadata);
                     memory.AddEntityLookup(content, entityId);
                     responses.push(Entity.MakeHero("Entity Edited", content, entityId, entityType, prebuiltName, metadata));
@@ -289,7 +313,7 @@ export class Entity
             else
             {
                 // Add Positive
-                let metadata =  new EntityMetaData({bucket : isBucket});
+                let metadata =  new EntityMetaData({bucket : isBucket, task: taskId});
                 entityId = await context.client.AddEntity(context.state[UserStates.APP], content, entityType, prebuiltName, metadata);
                 memory.AddEntityLookup(content, entityId);
 
@@ -300,19 +324,19 @@ export class Entity
                 else
                 {
                     // Add Negative
-                    let negmeta =  new EntityMetaData({bucket : isBucket, positive : entityId});
+                    let negmeta =  new EntityMetaData({bucket : isBucket, task: taskId, positive : entityId});
                     let newNegId = await context.client.AddEntity(context.state[UserStates.APP], negName, entityType, prebuiltName, negmeta);
                     memory.AddEntityLookup(negName, newNegId);
                     responses.push(Entity.MakeHero("Entity Added", negName, newNegId, entityType, prebuiltName,negmeta));
 
                     // Update Positive Reference
-                    let metadata = new EntityMetaData({bucket : isBucket, negative : newNegId});
+                    let metadata = new EntityMetaData({bucket : isBucket, task: taskId, negative : newNegId});
                     await context.client.EditEntity(context.state[UserStates.APP], entityId, content, null, prebuiltName, metadata);
                     responses.push(Entity.MakeHero("Entity Edited", content, entityId, entityType, prebuiltName, metadata));
                 }
             }
             // Add newline and edit hards
-            responses = responses.concat(Menu.EditApp(true));
+            responses = responses.concat(Menu.EditCards(true));
             cb(responses);
         }
         catch (error) {
@@ -363,7 +387,7 @@ export class Entity
             if (inUse)
             {
                 let card = Utils.MakeHero("Delete Failed", entity.name, "Entity is being used by App", null);
-                cb(Menu.AddEditApp(context,[card]));
+                cb(Menu.AddEditCards(context,[card]));
                 return;
             }
             // TODO clear api save lookup
@@ -381,7 +405,7 @@ export class Entity
                 responses.push(Entity.MakeHero("Entity Deleted", negEntity.name, negEntity.id, negEntity.entityType, negEntity.luisPreName, negEntity.metadata, false)); 
 
             }   
-            responses = responses.concat(Menu.EditApp(true));                    
+            responses = responses.concat(Menu.EditCards(true));                    
             cb(responses);
         }
         catch (error)
@@ -420,7 +444,7 @@ export class Entity
 
             if (entityIds.length == 0)
             {
-                cb(Menu.AddEditApp(context,["This app contains no Entities."]));
+                cb(Menu.AddEditCards(context,["This app contains no Entities."]));
                 return;
             }
             let msg = "**Entities**\n\n";
@@ -464,9 +488,10 @@ export class Entity
             
             if (responses.length == 0)
             {
-                cb(Menu.AddEditApp(context, ["No Entities match your query."]));
+                cb(Menu.AddEditCards(context, ["No Entities match your query."]));
                 return;
             }
+            responses.push(null, Menu.Home());
             cb(responses);
         }
         catch (error) {

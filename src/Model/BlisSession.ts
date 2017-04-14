@@ -6,7 +6,7 @@ import { BlisClient } from '../BlisClient';
 import { Utils } from '../Utils';
 import { BlisContext} from '../BlisContext';
 import { UserStates, ActionCommand, ActionTypes } from './Consts';
-import { IntCommands, LineCommands } from '../CommandHandler';
+import { IntCommands, LineCommands } from './Command';
 
 export class BlisSession
 { 

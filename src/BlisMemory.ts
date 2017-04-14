@@ -231,6 +231,11 @@ export class BlisMemory {
         }
     }  
 
+    // Returns true if entity was remembered
+    public WasRemembered(entityId : string) : boolean {
+        return this.userState[UserStates.MEMORY][entityId];
+    }
+
     /** Return array of entityIds for which I've remembered something */
     public EntityIds() : string[]
     {
