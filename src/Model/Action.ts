@@ -376,7 +376,7 @@ export class Action
             let substr = "";
             if (actionSet.posIds.length > 0) 
             {
-                substr += `${ActionCommand.REQUIRE}[${actionSet.posNames.toLocaleString()}]\n\n`;
+                substr += `${ActionCommand.REQUIRE}[${actionSet.posNames.toLocaleString()}] `;
             }
             if (actionSet.negIds.length > 0) 
             {

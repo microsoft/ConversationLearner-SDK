@@ -191,8 +191,8 @@ export class BlisAppContent
             try
             {
                 // Load or train a new modelId
-                let modelId = await context.client.GetModel(context.state[UserStates.APP]);
-                if (!context.state[UserStates.MODEL])
+                modelId = await context.client.GetModel(context.state[UserStates.APP]);
+                if (!modelId)
                 {        
                     Utils.SendMessage(context, `Training the model...`);
                     modelId = await context.client.TrainModel(context.state)

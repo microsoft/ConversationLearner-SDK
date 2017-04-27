@@ -688,6 +688,13 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
 
     private async CallAzureFuncCB(context : BlisContext, memory : BlisMemory, args : string) : Promise<TakeTurnRequest>
     {
+        // Disallow repetative API calls in case BLIS gets stuck TODO
+   /*     var lastResponse = memory.LastStep(SaveStep.RESPONSE);
+        if (lastResponse == args)
+        {
+            return;
+        }*/
+        memory.ForgetEntityByName("company", null); // TEMP
         let [funct, query] = args.split(' ');
         let output = await AzureFunctions.Call(funct, query);
         if (output)
@@ -695,6 +702,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             Utils.SendMessage(context, output);
         }
         let entityIds = memory.EntityIds();
+        memory.RememberLastStep(SaveStep.RESPONSE, args);  // TEMP try remember last apicall
         return new TakeTurnRequest({entities: entityIds});
     }
 
