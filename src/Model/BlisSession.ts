@@ -15,9 +15,9 @@ export class BlisSession
         try
         {        
             // Ending teaching session (which trains the model if necessary), update modelId
-            new BlisMemory(context).EndSession();
             let sessionId = await context.client.EndSession(context.state[UserStates.APP], context.state[UserStates.SESSION]);
             let modelId = await context.client.GetModel(context.state[UserStates.APP]);
+            new BlisMemory(context).EndSession();
             context.state[UserStates.MODEL]  = modelId;
             cb(sessionId);
         }

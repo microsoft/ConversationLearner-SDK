@@ -405,10 +405,7 @@ export class CommandHandler
                 // End any open session
                 BlisSession.EndSession(context, (responses) => {
                     cb([Menu.Home()]);
-                });/* TEMP
-                let endId = await context.client.EndSession(context.state[UserStates.APP], context.state[UserStates.SESSION]);
-                BlisDebug.Log(`Ended session ${endId}`);
-                cb([Menu.Home()]);*/
+                });
             }
             else if (command == LineCommands.EDITAPICALL)    // TODO handle local vs azure
             {   

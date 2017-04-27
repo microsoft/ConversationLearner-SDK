@@ -369,7 +369,7 @@ export class BlisClient {
                         reject(JSON.parse(body).message);
                     }
                     else {
-                        resolve(body.id);
+                        resolve(body);
                     }
                 });
             }
