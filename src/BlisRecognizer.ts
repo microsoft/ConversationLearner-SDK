@@ -8,6 +8,7 @@ import { BlisDebug} from './BlisDebug';
 import { BlisContext} from './BlisContext';
 import { BlisUserState} from './BlisUserState';
 import { LabelEntity } from './Model/LabelEntity';
+import { LabelAction } from './Model/LabelAction';
 import { Action } from './Model/Action';
 import { TrainDialog } from './Model/TrainDialog';
 import { TakeTurnModes, EntityTypes, UserStates, TeachStep, TeachAction, ActionTypes, SaveStep, APICalls, ActionCommand } from './Model/Consts';
@@ -268,6 +269,35 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         }
     }
 
+    /** Remove internal API calls from actions available to developer */
+    private RemoveInternalAPIs(labelActions : LabelAction[])  : LabelAction[]
+    {
+        let outActions = [];
+        let sumScore = 0;
+        for (let labelAction of labelActions)
+        {
+            // Don't show internal API calls to developer
+            if (!this.IsInternalApi(labelAction.content))
+            {      
+                outActions.push(labelAction);
+                if (labelAction.available)
+                {
+                    sumScore += labelAction.score;
+                }
+            }
+        }
+
+        // Now renormalize scores after removing internal API calls
+        if (sumScore <= 0) return outActions;
+
+        for (let labelAction of outActions)
+        {
+            labelAction.score = labelAction.score / sumScore;
+        }
+
+        return outActions;
+    }
+
     /** Process Label Entity Training Step */
     private ProcessLabelEntity(session : RecSession, ttResponse : TakeTurnResponse, responses: (string | builder.IIsAttachment)[]) : void
     {
@@ -385,27 +415,25 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             let body = `${memory.DumpEntities()}\n\n`;
             responses.push(Utils.MakeHero("Memory", null, body, null));
 
+            // Remove internal API calls
+            let labelActions = this.RemoveInternalAPIs(ttResponse.teachLabelActions);
+
             let msg = "";
             let displayIndex = 1;
-            for (let i in ttResponse.teachLabelActions)
+            for (let i in labelActions)
             {
-                let labelAction = ttResponse.teachLabelActions[i];
-
-                // Don't show internal API calls to developer
-                if (!this.IsInternalApi(labelAction.content))
-                {      
-                    if (labelAction.available)
-                    {
-                        let score = labelAction.score ? labelAction.score.toFixed(3) : "*UNKNOWN*";
-                        msg += `(${displayIndex}) ${labelAction.content} _(${labelAction.actionType.toUpperCase()})_ Score: ${score}\n\n`;
-                        choices[displayIndex] = (1+Number(i)).toString();
-                    }
-                    else
-                    {
-                        msg += `(  ) ${labelAction.content} _(${labelAction.actionType.toUpperCase()})_ DISQUALIFIED\n\n`;
-                    }
-                    displayIndex++;
+                let labelAction = labelActions[i];  
+                if (labelAction.available)
+                {
+                    let score = labelAction.score ? labelAction.score.toFixed(3) : "*UNKNOWN*";
+                    msg += `(${displayIndex}) ${labelAction.content} _(${labelAction.actionType.toUpperCase()})_ Score: ${score}\n\n`;
+                    choices[displayIndex] = (1+Number(i)).toString();
                 }
+                else
+                {
+                    msg += `(  ) ${labelAction.content} _(${labelAction.actionType.toUpperCase()})_ DISQUALIFIED\n\n`;
+                }
+                displayIndex++;
             }
 
             responses.push(msg);
