@@ -75,9 +75,10 @@ export const UserStates =
     MEMORY: "MEMORY",
     ENTITYLOOKUP: "ENTITYLOOKUP",
     LASTSTEP: "LASTSTEP", 
-    APILOOKUP: "APILOOKUP",           // ENTITY NAME -> SAVE API ACTION ID 
+    SAVELOOKUP: "SAVELOOKUP",        // ENTITY NAME -> SAVE API ACTION ID 
     CURSTEP: "CURSTEP", 
     TRAINSTEPS: "TRAINSTEPS",
     CUECOMMAND: "CUECOMMAND",       // Command to call after input prompt
-    PAGE: "PAGE"                    // Current page on paging UI
+    PAGE: "PAGE",                   // Current page on paging UI
+    POSTS: "POSTS"                  // Array of last messages sent to user
 }

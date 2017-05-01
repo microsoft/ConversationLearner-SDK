@@ -16,7 +16,7 @@
   "license": "ISC",
   "dependencies": {
     "@types/node-cache": "^3.0.31",
-    "botbuilder": "^3.6.0",
+    "botbuilder": "^3.8.0-beta8",
     "json-typescript-mapper": "^1.0.5",
     "node-cache": "^4.1.1",
     "request": "^2.79.0",

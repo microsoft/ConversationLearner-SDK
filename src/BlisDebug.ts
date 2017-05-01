@@ -32,7 +32,7 @@ export class BlisDebug {
      public static Log(text : string) {
         if (this.enabled)
         {
-            this.cache += (this.cache ? "\n\n" : ">> ") + text;
+            this.cache += (this.cache ? "\n\n" : "") + text;
         }
         this.SendCache();
 

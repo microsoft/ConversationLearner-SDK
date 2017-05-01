@@ -2,17 +2,15 @@ const request = require('request');
 import { BlisDebug } from './BlisDebug';
 
 export class AzureFunctions {
-
-    private static AFURI = `https://getstockvalue.azurewebsites.net/api/`;
-
-    public static Call(funcName : string, args : string ) : Promise<string>
+    
+    public static Call(azureFunctionsUrl : string, funcName : string, args : string ) : Promise<string>
     {
         var apiPath = "app";
 
         return new Promise(
             (resolve, reject) => {
                 const requestData = {
-                    url: this.AFURI + funcName + "/" + args,
+                    url: azureFunctionsUrl + funcName + "/" + args,
                     /*          TODO - auth          
                     headers: {
                         'Cookie' : this.credentials.Cookiestring(),

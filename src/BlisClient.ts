@@ -17,12 +17,13 @@ export class BlisClient {
 
     private serviceUri : string;
     private credentials : Credentials;
+    public azureFunctionsUrl : string;
 
     private actionCache = new NodeCache({ stdTTL: 300, checkperiod: 600 });
     private entityCache = new NodeCache({ stdTTL: 300, checkperiod: 600 });
     private exportCache = new NodeCache({ stdTTL: 300, checkperiod: 600 });
 
-    constructor(serviceUri : string, user : string, secret : string)
+    constructor(serviceUri : string, user : string, secret : string, azureFunctionsUrl : string)
     {
         if (!serviceUri) 
         {
@@ -30,6 +31,7 @@ export class BlisClient {
         } 
         this.serviceUri = serviceUri;
         this.credentials = new Credentials(user, secret);
+        this.azureFunctionsUrl = azureFunctionsUrl;
     }
 
     public ClearExportCache(appId : string) : void

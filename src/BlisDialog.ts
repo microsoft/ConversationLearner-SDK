@@ -1,6 +1,7 @@
 import * as builder from 'botbuilder';
 import { BlisRecognizer, IBlisResult, IBlisOptions } from './BlisRecognizer';
 import { BlisDebug } from './BlisDebug';
+import { Utils } from './Utils';
 
 export class BlisDialog extends builder.Dialog {
 
@@ -48,6 +49,9 @@ export class BlisDialog extends builder.Dialog {
         // TODO: Consider adding threshold
         var blisResult = recognizeResult as IBlisResult;
 
+        // Clear memory of last posts
+        session.conversationData.lastPosts = [];
+
         let carousel = null;
         for (let response of blisResult.responses)
         {
@@ -56,17 +60,17 @@ export class BlisDialog extends builder.Dialog {
                 // Send existing carousel if next entry is text
                 if (carousel)
                 {
-                    session.send(carousel);
+                    Utils.SendAndRemember(session, carousel);
                     carousel = null
                 }
-                session.send(response);
+                Utils.SendAndRemember(session, response);
             }
             else if (response == null) 
             {
                 // Send existing carousel if empty entry
                 if (carousel)
                 {
-                    session.send(carousel);
+                    Utils.SendAndRemember(session, carousel);
                     carousel = null
                 }
             }
@@ -81,7 +85,7 @@ export class BlisDialog extends builder.Dialog {
         }
         if (carousel)
         {
-            session.send(carousel);
+            Utils.SendAndRemember(session, carousel);
         }
     }
 

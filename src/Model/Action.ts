@@ -352,12 +352,12 @@ export class Action
             {
                 // Make sure it hasn't aleady been added TODO
                 let memory = context.Memory();
-                let saveAPI = memory.APILookup(actionSet.saveName);
+                let saveAPI = memory.SaveLookup(actionSet.saveName);
                 if (!saveAPI) {
                     let apiCall = `${APICalls.SAVEENTITY} ${actionSet.saveName}`;
                     let metadata = new ActionMetaData({internal : true});
                     let apiActionId = await context.client.AddAction(context.state[UserStates.APP], apiCall, ActionTypes.API, [], [actionSet.saveId], null, metadata)
-                    memory.AddAPILookup(actionSet.saveName, apiActionId);
+                    memory.AddSaveLookup(actionSet.saveName, apiActionId);
                 }
             }
 
@@ -485,7 +485,7 @@ export class Action
                         if (action.actionType == ActionTypes.API && action.content.startsWith(APICalls.SAVEENTITY))
                         {        
                             let name = Action.Split(action.content)[1];
-                            memory.AddAPILookup(name, actionId);
+                            memory.AddSaveLookup(name, actionId);
                         }
 
                         BlisDebug.Log(`Action lookup: ${action.content} : ${action.actionType}`);

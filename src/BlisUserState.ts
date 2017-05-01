@@ -27,7 +27,7 @@ export class BlisUserState {
         this[UserStates.MEMORY] = {};
         this[UserStates.ENTITYLOOKUP] = {};
         this[UserStates.LASTSTEP] = null;
-        this[UserStates.APILOOKUP] = {};
+        this[UserStates.SAVELOOKUP] = {};
         this[UserStates.CURSTEP] = null;
         this[UserStates.TRAINSTEPS] = [];
         this[UserStates.CUECOMMAND] = null;
@@ -74,7 +74,7 @@ export class BlisUserState {
                 session.userData.Blis[UserStates.MEMORY] = context.state[UserStates.MEMORY];
                 session.userData.Blis[UserStates.ENTITYLOOKUP] = context.state[UserStates.ENTITYLOOKUP];
                 session.userData.Blis[UserStates.LASTSTEP] = context.state[UserStates.LASTSTEP];
-                session.userData.Blis[UserStates.APILOOKUP] = context.state[UserStates.APILOOKUP];
+                session.userData.Blis[UserStates.SAVELOOKUP] = context.state[UserStates.SAVELOOKUP];
                 session.userData.Blis[UserStates.CURSTEP] = context.state[UserStates.CURSTEP];
                 session.userData.Blis[UserStates.TRAINSTEPS] = context.state[UserStates.TRAINSTEPS];
                 session.userData.Blis[UserStates.CUECOMMAND] = context.state[UserStates.CUECOMMAND];

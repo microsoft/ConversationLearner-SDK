@@ -41,10 +41,14 @@ export class BlisMemory {
         this.userState[UserStates.TEACH]  = inTeach;
     }
 
+    //--------------------------------------------------------
+    // Entity Suggesion Hints
+    //--------------------------------------------------------
+
     /** Return ActionId for saveEntity API for the given name */
-    public APILookup(entityName: string) {
+    public SaveLookup(entityName: string) {
         try {
-            return this.userState[UserStates.APILOOKUP][entityName];
+            return this.userState[UserStates.SAVELOOKUP][entityName];
         }
         catch (error)
         {
@@ -52,13 +56,13 @@ export class BlisMemory {
         }
     }
 
-    public AddAPILookup(entityName: string, apiActionId : string) {
-        this.userState[UserStates.APILOOKUP][entityName] = apiActionId;
+    public AddSaveLookup(entityName: string, apiActionId : string) {
+        this.userState[UserStates.SAVELOOKUP][entityName] = apiActionId;
     }
 
-    public RemoveAPILookup(entityName: string) {
+    public RemoveSaveLookup(entityName: string) {
         try {
-            this.userState[UserStates.APILOOKUP][entityName] = null;
+            this.userState[UserStates.SAVELOOKUP][entityName] = null;
         }
         catch (error)
         {
@@ -66,6 +70,9 @@ export class BlisMemory {
         }  
     }
 
+    //--------------------------------------------------------
+    // Entity Lookups
+    //---------------------------------------------------------
     public AddEntityLookup(entityName: string, entityId : string) {
         this.userState[UserStates.ENTITYLOOKUP][entityName] = entityId;
     }
@@ -543,7 +550,7 @@ export class BlisMemory {
         text += `LastStep: ${JSON.stringify(this.userState[UserStates.LASTSTEP])}\n\n`;
         text += `Memory: {${this.DumpEntities()}}\n\n`;
         text += `EntityLookup: ${JSON.stringify(this.userState[UserStates.ENTITYLOOKUP])}\n\n`;
-        text += `SaveLookup: ${JSON.stringify(this.userState[UserStates.APILOOKUP])}\n\n`;
+        text += `SaveLookup: ${JSON.stringify(this.userState[UserStates.SAVELOOKUP])}\n\n`;
         return text;
     }
 }

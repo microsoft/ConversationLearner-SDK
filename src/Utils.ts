@@ -73,6 +73,43 @@ export class Utils  {
         context.bot.send(msg);
     }
 
+    /** Send a message and remember it's address */
+    // Notes: User must call:  session.save().sendBatch() after calling this
+    public static SendAndRemember(session : builder.Session, message: string|string[] | builder.IMessage | builder.IIsMessage, ...args: any[])
+    {
+        session.send(message);
+        return;
+        /* TODO: code for editing dialogs
+        session.send(message).sendBatch((err : any, addresses :any) =>
+            {
+                session.conversationData.lastPosts = addresses;
+                session.save().sendBatch();
+            });*/
+    }
+        
+    /** Delete previous message batch */
+    public static DeleteLastMessages(session : builder.Session)
+    {
+        if (session.conversationData.lasPosts)
+        {
+            for (var address of session.conversationData.lastPosts)
+            {
+                session.connector.delete(address, (err) =>
+                    {
+                        if (err)
+                        {
+                            session.error(err);
+                        }
+                    }
+                )
+            }
+        }
+        else
+        {
+            session.send("No messages to delete.");
+        }
+    }
+
     /** Handle that catch clauses can be any type */
     public static ErrorString(error) : string
     {
@@ -85,6 +122,13 @@ export class Utils  {
             return error.message;
         }
         return JSON.stringify(error);
+    }
+
+    /** Handle that catch clauses can be any type */
+    public static ErrorCard(message : string, subtext = null) : builder.HeroCard
+    {
+        let title = `**ERROR**\n\n`;
+        return Utils.MakeHero(title, message, subtext, null);
     }
 
     public static ReadFromFile(url : string) : Promise<string>

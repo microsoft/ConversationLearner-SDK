@@ -48,6 +48,9 @@ export interface IBlisOptions extends builder.IIntentRecognizerSetOptions {
     // Mappting between API names and functions
     apiCallbacks? : { string : () => TakeTurnRequest };
 
+    // End point for Azure function calls
+    azureFunctionsUrl? : string;
+
     // Optional connector, required for downloading train dialogs
     connector? : builder.ChatConnector;
 }
@@ -83,7 +86,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     private async init(options: IBlisOptions) {
         try {
             BlisDebug.Log("Creating client...");
-            this.blisClient = new BlisClient(options.serviceUri, options.user, options.secret);
+            this.blisClient = new BlisClient(options.serviceUri, options.user, options.secret, options.azureFunctionsUrl);
             this.LuisCallback = options.luisCallback;
             this.apiCallbacks = options.apiCallbacks;
             this.intApiCallbacks[APICalls.SAVEENTITY] = this.SaveEntityCB;
@@ -274,8 +277,9 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     {
         let outActions = [];
         let sumScore = 0;
-        for (let labelAction of labelActions)
+        for (let i in labelActions)
         {
+            let labelAction = labelActions[i];
             // Don't show internal API calls to developer
             if (!this.IsInternalApi(labelAction.content))
             {      
@@ -305,9 +309,8 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
 
         let memory = new BlisMemory(session.context);
         if (ttResponse.teachError) {
-            let title = `**ERROR**\n\n`;
             let body = `Input did not match original text. Let's try again.\n\n`;
-            responses.push(Utils.MakeHero(title, body, null, null));
+            responses.push(Utils.ErrorCard(body));
         }
         else
         {
@@ -380,14 +383,14 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         let suggestedEntity = Action.GetEntitySuggestion(lastResponse); 
         if (!entities && suggestedEntity && !memory.EntityValue(suggestedEntity))
         { 
-            let apiId = memory.APILookup(suggestedEntity);
-            if (apiId)
+            let saveActionId = memory.SaveLookup(suggestedEntity);
+            if (saveActionId)
             {
                 // Find the saveEntity action and take it
                 for (let i in ttResponse.teachLabelActions)
                 {                                  
                     let labelAction = ttResponse.teachLabelActions[i];
-                    if (labelAction.id == apiId)
+                    if (labelAction.id == saveActionId)
                     {
                         let userInput = (+i+1).toString(); // Incriment string number
                         memory.RememberLastStep(SaveStep.RESPONSE, userInput);
@@ -396,6 +399,11 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                         return;
                     }
                 }
+            }
+            else 
+            {
+                var errCard = Utils.ErrorCard(null, `Missing Save function for ${suggestedEntity}`);
+                Utils.SendMessage(session.context, errCard);
             }
         }
 
@@ -427,7 +435,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                 {
                     let score = labelAction.score ? labelAction.score.toFixed(3) : "*UNKNOWN*";
                     msg += `(${displayIndex}) ${labelAction.content} _(${labelAction.actionType.toUpperCase()})_ Score: ${score}\n\n`;
-                    choices[displayIndex] = (1+Number(i)).toString();
+                    choices[displayIndex] = labelAction.id;
                 }
                 else
                 {
@@ -508,8 +516,17 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                                 this.ProcessResult(session, responses, teachAction, actionData);
                             });
                     }
-                    // No app in memory
+                    // No session
                     else if (!context.state[UserStates.SESSION])
+                    {
+                        // If prev error was thrown will be in responses
+                        if (!responses) responses = [];
+                        responses = responses.concat(Menu.Home("The app has not been started"));
+                        this.ProcessResult(session, responses);
+                        return;
+                    }
+                    // No app in memory
+                    else if (!context.state[UserStates.APP])
                     {
                         // If error was thrown will be in responses
                         if (!responses) responses = [];
@@ -531,17 +548,22 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                                     this.ProcessResult(session, [msg]);
                                     return;
                                 }
-                                userInput = choices[userInput];
+                                // Convert numeric choice to actionId
+                                let actionId = choices[userInput];
                                 memory.RememberLastStep(SaveStep.CHOICES, null);
+                                this.TakeTurn(session, null, actionId);
+                            }
+                            else
+                            {
+                                this.TakeTurn(session, userInput, null);
                             }
                         }
                         // If not in teach mode remember last user input
                         else
                         {
-                            memory.RememberLastStep(SaveStep.INPUT, userInput);
+                            memory.RememberLastStep(SaveStep.INPUT, userInput);                                     
+                            this.TakeTurn(session, userInput, null);
                         }
-                        
-                        this.TakeTurn(session, userInput, null);
                     } 
                 }
                 else if (reginput.message.attachments && reginput.message.attachments.length > 0)
@@ -722,12 +744,20 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         {
             return;
         }*/
-        memory.ForgetEntityByName("company", null); // TEMP
-        let [funct, query] = args.split(' ');
-        let output = await AzureFunctions.Call(funct, query);
-        if (output)
+        if (!context.client.azureFunctionsUrl)
         {
-            Utils.SendMessage(context, output);
+            var errCard = Utils.ErrorCard("Attempt to call Azure Function with no URL.","Must set 'azureFunctionsUrl' in Bot implimentation.");
+            Utils.SendMessage(context, errCard);
+        }
+        else
+        {
+            memory.ForgetEntityByName("company", null); // TEMP
+            let [funct, query] = args.split(' ');
+            let output = await AzureFunctions.Call(context.client.azureFunctionsUrl, funct, query);
+            if (output)
+            {
+                Utils.SendMessage(context, output);
+            }
         }
         let entityIds = memory.EntityIds();
         memory.RememberLastStep(SaveStep.RESPONSE, args);  // TEMP try remember last apicall
