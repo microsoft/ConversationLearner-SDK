@@ -15,7 +15,8 @@ export const ActionTypes =
 export const APITypes =
 {
     AZURE : "AZURE",
-    LOCAL : "LOCAL"
+    LOCAL : "LOCAL",
+    INTENT: "INTENT"
 }
 
 export const EntityTypes =

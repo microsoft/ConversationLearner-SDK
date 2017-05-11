@@ -374,6 +374,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
 
         let title = `Teach Step: Select Action`;
         let body = ttResponse.teachLabelActions.length == 0 ? 'No actions matched' : 'Select Action by number or enter a new one';
+        // TODO support API and RESPONSE types, not just base
         responses.push(Utils.MakeHero(title, null, body, 
             { 
                 "Add Response" : CueCommands.ADDRESPONSE,

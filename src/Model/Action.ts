@@ -97,6 +97,19 @@ export class Action
         return true;
     }
 
+    /** Convert into display type */
+    public DisplayType() : string
+    {
+        // INTENTs are APIs internally but shown as TEXT responses in UI
+        if (this.actionType == ActionTypes.API)
+        {
+            return (this.metadata.type != APITypes.INTENT) ? ActionTypes.API : ActionTypes.TEXT;
+        }
+        else
+        {
+            return ActionTypes.TEXT;
+        }
+    }
     /** Look for entity suggestions in the last action taken */
     // For example: "What is your *name?" suggests user response is likely to be a name
     public static GetEntitySuggestion(actions : string[]) : string
@@ -348,8 +361,11 @@ export class Action
                 { 
                     content = `${APICalls.AZUREFUNCTION} ${content}`;
                 }
-                
-                // TODO : user should specify on command line
+                else if (apiType == APITypes.INTENT)
+                {
+                    content = `${APICalls.FIREINTENT} ${content}`;
+                }
+                // TODO : user should be able to specify on command line
                 if (!apiType)
                 {
                     apiType == APITypes.LOCAL;
@@ -358,8 +374,8 @@ export class Action
 
             let actionSet = new ActionSet(actionType);
 
-            // API actions default to terminal, TEXT actions not
-            actionSet.waitAction = (actionType == ActionTypes.API) ? false : true;
+            // Non INTENT API actions default to not-wait, TEXT actions to wait for user input
+            actionSet.waitAction = (actionType == ActionTypes.API && apiType != APITypes.INTENT) ? false : true;
 
             // Extract response and commands
             let [action, commands] = content.split('//');
@@ -492,7 +508,7 @@ export class Action
                 // Don't display internal APIs (unless in debug)
                 if (debug || !action.metadata || !action.metadata.internal)
                 {
-                    if ((!search || action.content.toLowerCase().indexOf(search) > -1) && (!actionType || action.actionType == actionType))
+                    if ((!search || action.content.toLowerCase().indexOf(search) > -1) && (!actionType || action.DisplayType() == actionType))
                     { 
                         actions.push(action);
                         BlisDebug.Log(`Action lookup: ${action.content} : ${action.actionType}`);
@@ -510,6 +526,15 @@ export class Action
                     let negstring = memory.EntityIds2Names(action.negativeEntities);
                     let atext = `${action.content}`;
                     
+                    // Don't show AZURE or INTENT command string
+                    if (action.metadata)
+                    {
+                        if (action.metadata.type == APITypes.INTENT || action.metadata.type == APITypes.AZURE)
+                        {
+                            atext = Utils.RemoveWords(atext, 1);
+                        }
+                    }
+
                     let postext = (posstring.length > 0) ? `  ${ActionCommand.REQUIRE}[${posstring}]`: "";
                     let negtext = (negstring.length > 0) ? `  ${ActionCommand.BLOCK}[${negstring}]` : "";
                     let wait = action.waitAction ? " (WAIT)" : "";

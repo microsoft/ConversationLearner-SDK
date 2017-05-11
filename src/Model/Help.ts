@@ -22,11 +22,11 @@ export class BlisHelp {
                 return [helptext, card];
             case HelpCommands.ADDRESPONSE:
                 helptext = this.CommandHelpString(LineCommands.ADDRESPONSE);
-                card = Menu.AddResponse();
+                card = Menu.ChooseAPICall();
                 return [helptext, card];
             case HelpCommands.ADDAZUREAPI:
                 helptext = this.CommandHelpString(LineCommands.ADDRESPONSE);
-                card = Menu.AddResponse();
+                card = Menu.ChooseResponse();
                 return [helptext, card];
             case HelpCommands.DELETEACTION:
                 command = this.CommandHelp(LineCommands.DELETEAPP);

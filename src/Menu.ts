@@ -32,7 +32,7 @@ export class Menu {
         {
             "List" : LineCommands.RESPONSES,
             "Search" : CueCommands.RESPONSES, 
-            "Add" : CueCommands.ADDRESPONSE
+            "Add" : IntCommands.CHOOSERESPONSETYPE
         }));
         cards.push(Utils.MakeHero("API Calls", null, null, 
         {
@@ -91,6 +91,18 @@ export class Menu {
         return card;
     }
 
+    public static ChooseResponse() : builder.IIsAttachment
+    {
+        let card = Utils.MakeHero(`Add Response`, null, "Text or Intent?",  
+        {  
+            "Text" : CueCommands.ADDRESPONSETEXT,
+            "Intent" : CueCommands.ADDRESPONSEINTENT,
+            "Help" : HelpCommands.ADDRESPONSE,
+            "Cancel" : IntCommands.CANCEL
+        });
+        return card;
+    }
+
     public static AddAzureApi(title = `Add Azure Function Call`) : builder.IIsAttachment
     {
         let card = Utils.MakeHero(title, '{function name} {args}', "Enter Function Name and args",
@@ -121,11 +133,21 @@ export class Menu {
         return card;
     }
 
-    public static AddResponse() : builder.IIsAttachment
+    public static AddResponseText() : builder.IIsAttachment
     {
         let card = Utils.MakeHero(`Add Response`, null, "Enter new Response",  
         {  
-            "Help" : HelpCommands.ADDRESPONSE,
+            "Help" : HelpCommands.ADDRESPONSETEXT,
+            "Cancel" : IntCommands.CANCEL
+        });
+        return card;
+    }
+
+    public static AddResponseIntent() : builder.IIsAttachment
+    {
+        let card = Utils.MakeHero(`Add Intent`, '{intent name} {args}', "Enter Intent name and args",  
+        {  
+            "Help" : HelpCommands.ADDRESPONSEINTENT,
             "Cancel" : IntCommands.CANCEL
         });
         return card;

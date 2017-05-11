@@ -42,9 +42,13 @@ export class CommandHandler
             {
                 cb([Menu.AddEntity()]);
             }
-            else if (command == LineCommands.ADDRESPONSE)
+            else if (command == LineCommands.ADDRESPONSETEXT)
             {
-                cb([Menu.AddResponse()]);
+                cb([Menu.AddResponseText()]);
+            }
+            else if (command == LineCommands.ADDRESPONSEINTENT)
+            {
+                cb([Menu.AddResponseIntent()]);
             }
             else if (command == LineCommands.CUEAPICALLS)
             {
@@ -105,6 +109,18 @@ export class CommandHandler
             });
             return;
         } 
+        if (command == CueCommands.ADDRESPONSETEXT) {
+            this.CueCommand(context, LineCommands.ADDRESPONSETEXT, null, (responses) => {
+                cb(responses);
+            });
+            return;
+        }
+        else if (command == CueCommands.ADDRESPONSEINTENT) {
+            this.CueCommand(context, LineCommands.ADDRESPONSEINTENT, null, (responses) => {
+                cb(responses);
+            });
+            return;
+        }
         else if (command == CueCommands.ADDAPILOCAL) {
             this.CueCommand(context, LineCommands.ADDAPILOCAL, null, (responses) => {
                 cb(responses);
@@ -184,6 +200,10 @@ export class CommandHandler
             cb([Menu.ChooseAPICall()]);
             return;
         }
+        else if (command == IntCommands.CHOOSERESPONSETYPE) {
+            cb([Menu.ChooseResponse()]);
+            return;
+        }
         //-------- Only valid in Teach ------------------//
         if (context.State(UserStates.TEACH)) {
             if (command == IntCommands.APICALLS) {
@@ -248,6 +268,10 @@ export class CommandHandler
                     cb(responses);
                 });
             }
+            else if (command == IntCommands.CANCEL)
+            {
+                cb(Menu.EditCards(true));
+            } 
             else 
             {   
                 cb([`${command} is not a valid Int command or only available in Teach mode.`]);
@@ -291,9 +315,21 @@ export class CommandHandler
             });
         }
         else if (command == LineCommands.ADDRESPONSE)
-        {
-            
+        {         
             Action.Add(context, null, ActionTypes.TEXT, null, args, (responses, actionId) => {
+                cb(responses, TeachAction.PICKACTION, actionId);
+            });
+        }
+        else if (command == LineCommands.ADDRESPONSETEXT)
+        {
+            Action.Add(context, null, ActionTypes.TEXT, null, args, (responses, actionId) => {
+                cb(responses, TeachAction.PICKACTION, actionId);
+            });
+        }
+        else if (command == LineCommands.ADDRESPONSEINTENT)
+        {
+            // NOTE: Response Type INTENT are actuall API calls
+            Action.Add(context, null, ActionTypes.API, APITypes.INTENT, args, (responses, actionId) => {
                 cb(responses, TeachAction.PICKACTION, actionId);
             });
         }

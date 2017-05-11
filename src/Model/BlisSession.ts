@@ -22,6 +22,8 @@ export class BlisSession
         }
         catch (error)
         {
+            // End session so user doesn't get trapped
+            new BlisMemory(context.session).EndSession();
             let errMsg = BlisDebug.Error(error); 
             cb(errMsg);
         }
