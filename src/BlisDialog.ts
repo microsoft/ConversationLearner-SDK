@@ -2,6 +2,7 @@ import * as builder from 'botbuilder';
 import { BlisRecognizer, IBlisResult, IBlisOptions } from './BlisRecognizer';
 import { BlisDebug } from './BlisDebug';
 import { Utils } from './Utils';
+import { Menu } from './Menu';
 
 export class BlisDialog extends builder.Dialog {
 
@@ -9,11 +10,12 @@ export class BlisDialog extends builder.Dialog {
 
     constructor(private options: IBlisOptions) {
         super();
+        // LARS TEMP options.intentThreshold = 0.05;
         this.recognizers = new builder.IntentRecognizerSet(options);
     }
 
-    public async replyReceived(session: builder.Session, recognizeResult?: builder.IIntentRecognizerResult): Promise<void> {
-
+    public async replyReceived(session: builder.Session, recognizeResult?: builder.IIntentRecognizerResult): Promise<void> 
+    {
         if (!recognizeResult) {
             var locale = session.preferredLocale();
             var context = <builder.IRecognizeDialogContext>session.toRecognizeContext();
@@ -46,48 +48,75 @@ export class BlisDialog extends builder.Dialog {
     }
 
     private invokeAnswer(session: builder.Session, recognizeResult: builder.IIntentRecognizerResult): void {
-        // TODO: Consider adding threshold
+
         var blisResult = recognizeResult as IBlisResult;
+        blisResult.recognizer.invoke(session, (err, blisResponse) =>
+        { 
+            if (err)
+            { 
+                session.send(err.message);
+                return;
+            }
 
-        // Clear memory of last posts
-        session.conversationData.lastPosts = [];
+            // Clear memory of last posts
+            session.conversationData.lastPosts = [];
 
-        let carousel = null;
-        for (let response of blisResult.responses)
-        {
-            if (typeof response == 'string')
-            {
-                // Send existing carousel if next entry is text
+            // If reponses present, send to user
+            if (blisResponse.responses)
+            {            
+                let carousel = null;
+                for (let response of blisResponse.responses)
+                {
+                    if (response instanceof builder.SuggestedActions)
+                    {
+                        // Add suggested actions to carosel
+                        if (carousel)
+                        {
+                            carousel.suggestedActions(response);
+                        }
+                    }
+                    else if (typeof response == 'string')
+                    {
+                        // Send existing carousel if next entry is text
+                        if (carousel)
+                        {
+                            Utils.SendAndRemember(session, carousel);
+                            carousel = null
+                        }
+                        Utils.SendAndRemember(session, response);
+                    }
+                    else if (response == null) 
+                    {
+                        // Send existing carousel if empty entry
+                        if (carousel)
+                        {
+                            Utils.SendAndRemember(session, carousel);
+                            carousel = null
+                        }
+                    }
+                    else
+                    {
+                        if (!carousel)
+                        {
+                            carousel = new builder.Message(session).attachmentLayout(builder.AttachmentLayout.carousel);
+                        }
+                        carousel.addAttachment(response);
+                    }
+                }
                 if (carousel)
                 {
                     Utils.SendAndRemember(session, carousel);
-                    carousel = null
                 }
-                Utils.SendAndRemember(session, response);
             }
-            else if (response == null) 
+
+            // If intent present, fire the intent
+            if (blisResponse.intent)
             {
-                // Send existing carousel if empty entry
-                if (carousel)
-                {
-                    Utils.SendAndRemember(session, carousel);
-                    carousel = null
-                }
+                session.replaceDialog(blisResponse.intent, blisResponse.entities);
             }
-            else
-            {
-                if (!carousel)
-                {
-                    carousel = new builder.Message(session).attachmentLayout(builder.AttachmentLayout.carousel);
-                }
-                carousel.addAttachment(response);
-            }
-        }
-        if (carousel)
-        {
-            Utils.SendAndRemember(session, carousel);
-        }
+        });
     }
+
 
 	private emitError(session: builder.Session, err: Error): void {
 		var m = err.toString();

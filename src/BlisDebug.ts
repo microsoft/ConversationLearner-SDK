@@ -1,4 +1,5 @@
 import * as builder from 'botbuilder';
+import { Utils } from './Utils';
 
 export class BlisDebug {
 
@@ -43,15 +44,17 @@ export class BlisDebug {
         if (this.enabled)
         {
             let text = JSON.stringify(payload.body);
-            this.cache += (this.cache ? "\n\n" : "") + method + ": //" + path + "\n\n" + text;
+            this.cache += (this.cache ? "\n\n" : "") + method + ": //" + path + "\n\n" + (text ? text : "");
         }
         this.SendCache();
 
         console.log(path);
     }
 
-    public static Error(text : string) {
+    public static Error(error : any) : string {
+        let text = Utils.ErrorString(error);
         BlisDebug.Log(`ERROR: ${text}`);
+        return text;
     }
 
     public static Verbose(text : string) {

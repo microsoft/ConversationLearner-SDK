@@ -5,7 +5,7 @@ import { ActionCommand } from './Consts';
 
 export class BlisHelp {
 
-    public static Get(name: string) : (string|builder.IIsAttachment)[] {
+    public static Get(name: string) : (string | builder.IIsAttachment | builder.SuggestedActions)[] {
         
         let helptext = "";
         let card = null;

@@ -5,6 +5,14 @@ import { BlisContext } from './BlisContext';
 
 export class Utils  {
     
+    /** Add hero card and keyboard to reponse list */  // NOT CURRENTL USED
+    public static AddHeroKeyboard(responses: any, title : string, subtitle : string, text : string, buttons : {}) : void
+    {
+        responses.push(this.MakeHero(title, subtitle, text, []));
+        responses.push(this.MakeKeyboard(buttons));
+    } 
+
+    /** Make hero card with buttons */
     public static MakeHero(title : string, subtitle : string, text : string, buttons : {}) : builder.HeroCard
     {
         var buttonList : builder.CardAction[] = [];
@@ -19,8 +27,20 @@ export class Utils  {
 						.subtitle(subtitle)
 						.text(text)		
 						.buttons(buttonList);	
-		
         return card;
+    }
+
+    /** Make hero card with a keyboard */  // NOT CURRENTLY USED
+    public static MakeKeyboard(buttons : {}) : builder.SuggestedActions
+    {
+        let buttonList : builder.CardAction[] = [];
+        for (var message in buttons)
+        {
+            var postback = buttons[message];
+            buttonList.push(builder.CardAction.postBack(null, postback, message));
+        }
+
+        return builder.SuggestedActions.create(null, buttonList);
     }
 
     public static SendTyping(bot : builder.UniversalBot, address : any)
@@ -31,12 +51,18 @@ export class Utils  {
     }
 
     /** Send an out of band message */
-    public static SendMessage(context : BlisContext, content : string | builder.IIsAttachment)
+    public static SendMessage(context : BlisContext, content : string | builder.IIsAttachment | builder.SuggestedActions)
     { 
         let message = new builder.Message()
-			.address(context.address);
+			.address(context.Address());
 
-        if (typeof content == 'string')
+        if (content instanceof builder.SuggestedActions)
+        {
+            let msg = new builder.Message(context.session).suggestedActions(content);
+            context.bot.send(msg);
+            return;
+        }
+        else if (typeof content == 'string')
         {
             message.text(content);
         }
@@ -44,11 +70,11 @@ export class Utils  {
         {
             message.addAttachment(content);
         }
-        context.bot.send(message);
+        context.session.send(message);
     }
 
     /** Send a group of out of band message */
-    public static SendResponses(context : BlisContext, responses : (string|builder.IIsAttachment)[])
+    public static SendResponses(context : BlisContext, responses : (string | builder.IIsAttachment | builder.SuggestedActions)[])
     {
         for (let response of responses)
         {
@@ -61,7 +87,7 @@ export class Utils  {
         var base64 = Buffer.from(content).toString('base64');
 
         let msg =  new builder.Message();
-        (<any>msg).data.address = context.address;
+        (<any>msg).data.address = context.Address();
         let contentType = "text/plain";
         let attachment : builder.IAttachment =  
         {
@@ -75,16 +101,24 @@ export class Utils  {
 
     /** Send a message and remember it's address */
     // Notes: User must call:  session.save().sendBatch() after calling this
-    public static SendAndRemember(session : builder.Session, message: string|string[] | builder.IMessage | builder.IIsMessage, ...args: any[])
+    public static SendAndRemember(session : builder.Session, message: string | string[] | builder.IMessage | builder.IIsMessage | builder.Message, ...args: any[])
     {
-        session.send(message);
-        return;
+       session.send(message);
+       return;
         /* TODO: code for editing dialogs
         session.send(message).sendBatch((err : any, addresses :any) =>
             {
-                session.conversationData.lastPosts = addresses;
+                if (!session.conversationData.lastPosts)
+                {
+                    session.conversationData.lastPosts = addresses;
+                }
+                else
+                {
+                     session.conversationData.lastPosts.concat(addresses);
+                }
                 session.save().sendBatch();
-            });*/
+            });
+            */
     }
         
     /** Delete previous message batch */
@@ -111,7 +145,7 @@ export class Utils  {
     }
 
     /** Handle that catch clauses can be any type */
-    public static ErrorString(error) : string
+    public static ErrorString(error : any) : string
     {
         if (typeof error == 'string')
         {
@@ -119,7 +153,7 @@ export class Utils  {
         }
         else if (error.message)
         {
-            return error.message;
+            return error.message + "\n\n" + error.stack;
         }
         return JSON.stringify(error);
     }

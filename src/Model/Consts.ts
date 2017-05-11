@@ -41,17 +41,17 @@ export const SaveStep =
 {
     INPUT : "input",
     ENTITY : "entity",
-    RESPONSE : "response",
-    API : "api",
+    RESPONSES : "response",
+    APICALLS : "api",
     CHOICES: "choices"
 }
 
 // Internal commands. (Not for user)
 export const APICalls =
 {
-    SAVEENTITY : "saveEntity",
     SETTASK : "setTask",
-    AZUREFUNCTION: "azureFunction"
+    AZUREFUNCTION: "azureFunction",
+    FIREINTENT: "fireIntent"
 }
 
 export const ActionCommand =
@@ -62,6 +62,7 @@ export const ActionCommand =
     SUBSTITUTE: "$",
     BUCKET: "#",
     NEGATIVE: "~",       // Remove the entity
+    TERMINAL: "WAIT",
     DEBUG: "/d"
 }
 
@@ -75,7 +76,6 @@ export const UserStates =
     MEMORY: "MEMORY",
     ENTITYLOOKUP: "ENTITYLOOKUP",
     LASTSTEP: "LASTSTEP", 
-    SAVELOOKUP: "SAVELOOKUP",        // ENTITY NAME -> SAVE API ACTION ID 
     CURSTEP: "CURSTEP", 
     TRAINSTEPS: "TRAINSTEPS",
     CUECOMMAND: "CUECOMMAND",       // Command to call after input prompt

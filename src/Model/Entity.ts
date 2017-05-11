@@ -1,5 +1,4 @@
 import * as builder from 'botbuilder';
-import { BlisUserState} from '../BlisUserState';
 import { BlisDebug} from '../BlisDebug';
 import { BlisClient } from '../BlisClient';
 import { TakeTurnModes, EntityTypes, UserStates, TeachStep, ActionTypes, SaveStep, APICalls, ActionCommand } from '../Model/Consts';
@@ -107,7 +106,7 @@ export class Entity
     {
         if (this.metadata && this.metadata.negative)
         {
-            return await context.client.GetEntity(context.state[UserStates.APP], this.metadata.negative);
+            return await context.client.GetEntity(context.State(UserStates.APP), this.metadata.negative);
         }
         return null;
     }
@@ -115,7 +114,7 @@ export class Entity
     /** Is the Entity used anywhere */
     private async InUse(context : BlisContext) : Promise<boolean>
     {
-        let appContent = await context.client.ExportApp(context.state[UserStates.APP]);
+        let appContent = await context.client.ExportApp(context.State(UserStates.APP));
 
         // Clear entities
         appContent.entities = null;
@@ -183,7 +182,7 @@ export class Entity
     }
 
     public static async Add(context : BlisContext, entityId : string, entityType : string,
-        userInput : string, cb : (responses : (string | builder.IIsAttachment)[]) => void) : Promise<void>
+        userInput : string, cb : (responses : (string | builder.IIsAttachment | builder.SuggestedActions)[]) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Add Entity ${userInput}`);
 
@@ -248,7 +247,7 @@ export class Entity
             if (entityId)
             {
                 // Get old entity
-                let oldEntity = await context.client.GetEntity(context.state[UserStates.APP], entityId);
+                let oldEntity = await context.client.GetEntity(context.State(UserStates.APP), entityId);
                 let oldNegName = Entity.NegativeName(oldEntity.name);
 
                 // Note: Entity Type cannot be changed.  Use old type.
@@ -262,13 +261,13 @@ export class Entity
                     {
                         // Update Positive
                         let metadata = new EntityMetaData({bucket : isBucket, task: taskId, negative : oldNegId});
-                        await context.client.EditEntity(context.state[UserStates.APP], entityId, content, null, prebuiltName, metadata);
+                        await context.client.EditEntity(context.State(UserStates.APP), entityId, content, null, prebuiltName, metadata);
                         memory.AddEntityLookup(content, entityId);
                         responses.push(Entity.MakeHero("Entity Edited", content, entityId, entityType, prebuiltName, metadata)); 
 
                         // Update Negative
                         let negmeta = new EntityMetaData({bucket : isBucket, task: taskId, positive : entityId});
-                        await context.client.EditEntity(context.state[UserStates.APP], oldNegId, negName, null, prebuiltName, negmeta);
+                        await context.client.EditEntity(context.State(UserStates.APP), oldNegId, negName, null, prebuiltName, negmeta);
                         memory.AddEntityLookup(negName, oldNegId);
                         responses.push(Entity.MakeHero("Entity Edited", negName, oldNegId, entityType, prebuiltName,  negmeta)); 
                     }
@@ -276,12 +275,12 @@ export class Entity
                     {
                         // Update Positive
                         let metadata = new EntityMetaData({bucket : isBucket, task: taskId, negative : null});
-                        await context.client.EditEntity(context.state[UserStates.APP], entityId, content, null, prebuiltName, metadata);
+                        await context.client.EditEntity(context.State(UserStates.APP), entityId, content, null, prebuiltName, metadata);
                         memory.AddEntityLookup(content, entityId);
                         responses.push(Entity.MakeHero("Entity Edited", content, entityId, entityType, prebuiltName, metadata));
 
                         // Delete Negative
-                        await context.client.DeleteEntity(context.state[UserStates.APP], oldNegId);
+                        await context.client.DeleteEntity(context.State(UserStates.APP), oldNegId);
                         memory.RemoveEntityLookup(oldNegName); 
                         responses.push(Entity.MakeHero("Entity Deleted", oldNegName, oldNegId, entityType, prebuiltName, oldEntity.metadata, false)); 
                     } 
@@ -291,13 +290,13 @@ export class Entity
                 {
                     // Add Negative
                     let negmeta = new EntityMetaData({bucket : isBucket, task: taskId, positive : oldEntity.id});
-                    let newNegId = await context.client.AddEntity(context.state[UserStates.APP], negName, entityType, prebuiltName, negmeta);
+                    let newNegId = await context.client.AddEntity(context.State(UserStates.APP), negName, entityType, prebuiltName, negmeta);
                     memory.AddEntityLookup(negName, newNegId);
                     responses.push(Entity.MakeHero("Entity Added", negName, newNegId, entityType, prebuiltName, negmeta)); 
 
                     // Update Positive
                     let metadata = new EntityMetaData({bucket : isBucket, task: taskId, negative : newNegId});
-                    await context.client.EditEntity(context.state[UserStates.APP], entityId, content, null, prebuiltName, metadata);
+                    await context.client.EditEntity(context.State(UserStates.APP), entityId, content, null, prebuiltName, metadata);
                     memory.AddEntityLookup(content, entityId);
                     responses.push(Entity.MakeHero("Entity Edited", content, entityId, entityType, prebuiltName, metadata));
                 }
@@ -305,7 +304,7 @@ export class Entity
                 {
                     // Update Positive
                     let metadata = new EntityMetaData({bucket : isBucket, task: taskId});
-                    await context.client.EditEntity(context.state[UserStates.APP], entityId, content, null, prebuiltName, metadata);
+                    await context.client.EditEntity(context.State(UserStates.APP), entityId, content, null, prebuiltName, metadata);
                     memory.AddEntityLookup(content, entityId);
                     responses.push(Entity.MakeHero("Entity Edited", content, entityId, entityType, prebuiltName, metadata));
                 }
@@ -314,7 +313,7 @@ export class Entity
             {
                 // Add Positive
                 let metadata =  new EntityMetaData({bucket : isBucket, task: taskId});
-                entityId = await context.client.AddEntity(context.state[UserStates.APP], content, entityType, prebuiltName, metadata);
+                entityId = await context.client.AddEntity(context.State(UserStates.APP), content, entityType, prebuiltName, metadata);
                 memory.AddEntityLookup(content, entityId);
 
                 if (!isNegatable)
@@ -325,13 +324,13 @@ export class Entity
                 {
                     // Add Negative
                     let negmeta =  new EntityMetaData({bucket : isBucket, task: taskId, positive : entityId});
-                    let newNegId = await context.client.AddEntity(context.state[UserStates.APP], negName, entityType, prebuiltName, negmeta);
+                    let newNegId = await context.client.AddEntity(context.State(UserStates.APP), negName, entityType, prebuiltName, negmeta);
                     memory.AddEntityLookup(negName, newNegId);
                     responses.push(Entity.MakeHero("Entity Added", negName, newNegId, entityType, prebuiltName,negmeta));
 
                     // Update Positive Reference
                     let metadata = new EntityMetaData({bucket : isBucket, task: taskId, negative : newNegId});
-                    await context.client.EditEntity(context.state[UserStates.APP], entityId, content, null, prebuiltName, metadata);
+                    await context.client.EditEntity(context.State(UserStates.APP), entityId, content, null, prebuiltName, metadata);
                     responses.push(Entity.MakeHero("Entity Edited", content, entityId, entityType, prebuiltName, metadata));
                 }
             }
@@ -340,15 +339,15 @@ export class Entity
             cb(responses);
         }
         catch (error) {
-            let errMsg = Utils.ErrorString(error);
-            BlisDebug.Error(errMsg);
+            let errMsg = BlisDebug.Error(error); 
             cb([errMsg]);
             return;
         }
         try
         {
             // Retrain the model with the new entity
-            context.state[UserStates.MODEL]  = await context.client.TrainModel(context.state);
+            let modelId = await context.client.TrainModel(context.State(UserStates.APP));
+            context.SetState(UserStates.MODEL, modelId);
         }
         catch (error)
         {
@@ -374,7 +373,7 @@ export class Entity
             let responses = []; 
             let memory = context.Memory()
 
-            let entity = await context.client.GetEntity(context.state[UserStates.APP], entityId);
+            let entity = await context.client.GetEntity(context.State(UserStates.APP), entityId);
 
             // Make sure we're not trying to delete a negative entity
             if (entity.metadata && entity.metadata.positive)
@@ -392,7 +391,7 @@ export class Entity
             }
             // TODO clear api save lookup
 
-            await context.client.DeleteEntity(context.state[UserStates.APP], entityId)
+            await context.client.DeleteEntity(context.State(UserStates.APP), entityId)
             memory.RemoveEntityLookup(entity.name);
             responses.push(Entity.MakeHero("Entity Deleted", entity.name, entity.id, entity.entityType, entity.luisPreName, entity.metadata, false)); 
 
@@ -400,7 +399,7 @@ export class Entity
             if (entity.metadata && entity.metadata.negative)
             {
                 let negEntity = await entity.GetNegativeEntity(context);
-                await context.client.DeleteEntity(context.state[UserStates.APP], entity.metadata.negative);
+                await context.client.DeleteEntity(context.State(UserStates.APP), entity.metadata.negative);
                 memory.RemoveEntityLookup(negEntity.name); 
                 responses.push(Entity.MakeHero("Entity Deleted", negEntity.name, negEntity.id, negEntity.entityType, negEntity.luisPreName, negEntity.metadata, false)); 
 
@@ -410,8 +409,7 @@ export class Entity
         }
         catch (error)
         {
-            let errMsg = Utils.ErrorString(error);
-            BlisDebug.Error(errMsg);
+            let errMsg = BlisDebug.Error(error); 
             cb([errMsg]);
         }
     }
@@ -436,7 +434,7 @@ export class Entity
             }
 
             let entityIds = [];
-            let json = await context.client.GetEntities(context.state[UserStates.APP])
+            let json = await context.client.GetEntities(context.State(UserStates.APP))
             entityIds = JSON.parse(json)['ids'];
             BlisDebug.Log(`Found ${entityIds.length} entities`);
 
@@ -455,7 +453,7 @@ export class Entity
 
             for (let entityId of entityIds)
             {
-                let entity = await context.client.GetEntity(context.state[UserStates.APP], entityId);
+                let entity = await context.client.GetEntity(context.State(UserStates.APP), entityId);
                 if (!search || entity.name.toLowerCase().indexOf(search) > -1)
                 { 
                     entities.push(entity);
@@ -495,8 +493,7 @@ export class Entity
             cb(responses);
         }
         catch (error) {
-            let errMsg = Utils.ErrorString(error);
-            BlisDebug.Error(errMsg);
+            let errMsg = BlisDebug.Error(error); 
             cb([errMsg]);
         }
     }

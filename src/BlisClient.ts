@@ -8,7 +8,6 @@ import { Entity, EntityMetaData } from './Model/Entity'
 import { TakeTurnModes, ActionTypes, UserStates, APICalls } from './Model/Consts';
 import { TakeTurnResponse } from './Model/TakeTurnResponse'
 import { TakeTurnRequest } from './Model/TakeTurnRequest'
-import { BlisUserState } from './BlisUserState';
 import { BlisMemory } from './BlisMemory';
 import { BlisDebug } from './BlisDebug';
 import * as NodeCache from 'node-cache';
@@ -40,7 +39,7 @@ export class BlisClient {
     }
 
     // TODO: switch remaining to not userstate
-    public AddAction(appId : string, content : string, actionType : string, requiredEntityList : string[] = [], negativeEntityList : string[] = [], prebuiltEntityName : string, metaData : ActionMetaData) : Promise<string>
+    public AddAction(appId : string, content : string, actionType : string, sequenceTerminal : boolean, requiredEntityList : string[] = [], negativeEntityList : string[] = [], prebuiltEntityName : string, metaData : ActionMetaData) : Promise<string>
     {
         let apiPath = `app/${appId}/action`;
 
@@ -56,6 +55,7 @@ export class BlisClient {
                         RequiredEntities: requiredEntityList,
                         NegativeEntities: negativeEntityList,
                         action_type: actionType,
+                        sequence_terminal: sequenceTerminal,
                         metadata : metaData
                     },
                     json: true
@@ -173,11 +173,11 @@ export class BlisClient {
         )
     }
 
-    public DeleteApp(userState : BlisUserState, appId : string) : Promise<string>
+    public DeleteApp(activeAppId : string, appId : string) : Promise<string>
     {
         // If not appId sent use active app
         let activeApp = false;
-        if (appId == userState[UserStates.APP]) {
+        if (appId == activeAppId) {
             activeApp = true;
         }
 
@@ -264,7 +264,7 @@ export class BlisClient {
         )
     }
 
-    public EditAction(appId : string, actionId : string, content : string, actionType : string, requiredEntityList : string[] = [], negativeEntityList : string[] = [], prebuiltEntityName : string = null) : Promise<string>
+    public EditAction(appId : string, actionId : string, content : string, actionType : string, sequenceTerminal : boolean, requiredEntityList : string[] = [], negativeEntityList : string[] = [], prebuiltEntityName : string = null) : Promise<string>
     {
         let apiPath = `app/${appId}/action/${actionId}`;
 
@@ -283,6 +283,8 @@ export class BlisClient {
                         RequiredEntities: requiredEntityList,
                         NegativeEntities: negativeEntityList,
                         //action_type: actionType
+                        sequence_terminal: sequenceTerminal,
+                        //metadata: metaData
                     },
                     json: true
                 }
@@ -797,12 +799,9 @@ export class BlisClient {
     }
 
     // TODO:  decice what to do with fromScratch
-    public TrainModel(userState : BlisUserState, fromScratch : boolean = false) : Promise<string>
+    public TrainModel(appId : string, fromScratch : boolean = false) : Promise<string>
     {
-        // Clear existing modelId TODO - depends on if fromScratch
-        userState[UserStates.MODEL]  = null;
-        
-        let apiPath = `app/${userState[UserStates.APP]}/model`;
+        let apiPath = `app/${appId}/model`;
         return new Promise(
             (resolve, reject) => {
                const requestData = {
@@ -825,7 +824,6 @@ export class BlisClient {
                     }
                     else {
                         let modelId = body.id;
-                        userState[UserStates.MODEL]  = modelId;
                         resolve(modelId);
                     }
                 });
@@ -833,9 +831,9 @@ export class BlisClient {
         )
     }
 
-    public SendTurnRequest(userState : BlisUserState, body : {}) : Promise<TakeTurnResponse>
+    public SendTurnRequest(appId :string, sessionId : string, body : {}) : Promise<TakeTurnResponse>
     {
-        let apiPath = `app/${userState[UserStates.APP]}/session2/${userState[UserStates.SESSION]}`;
+        let apiPath = `app/${appId}/session2/${sessionId}`;
         return new Promise(
             (resolve, reject) => {
                const requestData = {

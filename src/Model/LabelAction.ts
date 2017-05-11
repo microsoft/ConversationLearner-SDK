@@ -23,6 +23,11 @@ export class LabelAction
     @JsonProperty('score')
     public score : number;
  
+    // When true RNN will pause for input
+    // Defaults: text action = true / api action = false
+    @JsonProperty('sequence_terminal')
+    public waitAction : string[];
+
     public constructor(init?:Partial<LabelAction>)
     {
         this.actionType = null;
@@ -30,6 +35,7 @@ export class LabelAction
         this.content = null;
         this.id = null;
         this.score = null;
+        this.waitAction = null;
         (<any>Object).assign(this, init);
     }
 }

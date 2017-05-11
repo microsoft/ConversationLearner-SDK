@@ -1,6 +1,5 @@
 import * as builder from 'botbuilder';
 import { deserialize } from 'json-typescript-mapper';
-import { BlisUserState} from '../BlisUserState';
 import { BlisDebug} from '../BlisDebug';
 import { BlisClient } from '../BlisClient';
 import { TakeTurnModes, EntityTypes, UserStates, TeachStep, ActionTypes, SaveStep, APICalls, ActionCommand } from '../Model/Consts';
@@ -45,9 +44,9 @@ export class BlisApp
     }
 
     /** Send No App card and return false if no app loaded */
-    public static HaveApp(context : BlisContext, cb : (responses: (string | builder.IIsAttachment)[], actionId? : string) => void) : boolean
+    public static HaveApp(context : BlisContext, cb : (responses: (string | builder.IIsAttachment | builder.SuggestedActions)[], actionId? : string) => void) : boolean
     {
-        if (context.state[UserStates.APP] == null)
+        if (context.State(UserStates.APP) == null)
         {
             cb(Menu.AppPanel('No Application has been loaded'));
             return false
@@ -55,7 +54,7 @@ export class BlisApp
         return true;
     }
 
-    public static async Create(context : BlisContext,  appName : string, luisKey, cb : (responses: (string | builder.IIsAttachment)[]) => void) : Promise<void>
+    public static async Create(context : BlisContext,  appName : string, luisKey, cb : (responses: (string | builder.IIsAttachment | builder.SuggestedActions)[]) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Create Application`);
 
@@ -88,20 +87,19 @@ export class BlisApp
             let appId = await context.client.CreateApp(appName, luisKey)
 
             // Initialize
-            Object.assign(context.state, new BlisUserState(appId));
+            context.InitState(appId);
             
             let card = Utils.MakeHero("Created App", appName, null, null);
             cb(Menu.AddEditCards(context,[card])); 
         }
         catch (error) {
-            let errMsg = Utils.ErrorString(error);
-            BlisDebug.Error(errMsg);
+            let errMsg = BlisDebug.Error(error);        
             cb([errMsg]);
         }
     } 
 
     /** Get all apps, filter by Search term */
-    public static async GetAll(context : BlisContext, search : string, cb : (responses: (string | builder.IIsAttachment)[]) => void) : Promise<void>
+    public static async GetAll(context : BlisContext, search : string, cb : (responses: (string | builder.IIsAttachment | builder.SuggestedActions)[]) => void) : Promise<void>
     {
         BlisDebug.Log(`Getting apps`);
 
@@ -151,7 +149,7 @@ export class BlisApp
                 }
                 else
                 {
-                    if (!context.state[UserStates.APP])
+                    if (!context.State(UserStates.APP))
                     {
                         responses.push(Utils.MakeHero(app.name, null, null, 
                         { 
@@ -159,7 +157,7 @@ export class BlisApp
                             "Delete" : `${IntCommands.DELETEAPP} ${app.id}`
                         }));
                     }
-                    else if (app.id == context.state[UserStates.APP])
+                    else if (app.id == context.State(UserStates.APP))
                     {
                         responses.push(Utils.MakeHero(app.name + " (LOADED)", null, null, { 
                             "Delete" : `${IntCommands.DELETEAPP} ${app.id}`
@@ -187,14 +185,13 @@ export class BlisApp
             cb(responses);
         }
         catch (error) {
-            let errMsg = Utils.ErrorString(error);
-            BlisDebug.Error(errMsg);
+            let errMsg = BlisDebug.Error(error); 
             cb([errMsg]);
         }
     }
 
     /** Delete all apps associated with this account */
-    public static async DeleteAll(context : BlisContext, cb : (responses: (string | builder.IIsAttachment)[]) => void) : Promise<void>
+    public static async DeleteAll(context : BlisContext, cb : (responses: (string | builder.IIsAttachment | builder.SuggestedActions)[]) => void) : Promise<void>
     {
         BlisDebug.Log(`Trying to Delete All Applications`);
        
@@ -207,26 +204,25 @@ export class BlisApp
             BlisDebug.Log(`Found ${appIds.length} apps`);
 
             for (let appId of appIds){
-                let text = await context.client.DeleteApp(context.state, appId)
+                let text = await context.client.DeleteApp(context.State(UserStates.APP), appId)
                 BlisDebug.Log(`Deleted ${appId} apps`);
             }
 
             // No longer have an active app
-            context.state[UserStates.APP] = null;
-            context.state[UserStates.MODEL] = null;
-            context.state[UserStates.SESSION] = null;
+            context.SetState(UserStates.APP, null);
+            context.SetState(UserStates.MODEL, null);
+            context.SetState(UserStates.SESSION, null);
 
             cb(Menu.AddEditCards(context,["Done"]));
         }
         catch (error)
         {
-            let errMsg = Utils.ErrorString(error);
-            BlisDebug.Error(errMsg);
+            let errMsg = BlisDebug.Error(error);     
             cb([errMsg]);
         }
     }
 
-    public static async Delete(context : BlisContext, appId : string, cb : (responses: (string | builder.IIsAttachment)[]) => void) : Promise<void>
+    public static async Delete(context : BlisContext, appId : string, cb : (responses: (string | builder.IIsAttachment | builder.SuggestedActions)[]) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Delete Application`);
         if (!appId)
@@ -238,17 +234,17 @@ export class BlisApp
 
         try
         {       
-            await context.client.DeleteApp(context.state, appId)
+            await context.client.DeleteApp(context.State(UserStates.APP), appId)
 
             let cards = [];
             cards.push(Utils.MakeHero("Deleted App", appId, null, null));
 
             // Did I delete my loaded app
-            if (appId == context.state[UserStates.APP])
+            if (appId == context.State(UserStates.APP))
             {
-                context.state[UserStates.APP] = null;
-                context.state[UserStates.MODEL] = null;
-                context.state[UserStates.SESSION] = null;
+                context.SetState(UserStates.APP, null);
+                context.SetState(UserStates.MODEL, null);
+                context.SetState(UserStates.SESSION, null);
                 cards.push(null);  // Line break
                 cards = cards.concat(Menu.AppPanel('No App Loaded','Load or Create one'));
                 cb(cards);
@@ -259,8 +255,7 @@ export class BlisApp
             }
         }
         catch (error) {
-            let errMsg = Utils.ErrorString(error);
-            BlisDebug.Error(errMsg);
+            let errMsg = BlisDebug.Error(error); 
             cb([errMsg]);
         }
     }

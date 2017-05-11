@@ -1,5 +1,4 @@
 import * as builder from 'botbuilder';
-import { BlisUserState} from './BlisUserState';
 import { Menu} from './Menu';
 import { BlisClient } from './BlisClient';
 import { TrainDialog } from './Model/TrainDialog';
@@ -22,7 +21,7 @@ export class CommandHandler
 { 
 
     /** Next incoming text from user is a command.  Send cue card */
-    private static async CueCommand(context : BlisContext, command : string, args : string,  cb : (cards : (string | builder.IIsAttachment)[]) => void) : Promise<void>
+    private static async CueCommand(context : BlisContext, command : string, args : string,  cb : (cards : (string | builder.IIsAttachment | builder.SuggestedActions)[]) => void) : Promise<void>
     {
         try
         {         
@@ -61,17 +60,17 @@ export class CommandHandler
             }
             else if (command == LineCommands.EDITAPICALL)
             {
-                let action = await context.client.GetAction(context.state[UserStates.APP], args);
+                let action = await context.client.GetAction(context.State(UserStates.APP), args);
                 cb([Menu.EditAPICall(action)]);
             }
             else if (command == LineCommands.EDITENTITY)
             {
-                let entity = await context.client.GetEntity(context.state[UserStates.APP], args);
+                let entity = await context.client.GetEntity(context.State(UserStates.APP), args);
                 cb([Menu.EditEntity(entity)]);
             }
             else if (command == LineCommands.EDITRESPONSE)
             {
-                let action = await context.client.GetAction(context.state[UserStates.APP], args);
+                let action = await context.client.GetAction(context.State(UserStates.APP), args);
                 cb([Menu.EditResponse(action)]);
             }
             else if (command == LineCommands.ENTITIES)
@@ -89,13 +88,12 @@ export class CommandHandler
         }
         catch (error)
         {
-            let errMsg = Utils.ErrorString(error);
-            BlisDebug.Error(errMsg);
+            let errMsg = BlisDebug.Error(error); 
             cb([errMsg]);
         }
     }
 
-    public static HandleCueCommand(context : BlisContext, input : string, cb: (responses : (string|builder.IIsAttachment)[], teachAction? : string, actionData? : string) => void) : void {
+    public static HandleCueCommand(context : BlisContext, input : string, cb: (responses : (string | builder.IIsAttachment | builder.SuggestedActions)[], teachAction? : string, actionData? : string) => void) : void {
     
         let [command, arg, arg2, arg3] = input.split(' ');
         command = command.toLowerCase();
@@ -176,7 +174,7 @@ export class CommandHandler
         }
     }
 
-    public static HandleIntCommand(context : BlisContext, input : string, cb: (responses : (string|builder.IIsAttachment)[], teachAction? : string, actionData? : string) => void) : void {
+    public static HandleIntCommand(context : BlisContext, input : string, cb: (responses : (string | builder.IIsAttachment | builder.SuggestedActions)[], teachAction? : string, actionData? : string) => void) : void {
     
         let [command, arg, arg2, arg3] = input.split(' ');
         command = command.toLowerCase();
@@ -187,7 +185,7 @@ export class CommandHandler
             return;
         }
         //-------- Only valid in Teach ------------------//
-        if (context.state[UserStates.TEACH]) {
+        if (context.State(UserStates.TEACH)) {
             if (command == IntCommands.APICALLS) {
                 this.CueCommand(context, LineCommands.CUEAPICALLS, arg, (responses) => {
                     cb(responses);
@@ -257,14 +255,14 @@ export class CommandHandler
         }
     }
 
-    public static HandleLineCommand(context : BlisContext, input : string, cb: (responses : (string|builder.IIsAttachment)[], teachAction? : string, actionData? : string) => void) : void 
+    public static HandleLineCommand(context : BlisContext, input : string, cb: (responses : (string | builder.IIsAttachment | builder.SuggestedActions)[], teachAction? : string, actionData? : string) => void) : void 
     {
         let [command] = input.split(' ');
         let args = this.RemoveCommandWord(input); 
         this.ProcessCommand(context, command, args, cb);
     }
 
-    private static ProcessCommand(context : BlisContext, command : string, args : string, cb: (responses : (string|builder.IIsAttachment)[], teachAction? : string, actionData? : string) => void) : void 
+    private static ProcessCommand(context : BlisContext, command : string, args : string, cb: (responses : (string | builder.IIsAttachment | builder.SuggestedActions)[], teachAction? : string, actionData? : string) => void) : void 
     {
         //---------------------------------------------------
         // Commands allowed at any time
@@ -314,8 +312,8 @@ export class CommandHandler
         }
         else if (command == LineCommands.DEBUG)
         {
-            context.state[UserStates.DEBUG] = !context.state[UserStates.DEBUG];
-            BlisDebug.enabled = context.state[UserStates.DEBUG];
+            context.SetState(UserStates.DEBUG, !context.State(UserStates.DEBUG));
+            BlisDebug.enabled = context.State(UserStates.DEBUG);
             cb(["Debug " + (BlisDebug.enabled ? "Enabled" : "Disabled")]);
         }
         else if (command == LineCommands.DEBUGHELP)
@@ -345,7 +343,7 @@ export class CommandHandler
         }
         //---------------------------------------------------
         // Command only allowed in TEACH
-        else if (context.state[UserStates.TEACH])
+        else if (context.State(UserStates.TEACH))
         {
             if (command == LineCommands.ABANDON)
             {
@@ -471,7 +469,7 @@ export class CommandHandler
                 let [search] = args.split(' ');
                 // Reset paging
                 let page = new Page(0, search);
-                context.state[UserStates.PAGE] = page;
+                context.SetState(UserStates.PAGE, page);
                 TrainDialog.Get(context, page.search, page.index, true, (responses) => {
                     cb(responses);
                 });
@@ -485,7 +483,7 @@ export class CommandHandler
     }
        
     // Response to cued text
-    public static ProcessCueCommand(context : BlisContext, input : string, cb: (responses : (string|builder.IIsAttachment)[], teachAction? : string, actionData? : string) => void) : void {
+    public static ProcessCueCommand(context : BlisContext, input : string, cb: (responses : (string | builder.IIsAttachment | builder.SuggestedActions)[], teachAction? : string, actionData? : string) => void) : void {
         
         let memory =  context.Memory();
         try
@@ -503,8 +501,7 @@ export class CommandHandler
          }
         catch (error) 
         {
-            let errMsg = Utils.ErrorString(error);
-            BlisDebug.Error(errMsg);
+            let errMsg = BlisDebug.Error(error); 
             cb([errMsg]);
         }
         finally 

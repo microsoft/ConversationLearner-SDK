@@ -34,7 +34,7 @@ export class TakeTurnResponse
     public teachError : string;
 
     @JsonProperty('error')
-    public error : (string | builder.IIsAttachment);
+    public error : (string | builder.IIsAttachment | builder.SuggestedActions);
 
     public constructor(init?:Partial<TakeTurnResponse>)
     {

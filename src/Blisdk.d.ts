@@ -42,7 +42,7 @@ export interface IBlisOptions {
 /** Results returned by an Bliss recognizer. */
 export interface IBlisResult extends builder.IIntentRecognizerResult {
     /** Top answer that was matched with score greater than the specified threshold. */
-    responses: (string | builder.IIsAttachment)[];
+    responses: (string | builder.IIsAttachment | builder.SuggestedActions)[];
 }
 
 /**

@@ -1,7 +1,6 @@
 import * as builder from 'botbuilder';
 import { JsonProperty } from 'json-typescript-mapper';
 import { BlisHelp } from '../Model/Help'; 
-import { BlisUserState} from '../BlisUserState';
 import { BlisDebug} from '../BlisDebug';
 import { BlisClient } from '../BlisClient';
 import { TakeTurnModes, EntityTypes, UserStates, TeachStep, ActionTypes, SaveStep, APICalls, ActionCommand } from '../Model/Consts';
@@ -184,7 +183,7 @@ export class TrainDialog
         (<any>Object).assign(this, init);
     }
     
-    public static async Delete(context : BlisContext, dialogId : string, cb : (responses: (string | builder.IIsAttachment)[]) => void) : Promise<void>
+    public static async Delete(context : BlisContext, dialogId : string, cb : (responses: (string | builder.IIsAttachment | builder.SuggestedActions)[]) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Delete Training Dialog`);
 
@@ -198,22 +197,21 @@ export class TrainDialog
         try
         {        
             // TODO clear savelookup
-            await context.client.DeleteTrainDialog(context.state[UserStates.APP], dialogId)
+            await context.client.DeleteTrainDialog(context.State(UserStates.APP), dialogId)
             let card = Utils.MakeHero(`Deleted TrainDialog`, null, dialogId, null);
             cb(Menu.AddEditCards(context,[card]));
         }
         catch (error) {
-            let errMsg = Utils.ErrorString(error);
-            BlisDebug.Error(errMsg);
+            let errMsg = BlisDebug.Error(error); 
             cb([errMsg]);
         }
     }
 
-    public static async Get(context : BlisContext, searchTerm : string, index: number, refreshCache: boolean, cb : (responses: (string | builder.IIsAttachment)[]) => void) : Promise<void>
+    public static async Get(context : BlisContext, searchTerm : string, index: number, refreshCache: boolean, cb : (responses: (string | builder.IIsAttachment | builder.SuggestedActions)[]) => void) : Promise<void>
     {
         try 
         {
-            let appId = context.state[UserStates.APP];
+            let appId = context.State(UserStates.APP);
             if (refreshCache)
             {
                 context.client.ClearExportCache(appId)
@@ -273,8 +271,7 @@ export class TrainDialog
         }
         catch (error)
         {
-            let errMsg = Utils.ErrorString(error);
-            BlisDebug.Error(errMsg);
+            let errMsg = BlisDebug.Error(error); 
             cb([errMsg]);
         }
     }

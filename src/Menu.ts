@@ -8,17 +8,17 @@ import { BlisContext} from './BlisContext';
 
 export class Menu {
 
-    public static AddEditCards(context : BlisContext, responses : (string|builder.IIsAttachment)[]) : (string|builder.IIsAttachment)[]
+    public static AddEditCards(context : BlisContext, responses : (string | builder.IIsAttachment | builder.SuggestedActions)[]) : (string | builder.IIsAttachment | builder.SuggestedActions)[]
     {
         // Only add edit menu when not in teach mode
-        if (context.state[UserStates.TEACH])
+        if (context.State(UserStates.TEACH))
         {
             return responses;
         }
         return responses.concat(Menu.EditCards(true));
     }
 
-    public static EditCards(newLine? : boolean) : (string|builder.IIsAttachment)[]
+    public static EditCards(newLine? : boolean) : (string | builder.IIsAttachment | builder.SuggestedActions)[]
     {
         let cards = [];
         if (newLine) cards.push(null);
@@ -56,7 +56,7 @@ export class Menu {
         return cards;
     }
 
-    public static Home(title = "", subheader = "", body = "") : (string|builder.IIsAttachment)
+    public static Home(title = "", subheader = "", body = "") : (string | builder.IIsAttachment | builder.SuggestedActions)
     { 
         let card = Utils.MakeHero(title, subheader, body, 
         {
@@ -67,7 +67,7 @@ export class Menu {
         return card;
     }
 
-    public static AppPanel(title : string, subheader? : string, body? : string) : (string|builder.IIsAttachment)[]
+    public static AppPanel(title : string, subheader? : string, body? : string) : (string | builder.IIsAttachment | builder.SuggestedActions)[]
     { 
         let cards = [];
         cards.push(Utils.MakeHero(title, subheader, body, 

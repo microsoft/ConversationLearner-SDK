@@ -2,7 +2,6 @@ import * as builder from 'botbuilder';
 import { JsonProperty } from 'json-typescript-mapper';
 import { BlisHelp } from '../Model/Help'; 
 import { BlisApp } from '../Model/BlisApp'; 
-import { BlisUserState} from '../BlisUserState';
 import { BlisDebug} from '../BlisDebug';
 import { BlisClient } from '../BlisClient';
 import { TakeTurnModes, EntityTypes, UserStates, TeachStep, ActionTypes, SaveStep, APICalls, ActionCommand, APITypes } from '../Model/Consts';
@@ -38,6 +37,7 @@ class ActionSet
     public posNames : string[] = [];
     public saveId : string;
     public saveName : string;
+    public waitAction : boolean;
 
     constructor(public actionType : string)
     {}
@@ -60,6 +60,11 @@ export class Action
     @JsonProperty('RequiredEntities')
     public requiredEntities : string[];
 
+    // When true RNN will pause for input
+    // Defaults: text action = true / api action = false
+    @JsonProperty('sequence_terminal')
+    public waitAction : string[];
+
     @JsonProperty({clazz: ActionMetaData, name: 'metadata'})
     public metadata : ActionMetaData;
 
@@ -70,6 +75,7 @@ export class Action
         this.content = undefined;
         this.negativeEntities = undefined;
         this.requiredEntities = undefined;
+        this.waitAction = undefined;
         this.metadata = new ActionMetaData();
         (<any>Object).assign(this, init);
     }
@@ -91,11 +97,14 @@ export class Action
         return true;
     }
 
-    public static GetEntitySuggestion(action : string) : string
+    /** Look for entity suggestions in the last action taken */
+    // For example: "What is your *name?" suggests user response is likely to be a name
+    public static GetEntitySuggestion(actions : string[]) : string
     {
-        if (!action) return null;
+        if (!actions || actions.length == 0) return null;
 
-        let words = this.Split(action);
+        // Looks for suggestions in the last action
+        let words = this.Split(actions[actions.length-1]);
         for (let word of words) 
         {
             if (word.startsWith(ActionCommand.SUGGEST))
@@ -113,7 +122,12 @@ export class Action
         try
         {            
             let action = await client.GetAction(appId, actionId);
-            return action.content;
+            let msg = action.content;
+            if (action.waitAction) 
+            {
+                msg += " (WAIT)";
+            }
+            return msg;
         }
         catch (error)
         {
@@ -144,7 +158,7 @@ export class Action
     /** Is the Activity used anywhere */
     private async InUse(context : BlisContext) : Promise<boolean>
     {
-        let appContent = await context.client.ExportApp(context.state[UserStates.APP]);
+        let appContent = await context.client.ExportApp(context.State(UserStates.APP));
 
         // Clear actions
         appContent.actions = null;
@@ -179,19 +193,34 @@ export class Action
             if (word.startsWith(ActionCommand.BLOCK))
             {
                 let negName = word.slice(ActionCommand.BLOCK.length);
-                let negID = memory.EntityName2Id(negName);
-                if (negID) {
-                    actionSet.negIds.push(negID);
-                    actionSet.negNames.push(negName);
-                }  
+
+                // Is terminal action
+                if (negName == ActionCommand.TERMINAL)
+                {
+                    actionSet.waitAction = false;
+                }
                 else
                 {
-                    return `Entity ${negName} not found.`;
+                    let negID = memory.EntityName2Id(negName);
+                    if (negID) {
+                        actionSet.negIds.push(negID);
+                        actionSet.negNames.push(negName);
+                    }  
+                    else
+                    {
+                        return `Entity ${negName} not found.`;
+                    }
                 }
             }
             else if (word.startsWith(ActionCommand.REQUIRE)) {
                 let posName = word.slice(ActionCommand.REQUIRE.length);
-                if (actionSet.posNames.indexOf(posName) < 0)
+
+                // Is terminal action
+                if (posName == ActionCommand.TERMINAL)
+                {
+                    actionSet.waitAction = true;
+                }
+                else if (actionSet.posNames.indexOf(posName) < 0)
                 {
                     let posID = memory.EntityName2Id(posName);
                     if (posID) {
@@ -289,8 +318,8 @@ export class Action
         return this.IgnoreBrackets(text);
     }
 
-    public static async Add(context : BlisContext, actionId : string, actionType : string,  apiType : string,
-        content : string, cb : (responses : (string | builder.IIsAttachment)[], actionId : string) => void) : Promise<void>
+    public static async Add(context : BlisContext, actionId : string, actionType : string,  apiType : string, 
+        content : string, cb : (responses : (string | builder.IIsAttachment | builder.SuggestedActions)[], actionId : string) => void) : Promise<void>
     {
         BlisDebug.Log(`AddAction`);
 
@@ -329,6 +358,9 @@ export class Action
 
             let actionSet = new ActionSet(actionType);
 
+            // API actions default to terminal, TEXT actions not
+            actionSet.waitAction = (actionType == ActionTypes.API) ? false : true;
+
             // Extract response and commands
             let [action, commands] = content.split('//');
  
@@ -346,34 +378,19 @@ export class Action
                return;
             }
 
-           
-            // If suggested entity exists create API call for saving item
-            if (actionSet.saveId) 
-            {
-                // Make sure it hasn't aleady been added TODO
-                let memory = context.Memory();
-                let saveAPI = memory.SaveLookup(actionSet.saveName);
-                if (!saveAPI) {
-                    let apiCall = `${APICalls.SAVEENTITY} ${actionSet.saveName}`;
-                    let metadata = new ActionMetaData({internal : true});
-                    let apiActionId = await context.client.AddAction(context.state[UserStates.APP], apiCall, ActionTypes.API, [], [actionSet.saveId], null, metadata)
-                    memory.AddSaveLookup(actionSet.saveName, apiActionId);
-                }
-            }
-
             let changeType = (actionType == ActionTypes.TEXT) ? "Response" : "Api Call";
             if (actionId) 
             {
-                actionId = await context.client.EditAction(context.state[UserStates.APP], actionId, action, actionType, actionSet.posIds, actionSet.negIds);
+                actionId = await context.client.EditAction(context.State(UserStates.APP), actionId, action, actionType, actionSet.waitAction, actionSet.posIds, actionSet.negIds);
                 changeType = changeType + ` Edited`;
             }
             else 
             {
                 let metadata = new ActionMetaData({type : apiType});
-                actionId = await context.client.AddAction(context.state[UserStates.APP], action, actionType, actionSet.posIds, actionSet.negIds, null, metadata);
+                actionId = await context.client.AddAction(context.State(UserStates.APP), action, actionType, actionSet.waitAction, actionSet.posIds, actionSet.negIds, null, metadata);
                 changeType = changeType + ` Created`;
             }
-            let substr = "";
+            let substr = actionSet.waitAction ? " (WAIT)" : "";;
             if (actionSet.posIds.length > 0) 
             {
                 substr += `${ActionCommand.REQUIRE}[${actionSet.posNames.toLocaleString()}] `;
@@ -388,14 +405,13 @@ export class Action
         }
         catch (error)
         {
-            let errMsg = Utils.ErrorString(error);
-            BlisDebug.Error(errMsg);
+            let errMsg = BlisDebug.Error(error); 
             cb([errMsg], null);
         }
     }
 
     /** Delete Action with the given actionId */
-    public static async Delete(context : BlisContext, actionId : string, cb : (responses : (string | builder.IIsAttachment)[]) => void) : Promise<void>
+    public static async Delete(context : BlisContext, actionId : string, cb : (responses : (string | builder.IIsAttachment | builder.SuggestedActions)[]) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Delete Action`);
 
@@ -407,7 +423,7 @@ export class Action
 
         try
         {    
-            let action = await context.client.GetAction(context.state[UserStates.APP], actionId);  
+            let action = await context.client.GetAction(context.State(UserStates.APP), actionId);  
             let inUse = await action.InUse(context);
 
             if (inUse)
@@ -418,21 +434,20 @@ export class Action
             }
 
             // TODO clear savelookup
-            await context.client.DeleteAction(context.state[UserStates.APP], actionId)
+            await context.client.DeleteAction(context.State(UserStates.APP), actionId)
             let card = Utils.MakeHero(`Deleted Action`, null, action.content, null);
             cb(Menu.AddEditCards(context,[card]));
         }
         catch (error)
         {
-            let errMsg = Utils.ErrorString(error);
-            BlisDebug.Error(errMsg);
+            let errMsg = BlisDebug.Error(error); 
             cb([errMsg]);
         }
     }
 
     /** Get actions.  Return count of actions */
     public static async GetAll(context : BlisContext, actionType : string, search : string,
-            cb : (responses : (string | builder.IIsAttachment)[]) => void) : Promise<number>
+            cb : (responses : (string | builder.IIsAttachment | builder.SuggestedActions)[]) => void) : Promise<number>
     {
         BlisDebug.Log(`Getting actions`);
 
@@ -453,7 +468,7 @@ export class Action
             // Get actions
             let actionIds = [];
             let responses = [];
-            let json = await context.client.GetActions(context.state[UserStates.APP])
+            let json = await context.client.GetActions(context.State(UserStates.APP))
             actionIds = JSON.parse(json)['ids'];
             BlisDebug.Log(`Found ${actionIds.length} actions`);
 
@@ -472,7 +487,7 @@ export class Action
 
             for (let actionId of actionIds)
             {
-                let action = await context.client.GetAction(context.state[UserStates.APP], actionId)
+                let action = await context.client.GetAction(context.State(UserStates.APP), actionId)
 
                 // Don't display internal APIs (unless in debug)
                 if (debug || !action.metadata || !action.metadata.internal)
@@ -480,14 +495,6 @@ export class Action
                     if ((!search || action.content.toLowerCase().indexOf(search) > -1) && (!actionType || action.actionType == actionType))
                     { 
                         actions.push(action);
-
-                        // Create lookup for saveEntity actions
-                        if (action.actionType == ActionTypes.API && action.content.startsWith(APICalls.SAVEENTITY))
-                        {        
-                            let name = Action.Split(action.content)[1];
-                            memory.AddSaveLookup(name, actionId);
-                        }
-
                         BlisDebug.Log(`Action lookup: ${action.content} : ${action.actionType}`);
                     }
                 }
@@ -505,10 +512,10 @@ export class Action
                     
                     let postext = (posstring.length > 0) ? `  ${ActionCommand.REQUIRE}[${posstring}]`: "";
                     let negtext = (negstring.length > 0) ? `  ${ActionCommand.BLOCK}[${negstring}]` : "";
-
+                    let wait = action.waitAction ? " (WAIT)" : "";
                     if (debug)
                     {
-                        let line = atext + postext + negtext + action.id + "\n\n";
+                        let line = atext + postext + negtext + wait + action.id + "\n\n";
                         if (action.actionType == ActionTypes.API)
                         {
                             apiactions += line;
@@ -521,7 +528,7 @@ export class Action
                     else
                     {
                         let type = (action.metadata && action.metadata.type) ? `(${action.metadata.type}) ` : "";
-                        let subtext = `${type}${postext}${negtext}`
+                        let subtext = `${type}${postext}${negtext}${wait}`
                         responses.push(Utils.MakeHero(null, subtext, atext, Action.Buttons(action.id, action.actionType)));
                     }
             }
@@ -548,8 +555,7 @@ export class Action
             return actionIds.length;
         }
         catch (error) {
-            let errMsg = Utils.ErrorString(error);
-            BlisDebug.Error(errMsg);
+            let errMsg = BlisDebug.Error(error); 
             cb([errMsg]);
         }
     }
