@@ -135,10 +135,13 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                 context.InitState(this.defaultApp);
 
                 // Attempt to load the application
-                BlisAppContent.Load(context, this.defaultApp, (responses) => 
+                if (this.defaultApp)
                 {
-                    cb(responses, context);
-                });
+                    BlisAppContent.Load(context, this.defaultApp, (responses) => 
+                    {
+                        cb(responses, context);
+                    });
+                }
             }
             else
             {          
