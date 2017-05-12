@@ -10,7 +10,10 @@ import { Utils } from '../Utils';
 import { Action } from './Action';
 import { Entity } from './Entity';
 import { Menu } from '../Menu';
+import { Pager } from './Pager';
 import { BlisContext } from '../BlisContext';
+import { EditableResponse } from './EditableResponse';
+
 
 export class AltText
 {
@@ -83,6 +86,11 @@ export class Input
                     text += ` [${entityName}]`;
                 }       
             }
+
+            for (let alt of this.textAlts)
+            {
+                text +=`\n\n${alt.text}`;
+            }
             return text;
         }
         return null;
@@ -144,13 +152,15 @@ export class Dialog
     @JsonProperty({clazz: Turn, name: 'turns'})
     public turns : Turn[];
     
-    public async toText(client : BlisClient, appId : string) : Promise<string>
+    public async toText(client : BlisClient, appId : string, number : boolean) : Promise<string>
     {
         let text = "";
-        for (let turn of this.turns)
+        for (let i in this.turns)
         {
+            let turn = this.turns[i];
             let turnText = await turn.toText(client, appId);
-            text += `${turnText}\n\n`;
+            let index = number ? `${(+i+1)}) ` : "";
+            text += `${index}${turnText}\n\n`;
         }
         return text;
     }
@@ -170,9 +180,9 @@ export class TrainDialog
     @JsonProperty({clazz: Dialog, name: 'dialog'})
     public dialog : Dialog;
 
-    public async toText(client : BlisClient, appId : string) : Promise<string>
+    public async toText(client : BlisClient, appId : string, number = false) : Promise<string>
     {
-        let dialogText = await this.dialog.toText(client, appId);
+        let dialogText = await this.dialog.toText(client, appId, number);
         return `${dialogText}`;
     }
 
@@ -182,8 +192,24 @@ export class TrainDialog
         this.dialog = undefined;
         (<any>Object).assign(this, init);
     }
-    
-    public static async Delete(context : BlisContext, dialogId : string, cb : (responses: (string | builder.IIsAttachment | builder.SuggestedActions)[]) => void) : Promise<void>
+
+    public static async Edit(context : BlisContext, dialogId : string, cb : (responses: (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[]) => void) : Promise<void>
+    {
+        let appId = context.State(UserStates.APP);
+        let trainDialog = await context.client.GetTrainDialog(appId, dialogId);
+        let text = await trainDialog.toText(context.client, appId, true);
+        cb([text]);
+        let altTexts : AltText[] = [];
+        let altText = new AltText({text: "hmmmm"});
+        altTexts.push(altText);
+
+        trainDialog.dialog.turns[0].input.textAlts = altTexts;
+
+        //trainDialog.dialog.turns[0].input.text = "LETS TRY THIS";
+        await context.client.EditTrainDialog(context.State(UserStates.APP), dialogId, trainDialog);
+    }
+
+    public static async Delete(context : BlisContext, dialogId : string, cb : (responses: (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[]) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Delete Training Dialog`);
 
@@ -199,7 +225,7 @@ export class TrainDialog
             // TODO clear savelookup
             await context.client.DeleteTrainDialog(context.State(UserStates.APP), dialogId)
             let card = Utils.MakeHero(`Deleted TrainDialog`, null, dialogId, null);
-            cb(Menu.AddEditCards(context,[card]));
+            cb([card]);
         }
         catch (error) {
             let errMsg = BlisDebug.Error(error); 
@@ -207,7 +233,7 @@ export class TrainDialog
         }
     }
 
-    public static async Get(context : BlisContext, searchTerm : string, index: number, refreshCache: boolean, cb : (responses: (string | builder.IIsAttachment | builder.SuggestedActions)[]) => void) : Promise<void>
+    public static async Get(context : BlisContext, refreshCache: boolean, cb : (responses: (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[]) => void) : Promise<void>
     {
         try 
         {
@@ -217,7 +243,7 @@ export class TrainDialog
                 context.client.ClearExportCache(appId)
             }
             let blisApp = await context.client.ExportApp(appId);
-            let dialogs = await blisApp.FindTrainDialogs(context.client, appId, searchTerm);
+            let dialogs = await blisApp.FindTrainDialogs(context.client, appId, Pager.SearchTerm(context.session));
 
             if (dialogs.length == 0)
             {
@@ -225,6 +251,8 @@ export class TrainDialog
                 return;
             }
             
+            Pager.SetLength(context.session, dialogs.length);
+            let index = Pager.Index(context.session);
             // Show result
             let responses = [];
             for (let i in dialogs) {
@@ -234,35 +262,14 @@ export class TrainDialog
                     let dialog = dialogs[i];
                     responses.push(dialog.text);
 
-                    let buttons = null;
-                    if (cur==0)
+                    let buttons = 
                     {
-                        buttons = 
-                        {
-                            "Next" : IntCommands.TRAINDIALOG_NEXT,
-                            "Done" : IntCommands.EDITAPP,
-                            "Delete" : `${IntCommands.DELETEDIALOG} ${dialog.dialogId}`,
-                        };
-                    }
-                    else if (cur == dialogs.length-1)
-                    {
-                        buttons = 
-                        {
-                            "Prev" : IntCommands.TRAINDIALOG_PREV,
-                            "Done" : IntCommands.EDITAPP,
-                            "Delete" : `${IntCommands.DELETEDIALOG} ${dialog.dialogId}`,
-                        };
-                    }
-                    else
-                    {
-                        buttons = 
-                        {
-                            "Prev" : IntCommands.TRAINDIALOG_PREV,
-                            "Next" : IntCommands.TRAINDIALOG_NEXT,
-                            "Done" : IntCommands.EDITAPP,
-                            "Delete" : `${IntCommands.DELETEDIALOG} ${dialog.dialogId}`,
-                        };
-                    }
+                        "Prev" : IntCommands.TRAINDIALOG_PREV,
+                        "Next" : IntCommands.TRAINDIALOG_NEXT,
+                        "Done" : IntCommands.EDITAPP,
+                        "Delete" : `${IntCommands.DELETEDIALOG} ${dialog.dialogId}`,
+                        //"Edit" : `${IntCommands.EDITDIALOG} ${dialog.dialogId}`,
+                    };
                     responses.push(Utils.MakeHero(null, `${index+1} of ${dialogs.length}`, null, buttons));
                     break;
                 }

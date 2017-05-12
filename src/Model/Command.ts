@@ -41,6 +41,7 @@ export const IntCommands =
     DELETEDIALOG : INTPREFIX + "deletedialog",
     DONETEACH : INTPREFIX + "doneteach",
     EDITAPP : INTPREFIX + "editapp",
+    EDITDIALOG : INTPREFIX + "editdialog",
     FORGETTEACH : INTPREFIX + "forgetteach",
     SAVETEACH: INTPREFIX + "saveteach",
     TRAINDIALOG_NEXT: INTPREFIX + "nexttraindialogs",

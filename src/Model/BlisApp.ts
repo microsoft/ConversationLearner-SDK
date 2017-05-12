@@ -12,6 +12,7 @@ import { Entity } from './Entity';
 import { BlisContext } from '../BlisContext';
 import { TrainDialog } from './TrainDialog';
 import { Menu } from '../Menu';
+import { EditableResponse } from './EditableResponse';
 
 export class BlisApp
 {
@@ -44,7 +45,7 @@ export class BlisApp
     }
 
     /** Send No App card and return false if no app loaded */
-    public static HaveApp(context : BlisContext, cb : (responses: (string | builder.IIsAttachment | builder.SuggestedActions)[], actionId? : string) => void) : boolean
+    public static HaveApp(context : BlisContext, cb : (responses: (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], actionId? : string) => void) : boolean
     {
         if (context.State(UserStates.APP) == null)
         {
@@ -54,7 +55,7 @@ export class BlisApp
         return true;
     }
 
-    public static async Create(context : BlisContext,  appName : string, luisKey, cb : (responses: (string | builder.IIsAttachment | builder.SuggestedActions)[]) => void) : Promise<void>
+    public static async Create(context : BlisContext,  appName : string, luisKey, cb : (responses: (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[]) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Create Application`);
 
@@ -99,7 +100,7 @@ export class BlisApp
     } 
 
     /** Get all apps, filter by Search term */
-    public static async GetAll(context : BlisContext, search : string, cb : (responses: (string | builder.IIsAttachment | builder.SuggestedActions)[]) => void) : Promise<void>
+    public static async GetAll(context : BlisContext, search : string, cb : (responses: (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[]) => void) : Promise<void>
     {
         BlisDebug.Log(`Getting apps`);
 
@@ -191,7 +192,7 @@ export class BlisApp
     }
 
     /** Delete all apps associated with this account */
-    public static async DeleteAll(context : BlisContext, cb : (responses: (string | builder.IIsAttachment | builder.SuggestedActions)[]) => void) : Promise<void>
+    public static async DeleteAll(context : BlisContext, cb : (responses: (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[]) => void) : Promise<void>
     {
         BlisDebug.Log(`Trying to Delete All Applications`);
        
@@ -222,7 +223,7 @@ export class BlisApp
         }
     }
 
-    public static async Delete(context : BlisContext, appId : string, cb : (responses: (string | builder.IIsAttachment | builder.SuggestedActions)[]) => void) : Promise<void>
+    public static async Delete(context : BlisContext, appId : string, cb : (responses: (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[]) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Delete Application`);
         if (!appId)

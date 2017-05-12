@@ -18,6 +18,7 @@ import { Utils } from './Utils';
 import { Menu } from './Menu';
 import { CommandHandler } from './CommandHandler'
 import { AzureFunctions } from './AzureFunctions'
+import { EditableResponse } from './Model/EditableResponse';
 
 export interface FunctionMap { [name: string] : (context : BlisContext, memory : BlisMemory, args : string) => Promise<TakeTurnRequest>; }
 
@@ -26,7 +27,7 @@ export interface IBlisResult extends builder.IIntentRecognizerResult {
 }
 
 export interface IBlisResponse {
-    responses: (string | builder.IIsAttachment | builder.SuggestedActions)[];
+    responses: (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[];
     intent?: string;
     entities?: builder.IEntity[]; 
 }
@@ -99,6 +100,25 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             this.connector = options.connector;
             this.defaultApp = options.appId;
             this.blisCallback = options.blisCallback ? options.blisCallback : this.DefaultBlisCallback;
+
+            // Create a wrapper for handling intent calls during training 
+            // This allows prompt for next input after intent call is done
+            this.bot.dialog('BLIS_INTENT_WRAPPER',
+            [
+                function(session, wrappedIntent)
+                {
+                    session.beginDialog(wrappedIntent.intent, wrappedIntent.entities);
+                },
+                function(session)
+                {
+                    var card = Utils.MakeHero(null, null, "Type next user input for this Dialog or" , 
+                    { "Dialog Complete" : IntCommands.DONETEACH});
+                    let message = new builder.Message(session)
+			            .addAttachment(card);
+                    session.send(message);
+                    session.endDialog();
+                }
+            ]);
         }
         catch (error) {
             BlisDebug.Error(error);
@@ -106,7 +126,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     }
     
     public LoadUser(session: builder.Session, 
-                        cb : (responses: (string | builder.IIsAttachment | builder.SuggestedActions)[], context: BlisContext) => void )
+                        cb : (responses: (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], context: BlisContext) => void )
     {
             let context = new BlisContext(this.bot, this.blisClient, session);
             // Is new?
@@ -127,7 +147,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     }
 
     /** Send result to user */
-    private SendResult(recsess : RecSession, responses : (string | builder.IIsAttachment | builder.SuggestedActions)[], intent? : string, entities?: builder.IEntity[]  ) 
+    private SendResult(recsess : RecSession, responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], intent? : string, entities?: builder.IEntity[]  ) 
     {
         if (!responses && !intent)
         {
@@ -142,7 +162,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     }
 
     /** Process result before sending to user */
-    private ProcessResult(recsess : RecSession, responses : (string | builder.IIsAttachment | builder.SuggestedActions)[], intent : string, entities: builder.IEntity[], teachAction?: string, actionData? : string) 
+    private ProcessResult(recsess : RecSession, responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], intent : string, entities: builder.IEntity[], teachAction?: string, actionData? : string) 
     {
         // Some commands require taking a post command TeachAction (if user is in teach mode)
         let inTeach = recsess.context.State(UserStates.TEACH);
@@ -201,7 +221,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             return;
         }
 
-        let responses: (string | builder.IIsAttachment | builder.SuggestedActions)[] = [];
+        let responses: (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[] = [];
         
         if (ttResponse.mode == TakeTurnModes.TEACH)
         {
@@ -296,7 +316,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     }*/
 
     /** Process Label Entity Training Step */
-    private ProcessLabelEntity(recsess : RecSession, ttResponse : TakeTurnResponse, responses: (string | builder.IIsAttachment | builder.SuggestedActions)[]) : void
+    private ProcessLabelEntity(recsess : RecSession, ttResponse : TakeTurnResponse, responses: (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[]) : void
     {
         BlisDebug.Verbose("ProcessLabelEntity");
 
@@ -357,7 +377,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     }
 
     /** Process Label Action Training Step */
-    private ProcessLabelAction(recsess : RecSession, ttResponse : TakeTurnResponse, responses: (string | builder.IIsAttachment | builder.SuggestedActions)[]) : void
+    private ProcessLabelAction(recsess : RecSession, ttResponse : TakeTurnResponse, responses: (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[]) : void
     {
         BlisDebug.Verbose("ProcessLabelEntity");
 
@@ -456,7 +476,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                     if (Command.IsCueCommand(userInput)) {
 
                         CommandHandler.HandleCueCommand(context, userInput, 
-                            (responses : (string | builder.IIsAttachment | builder.SuggestedActions)[], teachAction: string, actionData : string) => 
+                            (responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], teachAction: string, actionData : string) => 
                             {
                                 this.ProcessResult(recsess, responses, null, null, teachAction, actionData);
                             });
@@ -464,7 +484,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                     // Handle response to a cue command
                     else if (memory.CueCommand())
                     {
-                        CommandHandler.ProcessCueCommand(context, userInput, (responses : (string | builder.IIsAttachment | builder.SuggestedActions)[], teachAction: string, actionData : string) => 
+                        CommandHandler.ProcessCueCommand(context, userInput, (responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], teachAction: string, actionData : string) => 
                             {
                                 this.ProcessResult(recsess, responses, null, null, teachAction, actionData);
                             });
@@ -474,13 +494,13 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                     else if (Command.IsLineCommand(userInput)) {
 
                         CommandHandler.HandleLineCommand(context, userInput, 
-                            (responses : (string | builder.IIsAttachment | builder.SuggestedActions)[], teachAction: string, actionData : string) => 
+                            (responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], teachAction: string, actionData : string) => 
                             {
                                 this.ProcessResult(recsess, responses, null, null, teachAction, actionData);
                             });
                     }
                     else if (Command.IsIntCommand(userInput)) {
-                        CommandHandler.HandleIntCommand(context, userInput, (responses : (string | builder.IIsAttachment | builder.SuggestedActions)[], teachAction: string, actionData: string) => 
+                        CommandHandler.HandleIntCommand(context, userInput, (responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], teachAction: string, actionData: string) => 
                             {
                                 this.ProcessResult(recsess, responses, null, null, teachAction, actionData);
                             });
@@ -781,7 +801,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
 
     //====================================================
 
-    private ErrorResponse(error : (string | builder.IIsAttachment | builder.SuggestedActions)) : TakeTurnResponse
+    private ErrorResponse(error : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)) : TakeTurnResponse
     {
         return new TakeTurnResponse({ mode : TakeTurnModes.ERROR, error: error});
     }

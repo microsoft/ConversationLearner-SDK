@@ -3,6 +3,10 @@ import { BlisRecognizer, IBlisResult, IBlisOptions } from './BlisRecognizer';
 import { BlisDebug } from './BlisDebug';
 import { Utils } from './Utils';
 import { Menu } from './Menu';
+import { EditableResponse } from './Model/EditableResponse';
+import { BlisContext} from './BlisContext';
+import { UserStates } from './Model/Consts';
+
 
 export class BlisDialog extends builder.Dialog {
 
@@ -58,7 +62,7 @@ export class BlisDialog extends builder.Dialog {
                 return;
             }
 
-            // Clear memory of last posts
+            // Clear memory of last posts -- todo clear editable cache
             session.conversationData.lastPosts = [];
 
             // If reponses present, send to user
@@ -69,7 +73,7 @@ export class BlisDialog extends builder.Dialog {
                 {
                     if (response instanceof builder.SuggestedActions)
                     {
-                        // Add suggested actions to carosel
+                        // Add suggested actions to carousel
                         if (carousel)
                         {
                             carousel.suggestedActions(response);
@@ -80,19 +84,29 @@ export class BlisDialog extends builder.Dialog {
                         // Send existing carousel if next entry is text
                         if (carousel)
                         {
-                            Utils.SendAndRemember(session, carousel);
+                            session.send(carousel);
                             carousel = null
                         }
-                        Utils.SendAndRemember(session, response);
+                        session.send(response);
                     }
                     else if (response == null) 
                     {
                         // Send existing carousel if empty entry
                         if (carousel)
                         {
-                            Utils.SendAndRemember(session, carousel);
+                            session.send(carousel);
                             carousel = null
                         }
+                    }
+                    else if (response instanceof EditableResponse)
+                    {
+                        // Send existing carousel if next entry is text
+                        if (carousel)
+                        {
+                            session.send(carousel);
+                            carousel = null
+                        }
+                        response.Send(session);
                     }
                     else
                     {
@@ -105,14 +119,23 @@ export class BlisDialog extends builder.Dialog {
                 }
                 if (carousel)
                 {
-                    Utils.SendAndRemember(session, carousel);
+                    session.send(carousel);
                 }
             }
 
             // If intent present, fire the intent
             if (blisResponse.intent)
             {
-                session.replaceDialog(blisResponse.intent, blisResponse.entities);
+                // If in teach mode wrap the intent so can give next input cue when intent dialog completes
+                let context = new BlisContext(null, null, session);
+                if (context.State(UserStates.TEACH))
+                {
+                    session.beginDialog('BLIS_INTENT_WRAPPER', {intent: blisResponse.intent, entities: blisResponse.entities});
+                }
+                else
+                {
+                    session.beginDialog(blisResponse.intent, blisResponse.entities);
+                }
             }
         });
     }

@@ -10,18 +10,19 @@ import { CueCommand } from './Model/CueCommand';
 import { BlisHelp } from './Model/Help';
 import { Action } from './Model/Action';
 import { Entity } from './Model/Entity';
-import { Page } from './Model/Page';
+import { Pager } from './Model/Pager';
 import { BlisContext } from './BlisContext';
 import { BlisAppContent } from './Model/BlisAppContent'
 import { Utils } from './Utils';
 import { UserStates, ActionCommand, ActionTypes, TeachAction, APITypes } from './Model/Consts';
 import { COMMANDPREFIX, LineCommands, IntCommands, CueCommands, HelpCommands } from './Model/Command';
+import { EditableResponse } from './Model/EditableResponse';
 
 export class CommandHandler
 { 
 
     /** Next incoming text from user is a command.  Send cue card */
-    private static async CueCommand(context : BlisContext, command : string, args : string,  cb : (cards : (string | builder.IIsAttachment | builder.SuggestedActions)[]) => void) : Promise<void>
+    private static async CueCommand(context : BlisContext, command : string, args : string,  cb : (cards : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[]) => void) : Promise<void>
     {
         try
         {         
@@ -97,10 +98,13 @@ export class CommandHandler
         }
     }
 
-    public static HandleCueCommand(context : BlisContext, input : string, cb: (responses : (string | builder.IIsAttachment | builder.SuggestedActions)[], teachAction? : string, actionData? : string) => void) : void {
+    public static HandleCueCommand(context : BlisContext, input : string, cb: (responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], teachAction? : string, actionData? : string) => void) : void {
     
         let [command, arg, arg2, arg3] = input.split(' ');
         command = command.toLowerCase();
+
+        // Update editable buttons
+        EditableResponse.Replace(context.session, command);
 
         //-------- Valid any time -----------------------//
         if (command == CueCommands.ADDRESPONSE) {
@@ -190,7 +194,7 @@ export class CommandHandler
         }
     }
 
-    public static HandleIntCommand(context : BlisContext, input : string, cb: (responses : (string | builder.IIsAttachment | builder.SuggestedActions)[], teachAction? : string, actionData? : string) => void) : void {
+    public static HandleIntCommand(context : BlisContext, input : string, cb: (responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], teachAction? : string, actionData? : string) => void) : void {
     
         let [command, arg, arg2, arg3] = input.split(' ');
         command = command.toLowerCase();
@@ -201,7 +205,7 @@ export class CommandHandler
             return;
         }
         else if (command == IntCommands.CHOOSERESPONSETYPE) {
-            cb([Menu.ChooseResponse()]);
+            cb([Menu.ChooseResponse(context.session)]);
             return;
         }
         //-------- Only valid in Teach ------------------//
@@ -245,7 +249,17 @@ export class CommandHandler
                 });
             }
             else if (command == IntCommands.DELETEDIALOG) {
-                TrainDialog.Delete(context, arg, (responses) => {
+                // Delete
+                TrainDialog.Delete(context, arg, (dreponses) => {
+                    // Continue displaying remaining dialogs
+                    TrainDialog.Get(context, true, (responses) => {
+                        responses = dreponses.concat(responses);
+                        cb(responses);
+                    });
+                });
+            }
+            else if (command == IntCommands.EDITDIALOG) {
+                TrainDialog.Edit(context, arg, (responses) => {
                     cb(responses);
                 });
             }
@@ -255,16 +269,16 @@ export class CommandHandler
             else if (command == IntCommands.TRAINDIALOG_NEXT)
             {
                 // Next page
-                let page = context.Memory().NextPage();
-                TrainDialog.Get(context, page.search, page.index, false, (responses) => {
+                Pager.Next(context.session);
+                TrainDialog.Get(context, false, (responses) => {
                     cb(responses);
                 });
             }
             else if (command == IntCommands.TRAINDIALOG_PREV)
             {
                 // Next page
-                let page = context.Memory().PrevPage();
-                TrainDialog.Get(context, page.search, page.index, false, (responses) => {
+                Pager.Prev(context.session);
+                TrainDialog.Get(context, false, (responses) => {
                     cb(responses);
                 });
             }
@@ -279,14 +293,14 @@ export class CommandHandler
         }
     }
 
-    public static HandleLineCommand(context : BlisContext, input : string, cb: (responses : (string | builder.IIsAttachment | builder.SuggestedActions)[], teachAction? : string, actionData? : string) => void) : void 
+    public static HandleLineCommand(context : BlisContext, input : string, cb: (responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], teachAction? : string, actionData? : string) => void) : void 
     {
         let [command] = input.split(' ');
         let args = this.RemoveCommandWord(input); 
         this.ProcessCommand(context, command, args, cb);
     }
 
-    private static ProcessCommand(context : BlisContext, command : string, args : string, cb: (responses : (string | builder.IIsAttachment | builder.SuggestedActions)[], teachAction? : string, actionData? : string) => void) : void 
+    private static ProcessCommand(context : BlisContext, command : string, args : string, cb: (responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], teachAction? : string, actionData? : string) => void) : void 
     {
         //---------------------------------------------------
         // Commands allowed at any time
@@ -503,10 +517,10 @@ export class CommandHandler
             else if (command == LineCommands.TRAINDIALOGS)
             {
                 let [search] = args.split(' ');
-                // Reset paging
-                let page = new Page(0, search);
-                context.SetState(UserStates.PAGE, page);
-                TrainDialog.Get(context, page.search, page.index, true, (responses) => {
+
+                // Set up pager
+                Pager.Init(context.session, search);
+                TrainDialog.Get(context, true, (responses) => {
                     cb(responses);
                 });
             }
@@ -519,7 +533,7 @@ export class CommandHandler
     }
        
     // Response to cued text
-    public static ProcessCueCommand(context : BlisContext, input : string, cb: (responses : (string | builder.IIsAttachment | builder.SuggestedActions)[], teachAction? : string, actionData? : string) => void) : void {
+    public static ProcessCueCommand(context : BlisContext, input : string, cb: (responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], teachAction? : string, actionData? : string) => void) : void {
         
         let memory =  context.Memory();
         try

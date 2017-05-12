@@ -6,7 +6,7 @@ import { LabelEntity} from './Model/LabelEntity';
 import { Entity} from './Model/Entity';
 import { BlisContext} from './BlisContext';
 import { CueCommand } from './Model/CueCommand';
-import { Page } from './Model/Page';
+import { Pager } from './Model/Pager';
 
 export class TrainStep {
     public input : string = null;
@@ -494,27 +494,6 @@ export class BlisMemory {
     public CueCommand() : CueCommand {
         return this.memory[UserStates.CUECOMMAND];
     }
-
-    //--------------------------------------------------------
-    // Page
-    //--------------------------------------------------------
-
-    public SetPage(page : Page) : void {
-        this.memory[UserStates.PAGE] = page;
-    }
-
-    public NextPage() : Page {
-        let page = this.memory[UserStates.PAGE];
-        page.index++;
-        return page;
-    }
-
-    public PrevPage() : Page {
-        let page = this.memory[UserStates.PAGE];
-        page.index--;
-        return page;
-    }
-
 
     //--------------------------------------------------------
 

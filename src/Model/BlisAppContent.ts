@@ -10,6 +10,8 @@ import { Entity } from './Entity';
 import { Menu } from '../Menu';
 import { TrainDialog } from './TrainDialog';
 import { BlisContext } from '../BlisContext';
+import { EditableResponse } from './EditableResponse';
+
 
 export class BlisAppContent
 {
@@ -49,7 +51,7 @@ export class BlisAppContent
         return dialogs;
     }
 
-    public static async Export(context : BlisContext, cb : (responses: (string | builder.IIsAttachment | builder.SuggestedActions)[]) => void) : Promise<void>
+    public static async Export(context : BlisContext, cb : (responses: (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[]) => void) : Promise<void>
     {
         BlisDebug.Log(`Exporting App`);
 
@@ -76,7 +78,7 @@ export class BlisAppContent
     }
 
     /** Import (and merge) application with given appId */
-    public static async Import(context : BlisContext, appId : string, cb : (responses: (string | builder.IIsAttachment | builder.SuggestedActions)[]) => void) : Promise<void>
+    public static async Import(context : BlisContext, appId : string, cb : (responses: (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[]) => void) : Promise<void>
     {
         try
         {
@@ -138,7 +140,7 @@ export class BlisAppContent
         }
     }
 
-    public static async Load(context : BlisContext, appId : string, cb : (responses: (string | builder.IIsAttachment | builder.SuggestedActions)[]) => void) : Promise<void>
+    public static async Load(context : BlisContext, appId : string, cb : (responses: (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[]) => void) : Promise<void>
     {
         try {
 

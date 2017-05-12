@@ -2,6 +2,7 @@ const request = require('request');
 import { deserialize, serialize } from 'json-typescript-mapper';
 import { Credentials } from './Http/Credentials';
 import { Action, ActionMetaData } from './Model/Action'
+import { Dialog, TrainDialog } from './Model/TrainDialog'
 import { BlisApp } from './Model/BlisApp'
 import { BlisAppContent } from './Model/BlisAppContent'
 import { Entity, EntityMetaData } from './Model/Entity'
@@ -380,6 +381,36 @@ export class BlisClient {
         )
     }
 
+    public EditTrainDialog(appId : string, dialogId : string, trainDialog : TrainDialog) : Promise<string>
+    {
+        let apiPath = `app/${appId}/traindialog/${dialogId}`;
+
+        return new Promise(
+            (resolve, reject) => {
+               const requestData = {
+                    url: this.serviceUri+apiPath,
+                    headers: {
+                        'Cookie' : this.credentials.Cookiestring()
+                    },
+                    body: serialize(trainDialog.dialog),
+                    json: true
+                }
+                BlisDebug.LogRequest("PUT",apiPath, requestData);
+                request.put(requestData, (error, response, body) => {
+                    if (error) {
+                        reject(error);
+                    }
+                    else if (response.statusCode >= 300) {
+                        reject(body);
+                    }
+                    else {
+                        resolve(body);
+                    }
+                });
+            }
+        )
+    }
+
     public ExportApp(appId : string) : Promise<BlisAppContent>
     {
         let apiPath = `app/${appId}/source`;
@@ -644,7 +675,7 @@ export class BlisClient {
         )
     }
 
-    public GetTrainDialog(appId : string, dialogId : string) : Promise<string>
+    public GetTrainDialog(appId : string, dialogId : string) : Promise<TrainDialog>
     {
         let apiPath = `app/${appId}/traindialog/${dialogId}`;
 
@@ -654,7 +685,8 @@ export class BlisClient {
                     url: this.serviceUri+apiPath,
                     headers: {
                         'Cookie' : this.credentials.Cookiestring()
-                    }
+                    },
+                    json: true
                 }
                 BlisDebug.LogRequest("GET",apiPath, requestData);
                 request.get(requestData, (error, response, body) => {
@@ -662,10 +694,12 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(JSON.parse(body).message);
+                        reject(body);
                     }
                     else {
-                        resolve(body);
+                        let dialog = deserialize(Dialog, body);
+                        let trainDialog = new TrainDialog({dialog: dialog, id: dialogId});
+                        resolve(trainDialog);
                     }
                 });
             }

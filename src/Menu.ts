@@ -4,11 +4,12 @@ import { IntCommands, LineCommands, CueCommands, HelpCommands } from './Model/Co
 import { Utils } from './Utils';
 import { Action } from './Model/Action';
 import { Entity } from './Model/Entity';
+import { EditableResponse } from './Model/EditableResponse';
 import { BlisContext} from './BlisContext';
 
 export class Menu {
 
-    public static AddEditCards(context : BlisContext, responses : (string | builder.IIsAttachment | builder.SuggestedActions)[]) : (string | builder.IIsAttachment | builder.SuggestedActions)[]
+    public static AddEditCards(context : BlisContext, responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[]) : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[]
     {
         // Only add edit menu when not in teach mode
         if (context.State(UserStates.TEACH))
@@ -18,7 +19,7 @@ export class Menu {
         return responses.concat(Menu.EditCards(true));
     }
 
-    public static EditCards(newLine? : boolean) : (string | builder.IIsAttachment | builder.SuggestedActions)[]
+    public static EditCards(newLine? : boolean) : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[]
     {
         let cards = [];
         if (newLine) cards.push(null);
@@ -56,7 +57,7 @@ export class Menu {
         return cards;
     }
 
-    public static Home(title = "", subheader = "", body = "") : (string | builder.IIsAttachment | builder.SuggestedActions)
+    public static Home(title = "", subheader = "", body = "") : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)
     { 
         let card = Utils.MakeHero(title, subheader, body, 
         {
@@ -67,7 +68,7 @@ export class Menu {
         return card;
     }
 
-    public static AppPanel(title : string, subheader? : string, body? : string) : (string | builder.IIsAttachment | builder.SuggestedActions)[]
+    public static AppPanel(title : string, subheader? : string, body? : string) : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[]
     { 
         let cards = [];
         cards.push(Utils.MakeHero(title, subheader, body, 
@@ -91,9 +92,9 @@ export class Menu {
         return card;
     }
 
-    public static ChooseResponse() : builder.IIsAttachment
+    public static ChooseResponse(session : builder.Session) : EditableResponse
     {
-        let card = Utils.MakeHero(`Add Response`, null, "Text or Intent?",  
+        let card = Utils.MakeEditableHero(session, `Add Response`, null, "Text or Intent?",  
         {  
             "Text" : CueCommands.ADDRESPONSETEXT,
             "Intent" : CueCommands.ADDRESPONSEINTENT,

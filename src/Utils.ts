@@ -2,6 +2,7 @@ import * as builder from 'botbuilder';
 import * as util from 'util';
 import * as request from 'request';
 import { BlisContext } from './BlisContext';
+import { EditableResponse } from './Model/EditableResponse';
 
 export class Utils  {
     
@@ -30,6 +31,32 @@ export class Utils  {
         return card;
     }
 
+     /** Make hero card with buttons */
+    public static MakeEditableHero(session: builder.Session, title : string, subtitle : string, text : string, buttons : {}) : EditableResponse
+    {
+        let buttonList : builder.CardAction[] = [];
+        let postBackList : string[] = [];
+        for (let message in buttons)
+        {
+            let postback = buttons[message];
+            postBackList.push(postback);
+            buttonList.push(builder.CardAction.postBack(null, postback, message));
+        }
+
+        let original = new builder.HeroCard()
+						.title(title)
+						.subtitle(subtitle)
+						.text(text)		
+						.buttons(buttonList);
+                        
+        let replacement = new builder.HeroCard()
+						.title(title)
+						.subtitle(subtitle)
+						.text(text);
+
+        return new EditableResponse(session, original, replacement, postBackList);
+    }
+
     /** Make hero card with a keyboard */  // NOT CURRENTLY USED
     public static MakeKeyboard(buttons : {}) : builder.SuggestedActions
     {
@@ -51,7 +78,7 @@ export class Utils  {
     }
 
     /** Send an out of band message */
-    public static SendMessage(context : BlisContext, content : string | builder.IIsAttachment | builder.SuggestedActions)
+    public static SendMessage(context : BlisContext, content : string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)
     { 
         let message = new builder.Message()
 			.address(context.Address());
@@ -59,12 +86,16 @@ export class Utils  {
         if (content instanceof builder.SuggestedActions)
         {
             let msg = new builder.Message(context.session).suggestedActions(content);
-            context.bot.send(msg);
+            context.session.send(msg);
             return;
         }
         else if (typeof content == 'string')
         {
             message.text(content);
+        }
+        else if (content instanceof EditableResponse)
+        {
+            content.Send(context.session);
         }
         else
         {
@@ -74,7 +105,7 @@ export class Utils  {
     }
 
     /** Send a group of out of band message */
-    public static SendResponses(context : BlisContext, responses : (string | builder.IIsAttachment | builder.SuggestedActions)[])
+    public static SendResponses(context : BlisContext, responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[])
     {
         for (let response of responses)
         {
@@ -99,27 +130,16 @@ export class Utils  {
         context.bot.send(msg);
     }
 
-    /** Send a message and remember it's address */
-    // Notes: User must call:  session.save().sendBatch() after calling this
-    public static SendAndRemember(session : builder.Session, message: string | string[] | builder.IMessage | builder.IIsMessage | builder.Message, ...args: any[])
-    {
-       session.send(message);
-       return;
-        /* TODO: code for editing dialogs
-        session.send(message).sendBatch((err : any, addresses :any) =>
-            {
-                if (!session.conversationData.lastPosts)
-                {
-                    session.conversationData.lastPosts = addresses;
-                }
-                else
-                {
-                     session.conversationData.lastPosts.concat(addresses);
-                }
-                session.save().sendBatch();
-            });
-            */
-    }
+    public static HashCode(text : string) : number {
+        var hash = 0, i, chr;
+        if (text.length === 0) return hash;
+        for (i = 0; i < text.length; i++) {
+            chr   = text.charCodeAt(i);
+            hash  = ((hash << 5) - hash) + chr;
+            hash |= 0; // Convert to 32bit integer
+        }
+        return hash;
+    };
         
     /** Delete previous message batch */
     public static DeleteLastMessages(session : builder.Session)

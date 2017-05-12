@@ -3,6 +3,8 @@ import { JsonProperty } from 'json-typescript-mapper';
 import { Action } from './Action';
 import { LabelEntity } from './LabelEntity';
 import { LabelAction } from './LabelAction';
+import { EditableResponse } from './EditableResponse';
+
 
 export class TakeTurnResponse
 {
@@ -34,7 +36,7 @@ export class TakeTurnResponse
     public teachError : string;
 
     @JsonProperty('error')
-    public error : (string | builder.IIsAttachment | builder.SuggestedActions);
+    public error : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse);
 
     public constructor(init?:Partial<TakeTurnResponse>)
     {

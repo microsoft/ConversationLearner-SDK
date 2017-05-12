@@ -6,6 +6,8 @@ import { Utils } from '../Utils';
 import { BlisContext} from '../BlisContext';
 import { UserStates, ActionCommand, ActionTypes } from './Consts';
 import { IntCommands, LineCommands } from './Command';
+import { EditableResponse } from './EditableResponse';
+
 
 export class BlisSession
 { 
@@ -29,7 +31,7 @@ export class BlisSession
         }
     }
 
-    public static async NewSession(context : BlisContext, teach : boolean, cb : (results : (string | builder.IIsAttachment | builder.SuggestedActions)[]) => void) : Promise<void>
+    public static async NewSession(context : BlisContext, teach : boolean, cb : (results : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[]) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to create new session, Teach = ${teach}`);
 

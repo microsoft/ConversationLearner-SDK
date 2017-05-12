@@ -2,10 +2,12 @@ import * as builder from 'botbuilder';
 import { Command, HelpCommands, LineCommands } from './Command';
 import { Menu } from '../Menu';
 import { ActionCommand } from './Consts';
+import { EditableResponse } from './EditableResponse';
+
 
 export class BlisHelp {
 
-    public static Get(name: string) : (string | builder.IIsAttachment | builder.SuggestedActions)[] {
+    public static Get(name: string) : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[] {
         
         let helptext = "";
         let card = null;
@@ -26,7 +28,7 @@ export class BlisHelp {
                 return [helptext, card];
             case HelpCommands.ADDAZUREAPI:
                 helptext = this.CommandHelpString(LineCommands.ADDRESPONSE);
-                card = Menu.ChooseResponse();
+                card = null; // TODO Menu.ChooseResponse();
                 return [helptext, card];
             case HelpCommands.DELETEACTION:
                 command = this.CommandHelp(LineCommands.DELETEAPP);

@@ -11,6 +11,8 @@ import { IntCommands, LineCommands, CueCommands } from './Command';
 import { Menu } from '../Menu';
 import { JsonProperty } from 'json-typescript-mapper';
 import { BlisContext } from '../BlisContext';
+import { EditableResponse } from './EditableResponse';
+
 
 
 export class EntityMetaData
@@ -182,7 +184,7 @@ export class Entity
     }
 
     public static async Add(context : BlisContext, entityId : string, entityType : string,
-        userInput : string, cb : (responses : (string | builder.IIsAttachment | builder.SuggestedActions)[]) => void) : Promise<void>
+        userInput : string, cb : (responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[]) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Add Entity ${userInput}`);
 

@@ -10,6 +10,7 @@ import { BlisMemory } from '../BlisMemory';
 import { Utils } from '../Utils';
 import { Menu } from '../Menu';
 import { BlisContext } from '../BlisContext';
+import { EditableResponse } from './EditableResponse';
 
 export class ActionMetaData
 {
@@ -332,7 +333,7 @@ export class Action
     }
 
     public static async Add(context : BlisContext, actionId : string, actionType : string,  apiType : string, 
-        content : string, cb : (responses : (string | builder.IIsAttachment | builder.SuggestedActions)[], actionId : string) => void) : Promise<void>
+        content : string, cb : (responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], actionId : string) => void) : Promise<void>
     {
         BlisDebug.Log(`AddAction`);
 
@@ -427,7 +428,7 @@ export class Action
     }
 
     /** Delete Action with the given actionId */
-    public static async Delete(context : BlisContext, actionId : string, cb : (responses : (string | builder.IIsAttachment | builder.SuggestedActions)[]) => void) : Promise<void>
+    public static async Delete(context : BlisContext, actionId : string, cb : (responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[]) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Delete Action`);
 
@@ -463,7 +464,7 @@ export class Action
 
     /** Get actions.  Return count of actions */
     public static async GetAll(context : BlisContext, actionType : string, search : string,
-            cb : (responses : (string | builder.IIsAttachment | builder.SuggestedActions)[]) => void) : Promise<number>
+            cb : (responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[]) => void) : Promise<number>
     {
         BlisDebug.Log(`Getting actions`);
 
