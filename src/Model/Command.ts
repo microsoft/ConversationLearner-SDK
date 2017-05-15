@@ -13,6 +13,7 @@ const HELPPREFIX = "%help%"
 // Internal commands. (Not for user)
 export const CueCommands =
 {
+    ADDALTTEXT : CUEPREFIX + "addalttext",
     ADDAPICALL : CUEPREFIX + "addapicall",
     ADDENTITY : CUEPREFIX + "addentity",
     ADDRESPONSE : CUEPREFIX + "addresponse",
@@ -52,6 +53,7 @@ export const LineCommands =
 {
     ABANDON: COMMANDPREFIX + "abandon",
     ACTIONS: COMMANDPREFIX + "actions",
+    ADDALTTEXT: COMMANDPREFIX + "addalttext",
     ADDAPICALL : COMMANDPREFIX + "addapicall", 
     ADDAPIAZURE : COMMANDPREFIX + "addazureapi",
     ADDAPILOCAL : COMMANDPREFIX + "addlocalapi",
@@ -70,6 +72,7 @@ export const LineCommands =
     DELETEENTITY : COMMANDPREFIX + "deleteentity",
     DONE : COMMANDPREFIX + "done",
     DUMP : COMMANDPREFIX + "dump",
+    EDIT : COMMANDPREFIX + "edit",
     EDITAPICALL : COMMANDPREFIX + "editapicall",
     EDITENTITY : COMMANDPREFIX + "editentity",
     EDITRESPONSE : COMMANDPREFIX + "editresponse",

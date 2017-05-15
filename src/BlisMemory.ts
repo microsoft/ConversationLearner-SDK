@@ -155,19 +155,24 @@ export class BlisMemory {
         return names;
     }
 
-    // OBSOLETE
     public RememberEntityByName(entityName: string, entityValue: string) {
         let entityId = this.EntityName2Id(entityName);
-        this.RememberEntityById(entityId, entityValue);
+        if (entityId)
+        {
+            this.RememberEntityById(entityId, entityValue);
+        } 
+        else
+        {
+            BlisDebug.Error(`Unknown Entity: ${entityName}`);
+        }
     }
 
-    // OBSOLETE
     public RememberEntityById(entityId: string, entityValue: string) {
 
         try {
             // Check if entity buckets values
             let entityName = this.EntityId2Name(entityId);
-            if (entityName.startsWith(ActionCommand.BUCKET))
+            if (entityName && entityName.startsWith(ActionCommand.BUCKET))
             {
                 if (!this.memory[UserStates.MEMORY][entityId])
                 {

@@ -10,7 +10,7 @@ import { LabelEntity } from './Model/LabelEntity';
 import { LabelAction } from './Model/LabelAction';
 import { Action } from './Model/Action';
 import { TrainDialog } from './Model/TrainDialog';
-import { TakeTurnModes, EntityTypes, UserStates, TeachStep, TeachAction, ActionTypes, SaveStep, APICalls, ActionCommand } from './Model/Consts';
+import { TakeTurnModes, EntityTypes, UserStates, TeachStep, TeachAction, ActionTypes, SaveStep, APICalls, ActionCommand, BLIS_INTENT_WRAPPER } from './Model/Consts';
 import { Command, IntCommands, LineCommands, CueCommands, HelpCommands } from './Model/Command';
 import { BlisHelp } from './Model/Help'; 
 import { TakeTurnResponse } from './Model/TakeTurnResponse'
@@ -103,7 +103,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
 
             // Create a wrapper for handling intent calls during training 
             // This allows prompt for next input after intent call is done
-            this.bot.dialog('BLIS_INTENT_WRAPPER',
+            this.bot.dialog(BLIS_INTENT_WRAPPER,
             [
                 function(session, wrappedIntent)
                 {
@@ -699,6 +699,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                         let iArgs = Utils.RemoveWords(args, 1);
                         let entities = recsess.context.Memory().GetEntities(iArgs);
                         await this.ProcessResult(recsess, null, intentName, entities);
+                        memory.RememberTrainStep(SaveStep.APICALLS, `${intentName} ${entities}`);
                         return;
                     }
 

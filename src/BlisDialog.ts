@@ -5,7 +5,7 @@ import { Utils } from './Utils';
 import { Menu } from './Menu';
 import { EditableResponse } from './Model/EditableResponse';
 import { BlisContext} from './BlisContext';
-import { UserStates } from './Model/Consts';
+import { UserStates, BLIS_INTENT_WRAPPER } from './Model/Consts';
 
 
 export class BlisDialog extends builder.Dialog {
@@ -130,7 +130,7 @@ export class BlisDialog extends builder.Dialog {
                 let context = new BlisContext(null, null, session);
                 if (context.State(UserStates.TEACH))
                 {
-                    session.beginDialog('BLIS_INTENT_WRAPPER', {intent: blisResponse.intent, entities: blisResponse.entities});
+                    session.beginDialog(BLIS_INTENT_WRAPPER, {intent: blisResponse.intent, entities: blisResponse.entities});
                 }
                 else
                 {

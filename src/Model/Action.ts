@@ -395,7 +395,7 @@ export class Action
                return;
             }
 
-            let changeType = (actionType == ActionTypes.TEXT) ? "Response" : "Api Call";
+            let changeType = (actionType == ActionTypes.TEXT) ? "Response" : (apiType = APITypes.INTENT) ? "Intent Call" : "API Call"
             if (actionId) 
             {
                 actionId = await context.client.EditAction(context.State(UserStates.APP), actionId, action, actionType, actionSet.waitAction, actionSet.posIds, actionSet.negIds);

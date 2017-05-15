@@ -31,7 +31,12 @@ export class CommandHandler
             let memory = context.Memory();
             memory.SetCueCommand(cueCommand);
 
-            if (command == LineCommands.ADDAPIAZURE)
+            if (command == LineCommands.ADDALTTEXT)
+            {
+                let card = Utils.MakeHero("Enter Step Number and New User Text", "{turn number} {new input text}", null, []);
+                cb([card]);
+            }
+            else if (command == LineCommands.ADDAPIAZURE)
             {
                 cb([Menu.AddAzureApi()]);
             }
@@ -113,7 +118,7 @@ export class CommandHandler
             });
             return;
         } 
-        if (command == CueCommands.ADDRESPONSETEXT) {
+        else if (command == CueCommands.ADDRESPONSETEXT) {
             this.CueCommand(context, LineCommands.ADDRESPONSETEXT, null, (responses) => {
                 cb(responses);
             });
@@ -142,7 +147,12 @@ export class CommandHandler
         //-------- Valid not in Teach ------------------//
         else 
         { 
-            if (command == CueCommands.ADDENTITY) {
+            if (command == CueCommands.ADDALTTEXT) {
+                this.CueCommand(context, LineCommands.ADDALTTEXT, arg, (responses) => {
+                    cb(responses);
+                });
+            }
+            else if (command == CueCommands.ADDENTITY) {
                 this.CueCommand(context, LineCommands.ADDENTITY, null, (responses) => {
                     cb(responses);
                 });
@@ -399,15 +409,26 @@ export class CommandHandler
             {
                   this.HandleIntCommand(context, IntCommands.FORGETTEACH, cb);
             }
-            else
+            else 
             {
-                cb([`_Command not valid while in Teach mode_`]);
+                let card = Utils.MakeHero("Not allowed while teaching", null, "Complete teaching first or Abandon teaching session.", 
+                    {
+                        "Abandon" : IntCommands.FORGETTEACH
+                    }
+                )
+                cb([card]); 
             }
         }
         //---------------------------------------------------
         // Commands only allowed when not in TEACH mode
         else {
-            if (command == LineCommands.APPS)
+            if (command == LineCommands.ADDALTTEXT)
+            {
+                TrainDialog.Edit(context, args, (responses) => {
+                    cb(responses);
+                });
+            }
+            else if (command == LineCommands.APPS)
             {
                 BlisApp.GetAll(context, args, (responses) => {
                     cb(responses);
@@ -454,6 +475,10 @@ export class CommandHandler
                 BlisSession.EndSession(context, (responses) => {
                     cb([Menu.Home()]);
                 });
+            }
+            else if (command == LineCommands.EDIT)
+            {
+                cb(Menu.EditCards());
             }
             else if (command == LineCommands.EDITAPICALL)    // TODO handle local vs azure
             {   
@@ -546,6 +571,10 @@ export class CommandHandler
                 return;
             }   
             let cueCommand = memory.CueCommand();
+
+            // Clear cue command
+            memory.SetCueCommand(null);
+
             let args = cueCommand.args ? `${cueCommand.args} ` : "";
             this.ProcessCommand(context, cueCommand.commandName, `${args}${input}` , cb);
          }
@@ -553,11 +582,6 @@ export class CommandHandler
         {
             let errMsg = BlisDebug.Error(error); 
             cb([errMsg]);
-        }
-        finally 
-        {
-            // Clear cue command
-            memory.SetCueCommand(null);
         }
     }
 

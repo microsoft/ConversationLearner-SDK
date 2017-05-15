@@ -1,3 +1,6 @@
+
+export const BLIS_INTENT_WRAPPER = "BLIS_INTENT_WRAPPER";
+
 export const TakeTurnModes =
 {
     CALLBACK : "lu_callback",
@@ -30,7 +33,6 @@ export const TeachStep =
     LABELENTITY : "label_entity",
     LABELACTION : "label_action"
 }
-
 
 export const TeachAction =
 {

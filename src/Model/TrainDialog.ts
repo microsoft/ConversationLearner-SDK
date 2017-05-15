@@ -4,7 +4,7 @@ import { BlisHelp } from '../Model/Help';
 import { BlisDebug} from '../BlisDebug';
 import { BlisClient } from '../BlisClient';
 import { TakeTurnModes, EntityTypes, UserStates, TeachStep, ActionTypes, SaveStep, APICalls, ActionCommand } from '../Model/Consts';
-import { IntCommands, LineCommands, HelpCommands } from './Command';
+import { IntCommands, LineCommands, CueCommands, HelpCommands } from './Command';
 import { BlisMemory } from '../BlisMemory';
 import { Utils } from '../Utils';
 import { Action } from './Action';
@@ -13,19 +13,6 @@ import { Menu } from '../Menu';
 import { Pager } from './Pager';
 import { BlisContext } from '../BlisContext';
 import { EditableResponse } from './EditableResponse';
-
-
-export class AltText
-{
-    @JsonProperty('text')  
-    public text : string;
-        
-    public constructor(init?:Partial<Input>)
-    {
-        this.text = undefined;
-        (<any>Object).assign(this, init);
-    }
-}
 
 export class TextEntity
 {
@@ -43,6 +30,22 @@ export class TextEntity
         this.endToken = undefined;
         this.entityId = undefined;
         this.startToken = undefined;
+        (<any>Object).assign(this, init);
+    }
+}
+
+export class AltText
+{
+    @JsonProperty('text')  
+    public text : string;
+        
+    @JsonProperty({clazz: TextEntity, name: 'text-entities'})
+    public textEntities : TextEntity[];
+
+    public constructor(init?:Partial<Input>)
+    {
+        this.text = undefined;
+        this.textEntities = undefined;
         (<any>Object).assign(this, init);
     }
 }
@@ -89,7 +92,7 @@ export class Input
 
             for (let alt of this.textAlts)
             {
-                text +=`\n\n${alt.text}`;
+                text +=`\n\n-- ${alt.text}`;
             }
             return text;
         }
@@ -152,14 +155,14 @@ export class Dialog
     @JsonProperty({clazz: Turn, name: 'turns'})
     public turns : Turn[];
     
-    public async toText(client : BlisClient, appId : string, number : boolean) : Promise<string>
+    public async toText(client : BlisClient, appId : string) : Promise<string>
     {
         let text = "";
         for (let i in this.turns)
         {
             let turn = this.turns[i];
             let turnText = await turn.toText(client, appId);
-            let index = number ? `${(+i+1)}) ` : "";
+            let index = `(${(+i+1)}) `;
             text += `${index}${turnText}\n\n`;
         }
         return text;
@@ -182,7 +185,7 @@ export class TrainDialog
 
     public async toText(client : BlisClient, appId : string, number = false) : Promise<string>
     {
-        let dialogText = await this.dialog.toText(client, appId, number);
+        let dialogText = await this.dialog.toText(client, appId);
         return `${dialogText}`;
     }
 
@@ -193,20 +196,66 @@ export class TrainDialog
         (<any>Object).assign(this, init);
     }
 
-    public static async Edit(context : BlisContext, dialogId : string, cb : (responses: (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[]) => void) : Promise<void>
+    public static async Edit(context : BlisContext, args : any, cb : (responses: (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[]) => void) : Promise<void>
     {
+        // Extract args
         let appId = context.State(UserStates.APP);
-        let trainDialog = await context.client.GetTrainDialog(appId, dialogId);
-        let text = await trainDialog.toText(context.client, appId, true);
-        cb([text]);
-        let altTexts : AltText[] = [];
-        let altText = new AltText({text: "hmmmm"});
-        altTexts.push(altText);
+        let [dialogId, turnNum] = args.split(" ");
+        let input = Utils.RemoveWords(args, 2);
+        turnNum = +turnNum-1;  // 0-based array
 
-        trainDialog.dialog.turns[0].input.textAlts = altTexts;
+        // Error checking
+        let error = null;
+        if (!dialogId) {
+            error = "Must specify dialogId";
+        }
+        else if (turnNum < 0)
+        {
+            error = "Expecting turn number";
+        }
+        else if (!input)
+        {
+            error = "Expecting input text";
+        }
+        else
+        {
+            // Get train dialog
+            let trainDialog = await context.client.GetTrainDialog(appId, dialogId);
 
-        //trainDialog.dialog.turns[0].input.text = "LETS TRY THIS";
-        await context.client.EditTrainDialog(context.State(UserStates.APP), dialogId, trainDialog);
+            if (turnNum >= trainDialog.dialog.turns.length)
+            {
+                error = "Invalid turn number";
+            }
+            else
+            {
+                // Get corre}ct turn
+                let turn = trainDialog.dialog.turns[turnNum];
+                let altTexts = turn.input.textAlts;
+                if (!altTexts) altTexts = [];
+                
+                // Add new text
+                let nextText = new AltText({text: input});
+                altTexts.push(nextText);
+                trainDialog.dialog.turns[turnNum].input.textAlts = altTexts;
+        
+                // Save
+                await context.client.EditTrainDialog(context.State(UserStates.APP), dialogId, trainDialog);
+
+                // Show item with new content
+                TrainDialog.Get(context, true, (responses) => {
+                    cb(responses);
+                });
+            }
+        }
+        if (error)
+        {
+            let cards = [];
+            cards.push(Utils.ErrorCard(error, "Expected input format {turn number} {new input text}"));
+            TrainDialog.Get(context, true, (responses) => {
+                cards = cards.concat(responses);
+                cb(cards);
+            });
+        }    
     }
 
     public static async Delete(context : BlisContext, dialogId : string, cb : (responses: (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[]) => void) : Promise<void>
@@ -268,7 +317,7 @@ export class TrainDialog
                         "Next" : IntCommands.TRAINDIALOG_NEXT,
                         "Done" : IntCommands.EDITAPP,
                         "Delete" : `${IntCommands.DELETEDIALOG} ${dialog.dialogId}`,
-                        //"Edit" : `${IntCommands.EDITDIALOG} ${dialog.dialogId}`,
+                        "Edit" : `${CueCommands.ADDALTTEXT} ${dialog.dialogId}`,
                     };
                     responses.push(Utils.MakeHero(null, `${index+1} of ${dialogs.length}`, null, buttons));
                     break;
