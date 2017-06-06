@@ -70,7 +70,7 @@ export class Input
     @JsonProperty({clazz: TextEntity, name: 'text-entities'})
     public textEntities : TextEntity[];
 
-    public async toText(client : BlisClient, appId : string) : Promise<string>
+    public async toText(appId : string) : Promise<string>
     {
         // TODO = add masked-actions and context
         if (this.text)
@@ -78,7 +78,7 @@ export class Input
             let text = `${this.text}`;
             for (let entityId of this.entityIds)
             {
-                let entityName = await Entity.toText(client, appId, entityId)
+                let entityName = await Entity.toText(appId, entityId)
                 let entityValue = this.EntityValue(entityId);
                 if (entityValue)
                 {
@@ -131,10 +131,10 @@ export class Turn
     @JsonProperty('output')  
     public actionId : string;
     
-    public async toText(client : BlisClient, appId : string) : Promise<string>
+    public async toText(appId : string) : Promise<string>
     {
-        let inputText = await this.input.toText(client, appId);
-        let actionText = await Action.toText(client, appId, this.actionId);
+        let inputText = await this.input.toText(appId);
+        let actionText = await Action.toText(appId, this.actionId);
         if (inputText)
         {
             return `${inputText}\n\n     ${actionText}`;
@@ -155,13 +155,13 @@ export class Dialog
     @JsonProperty({clazz: Turn, name: 'turns'})
     public turns : Turn[];
     
-    public async toText(client : BlisClient, appId : string) : Promise<string>
+    public async toText(appId : string) : Promise<string>
     {
         let text = "";
         for (let i in this.turns)
         {
             let turn = this.turns[i];
-            let turnText = await turn.toText(client, appId);
+            let turnText = await turn.toText(appId);
             let index = `(${(+i+1)}) `;
             text += `${index}${turnText}\n\n`;
         }
@@ -183,9 +183,9 @@ export class TrainDialog
     @JsonProperty({clazz: Dialog, name: 'dialog'})
     public dialog : Dialog;
 
-    public async toText(client : BlisClient, appId : string, number = false) : Promise<string>
+    public async toText(appId : string, number = false) : Promise<string>
     {
-        let dialogText = await this.dialog.toText(client, appId);
+        let dialogText = await this.dialog.toText(appId);
         return `${dialogText}`;
     }
 
@@ -220,7 +220,7 @@ export class TrainDialog
         else
         {
             // Get train dialog
-            let trainDialog = await context.client.GetTrainDialog(appId, dialogId);
+            let trainDialog = await BlisClient.client.GetTrainDialog(appId, dialogId);
 
             if (turnNum >= trainDialog.dialog.turns.length)
             {
@@ -239,7 +239,7 @@ export class TrainDialog
                 trainDialog.dialog.turns[turnNum].input.textAlts = altTexts;
         
                 // Save
-                await context.client.EditTrainDialog(context.State(UserStates.APP), dialogId, trainDialog);
+                await BlisClient.client.EditTrainDialog(context.State(UserStates.APP), dialogId, trainDialog);
 
                 // Show item with new content
                 TrainDialog.Get(context, true, (responses) => {
@@ -272,7 +272,7 @@ export class TrainDialog
         try
         {        
             // TODO clear savelookup
-            await context.client.DeleteTrainDialog(context.State(UserStates.APP), dialogId)
+            await BlisClient.client.DeleteTrainDialog(context.State(UserStates.APP), dialogId)
             let card = Utils.MakeHero(`Deleted TrainDialog`, null, dialogId, null);
             cb([card]);
         }
@@ -289,10 +289,10 @@ export class TrainDialog
             let appId = context.State(UserStates.APP);
             if (refreshCache)
             {
-                context.client.ClearExportCache(appId)
+                BlisClient.client.ClearExportCache(appId)
             }
-            let blisApp = await context.client.ExportApp(appId);
-            let dialogs = await blisApp.FindTrainDialogs(context.client, appId, Pager.SearchTerm(context.session));
+            let blisApp = await BlisClient.client.ExportApp(appId);
+            let dialogs = await blisApp.FindTrainDialogs(appId, Pager.SearchTerm(context.session));
 
             if (dialogs.length == 0)
             {

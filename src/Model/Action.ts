@@ -131,11 +131,11 @@ export class Action
         return null;
     }
     
-    public static async toText(client : BlisClient, appId : string, actionId : string) : Promise<string>
+    public static async toText(appId : string, actionId : string) : Promise<string>
     {
         try
         {            
-            let action = await client.GetAction(appId, actionId);
+            let action = await BlisClient.client.GetAction(appId, actionId);
             let msg = action.content;
             if (action.waitAction) 
             {
@@ -172,7 +172,7 @@ export class Action
     /** Is the Activity used anywhere */
     private async InUse(context : BlisContext) : Promise<boolean>
     {
-        let appContent = await context.client.ExportApp(context.State(UserStates.APP));
+        let appContent = await BlisClient.client.ExportApp(context.State(UserStates.APP));
 
         // Clear actions
         appContent.actions = null;
@@ -398,13 +398,13 @@ export class Action
             let changeType = (actionType == ActionTypes.TEXT) ? "Response" : (apiType = APITypes.INTENT) ? "Intent Call" : "API Call"
             if (actionId) 
             {
-                actionId = await context.client.EditAction(context.State(UserStates.APP), actionId, action, actionType, actionSet.waitAction, actionSet.posIds, actionSet.negIds);
+                actionId = await BlisClient.client.EditAction(context.State(UserStates.APP), actionId, action, actionType, actionSet.waitAction, actionSet.posIds, actionSet.negIds);
                 changeType = changeType + ` Edited`;
             }
             else 
             {
                 let metadata = new ActionMetaData({type : apiType});
-                actionId = await context.client.AddAction(context.State(UserStates.APP), action, actionType, actionSet.waitAction, actionSet.posIds, actionSet.negIds, null, metadata);
+                actionId = await BlisClient.client.AddAction(context.State(UserStates.APP), action, actionType, actionSet.waitAction, actionSet.posIds, actionSet.negIds, null, metadata);
                 changeType = changeType + ` Created`;
             }
             let substr = actionSet.waitAction ? " (WAIT)" : "";;
@@ -440,7 +440,7 @@ export class Action
 
         try
         {    
-            let action = await context.client.GetAction(context.State(UserStates.APP), actionId);  
+            let action = await BlisClient.client.GetAction(context.State(UserStates.APP), actionId);  
             let inUse = await action.InUse(context);
 
             if (inUse)
@@ -451,7 +451,7 @@ export class Action
             }
 
             // TODO clear savelookup
-            await context.client.DeleteAction(context.State(UserStates.APP), actionId)
+            await BlisClient.client.DeleteAction(context.State(UserStates.APP), actionId)
             let card = Utils.MakeHero(`Deleted Action`, null, action.content, null);
             cb(Menu.AddEditCards(context,[card]));
         }
@@ -485,7 +485,7 @@ export class Action
             // Get actions
             let actionIds = [];
             let responses = [];
-            let json = await context.client.GetActions(context.State(UserStates.APP))
+            let json = await BlisClient.client.GetActions(context.State(UserStates.APP))
             actionIds = JSON.parse(json)['ids'];
             BlisDebug.Log(`Found ${actionIds.length} actions`);
 
@@ -504,7 +504,7 @@ export class Action
 
             for (let actionId of actionIds)
             {
-                let action = await context.client.GetAction(context.State(UserStates.APP), actionId)
+                let action = await BlisClient.client.GetAction(context.State(UserStates.APP), actionId)
 
                 // Don't display internal APIs (unless in debug)
                 if (debug || !action.metadata || !action.metadata.internal)

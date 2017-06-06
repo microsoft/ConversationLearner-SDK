@@ -70,17 +70,17 @@ export class CommandHandler
             }
             else if (command == LineCommands.EDITAPICALL)
             {
-                let action = await context.client.GetAction(context.State(UserStates.APP), args);
+                let action = await BlisClient.client.GetAction(context.State(UserStates.APP), args);
                 cb([Menu.EditAPICall(action)]);
             }
             else if (command == LineCommands.EDITENTITY)
             {
-                let entity = await context.client.GetEntity(context.State(UserStates.APP), args);
+                let entity = await BlisClient.client.GetEntity(context.State(UserStates.APP), args);
                 cb([Menu.EditEntity(entity)]);
             }
             else if (command == LineCommands.EDITRESPONSE)
             {
-                let action = await context.client.GetAction(context.State(UserStates.APP), args);
+                let action = await BlisClient.client.GetAction(context.State(UserStates.APP), args);
                 cb([Menu.EditResponse(action)]);
             }
             else if (command == LineCommands.ENTITIES)

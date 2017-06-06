@@ -95,7 +95,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     private async init(options: IBlisOptions) {
         try {
             BlisDebug.Log("Creating client...");
-            this.blisClient = new BlisClient(options.serviceUri, options.user, options.secret, options.azureFunctionsUrl, options.azureFunctionsKey);
+            BlisClient.InitClient(options.serviceUri, options.user, options.secret, options.azureFunctionsUrl, options.azureFunctionsKey);
             this.LuisCallback = options.luisCallback;
             this.apiCallbacks = options.apiCallbacks;
             this.intApiCallbacks[APICalls.SETTASK] = this.SetTaskCB;
@@ -131,7 +131,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     public LoadUser(session: builder.Session, 
                         cb : (responses: (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], context: BlisContext) => void )
     {
-            let context = new BlisContext(this.bot, this.blisClient, session);
+            let context = new BlisContext(this.bot, session);
             // Is new?
             if (!session.userData.Blis)
             {
@@ -181,7 +181,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                 Utils.SendResponses(recsess.context, responses);
 
                 // Retrain the model
-                recsess.context.client.Retrain(recsess.context.State(UserStates.APP), recsess.context.State(UserStates.SESSION))
+                BlisClient.client.Retrain(recsess.context.State(UserStates.APP), recsess.context.State(UserStates.SESSION))
                     .then(async (takeTurnResponse) => 
                     {
                         // Continue teach session
@@ -198,7 +198,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                 Utils.SendResponses(recsess.context, responses);
 
                 // Retrain the model
-                recsess.context.client.Retrain(recsess.context.State(UserStates.APP), recsess.context.State(UserStates.SESSION))
+                BlisClient.client.Retrain(recsess.context.State(UserStates.APP), recsess.context.State(UserStates.SESSION))
                     .then(async (takeTurnResponse) => 
                     {
                         // Take the next turn
@@ -769,7 +769,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         {
             return;
         }*/
-        if (!context.client.azureFunctionsUrl)
+        if (!BlisClient.client.azureFunctionsUrl)
         {
             var errCard = Utils.ErrorCard("Attempt to call Azure Function with no URL.","Must set 'azureFunctionsUrl' in Bot implimentation.");
             Utils.SendMessage(context, errCard);
@@ -778,7 +778,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         {
        //     memory.ForgetEntityByName("company", null); // TEMP
             let [funct, query] = args.split(' ');
-            let output = await AzureFunctions.Call(context.client.azureFunctionsUrl, context.client.azureFunctionsKey, funct, query);
+            let output = await AzureFunctions.Call(BlisClient.client.azureFunctionsUrl, BlisClient.client.azureFunctionsKey, funct, query);
             if (output)
             {
                 Utils.SendMessage(context, output);
