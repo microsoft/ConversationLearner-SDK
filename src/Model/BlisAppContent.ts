@@ -36,13 +36,13 @@ export class BlisAppContent
         (<any>Object).assign(this, init);
     }
 
-    public async FindTrainDialogs(client : BlisClient, appId : string, searchTerm : string) : Promise<{'dialogId': string, 'text': string}[]>
+    public async FindTrainDialogs(appId : string, searchTerm : string) : Promise<{'dialogId': string, 'text': string}[]>
     {
         let dialogs = [];
         searchTerm = searchTerm.toLowerCase();
         for (let trainDialog of this.trainDialogs)
         {
-            let dialog = await trainDialog.toText(client, appId);
+            let dialog = await trainDialog.toText(appId);
             if (!searchTerm || dialog.toLowerCase().indexOf(searchTerm) > 0)
             {
                 dialogs.push({'dialogId' : trainDialog.id, 'text' : dialog});
@@ -59,7 +59,7 @@ export class BlisAppContent
         {        
             // Get actions
             let dialogIds = [];
-            let BlisAppContent = await context.client.ExportApp(context.State(UserStates.APP))
+            let BlisAppContent = await BlisClient.client.ExportApp(context.State(UserStates.APP))
             let msg = JSON.stringify(serialize(BlisAppContent));
             if (context.Address().channelId == "emulator")
             {
@@ -83,10 +83,10 @@ export class BlisAppContent
         try
         {
             // Get current app
-            let currentApp = await context.client.ExportApp(context.State(UserStates.APP));
+            let currentApp = await BlisClient.client.ExportApp(context.State(UserStates.APP));
 
             // Get imported app
-            let mergeApp = await context.client.ExportApp(appId);
+            let mergeApp = await BlisClient.client.ExportApp(appId);
 
             // Merge any duplicate entities
             mergeApp = this.MergeEntities(currentApp, mergeApp);
@@ -95,7 +95,7 @@ export class BlisAppContent
             mergeApp = this.MergeActions(currentApp, mergeApp);
 
             // Upload merged app to currentApp
-            let finalApp = await context.client.ImportApp(context.State(UserStates.APP), mergeApp);
+            let finalApp = await BlisClient.client.ImportApp(context.State(UserStates.APP), mergeApp);
 
             // reload
             let memory = context.Memory();
@@ -126,7 +126,7 @@ export class BlisAppContent
             // Import new training data
             let json = JSON.parse(text);
             let blisApp = deserialize(BlisAppContent, json);
-            let newApp = await context.client.ImportApp(context.State(UserStates.APP), blisApp)
+            let newApp = await BlisClient.client.ImportApp(context.State(UserStates.APP), blisApp)
             
             // Reload the app
             let memory = context.Memory();
@@ -157,7 +157,7 @@ export class BlisAppContent
             try
             {            
                 // Validate appId, will fail if handed a bad appId
-                let app = await context.client.GetApp(appId)
+                let app = await BlisClient.client.GetApp(appId)
                 context.SetState(UserStates.APP, app.id);  
                 BlisDebug.Log(`Loaded App: ${app.id}`);
             }
@@ -191,12 +191,12 @@ export class BlisAppContent
             try
             {
                 // Load or train a new modelId
-                modelId = await context.client.GetModel(context.State(UserStates.APP));
+                modelId = await BlisClient.client.GetModel(context.State(UserStates.APP));
                 if (!modelId)
                 {        
                     Utils.SendMessage(context, `Training the model...`);
 
-                    modelId = await context.client.TrainModel(context.State(UserStates.APP)); 
+                    modelId = await BlisClient.client.TrainModel(context.State(UserStates.APP)); 
                     context.SetState(UserStates.MODEL, modelId);
 
                     BlisDebug.Log(`Model trained: ${modelId}`);
@@ -208,7 +208,7 @@ export class BlisAppContent
                 let errMsg = Utils.ErrorString(error);
                 Utils.SendMessage(context, `${errMsg}\n\n\n\nFailed. Retraining the model from scratch...`);    
 
-                modelId = await context.client.TrainModel(context.State(UserStates.APP), true);
+                modelId = await BlisClient.client.TrainModel(context.State(UserStates.APP), true);
                 context.SetState(UserStates.MODEL, modelId);
 
                 BlisDebug.Log(`Model trained: ${modelId}`);

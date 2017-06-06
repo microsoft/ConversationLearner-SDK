@@ -6,13 +6,11 @@ import { UserStates } from './Model/Consts';
 
 export class BlisContext
 { 
-    public client : BlisClient;
     public session : builder.Session;
     public bot : builder.UniversalBot;
 
-    constructor(bot : builder.UniversalBot, client : BlisClient, session : builder.Session) {
+    constructor(bot : builder.UniversalBot, session : builder.Session) {
         this.bot = bot;
-        this.client = client;
         this.session = session;
     }
 

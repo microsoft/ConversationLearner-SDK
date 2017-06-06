@@ -85,7 +85,7 @@ export class BlisApp
 
         try
         {       
-            let appId = await context.client.CreateApp(appName, luisKey)
+            let appId = await BlisClient.client.CreateApp(appName, luisKey)
 
             // Initialize
             context.InitState(appId);
@@ -115,7 +115,7 @@ export class BlisApp
 
             // Get app ids
             let appIds = [];
-            let json = await context.client.GetApps()
+            let json = await BlisClient.client.GetApps()
             appIds = JSON.parse(json)['ids'];
             BlisDebug.Log(`Found ${appIds.length} apps`);
 
@@ -129,7 +129,7 @@ export class BlisApp
 
             for (let appId of appIds)
             {   
-                let blisApp = await context.client.GetApp(appId)
+                let blisApp = await BlisClient.client.GetApp(appId)
 
                 if (!search || blisApp.name.toLowerCase().indexOf(search) > -1)
                 { 
@@ -200,12 +200,12 @@ export class BlisApp
         {
             // Get app ids
             let appIds = [];
-            let json = await context.client.GetApps()
+            let json = await BlisClient.client.GetApps()
             appIds = JSON.parse(json)['ids'];
             BlisDebug.Log(`Found ${appIds.length} apps`);
 
             for (let appId of appIds){
-                let text = await context.client.DeleteApp(context.State(UserStates.APP), appId)
+                let text = await BlisClient.client.DeleteApp(context.State(UserStates.APP), appId)
                 BlisDebug.Log(`Deleted ${appId} apps`);
             }
 
@@ -235,7 +235,7 @@ export class BlisApp
 
         try
         {       
-            await context.client.DeleteApp(context.State(UserStates.APP), appId)
+            await BlisClient.client.DeleteApp(context.State(UserStates.APP), appId)
 
             let cards = [];
             cards.push(Utils.MakeHero("Deleted App", appId, null, null));

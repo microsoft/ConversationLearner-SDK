@@ -16,8 +16,8 @@ export class BlisSession
         try
         {        
             // Ending teaching session (which trains the model if necessary), update modelId
-            let sessionId = await context.client.EndSession(context.State(UserStates.APP), context.State(UserStates.SESSION));
-            let modelId = await context.client.GetModel(context.State(UserStates.APP));
+            let sessionId = await BlisClient.client.EndSession(context.State(UserStates.APP), context.State(UserStates.SESSION));
+            let modelId = await BlisClient.client.GetModel(context.State(UserStates.APP));
             new BlisMemory(context.session).EndSession();
             context.SetState(UserStates.MODEL, modelId);
             cb(sessionId);
@@ -37,11 +37,11 @@ export class BlisSession
 
        try {
             // Close any existing session
-            let endId = await context.client.EndSession(context.State(UserStates.APP), context.State(UserStates.SESSION));
+            let endId = await BlisClient.client.EndSession(context.State(UserStates.APP), context.State(UserStates.SESSION));
             BlisDebug.Log(`Ended session ${endId}`);
 
             // Start a new session
-            let sessionId = await context.client.StartSession(context.State(UserStates.APP), teach);
+            let sessionId = await BlisClient.client.StartSession(context.State(UserStates.APP), teach);
             new BlisMemory(context.session).StartSession(sessionId, teach);
             BlisDebug.Log(`Started session ${sessionId}`)   
             if (teach)

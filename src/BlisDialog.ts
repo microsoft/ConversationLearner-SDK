@@ -127,7 +127,7 @@ export class BlisDialog extends builder.Dialog {
             if (blisResponse.intent)
             {
                 // If in teach mode wrap the intent so can give next input cue when intent dialog completes
-                let context = new BlisContext(null, null, session);
+                let context = new BlisContext(null, session);
                 if (context.State(UserStates.TEACH))
                 {
                     session.beginDialog(BLIS_INTENT_WRAPPER, {intent: blisResponse.intent, entities: blisResponse.entities});

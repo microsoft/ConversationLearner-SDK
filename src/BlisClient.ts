@@ -15,6 +15,14 @@ import * as NodeCache from 'node-cache';
 
 export class BlisClient {
 
+    public static client;
+
+    // Create singleton
+    public static InitClient(serviceUri : string, user : string, secret : string, azureFunctionsUrl : string, azureFunctionsKey : string)
+    {
+        this.client = new BlisClient(serviceUri, user, secret, azureFunctionsUrl, azureFunctionsKey);
+    }
+
     private serviceUri : string;
     private credentials : Credentials;
     public azureFunctionsUrl : string;
@@ -24,7 +32,7 @@ export class BlisClient {
     private entityCache = new NodeCache({ stdTTL: 300, checkperiod: 600 });
     private exportCache = new NodeCache({ stdTTL: 300, checkperiod: 600 });
 
-    constructor(serviceUri : string, user : string, secret : string, azureFunctionsUrl : string, azureFunctionsKey : string)
+    private constructor(serviceUri : string, user : string, secret : string, azureFunctionsUrl : string, azureFunctionsKey : string)
     { 
         if (!serviceUri) 
         {
