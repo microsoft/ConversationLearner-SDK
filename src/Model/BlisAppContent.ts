@@ -1,5 +1,5 @@
 import * as builder from 'botbuilder';
-import { deserialize } from 'json-typescript-mapper';
+import { deserialize, serialize } from 'json-typescript-mapper';
 import { BlisDebug} from '../BlisDebug';
 import { BlisClient } from '../BlisClient';
 import { TakeTurnModes, EntityTypes, UserStates, TeachStep, ActionTypes, SaveStep, APICalls, ActionCommand } from '../Model/Consts';
@@ -60,7 +60,7 @@ export class BlisAppContent
             // Get actions
             let dialogIds = [];
             let BlisAppContent = await context.client.ExportApp(context.State(UserStates.APP))
-            let msg = JSON.stringify(BlisAppContent);
+            let msg = JSON.stringify(serialize(BlisAppContent));
             if (context.Address().channelId == "emulator")
             {
                 cb([msg]);
@@ -125,7 +125,8 @@ export class BlisAppContent
 
             // Import new training data
             let json = JSON.parse(text);
-            let newApp = await context.client.ImportApp(context.State(UserStates.APP), json)
+            let blisApp = deserialize(BlisAppContent, json);
+            let newApp = await context.client.ImportApp(context.State(UserStates.APP), blisApp)
             
             // Reload the app
             let memory = context.Memory();
@@ -195,7 +196,7 @@ export class BlisAppContent
                 {        
                     Utils.SendMessage(context, `Training the model...`);
 
-                    modelId = await context.client.TrainModel(context.State(UserStates.APP));
+                    modelId = await context.client.TrainModel(context.State(UserStates.APP)); 
                     context.SetState(UserStates.MODEL, modelId);
 
                     BlisDebug.Log(`Model trained: ${modelId}`);

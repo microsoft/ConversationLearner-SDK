@@ -57,6 +57,9 @@ export interface IBlisOptions extends builder.IIntentRecognizerSetOptions {
     // End point for Azure function calls
     azureFunctionsUrl? : string;
 
+    // Key for Azure function calls (optional)
+    azureFunctionsKey? : string;
+
     // Optional connector, required for downloading train dialogs
     connector? : builder.ChatConnector;
 }
@@ -92,7 +95,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     private async init(options: IBlisOptions) {
         try {
             BlisDebug.Log("Creating client...");
-            this.blisClient = new BlisClient(options.serviceUri, options.user, options.secret, options.azureFunctionsUrl);
+            this.blisClient = new BlisClient(options.serviceUri, options.user, options.secret, options.azureFunctionsUrl, options.azureFunctionsKey);
             this.LuisCallback = options.luisCallback;
             this.apiCallbacks = options.apiCallbacks;
             this.intApiCallbacks[APICalls.SETTASK] = this.SetTaskCB;
@@ -775,7 +778,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         {
        //     memory.ForgetEntityByName("company", null); // TEMP
             let [funct, query] = args.split(' ');
-            let output = await AzureFunctions.Call(context.client.azureFunctionsUrl, funct, query);
+            let output = await AzureFunctions.Call(context.client.azureFunctionsUrl, context.client.azureFunctionsKey, funct, query);
             if (output)
             {
                 Utils.SendMessage(context, output);

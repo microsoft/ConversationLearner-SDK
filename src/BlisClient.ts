@@ -18,13 +18,14 @@ export class BlisClient {
     private serviceUri : string;
     private credentials : Credentials;
     public azureFunctionsUrl : string;
+    public azureFunctionsKey: string;
 
     private actionCache = new NodeCache({ stdTTL: 300, checkperiod: 600 });
     private entityCache = new NodeCache({ stdTTL: 300, checkperiod: 600 });
     private exportCache = new NodeCache({ stdTTL: 300, checkperiod: 600 });
 
-    constructor(serviceUri : string, user : string, secret : string, azureFunctionsUrl : string)
-    {
+    constructor(serviceUri : string, user : string, secret : string, azureFunctionsUrl : string, azureFunctionsKey : string)
+    { 
         if (!serviceUri) 
         {
             BlisDebug.Log("service URI is required");
@@ -32,6 +33,7 @@ export class BlisClient {
         this.serviceUri = serviceUri;
         this.credentials = new Credentials(user, secret);
         this.azureFunctionsUrl = azureFunctionsUrl;
+        this.azureFunctionsKey = azureFunctionsKey;
     }
 
     public ClearExportCache(appId : string) : void
@@ -737,7 +739,6 @@ export class BlisClient {
     public ImportApp(appId : string, blisAppContent : BlisAppContent) : Promise<BlisAppContent>
     { 
         let apiPath = `app/${appId}/source`;
-
         return new Promise(
             (resolve, reject) => {
                const requestData = {

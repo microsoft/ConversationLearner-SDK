@@ -3,10 +3,21 @@ import { BlisDebug } from './BlisDebug';
 
 export class AzureFunctions {
     
-    public static Call(azureFunctionsUrl : string, funcName : string, args : string ) : Promise<string>
+    public static Call(azureFunctionsUrl : string,azureFunctionsKey : string, funcName : string, args : string ) : Promise<string>
     {
         var apiPath = "app";
 
+        if (azureFunctionsKey)
+        {
+            if (args)
+            {
+                args += `&code=${azureFunctionsKey}`;
+            }
+            else
+            {
+                args = `?code=${azureFunctionsKey}`;
+            }
+        }
         return new Promise(
             (resolve, reject) => {
                 const requestData = {
