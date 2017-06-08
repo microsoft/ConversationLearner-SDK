@@ -322,45 +322,45 @@ export class CommandHandler
         }
         else if (command == LineCommands.ADDAPICALL)
         {
-            Action.Add(context, null, ActionTypes.API, null, args, (responses, actionId) => {
+            Action.Add_v1(context, null, ActionTypes.API, null, args, (responses, actionId) => {
                 cb(responses, TeachAction.PICKACTION, actionId);
             });
         }
         else if (command == LineCommands.ADDAPIAZURE)
         {
-            Action.Add(context, null, ActionTypes.API, APITypes.AZURE, args, (responses, actionId) => {
+            Action.Add_v1(context, null, ActionTypes.API, APITypes.AZURE, args, (responses, actionId) => {
                 cb(responses, TeachAction.PICKACTION, actionId);
             });
         }
         else if (command == LineCommands.ADDAPILOCAL)
         {
-            Action.Add(context, null, ActionTypes.API, APITypes.LOCAL, args, (responses, actionId) => {
+            Action.Add_v1(context, null, ActionTypes.API, APITypes.LOCAL, args, (responses, actionId) => {
                 cb(responses, TeachAction.PICKACTION, actionId);
             });
         }
         else if (command == LineCommands.ADDRESPONSE)
         {         
-            Action.Add(context, null, ActionTypes.TEXT, null, args, (responses, actionId) => {
+            Action.Add_v1(context, null, ActionTypes.TEXT, null, args, (responses, actionId) => {
                 cb(responses, TeachAction.PICKACTION, actionId);
             });
         }
         else if (command == LineCommands.ADDRESPONSETEXT)
         {
-            Action.Add(context, null, ActionTypes.TEXT, null, args, (responses, actionId) => {
+            Action.Add_v1(context, null, ActionTypes.TEXT, null, args, (responses, actionId) => {
                 cb(responses, TeachAction.PICKACTION, actionId);
             });
         }
         else if (command == LineCommands.ADDRESPONSEINTENT)
         {
             // NOTE: Response Type INTENT are actuall API calls
-            Action.Add(context, null, ActionTypes.API, APITypes.INTENT, args, (responses, actionId) => {
+            Action.Add_v1(context, null, ActionTypes.API, APITypes.INTENT, args, (responses, actionId) => {
                 cb(responses, TeachAction.PICKACTION, actionId);
             });
         }
         else if (command == LineCommands.ADDENTITY)
         {
             let [content, type] = args.split(' ');
-            Entity.Add(context, null, type, content, (responses) => {
+            Entity.Add_v1(context, null, type, content, (responses) => {
                 cb(responses, TeachAction.RETRAIN);
             });
         }
@@ -450,7 +450,7 @@ export class CommandHandler
             else if (command == LineCommands.DELETEACTION)
             {
                 let [actionId] = args.split(' ');
-                Action.Delete(context, actionId, (responses) => {
+                Action.Delete_v1(context, actionId, (responses) => {
                     cb(responses);
                 });
             }
@@ -484,7 +484,7 @@ export class CommandHandler
             {   
                 let [actionId] = args.split(' '); 
                 let content = Utils.RemoveWords(args, 1);
-                Action.Add(context, actionId, ActionTypes.API, null, content, (responses) => {
+                Action.Add_v1(context, actionId, ActionTypes.API, null, content, (responses) => {
                     cb(responses);
                 });
             }
@@ -492,14 +492,14 @@ export class CommandHandler
             {   
                 let [actionId] = args.split(' '); 
                 let content = Utils.RemoveWords(args, 1);
-                Action.Add(context, actionId, ActionTypes.TEXT, null, content, (responses) => {
+                Action.Add_v1(context, actionId, ActionTypes.TEXT, null, content, (responses) => {
                     cb(responses);
                 });
             }
             else if (command == LineCommands.EDITENTITY)  
             {         
                 let [entityId, content] = args.split(' ');     
-                Entity.Add(context, entityId, null, content, (responses) => {
+                Entity.Add_v1(context, entityId, null, content, (responses) => {
                     cb(responses);
                 });
             }

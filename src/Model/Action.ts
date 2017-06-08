@@ -2,6 +2,7 @@ import * as builder from 'botbuilder';
 import { JsonProperty } from 'json-typescript-mapper';
 import { BlisHelp } from '../Model/Help'; 
 import { BlisApp } from '../Model/BlisApp'; 
+import { AdminResponse } from '../Model/AdminResponse'; 
 import { BlisDebug} from '../BlisDebug';
 import { BlisClient } from '../BlisClient';
 import { TakeTurnModes, EntityTypes, UserStates, TeachStep, ActionTypes, SaveStep, APICalls, ActionCommand, APITypes } from '../Model/Consts';
@@ -14,7 +15,7 @@ import { EditableResponse } from './EditableResponse';
 
 export class ActionMetaData
 {
-    /** Is this action an internal api call */
+    /** Is this action an internal api call */  //TODO no longer used
     @JsonProperty('internal')  
     public internal : boolean;
 
@@ -64,7 +65,7 @@ export class Action
     // When true RNN will pause for input
     // Defaults: text action = true / api action = false
     @JsonProperty('sequence_terminal')
-    public waitAction : string[];
+    public waitAction : boolean;
 
     @JsonProperty({clazz: ActionMetaData, name: 'metadata'})
     public metadata : ActionMetaData;
@@ -170,9 +171,9 @@ export class Action
     }
 
     /** Is the Activity used anywhere */
-    private async InUse(context : BlisContext) : Promise<boolean>
+    private async InUse(appId : string) : Promise<boolean>
     {
-        let appContent = await BlisClient.client.ExportApp(context.State(UserStates.APP));
+        let appContent = await BlisClient.client.ExportApp(appId);
 
         // Clear actions
         appContent.actions = null;
@@ -332,7 +333,51 @@ export class Action
         return this.IgnoreBrackets(text);
     }
 
-    public static async Add(context : BlisContext, actionId : string, actionType : string,  apiType : string, 
+    public static async Add(appId : string, action : Action) : Promise<AdminResponse>
+    {
+        let actionId = await BlisClient.client.AddAction(appId, action); 
+        return AdminResponse.Result(actionId);
+    }
+
+    public static async Edit(appId : string, action : Action) : Promise<AdminResponse>
+    {
+        let actionId = await BlisClient.client.EditAction(appId, action); 
+        return AdminResponse.Result(actionId);
+    }
+
+    /** Delete Action with the given actionId */
+    public static async Delete(appId : string, actionId : string) : Promise<AdminResponse>
+    {
+        BlisDebug.Log(`Trying to Delete Action`);
+
+        try
+        {    
+            if (!actionId)
+            {
+                return AdminResponse.Error(`You must provide the ID of the action to delete.`);
+            }
+
+            let action = await BlisClient.client.GetAction(appId, actionId);  
+            let inUse = await action.InUse(appId);
+
+            if (inUse)
+            {
+                let msg = `Delete Failed ${action.content} is being used by App`;
+                return AdminResponse.Error(msg);
+            }
+
+            // TODO clear savelookup
+            await BlisClient.client.DeleteAction(appId, actionId)
+        }
+        catch (error)
+        {
+            let errMsg = BlisDebug.Error(error); 
+            return AdminResponse.Error(errMsg);
+        }
+    }
+
+    // --------------------V1-------------------
+    public static async Add_v1(context : BlisContext, actionId : string, actionType : string,  apiType : string, 
         content : string, cb : (responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], actionId : string) => void) : Promise<void>
     {
         BlisDebug.Log(`AddAction`);
@@ -398,13 +443,30 @@ export class Action
             let changeType = (actionType == ActionTypes.TEXT) ? "Response" : (apiType = APITypes.INTENT) ? "Intent Call" : "API Call"
             if (actionId) 
             {
-                actionId = await BlisClient.client.EditAction(context.State(UserStates.APP), actionId, action, actionType, actionSet.waitAction, actionSet.posIds, actionSet.negIds);
+                let editAction = new Action({
+                    actionType : actionType,
+                    content : action,
+                    negativeEntities : actionSet.negIds,
+                    requiredEntities : actionSet.posIds,
+                    waitAction : actionSet.waitAction
+                });
+
+                actionId = await BlisClient.client.EditAction(context.State(UserStates.APP), editAction);
                 changeType = changeType + ` Edited`;
             }
             else 
             {
                 let metadata = new ActionMetaData({type : apiType});
-                actionId = await BlisClient.client.AddAction(context.State(UserStates.APP), action, actionType, actionSet.waitAction, actionSet.posIds, actionSet.negIds, null, metadata);
+
+                let newAction = new Action({
+                    actionType : actionType,
+                    content : action,
+                    negativeEntities : actionSet.negIds,
+                    requiredEntities : actionSet.posIds,
+                    waitAction : actionSet.waitAction,
+                    metadata : metadata
+                });
+                actionId = await BlisClient.client.AddAction(context.State(UserStates.APP), newAction);
                 changeType = changeType + ` Created`;
             }
             let substr = actionSet.waitAction ? " (WAIT)" : "";;
@@ -428,7 +490,7 @@ export class Action
     }
 
     /** Delete Action with the given actionId */
-    public static async Delete(context : BlisContext, actionId : string, cb : (responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[]) => void) : Promise<void>
+    public static async Delete_v1(context : BlisContext, actionId : string, cb : (responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[]) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Delete Action`);
 
@@ -441,7 +503,7 @@ export class Action
         try
         {    
             let action = await BlisClient.client.GetAction(context.State(UserStates.APP), actionId);  
-            let inUse = await action.InUse(context);
+            let inUse = await action.InUse(context.State(UserStates.APP));
 
             if (inUse)
             {
