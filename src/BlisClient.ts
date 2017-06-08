@@ -15,7 +15,7 @@ import * as NodeCache from 'node-cache';
 
 export class BlisClient {
 
-    public static client;
+    public static client : BlisClient;
 
     // Create singleton
     public static InitClient(serviceUri : string, user : string, secret : string, azureFunctionsUrl : string, azureFunctionsKey : string)
@@ -49,8 +49,7 @@ export class BlisClient {
         this.exportCache.del(appId);
     }
 
-    // TODO: switch remaining to not userstate
-    public AddAction(appId : string, content : string, actionType : string, sequenceTerminal : boolean, requiredEntityList : string[] = [], negativeEntityList : string[] = [], prebuiltEntityName : string, metaData : ActionMetaData) : Promise<string>
+    public AddAction(appId : string, action : Action) : Promise<string>
     {
         let apiPath = `app/${appId}/action`;
 
@@ -61,14 +60,7 @@ export class BlisClient {
                     headers: {
                         'Cookie' : this.credentials.Cookiestring()
                     },
-                    body: {
-                        content: content,
-                        RequiredEntities: requiredEntityList,
-                        NegativeEntities: negativeEntityList,
-                        action_type: actionType,
-                        sequence_terminal: sequenceTerminal,
-                        metadata : metaData
-                    },
+                    body: serialize(action),
                     json: true
                 }
                 BlisDebug.LogRequest("POST",apiPath, requestData);
@@ -87,7 +79,37 @@ export class BlisClient {
         )
     }
 
-    public AddEntity(appId : string, entityName : string, entityType : string, prebuiltEntityName : string, metaData : EntityMetaData) : Promise<string>
+    public AddEntity(appId : string, entity : Entity) : Promise<string>
+    {
+        let apiPath = `app/${appId}/entity`;
+
+        return new Promise(
+            (resolve, reject) => {
+               const requestData = {
+                    url: this.serviceUri+apiPath,
+                    headers: {
+                        'Cookie' : this.credentials.Cookiestring()
+                    },
+                    body: serialize(entity),
+                    json: true
+                }
+                BlisDebug.LogRequest("POST",apiPath, requestData);
+                request.post(requestData, (error, response, body) => {
+                    if (error) {
+                        reject(error);
+                    }
+                    else if (response.statusCode >= 300) {
+                        reject(body);
+                    }
+                    else {
+                        resolve(body.id);
+                    }
+                });
+            }
+        )
+    }
+
+    public AddEntity_v1(appId : string, entityName : string, entityType : string, prebuiltEntityName : string, metaData : EntityMetaData) : Promise<string>
     {
         let apiPath = `app/${appId}/entity`;
 
@@ -275,7 +297,42 @@ export class BlisClient {
         )
     }
 
-    public EditAction(appId : string, actionId : string, content : string, actionType : string, sequenceTerminal : boolean, requiredEntityList : string[] = [], negativeEntityList : string[] = [], prebuiltEntityName : string = null) : Promise<string>
+public EditAction(appId : string, action : Action) : Promise<string>
+    {
+        let apiPath = `app/${appId}/action/${action.id}`;
+
+       // Clear old one from cache
+        this.actionCache.del(action.id);
+
+        return new Promise(
+            (resolve, reject) => {
+               const requestData = {
+                    url: this.serviceUri+apiPath,
+                    headers: {
+                        'Cookie' : this.credentials.Cookiestring()
+                    },
+                    body: serialize(action),
+                    json: true
+                }
+
+                BlisDebug.LogRequest("PUT",apiPath, requestData);
+                request.put(requestData, (error, response, body) => {
+                    if (error) {
+                        reject(error);
+                    }
+                    else if (response.statusCode >= 300) {
+                        reject(body);
+                    }
+                    else {
+                        // Service returns a 204
+                        resolve(body);
+                    }
+                });
+            }
+        )
+    }
+
+    public EditAction_v1(appId : string, actionId : string, content : string, actionType : string, sequenceTerminal : boolean, requiredEntityList : string[] = [], negativeEntityList : string[] = [], prebuiltEntityName : string = null) : Promise<string>
     {
         let apiPath = `app/${appId}/action/${actionId}`;
 
@@ -317,7 +374,41 @@ export class BlisClient {
         )
     }
 
-    public EditEntity(appId : string, entityId: string, entityName : string, entityType : string, prebuiltEntityName : string, metaData : EntityMetaData) : Promise<string>
+    public EditEntity(appId : string, entity : Entity) : Promise<string>
+    { 
+        let apiPath = `app/${appId}/entity/${entity.id}`;
+
+        // Clear old one from cache
+        this.entityCache.del(entity.id);
+
+        return new Promise(
+            (resolve, reject) => {
+               const requestData = {
+                    url: this.serviceUri+apiPath,
+                    headers: {
+                        'Cookie' : this.credentials.Cookiestring()
+                    },
+                    body: serialize(entity),
+                    json: true
+                }
+
+                BlisDebug.LogRequest("PUT",apiPath, requestData);
+                request.put(requestData, (error, response, body) => {
+                    if (error) {
+                        reject(error);
+                    }
+                    else if (response.statusCode >= 300) {
+                        reject(body);
+                    }
+                    else {
+                        resolve(body);
+                    }
+                });
+            }
+        )
+    }
+
+    public EditEntity_v1(appId : string, entityId: string, entityName : string, entityType : string, prebuiltEntityName : string, metaData : EntityMetaData) : Promise<string>
     { 
         let apiPath = `app/${appId}/entity/${entityId}`;
 
