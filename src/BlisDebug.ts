@@ -8,6 +8,7 @@ export class BlisDebug {
     public static cache : string = "";
     public static enabled : boolean;
     public static verbose : boolean = true;
+    public static logging : string = "flow";
 
     public static InitLogger(bot : builder.UniversalBot)
     {
@@ -30,25 +31,32 @@ export class BlisDebug {
         }
     }
 
-     public static Log(text : string) {
-        if (this.enabled)
+     public static Log(text : string, filter? : string) {
+        if (!filter || this.logging.indexOf(filter) >=0)
         {
-            this.cache += (this.cache ? "\n\n" : "") + text;
-        }
-        this.SendCache();
+            if (this.enabled)
+            {
+                this.cache += (this.cache ? "\n\n" : "") + text;
+            }
+            this.SendCache();
 
-        console.log(text);
+            console.log(text);
+        }
     }
 
     public static LogRequest(method : string, path : string, payload : any) {
-        if (this.enabled)
+        if (this.logging.indexOf("client") >=0)
         {
-            let text = JSON.stringify(payload.body);
-            this.cache += (this.cache ? "\n\n" : "") + method + ": //" + path + "\n\n" + (text ? text : "");
-        }
-        this.SendCache();
+            let msg = `    ${method}: //${path}`;
+            if (this.enabled)
+            {
+                let text = JSON.stringify(payload.body);
+                this.cache += (this.cache ? "\n\n" : "") + msg + "\n\n" + (text ? text : "");
+            }
+            this.SendCache();
 
-        console.log(path);
+            console.log(msg);
+        }
     }
 
     public static Error(error : any) : string {

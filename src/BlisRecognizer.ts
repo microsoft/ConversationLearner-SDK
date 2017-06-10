@@ -10,7 +10,7 @@ import { LabelEntity } from './Model/LabelEntity';
 import { LabelAction } from './Model/LabelAction';
 import { Action } from './Model/Action';
 import { TrainDialog } from './Model/TrainDialog';
-import { TakeTurnModes, EntityTypes, UserStates, TeachStep, TeachAction, ActionTypes, SaveStep, APICalls, ActionCommand, BLIS_INTENT_WRAPPER } from './Model/Consts';
+import { TakeTurnModes, EntityTypes,  TeachStep, TeachAction, ActionTypes, SaveStep, APICalls, ActionCommand, BLIS_INTENT_WRAPPER } from './Model/Consts';
 import { Command, IntCommands, LineCommands, CueCommands, HelpCommands } from './Model/Command';
 import { BlisHelp } from './Model/Help'; 
 import { TakeTurnResponse } from './Model/TakeTurnResponse'
@@ -46,10 +46,10 @@ export interface IBlisOptions extends builder.IIntentRecognizerSetOptions {
     appId?: string; 
 
     // Optional callback than runs after LUIS but before BLIS.  Allows Bot to substitute entities
-    luisCallback? : (text: string, luisEntities : LabelEntity[], memory : BlisMemory) => TakeTurnRequest;
+    luisCallback? : (text: string, luisEntities : LabelEntity[], memory : BlisMemory, done : (ttr : TakeTurnRequest) => void) => void;
 
     // Optional callback that runs after BLIS is called but before the Action is rendered
-    blisCallback? : (text : string, memory : BlisMemory) => string;
+    blisCallback? : (text : string, memory : BlisMemory, done : (text : string) => void) => void;
 
     // Mappting between API names and functions
     apiCallbacks? : { string : () => TakeTurnRequest };
@@ -72,14 +72,14 @@ class RecSession
 
 export class BlisRecognizer implements builder.IIntentRecognizer {
     protected blisClient : BlisClient;
-    protected blisCallback : (test : string, memory : BlisMemory) => string;
+    protected blisCallback : (test : string, memory : BlisMemory, done : (text : string)=> void) => void;
     protected connector : builder.ChatConnector;
     protected defaultApp : string;
     protected entity_name2id : { string : string };
     protected entityValues = {};
 
     // Optional callback than runs after LUIS but before BLIS.  Allows Bot to substitute entities
-    private LuisCallback? : (text: string, luisEntities : LabelEntity[], memory : BlisMemory) => TakeTurnRequest;
+    private luisCallback? : (text: string, luisEntities : LabelEntity[], memory : BlisMemory, done : (takeTurnRequest : TakeTurnRequest)=> void) => void;
 
     // Mappting between user defined API names and functions
     private apiCallbacks : { string : () => TakeTurnRequest };
@@ -96,13 +96,13 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         try {
             BlisDebug.Log("Creating client...");
             BlisClient.InitClient(options.serviceUri, options.user, options.secret, options.azureFunctionsUrl, options.azureFunctionsKey);
-            this.LuisCallback = options.luisCallback;
+            this.luisCallback = options.luisCallback;
             this.apiCallbacks = options.apiCallbacks;
             this.intApiCallbacks[APICalls.SETTASK] = this.SetTaskCB;
             this.intApiCallbacks[APICalls.AZUREFUNCTION] = this.CallAzureFuncCB;
             this.connector = options.connector;
             this.defaultApp = options.appId;
-            this.blisCallback = options.blisCallback ? options.blisCallback : this.DefaultBlisCallback;
+            this.blisCallback = options.blisCallback;
 
             // Create a wrapper for handling intent calls during training 
             // This allows prompt for next input after intent call is done
@@ -131,25 +131,9 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     public LoadUser(session: builder.Session, 
                         cb : (responses: (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], context: BlisContext) => void )
     {
+        // TODO - move invoke contents here
             let context = new BlisContext(this.bot, session);
-            // Is new?
-            if (!session.userData.Blis)
-            {
-                context.InitState(this.defaultApp);
-
-                // Attempt to load the application
-                if (this.defaultApp)
-                {
-                    BlisAppContent.Load(context, this.defaultApp, (responses) => 
-                    {
-                        cb(responses, context);
-                    });
-                }
-            }
-            else
-            {          
-                cb(null, context);
-            }
+            cb(null, context);
     }
 
     /** Send result to user */
@@ -168,12 +152,16 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     }
 
     /** Process result before sending to user */
-    private ProcessResult(recsess : RecSession, responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], intent : string, entities: builder.IEntity[], teachAction?: string, actionData? : string) 
+    private async ProcessResult(recsess : RecSession, responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], intent : string, entities: builder.IEntity[], teachAction?: string, actionData? : string) 
     {
         // Some commands require taking a post command TeachAction (if user is in teach mode)
-        let inTeach = recsess.context.State(UserStates.TEACH);
+        let memory = recsess.context.Memory();
+        let inTeach = await memory.InTeachAsync();
         if (inTeach && teachAction) 
         {
+            let appId = await  memory.AppId();
+            let sessionId = await memory.SessionId();
+
             if (teachAction == TeachAction.RETRAIN)
             {
                 // Send command response out of band
@@ -181,11 +169,11 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                 Utils.SendResponses(recsess.context, responses);
 
                 // Retrain the model
-                BlisClient.client.Retrain(recsess.context.State(UserStates.APP), recsess.context.State(UserStates.SESSION))
+                BlisClient.client.Retrain(appId, sessionId)
                     .then(async (takeTurnResponse) => 
                     {
                         // Continue teach session
-                        this.TakeTurnCallback(recsess, takeTurnResponse);
+                        await this.TakeTurnCallback(recsess, takeTurnResponse);
                     })
                     .catch((error) => {
                         this.SendResult(recsess, [error])
@@ -198,11 +186,12 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                 Utils.SendResponses(recsess.context, responses);
 
                 // Retrain the model
-                BlisClient.client.Retrain(recsess.context.State(UserStates.APP), recsess.context.State(UserStates.SESSION))
+                BlisClient.client.Retrain(appId, sessionId)
                     .then(async (takeTurnResponse) => 
                     {
                         // Take the next turn
-                        this.TakeTurn(recsess, recsess.userInput, actionData);
+                        BlisDebug.Log("TT: Retrain", "flow");
+                        await this.TakeTurn(recsess, recsess.userInput, actionData);
                     })
                     .catch((error) => {
                         this.SendResult(recsess, [error])
@@ -215,15 +204,16 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         }
     }
 
-    private TakeTurnCallback(recsess : RecSession, ttResponse : TakeTurnResponse, error? : string) : void 
+    private async TakeTurnCallback(recsess : RecSession, ttResponse : TakeTurnResponse, error? : string) : Promise<void> 
     { 
         BlisDebug.Verbose("TakeTurnCallback");
-        let memory = new BlisMemory(recsess.context.session);
+        let memory = recsess.context.Memory();
+       //let memory = new BlisMemory(recsess.context.session);
 
         if (error)
         {
             let responses = Menu.AddEditCards(recsess.context, [error]);
-            this.ProcessResult(recsess, responses, null, null);
+            await this.ProcessResult(recsess, responses, null, null);
             return;
         }
 
@@ -232,11 +222,11 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         if (ttResponse.mode == TakeTurnModes.TEACH)
         {
             if (ttResponse.teachStep == TeachStep.LABELENTITY) {
-                this.ProcessLabelEntity(recsess, ttResponse, responses);
+                await this.ProcessLabelEntity(recsess, ttResponse, responses);
             }
             else if (ttResponse.teachStep == TeachStep.LABELACTION)
             {
-                this.ProcessLabelAction(recsess, ttResponse, responses);
+                await this.ProcessLabelAction(recsess, ttResponse, responses);
             }
             else
             {
@@ -246,26 +236,26 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         else if (ttResponse.mode == TakeTurnModes.ACTION)
         {
             let output = ttResponse.actions[0].content;
-            memory.RememberLastStep(SaveStep.RESPONSES, output);
+            await memory.SetLastStep(SaveStep.RESPONSES, output);
 
             // Clear any suggested entity hints from response  TODO - this seems outdate
             output = output ? output.replace(" !"," ") : output;
 
             // Allow for dev to update
+            let inTeach = await memory.InTeachAsync();
             let outText = null;
             if (this.blisCallback)
             {
-                outText = this.blisCallback(output, memory);
+                outText = await this.PromisifyBC(this.blisCallback, output, memory);
             }
             else
             {
-                outText = this.DefaultBlisCallback(output, memory);
+                outText = await this.PromisifyBC(this.DefaultBlisCallback, output, memory);
             }
 
-            let inTeach = recsess.context.State(UserStates.TEACH);
             if (inTeach)
             {
-                memory.RememberTrainStep(SaveStep.RESPONSES, outText);
+                await memory.SetTrainStep(SaveStep.RESPONSES, outText);
                 responses.push(Utils.MakeHero('Trained Response:', outText + "\n\n", "Type next user input for this Dialog or" , 
                 { "Dialog Complete" : IntCommands.DONETEACH}));
             }
@@ -273,7 +263,6 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             {
                 responses.push(outText);
             }
-            
         } 
         else if (ttResponse.mode == TakeTurnModes.ERROR)
         {
@@ -286,61 +275,30 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
 
         if (responses && responses.length > 0)
         {
-            this.ProcessResult(recsess, responses, null, null);
+            await this.ProcessResult(recsess, responses, null, null);
         }
     }
 
-    /** Remove internal API calls from actions available to developer */
-    /*  TODO  no longer used
-    private RemoveInternalAPIs(labelActions : LabelAction[])  : LabelAction[]
-    {
-        let outActions = [];
-        let sumScore = 0;
-        for (let i in labelActions)
-        {
-            let labelAction = labelActions[i];
-            // Don't show internal API calls to developer
-            if (!this.IsInternalApi(labelAction.content))
-            {      
-                outActions.push(labelAction);
-                if (labelAction.available)
-                {
-                    sumScore += labelAction.score;
-                }
-            }
-        }
-
-        // Now renormalize scores after removing internal API calls
-        if (sumScore <= 0) return outActions;
-
-        for (let labelAction of outActions)
-        {
-            labelAction.score = labelAction.score / sumScore;
-        }
-
-        return outActions;
-    }*/
-
     /** Process Label Entity Training Step */
-    private ProcessLabelEntity(recsess : RecSession, ttResponse : TakeTurnResponse, responses: (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[]) : void
+    private async ProcessLabelEntity(recsess : RecSession, ttResponse : TakeTurnResponse, responses: (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[]) : Promise<void>
     {
         BlisDebug.Verbose("ProcessLabelEntity");
 
-        let memory = new BlisMemory(recsess.context.session);
+        let memory = recsess.context.Memory();
         if (ttResponse.teachError) {
             let body = `Input did not match original text. Let's try again.\n\n`;
             responses.push(Utils.ErrorCard(body));
         }
         else
         {
-            memory.RememberTrainStep(SaveStep.INPUT, recsess.userInput);
-            memory.RememberLastStep(SaveStep.INPUT,recsess.userInput);
+            await memory.SetTrainStep(SaveStep.INPUT, recsess.userInput);
+            await memory.SetLastStep(SaveStep.INPUT,recsess.userInput);
         }
         let cardtitle = "Teach Step: Detected Entities";
         if (ttResponse.teachLabelEntities.length == 0)
         {
             // Look for suggested entity in previous response
-            let lastResponses = memory.LastStep(SaveStep.RESPONSES);
+            let lastResponses = await memory.LastStep(SaveStep.RESPONSES);
             let suggestedEntity = Action.GetEntitySuggestion(lastResponses); 
             if (suggestedEntity)
             {
@@ -370,7 +328,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             for (let i in ttResponse.teachLabelEntities)
             {
                 let labelEntity = ttResponse.teachLabelEntities[i];
-                let entityName = memory.EntityId2Name(labelEntity.id);
+                let entityName = await memory.EntityId2Name(labelEntity.id);
 
                 // Prebuild entities don't have a score
                 let score = labelEntity.score ? `_Score: ${labelEntity.score.toFixed(3)}_` : "";
@@ -383,20 +341,22 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     }
 
     /** Process Label Action Training Step */
-    private ProcessLabelAction(recsess : RecSession, ttResponse : TakeTurnResponse, responses: (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[]) : void
+    private async ProcessLabelAction(recsess : RecSession, ttResponse : TakeTurnResponse, responses: (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[]) : Promise<void>
     {
         BlisDebug.Verbose("ProcessLabelEntity");
 
-        let memory = new BlisMemory(recsess.context.session);
+        let memory = recsess.context.Memory();
         // If app contains no entities, LabelEntity skip is stepped, so input must still be saved
-        if (!memory.TrainStepInput())
+        let input = await memory.TrainStepInput();
+        if (!input)
         {
             // Only run if no suggested entity is found
-            memory.RememberTrainStep(SaveStep.INPUT, recsess.userInput);
-            memory.RememberLastStep(SaveStep.INPUT, recsess.userInput);
+            await memory.SetTrainStep(SaveStep.INPUT, recsess.userInput);
+            await memory.SetLastStep(SaveStep.INPUT, recsess.userInput);
         }
 
-        memory.RememberTrainStep(SaveStep.ENTITY,memory.DumpEntities());
+        let ents = await memory.DumpEntities();
+        await memory.SetTrainStep(SaveStep.ENTITY, ents);
 
         let title = `Teach Step: Select Action`;
         let body = ttResponse.teachLabelActions.length == 0 ? 'No actions matched' : 'Select Action by number or enter a new one';
@@ -410,7 +370,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         let choices = {};
         if (ttResponse.teachLabelActions.length > 0) 
         {
-            let body = `${memory.DumpEntities()}\n\n`;
+            let body = `${ents}\n\n`;
             responses.push(Utils.MakeHero("Memory", null, body, null));
 
             let msg = "";
@@ -436,7 +396,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             responses.push(msg);
 
             // Remember valid choices
-            memory.RememberLastStep(SaveStep.CHOICES, choices);
+            await memory.SetLastStep(SaveStep.CHOICES, choices);
         }              
     }
 
@@ -459,9 +419,18 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             }
 
             let address = session.message.address;
-            this.LoadUser(session, (responses, context) => {
+            this.LoadUser(session, async (responses, context) => {
 
                 let memory = context.Memory();
+
+                // Is new created app
+                if (this.defaultApp)
+                {
+                    // Attempt to load the application
+                    await memory.Init(this.defaultApp);
+                    responses = await BlisAppContent.Load(context, this.defaultApp);
+                    this.defaultApp = null;
+                }
                 let userInput = session.message ? session.message.text.trim() : null;
                 let recsess = new RecSession(context, userInput, recCb);
 
@@ -474,7 +443,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                     if (Command.IsHelpCommand(userInput))
                     {
                         let help = BlisHelp.Get(userInput);
-                        this.ProcessResult(recsess, help, null, null);
+                        await this.ProcessResult(recsess, help, null, null);
                         return;
                     }
 
@@ -482,90 +451,101 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                     if (Command.IsCueCommand(userInput)) {
 
                         CommandHandler.HandleCueCommand(context, userInput, 
-                            (responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], teachAction: string, actionData : string) => 
+                            async (responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], teachAction: string, actionData : string) => 
                             {
-                                this.ProcessResult(recsess, responses, null, null, teachAction, actionData);
+                                await this.ProcessResult(recsess, responses, null, null, teachAction, actionData);
                             });
+                        return;
                     }
-                    // Handle response to a cue command
-                    else if (memory.CueCommand())
+                    let cueCommand = await memory.CueCommand()
+                    if (cueCommand)
                     {
-                        CommandHandler.ProcessCueCommand(context, userInput, (responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], teachAction: string, actionData : string) => 
+                        CommandHandler.ProcessCueCommand(context, userInput, async (responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], teachAction: string, actionData : string) => 
                             {
-                                this.ProcessResult(recsess, responses, null, null, teachAction, actionData);
+                                await this.ProcessResult(recsess, responses, null, null, teachAction, actionData);
                             });
+                        return;
                     }
-
                     // Handle admin commands
-                    else if (Command.IsLineCommand(userInput)) {
+                    if (Command.IsLineCommand(userInput)) {
 
                         CommandHandler.HandleLineCommand(context, userInput, 
-                            (responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], teachAction: string, actionData : string) => 
+                            async (responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], teachAction: string, actionData : string) => 
                             {
-                                this.ProcessResult(recsess, responses, null, null, teachAction, actionData);
+                                await this.ProcessResult(recsess, responses, null, null, teachAction, actionData);
                             });
+                        return;
                     }
-                    else if (Command.IsIntCommand(userInput)) {
-                        CommandHandler.HandleIntCommand(context, userInput, (responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], teachAction: string, actionData: string) => 
+                    if (Command.IsIntCommand(userInput)) {
+                        CommandHandler.HandleIntCommand(context, userInput, 
+                            async (responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], teachAction: string, actionData: string) => 
                             {
-                                this.ProcessResult(recsess, responses, null, null, teachAction, actionData);
+                                await this.ProcessResult(recsess, responses, null, null, teachAction, actionData);
                             });
+                            return;
                     }
                     // No app in memory
-                    else if (!context.State(UserStates.APP))
+                    let appId = await  memory.AppId();
+                    if (!appId)
                     {
                         // If error was thrown will be in responses
                         if (!responses) responses = [];
                         responses = responses.concat(Menu.AppPanel('No App Loaded','Load or Create one'));
-                        this.ProcessResult(recsess, responses, null, null);
+                        await this.ProcessResult(recsess, responses, null, null);
                         return;
                     }
                     // No session
-                    else if (!context.State(UserStates.SESSION))
+                    let sessionId = await memory.SessionId();
+                    if (!sessionId)
                     {
                         // If prev error was thrown will be in responses
                         if (!responses) responses = [];
                         responses = responses.concat(Menu.Home("The app has not been started"));
-                        this.ProcessResult(recsess, responses, null, null);
+                        await this.ProcessResult(recsess, responses, null, null);
                         return;
                     }
                     else 
                     {
-                        if (context.State(UserStates.TEACH))
+                        
+                        let inTeach = await memory.InTeachAsync();
+                        if (inTeach)
                         {
                             // Check if user has limited set of choices
-                            let choices = memory.LastStep(SaveStep.CHOICES);
+                            let choices = await memory.LastStep(SaveStep.CHOICES);
                             if (choices && Object.keys(choices).length > 0)
                             {
                                 if (!choices[userInput])
                                 {
                                     let msg = "Please select one of the action from above or click 'Add Action' for a new Action";
-                                    this.ProcessResult(recsess, [msg], null, null, );
+                                    await this.ProcessResult(recsess, [msg], null, null, );
                                     return;
                                 }
                                 // Convert numeric choice to actionId
                                 let actionId = choices[userInput];
-                                memory.RememberLastStep(SaveStep.CHOICES, null);
-                                this.TakeTurn(recsess, null, actionId);
+                                await memory.SetLastStep(SaveStep.CHOICES, null);
+                                BlisDebug.Log("TT: Choose Action", "flow");
+                                await this.TakeTurn(recsess, null, actionId);
                             }
                             else
                             {
-                                this.TakeTurn(recsess, userInput, null);
+                                BlisDebug.Log("TT: Choose Action", "flow");
+                                await this.TakeTurn(recsess, userInput, null);
                             }
                         }
                         // If not in teach mode remember last user input
                         else
                         {
-                            memory.RememberLastStep(SaveStep.INPUT, userInput);                                     
-                            this.TakeTurn(recsess, userInput, null);
+                            await memory.SetLastStep(SaveStep.INPUT, userInput);  
+                            BlisDebug.Log("TT: Main", "flow");
+                            await this.TakeTurn(recsess, userInput, null);
                         }
                     } 
                 }
                 else if (session.message.attachments && session.message.attachments.length > 0)
                 {
                     Utils.SendMessage(context, "Importing application...");
-                    BlisAppContent.ImportAttachment(context, session.message.attachments[0] ,(text) => {
-                        this.ProcessResult(recsess, [text], null, null);
+                    BlisAppContent.ImportAttachment(context, session.message.attachments[0] , async (text) => {
+                        await this.ProcessResult(recsess, [text], null, null);
                     }); 
                     return;
                 }
@@ -578,6 +558,24 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         }
     }
 
+    private async PromisifyLC(luisCallback, text: string, luisEntities : LabelEntity[], memory : BlisMemory) {
+        return new Promise(function(resolve,reject){
+            luisCallback(text, luisEntities, memory, (takeTurnRequest) =>
+            {
+                resolve(takeTurnRequest);
+            });
+        });
+    }
+
+    private async PromisifyBC(blisCallback, text : string, memory : BlisMemory) {
+        return new Promise(function(resolve,reject){
+            blisCallback(text, memory, (outText) =>
+            {
+                resolve(outText);
+            });
+        });
+    }
+
     public async TakeTurn(recsess : RecSession, input : string | TakeTurnRequest, actionId : string) : Promise<void>
     {
         BlisDebug.Verbose("TakeTurn");
@@ -585,23 +583,29 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         recsess.userInput = (typeof input == 'string') ? input : null;
 
         // Error checking
-        if (recsess.context.State(UserStates.APP)  == null)
+        let memory = recsess.context.Memory();
+        let appId = await memory.AppId();
+        if (appId  == null)
         {
             let card = Menu.AppPanel("No Application has been loaded..");
             let response = this.ErrorResponse(card[0]);
-            this.TakeTurnCallback(recsess, response);
+            await this.TakeTurnCallback(recsess, response);
             return;
         }
-        else if (!recsess.context.State(UserStates.MODEL)  && !recsess.context.State(UserStates.TEACH))
+        let modelId = await  memory.ModelId();
+        let inTeach = await memory.InTeachAsync();
+        if (!modelId  && !inTeach)
         {
             let response = this.ErrorResponse(Menu.Home("This application needs to be trained first."));
-            this.TakeTurnCallback(recsess, response);
+            await this.TakeTurnCallback(recsess, response);
             return;
         }
-        else if (!recsess.context.State(UserStates.SESSION))
+
+        let sessionId = await memory.SessionId();
+        if (!sessionId)
         {
             let response = this.ErrorResponse(Menu.Home("The app has not been started"));
-            this.TakeTurnCallback(recsess, response);
+            await this.TakeTurnCallback(recsess, response);
             return;
         }
 
@@ -627,7 +631,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
 
         try
         {
-            var takeTurnResponse = await this.blisClient.SendTurnRequest(recsess.context.State(UserStates.APP), recsess.context.State(UserStates.SESSION), requestBody)
+            var takeTurnResponse = await BlisClient.client.SendTurnRequest(appId, sessionId, requestBody)
 
             BlisDebug.Verbose(`TakeTurnResponse: ${takeTurnResponse.mode}`);
             
@@ -635,7 +639,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             if (!takeTurnResponse.mode || expectedNextModes.indexOf(takeTurnResponse.mode) < 0)
             {
                 var response = new TakeTurnResponse({ mode : TakeTurnModes.ERROR, error: `Unexpected mode ${takeTurnResponse.mode}`} );
-                this.TakeTurnCallback(recsess, response);
+                await this.TakeTurnCallback(recsess, response);
                 return; 
             }
 
@@ -643,21 +647,22 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             if (takeTurnResponse.mode == TakeTurnModes.CALLBACK)
             {
                 let takeTurnRequest;
-               let memory = new BlisMemory(recsess.context.session);
-                if (this.LuisCallback)
+                let memory = recsess.context.Memory();
+                if (this.luisCallback)
                 {
-                    takeTurnRequest = this.LuisCallback(takeTurnResponse.originalText, takeTurnResponse.entities, memory);
+                    takeTurnRequest = await this.PromisifyLC(this.luisCallback, takeTurnResponse.originalText, takeTurnResponse.entities, memory);
                 }
                 else
                 {
-                    takeTurnRequest = this.DefaultLuisCallback(takeTurnResponse.originalText, takeTurnResponse.entities, memory);
-                } 
+                    takeTurnRequest = await this.PromisifyLC(this.DefaultLuisCallback, takeTurnResponse.originalText, takeTurnResponse.entities, memory);
+                }
+                BlisDebug.Log("TT: Post LC", "flow");
                 await this.TakeTurn(recsess, takeTurnRequest, null);
             }
             // TEACH
             else if (takeTurnResponse.mode == TakeTurnModes.TEACH)
             {
-                this.TakeTurnCallback(recsess, takeTurnResponse);
+                await this.TakeTurnCallback(recsess, takeTurnResponse);
                 return;
             }
 
@@ -665,25 +670,26 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             else if (takeTurnResponse.mode == TakeTurnModes.ACTION)
             {
                 let action = takeTurnResponse.actions[0];
-                let memory = new BlisMemory(recsess.context.session);
+                let memory = recsess.context.Memory();
 
                 if (action.actionType == ActionTypes.TEXT)
                 {
-                    this.TakeTurnCallback(recsess, takeTurnResponse);
+                    await this.TakeTurnCallback(recsess, takeTurnResponse);
 
                     // Is this the last itteration?
-                    if (action.waitAction)
+                    if (!action.waitAction)
                     {
-                        memory.FinishTrainStep();
-                    }
-                    else
-                    {
-                        let entityIds = recsess.context.Memory().EntityIds();
+                        let memory = recsess.context.Memory()
+                        let entityIds = await memory.EntityIds();
                         let takeTurnRequest = new TakeTurnRequest({entities: entityIds});
                         expectedNextModes = [TakeTurnModes.ACTION, TakeTurnModes.TEACH];
+                        BlisDebug.Log("TT: Action Text", "flow");
                         await this.TakeTurn(recsess, takeTurnRequest, null);
                     }
-
+                    else if (inTeach)
+                    {
+                        await memory.FinishTrainStep();
+                    }
                     return;
                 }
 
@@ -700,14 +706,14 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                         // Send back the intent to the bot
                         let [intentName] = args.split(' ');
                         let iArgs = Utils.RemoveWords(args, 1);
-                        let entities = recsess.context.Memory().GetEntities(iArgs);
+                        let entities = await memory.GetEntities(iArgs);
                         await this.ProcessResult(recsess, null, intentName, entities);
-                        memory.RememberTrainStep(SaveStep.APICALLS, `${intentName} ${entities}`);
+                        await memory.SetTrainStep(SaveStep.APICALLS, `${intentName} ${entities}`);
                         return;
                     }
 
                     // Make any entity substitutions
-                    args = recsess.context.Memory().SubstituteEntities(args);
+                    args = await memory.SubstituteEntities(args);
 
                     // First check for built in APIS
                     let api = this.intApiCallbacks[apiName];
@@ -724,9 +730,9 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                         let takeTurnRequest = await api(recsess.context, memory, args);
 
                         // If in teach mode, remember the step
-                        if (recsess.context.State(UserStates.TEACH))
+                        if (inTeach)
                         {
-                            memory.RememberTrainStep(SaveStep.APICALLS, `${apiName} ${args}`);
+                            await memory.SetTrainStep(SaveStep.APICALLS, `${apiName} ${args}`);
                         }
                         BlisDebug.Verbose(`API: {${apiName} ${args}}`);
 
@@ -734,11 +740,12 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                         if (!action.waitAction)
                         {
                             expectedNextModes = [TakeTurnModes.ACTION, TakeTurnModes.TEACH];
+                            BlisDebug.Log("TT: API", "flow");
                             await this.TakeTurn(recsess, takeTurnRequest, null);
                         }      
-                        else if (recsess.context.State(UserStates.TEACH))
+                        else if (inTeach)
                         {
-                            memory.FinishTrainStep();
+                            await memory.FinishTrainStep();
                             var card = Utils.MakeHero(null, null, "Type next user input for this Dialog or" , 
                             { "Dialog Complete" : IntCommands.DONETEACH});
                             Utils.SendResponses(recsess.context, [card]);
@@ -747,14 +754,14 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                     else 
                     {
                         let response = this.ErrorResponse(`API ${apiName} not defined`);
-                        this.TakeTurnCallback(recsess, response);
+                        await this.TakeTurnCallback(recsess, response);
                     }
                 }
             }
         }
         catch (error) {
             let errMsg = BlisDebug.Error(error); 
-            this.TakeTurnCallback(recsess, null, errMsg);
+            await this.TakeTurnCallback(recsess, null, errMsg);
         }
     }
 
@@ -776,7 +783,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         }
         else
         {
-       //     memory.ForgetEntityByName("company", null); // TEMP
+       //   await memory.ForgetEntityByName("company", null); // TEMP
             let [funct, query] = args.split(' ');
             let output = await AzureFunctions.Call(BlisClient.client.azureFunctionsUrl, BlisClient.client.azureFunctionsKey, funct, query);
             if (output)
@@ -784,8 +791,8 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                 Utils.SendMessage(context, output);
             }
         }
-        let entityIds = memory.EntityIds();
-        memory.RememberLastStep(SaveStep.RESPONSES, args);  // TEMP try remember last apicall
+        let entityIds = await memory.EntityIds();
+        await memory.SetLastStep(SaveStep.RESPONSES, args);  // TEMP try remember last apicall
         return new TakeTurnRequest({entities: entityIds});
     }
 
@@ -794,15 +801,15 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     private async SetTaskCB(context: BlisContext, memory : BlisMemory, entityName : string) : Promise<TakeTurnRequest>
     {
         memory.RememberEntityByName(entityName, "ON");
-        let entityIds = memory.EntityIds();
+        let entityIds = await memory.EntityIds();
         return new TakeTurnRequest({entities: entityIds});
     }
 
     // Set a task to the "OFF" state
     private async ClearTaskCB(context : BlisContext, memory : BlisMemory, entityName : string) : Promise<TakeTurnRequest>
     {
-        memory.ForgetEntityByName(entityName, null);
-        let entityIds = memory.EntityIds();
+        await memory.ForgetEntityByName(entityName, null);
+        let entityIds = await memory.EntityIds();
         return new TakeTurnRequest({entities: entityIds});
     }
 
@@ -813,7 +820,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         return new TakeTurnResponse({ mode : TakeTurnModes.ERROR, error: error});
     }
 
-    public DefaultLuisCallback(text: string, entities : LabelEntity[], memory : BlisMemory) : TakeTurnRequest
+    public async DefaultLuisCallback(text: string, entities : LabelEntity[], memory : BlisMemory, done : (takeTurnRequest : TakeTurnRequest)=> void) : Promise<void>
     {
         // Update entities in my memory
         for (var entity of entities)
@@ -821,32 +828,35 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             // If negative entity will have a positive counter entity
             if (entity.metadata && entity.metadata.positive)
             {
-                memory.ForgetEntity(entity);
+                await memory.ForgetEntityLabel(entity);
             }
             else
             {
-                memory.RememberEntity(entity);
+                await memory.RememberEntityLabel(entity);
             }
 
             // If entity is associated with a task, make sure task is active
             if (entity.metadata && entity.metadata.task)
             {
                 // If task is no longer active, clear the memory
-                if (!memory.WasRemembered(entity.metadata.task))
+                let remembered = await memory.WasRemembered(entity.metadata.task);
+                if (!remembered)
                 {
-                    memory.ForgetEntity(entity);
+                    await memory.ForgetEntityLabel(entity);
                 }
             }
         }
 
         // Get entities from my memory
-        var entityIds = memory.EntityIds();
+        var entityIds = await memory.EntityIds();
 
-        return new TakeTurnRequest({input : text, entities: entityIds});
+        let ttr = new TakeTurnRequest({input : text, entities: entityIds});
+        done(ttr);
     }
 
-    private DefaultBlisCallback(text: string, memory : BlisMemory) : string
+    private async DefaultBlisCallback(text: string, memory : BlisMemory, done : (text: string)=> void) : Promise<void>
     {
-        return memory.Substitute(text);
+        let outText = await memory.Substitute(text);
+        done(outText);
     }
 }

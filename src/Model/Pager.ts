@@ -1,25 +1,47 @@
 import * as builder from 'botbuilder'
-import { UserStates, SaveStep } from './Consts';
+import { BlisMemory } from '../BlisMemory';
+import { Serializable } from './Serializable';
+import { JsonProperty } from 'json-typescript-mapper';
+import { BlisContext } from '../BlisContext';
 
 // For keeping track of paging UI elements
-export class Pager {
+export class Pager extends Serializable {
 
-    constructor(public index : number, public numPages : number, public search? : string){
+    @JsonProperty('index') 
+    public index: number;
+
+    @JsonProperty('numPages') 
+    public numPages : number;
+
+    @JsonProperty('search') 
+    public search: string;
+
+    @JsonProperty('length') 
+    public length: number;
+
+    public constructor(init?:Partial<Pager>)
+    {
+        super();
+        this.index = undefined;
+        this.numPages = undefined;
+        this.search = undefined;
+        this.length = undefined;
+        (<any>Object).assign(this, init);
     }
 
-    public static Init(session : builder.Session, search : string) : void {
-        let page = new Pager(0, 0, search);
-        session.userData.Blis[UserStates.PAGE] = page;
+    public static async Init(context : BlisContext, search : string) : Promise<void> {
+        let page = new Pager({index : 0, numPages: 0, search: search});
+        await context.Memory().SetPager(page);
     }
 
-    public static Index(session : builder.Session) : number {
-        let page = session.userData.Blis[UserStates.PAGE];
+    public static async Index(context : BlisContext) : Promise<number> {
+        let page = await context.Memory().Pager();
         return page.index;
     }
 
     /** Update the length */
-    public static SetLength(session : builder.Session, length : number) : Pager {
-        let page = session.userData.Blis[UserStates.PAGE];
+    public static async SetLength(context : BlisContext, length : number) : Promise<Pager> {
+        let page = await context.Memory().Pager();
         page.length = length;
 
         // Make sure still in bounds (i.e. handle deleted items in list)
@@ -30,13 +52,13 @@ export class Pager {
         return page;
     }
 
-    public static SearchTerm(session : builder.Session) : string {
-        let page = session.userData.Blis[UserStates.PAGE];
+    public static async SearchTerm(context : BlisContext) : Promise<string> {
+        let page = await context.Memory().Pager();
         return page.search;
     }
 
-    public static Next(session : builder.Session) : Pager {
-        let page = session.userData.Blis[UserStates.PAGE];
+    public static async Next(context : BlisContext) : Promise<Pager> {
+        let page = await context.Memory().Pager();
         page.index++;
 
         // Loop if at end
@@ -47,8 +69,8 @@ export class Pager {
         return page;
     }
 
-    public static Prev(session : builder.Session) : Pager {
-        let page = session.userData.Blis[UserStates.PAGE];
+    public static async Prev(context : BlisContext) : Promise<Pager> {
+        let page = await context.Memory().Pager();
         page.index--;
 
         // Loop if at start

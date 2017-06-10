@@ -5,7 +5,7 @@ import { BlisApp } from '../Model/BlisApp';
 import { AdminResponse } from '../Model/AdminResponse'; 
 import { BlisDebug} from '../BlisDebug';
 import { BlisClient } from '../BlisClient';
-import { TakeTurnModes, EntityTypes, UserStates, TeachStep, ActionTypes, SaveStep, APICalls, ActionCommand, APITypes } from '../Model/Consts';
+import { TakeTurnModes, EntityTypes, TeachStep, ActionTypes, APICalls, ActionCommand, APITypes } from '../Model/Consts';
 import { IntCommands, LineCommands, CueCommands } from './Command';
 import { BlisMemory } from '../BlisMemory';
 import { Utils } from '../Utils';
@@ -196,7 +196,7 @@ export class Action
         return buttons;
     }
 
-    private static ProcessCommandString(context: BlisContext, actionSet : ActionSet, commandString : string) : string
+    private static async ProcessCommandString(context: BlisContext, actionSet : ActionSet, commandString : string) : Promise<string>
     {
         if (!commandString) return;
         
@@ -216,7 +216,7 @@ export class Action
                 }
                 else
                 {
-                    let negID = memory.EntityName2Id(negName);
+                    let negID = await memory.EntityName2Id(negName);
                     if (negID) {
                         actionSet.negIds.push(negID);
                         actionSet.negNames.push(negName);
@@ -237,7 +237,7 @@ export class Action
                 }
                 else if (actionSet.posNames.indexOf(posName) < 0)
                 {
-                    let posID = memory.EntityName2Id(posName);
+                    let posID = await memory.EntityName2Id(posName);
                     if (posID) {
                         actionSet.posIds.push(posID);
                         actionSet.posNames.push(posName);
@@ -256,7 +256,7 @@ export class Action
         }
     }
 
-    private static ProcessResponse(context: BlisContext, actionSet : ActionSet, responseString : string) : string
+    private static async ProcessResponse(context: BlisContext, actionSet : ActionSet, responseString : string) : Promise<string>
     {
         // Ignore bracketed text
         responseString = Action.IgnoreBrackets(responseString);
@@ -271,7 +271,7 @@ export class Action
                 let posName = word.slice(ActionCommand.SUBSTITUTE.length);
                 if (actionSet.posNames.indexOf(posName) < 0)
                 {
-                    let posID = memory.EntityName2Id(posName);
+                    let posID = await memory.EntityName2Id(posName);
                     if (posID)
                     {
                         actionSet.posIds.push(posID);
@@ -291,10 +291,10 @@ export class Action
         }
     }
 
-    private static ProcessSuggestion(context: BlisContext, actionSet : ActionSet, word : string)
+    private static ProcessSuggestion(context: BlisContext, actionSet : ActionSet, word : string) : void
     {
         let memory = context.Memory();
-
+/* V1 TODO
         // Only allow one suggested entity
         if (actionSet.saveName) 
         {
@@ -305,11 +305,12 @@ export class Action
             return `Suggested entities can't be added to API Actions`;
         }
         actionSet.saveName = word.slice(ActionCommand.SUGGEST.length);
-        actionSet.saveId = memory.EntityName2Id(actionSet.saveName);
+        actionSet.saveId = await memory.EntityName2Id(actionSet.saveName);
         if (!actionSet.saveId)
         {
             return `Entity $${actionSet.saveName} not found.`;
         }
+        */
         // Add to negative entities
         if (actionSet.negNames.indexOf(actionSet.saveName) < 0)
         {
@@ -382,7 +383,10 @@ export class Action
     {
         BlisDebug.Log(`AddAction`);
 
-        if (!BlisApp.HaveApp(context, cb))
+        let memory = context.Memory();
+        let appId = await memory.AppId();
+        
+        if (!BlisApp.HaveApp(appId, context, cb))
         {
             return;
         }
@@ -426,17 +430,17 @@ export class Action
             // Extract response and commands
             let [action, commands] = content.split('//');
  
-            let error = this.ProcessCommandString(context, actionSet, commands);
+            let error = await this.ProcessCommandString(context, actionSet, commands);
             if (error)
             {
-               cb(Menu.AddEditCards(context, [error]), null);
+           //v1   cb(Menu.AddEditCards(context, [error]), null);
                return;
             }
 
-            error = this.ProcessResponse(context, actionSet, action);
+            error = await this.ProcessResponse(context, actionSet, action);
             if (error)
             {
-               cb(Menu.AddEditCards(context, [error]), null);
+           //    cb(Menu.AddEditCards(context, [error]), null);
                return;
             }
 
@@ -451,7 +455,7 @@ export class Action
                     waitAction : actionSet.waitAction
                 });
 
-                actionId = await BlisClient.client.EditAction(context.State(UserStates.APP), editAction);
+                actionId = await BlisClient.client.EditAction(appId, editAction);
                 changeType = changeType + ` Edited`;
             }
             else 
@@ -466,7 +470,7 @@ export class Action
                     waitAction : actionSet.waitAction,
                     metadata : metadata
                 });
-                actionId = await BlisClient.client.AddAction(context.State(UserStates.APP), newAction);
+                actionId = await BlisClient.client.AddAction(appId, newAction);
                 changeType = changeType + ` Created`;
             }
             let substr = actionSet.waitAction ? " (WAIT)" : "";;
@@ -493,7 +497,7 @@ export class Action
     public static async Delete_v1(context : BlisContext, actionId : string, cb : (responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[]) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to Delete Action`);
-
+ 
         if (!actionId)
         {
             cb(Menu.AddEditCards(context,[`You must provide the ID of the action to delete.`]));
@@ -502,8 +506,12 @@ export class Action
 
         try
         {    
-            let action = await BlisClient.client.GetAction(context.State(UserStates.APP), actionId);  
-            let inUse = await action.InUse(context.State(UserStates.APP));
+            let memory = context.Memory();
+            let appId = await memory.AppId();
+       
+
+            let action = await BlisClient.client.GetAction(appId, actionId);  
+            let inUse = await action.InUse(appId);
 
             if (inUse)
             {
@@ -513,7 +521,7 @@ export class Action
             }
 
             // TODO clear savelookup
-            await BlisClient.client.DeleteAction(context.State(UserStates.APP), actionId)
+            await BlisClient.client.DeleteAction(appId, actionId)
             let card = Utils.MakeHero(`Deleted Action`, null, action.content, null);
             cb(Menu.AddEditCards(context,[card]));
         }
@@ -531,8 +539,11 @@ export class Action
         BlisDebug.Log(`Getting actions`);
 
         try
-        {   
-            if (!BlisApp.HaveApp(context, cb))
+        {  
+            let memory = context.Memory();
+            let appId = await memory.AppId();
+
+            if (!BlisApp.HaveApp(appId, context, cb))
             {
                 return;
             }
@@ -547,7 +558,7 @@ export class Action
             // Get actions
             let actionIds = [];
             let responses = [];
-            let json = await BlisClient.client.GetActions(context.State(UserStates.APP))
+            let json = await BlisClient.client.GetActions(appId)
             actionIds = JSON.parse(json)['ids'];
             BlisDebug.Log(`Found ${actionIds.length} actions`);
 
@@ -561,12 +572,12 @@ export class Action
             let textactions = "";
             let apiactions = "";
             let actions : Action[] = [];
-            let memory = context.Memory();
+
             if (search) search = search.toLowerCase();
 
             for (let actionId of actionIds)
             {
-                let action = await BlisClient.client.GetAction(context.State(UserStates.APP), actionId)
+                let action = await BlisClient.client.GetAction(appId, actionId)
 
                 // Don't display internal APIs (unless in debug)
                 if (debug || !action.metadata || !action.metadata.internal)
@@ -585,8 +596,8 @@ export class Action
             // Generate output
             for (let action of actions)
             {
-                    let posstring = memory.EntityIds2Names(action.requiredEntities);
-                    let negstring = memory.EntityIds2Names(action.negativeEntities);
+                    let posstring = await memory.EntityIds2Names(action.requiredEntities);
+                    let negstring = await memory.EntityIds2Names(action.negativeEntities);
                     let atext = `${action.content}`;
                     
                     // Don't show AZURE or INTENT command string

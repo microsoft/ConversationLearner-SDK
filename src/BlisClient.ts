@@ -6,7 +6,7 @@ import { Dialog, TrainDialog } from './Model/TrainDialog'
 import { BlisApp } from './Model/BlisApp'
 import { BlisAppContent } from './Model/BlisAppContent'
 import { Entity, EntityMetaData } from './Model/Entity'
-import { TakeTurnModes, ActionTypes, UserStates, APICalls } from './Model/Consts';
+import { TakeTurnModes, ActionTypes, APICalls } from './Model/Consts';
 import { TakeTurnResponse } from './Model/TakeTurnResponse'
 import { TakeTurnRequest } from './Model/TakeTurnRequest'
 import { BlisMemory } from './BlisMemory';

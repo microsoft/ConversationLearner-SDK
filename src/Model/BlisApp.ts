@@ -2,7 +2,7 @@ import * as builder from 'botbuilder';
 import { deserialize } from 'json-typescript-mapper';
 import { BlisDebug} from '../BlisDebug';
 import { BlisClient } from '../BlisClient';
-import { TakeTurnModes, EntityTypes, UserStates, TeachStep, ActionTypes, SaveStep, APICalls, ActionCommand } from '../Model/Consts';
+import { TakeTurnModes, EntityTypes, TeachStep, ActionTypes, APICalls, ActionCommand } from '../Model/Consts';
 import { IntCommands, LineCommands, HelpCommands } from './Command';
 import { BlisHelp } from '../Model/Help'; 
 import { BlisMemory } from '../BlisMemory';
@@ -45,9 +45,9 @@ export class BlisApp
     }
 
     /** Send No App card and return false if no app loaded */
-    public static HaveApp(context : BlisContext, cb : (responses: (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], actionId? : string) => void) : boolean
+    public static HaveApp(appId : string, context : BlisContext, cb : (responses: (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], actionId? : string) => void) : boolean
     {
-        if (context.State(UserStates.APP) == null)
+        if (appId == null)
         {
             cb(Menu.AppPanel('No Application has been loaded'));
             return false
@@ -88,7 +88,7 @@ export class BlisApp
             let appId = await BlisClient.client.CreateApp(appName, luisKey)
 
             // Initialize
-            context.InitState(appId);
+            await context.Memory().Init(appId);
             
             let card = Utils.MakeHero("Created App", appName, null, null);
             cb(Menu.AddEditCards(context,[card])); 
@@ -141,6 +141,9 @@ export class BlisApp
             // Sort
             apps = BlisApp.Sort(apps);
 
+            let memory = context.Memory();
+            let appId = await memory.AppId();
+
             // Genrate output
             for (let app of apps) 
             {
@@ -150,7 +153,7 @@ export class BlisApp
                 }
                 else
                 {
-                    if (!context.State(UserStates.APP))
+                    if (!appId)
                     {
                         responses.push(Utils.MakeHero(app.name, null, null, 
                         { 
@@ -158,7 +161,7 @@ export class BlisApp
                             "Delete" : `${IntCommands.DELETEAPP} ${app.id}`
                         }));
                     }
-                    else if (app.id == context.State(UserStates.APP))
+                    else if (app.id == appId)
                     {
                         responses.push(Utils.MakeHero(app.name + " (LOADED)", null, null, { 
                             "Delete" : `${IntCommands.DELETEAPP} ${app.id}`
@@ -204,15 +207,18 @@ export class BlisApp
             appIds = JSON.parse(json)['ids'];
             BlisDebug.Log(`Found ${appIds.length} apps`);
 
+            let memory = context.Memory();
+            let appId = await memory.AppId();
+
             for (let appId of appIds){
-                let text = await BlisClient.client.DeleteApp(context.State(UserStates.APP), appId)
+                let text = await BlisClient.client.DeleteApp(appId, appId)
                 BlisDebug.Log(`Deleted ${appId} apps`);
             }
 
             // No longer have an active app
-            context.SetState(UserStates.APP, null);
-            context.SetState(UserStates.MODEL, null);
-            context.SetState(UserStates.SESSION, null);
+            await  memory.SetAppId(null);
+            await memory.SetModelId(null);
+            await memory.SetSessionId(null);
 
             cb(Menu.AddEditCards(context,["Done"]));
         }
@@ -235,17 +241,20 @@ export class BlisApp
 
         try
         {       
-            await BlisClient.client.DeleteApp(context.State(UserStates.APP), appId)
+            let memory = context.Memory();
+            let curAppId = await memory.AppId();
+
+            await BlisClient.client.DeleteApp(curAppId, appId)
 
             let cards = [];
             cards.push(Utils.MakeHero("Deleted App", appId, null, null));
 
             // Did I delete my loaded app
-            if (appId == context.State(UserStates.APP))
+            if (appId == curAppId)
             {
-                context.SetState(UserStates.APP, null);
-                context.SetState(UserStates.MODEL, null);
-                context.SetState(UserStates.SESSION, null);
+                await  memory.SetAppId(null);
+                await memory.SetModelId(null);
+                await memory.SetSessionId(null);
                 cards.push(null);  // Line break
                 cards = cards.concat(Menu.AppPanel('No App Loaded','Load or Create one'));
                 cb(cards);
