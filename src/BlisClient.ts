@@ -18,7 +18,7 @@ export class BlisClient {
     public static client : BlisClient;
 
     // Create singleton
-    public static InitClient(serviceUri : string, user : string, secret : string, azureFunctionsUrl : string, azureFunctionsKey : string)
+    public static Init(serviceUri : string, user : string, secret : string, azureFunctionsUrl : string, azureFunctionsKey : string)
     {
         this.client = new BlisClient(serviceUri, user, secret, azureFunctionsUrl, azureFunctionsKey);
     }
