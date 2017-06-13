@@ -156,11 +156,11 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     {
         // Some commands require taking a post command TeachAction (if user is in teach mode)
         let memory = recsess.context.Memory();
-        let inTeach = await memory.InTeachAsync();
+        let inTeach = await memory.BotState().InTeach();
         if (inTeach && teachAction) 
         {
-            let appId = await  memory.AppId();
-            let sessionId = await memory.SessionId();
+            let appId = await  memory.BotState().AppId();
+            let sessionId = await memory.BotState().SessionId();
 
             if (teachAction == TeachAction.RETRAIN)
             {
@@ -236,13 +236,13 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         else if (ttResponse.mode == TakeTurnModes.ACTION)
         {
             let output = ttResponse.actions[0].content;
-            await memory.SetLastStep(SaveStep.RESPONSES, output);
+            await memory.TrainHistory().SetLastStep(SaveStep.RESPONSES, output);
 
             // Clear any suggested entity hints from response  TODO - this seems outdate
             output = output ? output.replace(" !"," ") : output;
 
             // Allow for dev to update
-            let inTeach = await memory.InTeachAsync();
+            let inTeach = await memory.BotState().InTeach();
             let outText = null;
             if (this.blisCallback)
             {
@@ -255,7 +255,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
 
             if (inTeach)
             {
-                await memory.SetTrainStep(SaveStep.RESPONSES, outText);
+                await memory.TrainHistory().SetStep(SaveStep.RESPONSES, outText);
                 responses.push(Utils.MakeHero('Trained Response:', outText + "\n\n", "Type next user input for this Dialog or" , 
                 { "Dialog Complete" : IntCommands.DONETEACH}));
             }
@@ -291,14 +291,14 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         }
         else
         {
-            await memory.SetTrainStep(SaveStep.INPUT, recsess.userInput);
-            await memory.SetLastStep(SaveStep.INPUT,recsess.userInput);
+            await memory.TrainHistory().SetStep(SaveStep.INPUT, recsess.userInput);
+            await memory.TrainHistory().SetLastStep(SaveStep.INPUT,recsess.userInput);
         }
         let cardtitle = "Teach Step: Detected Entities";
         if (ttResponse.teachLabelEntities.length == 0)
         {
             // Look for suggested entity in previous response
-            let lastResponses = await memory.LastStep(SaveStep.RESPONSES);
+            let lastResponses = await memory.TrainHistory().LastStep(SaveStep.RESPONSES);
             let suggestedEntity = Action.GetEntitySuggestion(lastResponses); 
             if (suggestedEntity)
             {
@@ -328,7 +328,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             for (let i in ttResponse.teachLabelEntities)
             {
                 let labelEntity = ttResponse.teachLabelEntities[i];
-                let entityName = await memory.EntityId2Name(labelEntity.id);
+                let entityName = await memory.EntityLookup().ToName(labelEntity.id);
 
                 // Prebuild entities don't have a score
                 let score = labelEntity.score ? `_Score: ${labelEntity.score.toFixed(3)}_` : "";
@@ -347,16 +347,16 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
 
         let memory = recsess.context.Memory();
         // If app contains no entities, LabelEntity skip is stepped, so input must still be saved
-        let input = await memory.TrainStepInput();
+        let input = await memory.TrainHistory().CurrentInput();
         if (!input)
         {
             // Only run if no suggested entity is found
-            await memory.SetTrainStep(SaveStep.INPUT, recsess.userInput);
-            await memory.SetLastStep(SaveStep.INPUT, recsess.userInput);
+            await memory.TrainHistory().SetStep(SaveStep.INPUT, recsess.userInput);
+            await memory.TrainHistory().SetLastStep(SaveStep.INPUT, recsess.userInput);
         }
 
-        let ents = await memory.DumpEntities();
-        await memory.SetTrainStep(SaveStep.ENTITY, ents);
+        let ents = await memory.BotMemory().ToString();
+        await memory.TrainHistory().SetStep(SaveStep.ENTITY, ents);
 
         let title = `Teach Step: Select Action`;
         let body = ttResponse.teachLabelActions.length == 0 ? 'No actions matched' : 'Select Action by number or enter a new one';
@@ -396,7 +396,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             responses.push(msg);
 
             // Remember valid choices
-            await memory.SetLastStep(SaveStep.CHOICES, choices);
+            await memory.TrainHistory().SetLastStep(SaveStep.CHOICES, choices);
         }              
     }
 
@@ -457,7 +457,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                             });
                         return;
                     }
-                    let cueCommand = await memory.CueCommand()
+                    let cueCommand = await memory.CueCommand().Get();
                     if (cueCommand)
                     {
                         CommandHandler.ProcessCueCommand(context, userInput, async (responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], teachAction: string, actionData : string) => 
@@ -485,7 +485,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                             return;
                     }
                     // No app in memory
-                    let appId = await  memory.AppId();
+                    let appId = await  memory.BotState().AppId();
                     if (!appId)
                     {
                         // If error was thrown will be in responses
@@ -495,7 +495,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                         return;
                     }
                     // No session
-                    let sessionId = await memory.SessionId();
+                    let sessionId = await memory.BotState().SessionId();
                     if (!sessionId)
                     {
                         // If prev error was thrown will be in responses
@@ -507,11 +507,11 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                     else 
                     {
                         
-                        let inTeach = await memory.InTeachAsync();
+                        let inTeach = await memory.BotState().InTeach();
                         if (inTeach)
                         {
                             // Check if user has limited set of choices
-                            let choices = await memory.LastStep(SaveStep.CHOICES);
+                            let choices = await memory.TrainHistory().LastStep(SaveStep.CHOICES);
                             if (choices && Object.keys(choices).length > 0)
                             {
                                 if (!choices[userInput])
@@ -522,7 +522,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                                 }
                                 // Convert numeric choice to actionId
                                 let actionId = choices[userInput];
-                                await memory.SetLastStep(SaveStep.CHOICES, null);
+                                await memory.TrainHistory().SetLastStep(SaveStep.CHOICES, null);
                                 BlisDebug.Log("TT: Choose Action", "flow");
                                 await this.TakeTurn(recsess, null, actionId);
                             }
@@ -535,7 +535,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                         // If not in teach mode remember last user input
                         else
                         {
-                            await memory.SetLastStep(SaveStep.INPUT, userInput);  
+                            await memory.TrainHistory().SetLastStep(SaveStep.INPUT, userInput);  
                             BlisDebug.Log("TT: Main", "flow");
                             await this.TakeTurn(recsess, userInput, null);
                         }
@@ -584,7 +584,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
 
         // Error checking
         let memory = recsess.context.Memory();
-        let appId = await memory.AppId();
+        let appId = await memory.BotState().AppId();
         if (appId  == null)
         {
             let card = Menu.AppPanel("No Application has been loaded..");
@@ -592,8 +592,8 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             await this.TakeTurnCallback(recsess, response);
             return;
         }
-        let modelId = await  memory.ModelId();
-        let inTeach = await memory.InTeachAsync();
+        let modelId = await  memory.BotState().ModelId();
+        let inTeach = await memory.BotState().InTeach();
         if (!modelId  && !inTeach)
         {
             let response = this.ErrorResponse(Menu.Home("This application needs to be trained first."));
@@ -601,7 +601,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             return;
         }
 
-        let sessionId = await memory.SessionId();
+        let sessionId = await memory.BotState().SessionId();
         if (!sessionId)
         {
             let response = this.ErrorResponse(Menu.Home("The app has not been started"));
@@ -680,7 +680,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                     if (!action.waitAction)
                     {
                         let memory = recsess.context.Memory()
-                        let entityIds = await memory.EntityIds();
+                        let entityIds = await memory.BotMemory().RememberedIds();
                         let takeTurnRequest = new TakeTurnRequest({entities: entityIds});
                         expectedNextModes = [TakeTurnModes.ACTION, TakeTurnModes.TEACH];
                         BlisDebug.Log("TT: Action Text", "flow");
@@ -688,7 +688,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                     }
                     else if (inTeach)
                     {
-                        await memory.FinishTrainStep();
+                        await memory.TrainHistory().FinishStep();
                     }
                     return;
                 }
@@ -706,14 +706,14 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                         // Send back the intent to the bot
                         let [intentName] = args.split(' ');
                         let iArgs = Utils.RemoveWords(args, 1);
-                        let entities = await memory.GetEntities(iArgs);
+                        let entities = await memory.BotMemory().GetEntities(iArgs);
                         await this.ProcessResult(recsess, null, intentName, entities);
-                        await memory.SetTrainStep(SaveStep.APICALLS, `${intentName} ${entities}`);
+                        await memory.TrainHistory().SetStep(SaveStep.APICALLS, `${intentName} ${entities}`);
                         return;
                     }
 
                     // Make any entity substitutions
-                    args = await memory.SubstituteEntities(args);
+                    args = await memory.BotMemory().SubstituteEntities(args);
 
                     // First check for built in APIS
                     let api = this.intApiCallbacks[apiName];
@@ -732,7 +732,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                         // If in teach mode, remember the step
                         if (inTeach)
                         {
-                            await memory.SetTrainStep(SaveStep.APICALLS, `${apiName} ${args}`);
+                            await memory.TrainHistory().SetStep(SaveStep.APICALLS, `${apiName} ${args}`);
                         }
                         BlisDebug.Verbose(`API: {${apiName} ${args}}`);
 
@@ -745,7 +745,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                         }      
                         else if (inTeach)
                         {
-                            await memory.FinishTrainStep();
+                            await memory.TrainHistory().FinishStep();
                             var card = Utils.MakeHero(null, null, "Type next user input for this Dialog or" , 
                             { "Dialog Complete" : IntCommands.DONETEACH});
                             Utils.SendResponses(recsess.context, [card]);
@@ -771,7 +771,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     private async CallAzureFuncCB(context : BlisContext, memory : BlisMemory, args : string) : Promise<TakeTurnRequest>
     {
         // Disallow repetative API calls in case BLIS gets stuck TODO
-   /*     var lastResponse = memory.LastStep(SaveStep.RESPONSE);
+   /*     var lastResponse = memory.TrainHistory().LastStep(SaveStep.RESPONSE);
         if (lastResponse == args)
         {
             return;
@@ -783,7 +783,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         }
         else
         {
-       //   await memory.ForgetEntityByName("company", null); // TEMP
+       //   await memory.BotMemory().ForgetByName("company", null); // TEMP
             let [funct, query] = args.split(' ');
             let output = await AzureFunctions.Call(BlisClient.client.azureFunctionsUrl, BlisClient.client.azureFunctionsKey, funct, query);
             if (output)
@@ -791,8 +791,8 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                 Utils.SendMessage(context, output);
             }
         }
-        let entityIds = await memory.EntityIds();
-        await memory.SetLastStep(SaveStep.RESPONSES, args);  // TEMP try remember last apicall
+        let entityIds = await memory.BotMemory().RememberedIds();
+        await memory.TrainHistory().SetLastStep(SaveStep.RESPONSES, args);  // TEMP try remember last apicall
         return new TakeTurnRequest({entities: entityIds});
     }
 
@@ -800,16 +800,16 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     // Set a task to the "ON" state
     private async SetTaskCB(context: BlisContext, memory : BlisMemory, entityName : string) : Promise<TakeTurnRequest>
     {
-        memory.RememberEntityByName(entityName, "ON");
-        let entityIds = await memory.EntityIds();
+        memory.BotMemory().RememberByName(entityName, "ON");
+        let entityIds = await memory.BotMemory().RememberedIds();
         return new TakeTurnRequest({entities: entityIds});
     }
 
     // Set a task to the "OFF" state
     private async ClearTaskCB(context : BlisContext, memory : BlisMemory, entityName : string) : Promise<TakeTurnRequest>
     {
-        await memory.ForgetEntityByName(entityName, null);
-        let entityIds = await memory.EntityIds();
+        await memory.BotMemory().ForgetByName(entityName, null);
+        let entityIds = await memory.BotMemory().RememberedIds();
         return new TakeTurnRequest({entities: entityIds});
     }
 
@@ -828,27 +828,27 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             // If negative entity will have a positive counter entity
             if (entity.metadata && entity.metadata.positive)
             {
-                await memory.ForgetEntityLabel(entity);
+                await memory.BotMemory().ForgetByLabel(entity);
             }
             else
             {
-                await memory.RememberEntityLabel(entity);
+                await memory.BotMemory().RememberByLabel(entity);
             }
 
             // If entity is associated with a task, make sure task is active
             if (entity.metadata && entity.metadata.task)
             {
                 // If task is no longer active, clear the memory
-                let remembered = await memory.WasRemembered(entity.metadata.task);
+                let remembered = await memory.BotMemory().WasRemembered(entity.metadata.task);
                 if (!remembered)
                 {
-                    await memory.ForgetEntityLabel(entity);
+                    await memory.BotMemory().ForgetByLabel(entity);
                 }
             }
         }
 
         // Get entities from my memory
-        var entityIds = await memory.EntityIds();
+        var entityIds = await memory.BotMemory().RememberedIds();
 
         let ttr = new TakeTurnRequest({input : text, entities: entityIds});
         done(ttr);
@@ -856,7 +856,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
 
     private async DefaultBlisCallback(text: string, memory : BlisMemory, done : (text: string)=> void) : Promise<void>
     {
-        let outText = await memory.Substitute(text);
+        let outText = await memory.BotMemory().Substitute(text);
         done(outText);
     }
 }

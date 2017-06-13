@@ -142,7 +142,7 @@ export class BlisApp
             apps = BlisApp.Sort(apps);
 
             let memory = context.Memory();
-            let appId = await memory.AppId();
+            let appId = await memory.BotState().AppId();
 
             // Genrate output
             for (let app of apps) 
@@ -208,7 +208,7 @@ export class BlisApp
             BlisDebug.Log(`Found ${appIds.length} apps`);
 
             let memory = context.Memory();
-            let appId = await memory.AppId();
+            let appId = await memory.BotState().AppId();
 
             for (let appId of appIds){
                 let text = await BlisClient.client.DeleteApp(appId, appId)
@@ -216,9 +216,9 @@ export class BlisApp
             }
 
             // No longer have an active app
-            await  memory.SetAppId(null);
-            await memory.SetModelId(null);
-            await memory.SetSessionId(null);
+            await  memory.BotState().SetAppId(null);
+            await memory.BotState().SetModelId(null);
+            await memory.BotState().SetSessionId(null);
 
             cb(Menu.AddEditCards(context,["Done"]));
         }
@@ -242,7 +242,7 @@ export class BlisApp
         try
         {       
             let memory = context.Memory();
-            let curAppId = await memory.AppId();
+            let curAppId = await memory.BotState().AppId();
 
             await BlisClient.client.DeleteApp(curAppId, appId)
 
@@ -252,9 +252,9 @@ export class BlisApp
             // Did I delete my loaded app
             if (appId == curAppId)
             {
-                await  memory.SetAppId(null);
-                await memory.SetModelId(null);
-                await memory.SetSessionId(null);
+                await  memory.BotState().SetAppId(null);
+                await memory.BotState().SetModelId(null);
+                await memory.BotState().SetSessionId(null);
                 cards.push(null);  // Line break
                 cards = cards.concat(Menu.AppPanel('No App Loaded','Load or Create one'));
                 cb(cards);

@@ -14,6 +14,7 @@ export abstract class Serializable {
 
     public static Deserialize<T>(type : {new() : T }, text : string) : T
     {
+        if (!text) return null;
         let json = JSON.parse(text);
         return deserialize(type, json);
     }

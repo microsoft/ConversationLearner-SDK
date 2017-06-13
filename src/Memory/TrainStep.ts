@@ -28,16 +28,3 @@ export class TrainStep extends Serializable {
         (<any>Object).assign(this, init);
     }
 }
-
-export class TrainSteps extends Serializable {
-
-    @JsonProperty('steps')  
-    public steps : TrainStep[] = [];
-
-    public constructor(init?:Partial<TrainStep>)
-    {
-        super();
-        this.steps = undefined;
-        (<any>Object).assign(this, init);
-    }
-}

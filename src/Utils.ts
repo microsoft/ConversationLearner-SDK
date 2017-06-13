@@ -140,29 +140,6 @@ export class Utils  {
         }
         return hash;
     };
-        
-    /** Delete previous message batch */
-    public static DeleteLastMessages(session : builder.Session)
-    {
-        if (session.conversationData.lasPosts)
-        {
-            for (var address of session.conversationData.lastPosts)
-            {
-                session.connector.delete(address, (err) =>
-                    {
-                        if (err)
-                        {
-                            session.error(err);
-                        }
-                    }
-                )
-            }
-        }
-        else
-        {
-            session.send("No messages to delete.");
-        }
-    }
 
     /** Handle that catch clauses can be any type */
     public static ErrorString(error : any) : string

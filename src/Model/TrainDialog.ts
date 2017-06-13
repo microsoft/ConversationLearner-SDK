@@ -10,7 +10,7 @@ import { Utils } from '../Utils';
 import { Action } from './Action';
 import { Entity } from './Entity';
 import { Menu } from '../Menu';
-import { Pager } from './Pager';
+import { Pager } from '../Memory/Pager';
 import { BlisContext } from '../BlisContext';
 import { EditableResponse } from './EditableResponse';
 
@@ -204,7 +204,7 @@ export class TrainDialog
         turnNum = +turnNum-1;  // 0-based array
 
         let memory = context.Memory() 
-        let appId = await memory.AppId()
+        let appId = await memory.BotState().AppId()
 
         // Error checking
         let error = null;
@@ -274,9 +274,8 @@ export class TrainDialog
         try
         {       
             let memory = context.Memory() 
-            let appId = await memory.AppId()
+            let appId = await memory.BotState().AppId()
 
-            // TODO clear savelookup
             await BlisClient.client.DeleteTrainDialog(appId, dialogId)
             let card = Utils.MakeHero(`Deleted TrainDialog`, null, dialogId, null);
             cb([card]);
@@ -292,7 +291,7 @@ export class TrainDialog
         try 
         {
             let memory = context.Memory() 
-            let appId = await memory.AppId()
+            let appId = await memory.BotState().AppId()
 
             if (refreshCache)
             {

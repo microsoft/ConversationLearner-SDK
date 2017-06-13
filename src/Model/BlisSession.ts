@@ -16,14 +16,14 @@ export class BlisSession
         let memory = context.Memory();
         try
         {  
-            let appId = await memory.AppId();
-            let sessionId = await memory.SessionId();
+            let appId = await memory.BotState().AppId();
+            let sessionId = await memory.BotState().SessionId();
 
             // Ending teaching session (which trains the model if necessary), update modelId
             sessionId = await BlisClient.client.EndSession(appId, sessionId);
             let modelId = await BlisClient.client.GetModel(appId);
             await memory.EndSession();
-            await memory.SetModelId(modelId);
+            await memory.BotState().SetModelId(modelId);
             cb(sessionId);
         }
         catch (error)
@@ -42,8 +42,8 @@ export class BlisSession
        let memory = context.Memory();
 
        try {
-            let appId = await memory.AppId();
-            let sessionId = await memory.SessionId();
+            let appId = await memory.BotState().AppId();
+            let sessionId = await memory.BotState().SessionId();
 
             // Close any existing session
             let endId = await BlisClient.client.EndSession(appId, sessionId);
@@ -73,7 +73,7 @@ export class BlisSession
        }
        catch (error) {
             let errMsg = BlisDebug.Error(error); 
-            await memory.SetSessionId(null);  // Clear the bad session
+            await memory.BotState().SetSessionId(null);  // Clear the bad session
             cb([errMsg]);
        }
     }
@@ -82,7 +82,7 @@ export class BlisSession
     public static async TrainStepText(context : BlisContext) : Promise<string>
     {
         let memory = context.Memory();
-        let trainSteps = await memory.TrainSteps();
+        let trainSteps = await memory.TrainHistory().Steps();
         let msg = "** New Dialog Summary **\n\n";
         msg += `-----------------------------\n\n`;
 

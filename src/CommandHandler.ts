@@ -6,11 +6,11 @@ import { BlisApp } from './Model/BlisApp'
 import { BlisMemory } from './BlisMemory';
 import { BlisDebug} from './BlisDebug';
 import { BlisSession} from './Model/BlisSession';
-import { CueCommand } from './Model/CueCommand';
+import { CueCommand } from './Memory/CueCommand';
 import { BlisHelp } from './Model/Help';
 import { Action } from './Model/Action';
 import { Entity } from './Model/Entity';
-import { Pager } from './Model/Pager';
+import { Pager } from './Memory/Pager';
 import { BlisContext } from './BlisContext';
 import { BlisAppContent } from './Model/BlisAppContent'
 import { Utils } from './Utils';
@@ -29,7 +29,7 @@ export class CommandHandler
             // Store edit command so I can capture the next user input as the edit
             let cueCommand = new CueCommand({commandName : command, args : args});
             let memory = context.Memory();
-            await memory.SetCueCommand(cueCommand);
+            await memory.CueCommand().Set(cueCommand);
 
             if (command == LineCommands.ADDALTTEXT)
             {
@@ -70,19 +70,19 @@ export class CommandHandler
             }
             else if (command == LineCommands.EDITAPICALL)
             {
-                let appId = await context.Memory().AppId();
+                let appId = await context.Memory().BotState().AppId();
                 let action = await BlisClient.client.GetAction(appId, args);
                 cb([Menu.EditAPICall(action)]);
             }
             else if (command == LineCommands.EDITENTITY)
             {
-                let appId = await context.Memory().AppId();
+                let appId = await context.Memory().BotState().AppId();
                 let entity = await BlisClient.client.GetEntity(appId, args);
                 cb([Menu.EditEntity(entity)]);
             }
             else if (command == LineCommands.EDITRESPONSE)
             {
-                let appId = await context.Memory().AppId();
+                let appId = await context.Memory().BotState().AppId();
                 let action = await BlisClient.client.GetAction(appId, args);
                 cb([Menu.EditResponse(action)]);
             }
@@ -223,7 +223,7 @@ export class CommandHandler
         }
         //-------- Only valid in Teach ------------------//
         let memory = context.Memory();
-        let inTeach = await memory.InTeachAsync();
+        let inTeach = await memory.BotState().InTeach();
         if (inTeach) {
             if (command == IntCommands.APICALLS) {
                 this.CueCommand(context, LineCommands.CUEAPICALLS, arg, (responses) => {
@@ -318,7 +318,7 @@ export class CommandHandler
     private static async ProcessCommand(context : BlisContext, command : string, args : string, cb: (responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], teachAction? : string, actionData? : string) => void) : Promise<void>
     {
         let memory = context.Memory();
-        let inTeach = await memory.InTeachAsync();
+        let inTeach = await memory.BotState().InTeach();
 
         //---------------------------------------------------
         // Commands allowed at any time
@@ -380,8 +380,8 @@ export class CommandHandler
         }
         else if (command == LineCommands.DEBUG)
         {
-            let inDebug = <boolean> await  memory.InDebug();
-            await memory.SetInDebug(!inDebug);
+            let inDebug = <boolean> await  memory.BotState().InDebug();
+            await memory.BotState().SetInDebug(!inDebug);
             BlisDebug.enabled = !inDebug;
             cb(["Debug " + (BlisDebug.enabled ? "Enabled" : "Disabled")]);
         }
@@ -543,7 +543,7 @@ export class CommandHandler
             else if (command == LineCommands.TEACH)
             {
                 let memory = context.Memory();
-                await memory.ClearTrainSteps();
+                await memory.TrainHistory().Clear();
                 BlisSession.NewSession(context, true, (responses) => {
                     cb(responses);
                 });
@@ -553,7 +553,7 @@ export class CommandHandler
                 let [search] = args.split(' ');
 
                 // Set up pager
-                await Pager.Init(context, search);
+                await memory.Pager().Init(search);
                 TrainDialog.Get(context, true, (responses) => {
                     cb(responses);
                 });
@@ -579,10 +579,10 @@ export class CommandHandler
                 cb(Menu.EditCards(true));
                 return;
             }   
-            let cueCommand = await memory.CueCommand();
+            let cueCommand = await memory.CueCommand().Get();
 
             // Clear cue command
-            await memory.SetCueCommand(null);
+            await memory.CueCommand().Clear();
 
             let args = cueCommand.args ? `${cueCommand.args} ` : "";
             this.ProcessCommand(context, cueCommand.commandName, `${args}${input}` , cb);

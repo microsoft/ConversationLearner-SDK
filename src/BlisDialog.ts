@@ -62,10 +62,7 @@ export class BlisDialog extends builder.Dialog {
                 session.send(err.message);
                 return;
             }
-
-            // Clear memory of last posts -- todo clear editable cache
-            session.conversationData.lastPosts = [];
-
+            
             // If reponses present, send to user
             if (blisResponse.responses)
             {            
@@ -130,7 +127,7 @@ export class BlisDialog extends builder.Dialog {
                 // If in teach mode wrap the intent so can give next input cue when intent dialog completes
                 let context = new BlisContext(null, session);
                 let memory = context.Memory();
-                memory.InTeach((err, inTeach) =>
+                memory.BotState().InTeachSync((err, inTeach) =>
                 {
                     if (inTeach == "true")
                     {

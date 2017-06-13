@@ -6,7 +6,7 @@ export class BlisContext
 { 
     public session : builder.Session;
     public bot : builder.UniversalBot;
-    public memory : BlisMemory;
+    private memory : BlisMemory;
 
     constructor(bot : builder.UniversalBot, session : builder.Session) {
         this.bot = bot;

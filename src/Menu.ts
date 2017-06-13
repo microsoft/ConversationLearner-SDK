@@ -11,15 +11,15 @@ export class Menu {
 
     public static AddEditCards(context : BlisContext, responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[]) : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[]
     {
-        /* TODO V1
         let memory = context.Memory();
-        let inTeach = 
+        let inTeach = memory.BotState().InTeach();
+
         // Only add edit menu when not in teach mode
-        if (context.State(UserStates.TEACH))
+        if (inTeach)
         {
             return responses;
         }
-        */
+        
         return responses.concat(Menu.EditCards(true));
     }
 

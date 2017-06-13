@@ -216,7 +216,7 @@ export class Action
                 }
                 else
                 {
-                    let negID = await memory.EntityName2Id(negName);
+                    let negID = await memory.EntityLookup().ToId(negName);
                     if (negID) {
                         actionSet.negIds.push(negID);
                         actionSet.negNames.push(negName);
@@ -237,7 +237,7 @@ export class Action
                 }
                 else if (actionSet.posNames.indexOf(posName) < 0)
                 {
-                    let posID = await memory.EntityName2Id(posName);
+                    let posID = await memory.EntityLookup().ToId(posName);
                     if (posID) {
                         actionSet.posIds.push(posID);
                         actionSet.posNames.push(posName);
@@ -251,7 +251,7 @@ export class Action
             // Process suggested entities
             else if (word.startsWith(ActionCommand.SUGGEST))
             {
-                this.ProcessSuggestion(context, actionSet, word);
+                await this.ProcessSuggestion(context, actionSet, word);
             }
         }
     }
@@ -271,7 +271,7 @@ export class Action
                 let posName = word.slice(ActionCommand.SUBSTITUTE.length);
                 if (actionSet.posNames.indexOf(posName) < 0)
                 {
-                    let posID = await memory.EntityName2Id(posName);
+                    let posID = await memory.EntityLookup().ToId(posName);
                     if (posID)
                     {
                         actionSet.posIds.push(posID);
@@ -286,15 +286,15 @@ export class Action
             // Extract suggested entities
             else if (word.startsWith(ActionCommand.SUGGEST))
             {
-                this.ProcessSuggestion(context, actionSet, word);
+                await this.ProcessSuggestion(context, actionSet, word);
             }
         }
     }
 
-    private static ProcessSuggestion(context: BlisContext, actionSet : ActionSet, word : string) : void
+    private static async ProcessSuggestion(context: BlisContext, actionSet : ActionSet, word : string) : Promise<string>
     {
         let memory = context.Memory();
-/* V1 TODO
+
         // Only allow one suggested entity
         if (actionSet.saveName) 
         {
@@ -305,12 +305,12 @@ export class Action
             return `Suggested entities can't be added to API Actions`;
         }
         actionSet.saveName = word.slice(ActionCommand.SUGGEST.length);
-        actionSet.saveId = await memory.EntityName2Id(actionSet.saveName);
+        actionSet.saveId = await memory.EntityLookup().ToId(actionSet.saveName);
         if (!actionSet.saveId)
         {
             return `Entity $${actionSet.saveName} not found.`;
         }
-        */
+        
         // Add to negative entities
         if (actionSet.negNames.indexOf(actionSet.saveName) < 0)
         {
@@ -384,7 +384,7 @@ export class Action
         BlisDebug.Log(`AddAction`);
 
         let memory = context.Memory();
-        let appId = await memory.AppId();
+        let appId = await memory.BotState().AppId();
         
         if (!BlisApp.HaveApp(appId, context, cb))
         {
@@ -448,6 +448,7 @@ export class Action
             if (actionId) 
             {
                 let editAction = new Action({
+                    id : actionId,
                     actionType : actionType,
                     content : action,
                     negativeEntities : actionSet.negIds,
@@ -507,7 +508,7 @@ export class Action
         try
         {    
             let memory = context.Memory();
-            let appId = await memory.AppId();
+            let appId = await memory.BotState().AppId();
        
 
             let action = await BlisClient.client.GetAction(appId, actionId);  
@@ -541,7 +542,7 @@ export class Action
         try
         {  
             let memory = context.Memory();
-            let appId = await memory.AppId();
+            let appId = await memory.BotState().AppId();
 
             if (!BlisApp.HaveApp(appId, context, cb))
             {
@@ -596,8 +597,8 @@ export class Action
             // Generate output
             for (let action of actions)
             {
-                    let posstring = await memory.EntityIds2Names(action.requiredEntities);
-                    let negstring = await memory.EntityIds2Names(action.negativeEntities);
+                    let posstring = await memory.EntityLookup().Ids2Names(action.requiredEntities);
+                    let negstring = await memory.EntityLookup().Ids2Names(action.negativeEntities);
                     let atext = `${action.content}`;
                     
                     // Don't show AZURE or INTENT command string

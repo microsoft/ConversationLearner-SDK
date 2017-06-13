@@ -58,7 +58,7 @@ export class BlisAppContent
         try
         {        
             let memory = context.Memory();
-            let appId = await memory.AppId();
+            let appId = await memory.BotState().AppId();
 
             // Get actions
             let dialogIds = [];
@@ -87,7 +87,7 @@ export class BlisAppContent
         try
         {
             let memory = context.Memory();
-            let curAppId = await memory.AppId();
+            let curAppId = await memory.BotState().AppId();
 
             // Get current app
             let currentApp = await BlisClient.client.ExportApp(curAppId);
@@ -132,7 +132,7 @@ export class BlisAppContent
             let json = JSON.parse(text);
             let blisApp = deserialize(BlisAppContent, json);
             let memory = context.Memory();
-            let appId = await memory.AppId();
+            let appId = await memory.BotState().AppId();
             let newApp = await BlisClient.client.ImportApp(appId, blisApp)
             
             // Reload the app
@@ -156,20 +156,17 @@ export class BlisAppContent
                 return [Menu.Home(`You must provide the ID of the application to load.`)];
             }
 
-            // Initialize
-            // Object.assign(context.state, new BlisUserState(appId));  TODO - test that not needed
-
             try
             {            
                 // Validate appId, will fail if handed a bad appId
                 let app = await BlisClient.client.GetApp(appId)
-                await  memory.SetAppId(app.id);  
+                await  memory.BotState().SetAppId(app.id);  
                 BlisDebug.Log(`Loaded App: ${app.id}`);
             }
             catch (error)
             {
                 // Bad App
-                await  memory.SetAppId(null);  
+                await  memory.BotState().SetAppId(null);  
                 throw error;
             }
 
@@ -201,7 +198,7 @@ export class BlisAppContent
                     Utils.SendMessage(context, `Training the model...`);
 
                     modelId = await BlisClient.client.TrainModel(appId); 
-                    await memory.SetModelId(modelId);
+                    await memory.BotState().SetModelId(modelId);
 
                     BlisDebug.Log(`Model trained: ${modelId}`);
                 }
@@ -213,12 +210,12 @@ export class BlisAppContent
                 Utils.SendMessage(context, `${errMsg}\n\n\n\nFailed. Retraining the model from scratch...`);    
 
                 modelId = await BlisClient.client.TrainModel(appId, true);
-                await memory.SetModelId(modelId);
+                await memory.BotState().SetModelId(modelId);
 
                 BlisDebug.Log(`Model trained: ${modelId}`);
             }
             BlisDebug.Log(`Loaded Model: ${modelId}`);
-            await memory.SetModelId(modelId);
+            await memory.BotState().SetModelId(modelId);
 
             return [Menu.Home("Application loaded.")];
         }
