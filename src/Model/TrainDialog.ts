@@ -3,14 +3,14 @@ import { JsonProperty } from 'json-typescript-mapper';
 import { BlisHelp } from '../Model/Help'; 
 import { BlisDebug} from '../BlisDebug';
 import { BlisClient } from '../BlisClient';
-import { TakeTurnModes, EntityTypes, UserStates, TeachStep, ActionTypes, SaveStep, APICalls, ActionCommand } from '../Model/Consts';
+import { TakeTurnModes, EntityTypes, TeachStep, ActionTypes, APICalls, ActionCommand } from '../Model/Consts';
 import { IntCommands, LineCommands, CueCommands, HelpCommands } from './Command';
 import { BlisMemory } from '../BlisMemory';
 import { Utils } from '../Utils';
 import { Action } from './Action';
 import { Entity } from './Entity';
 import { Menu } from '../Menu';
-import { Pager } from './Pager';
+import { Pager } from '../Memory/Pager';
 import { BlisContext } from '../BlisContext';
 import { EditableResponse } from './EditableResponse';
 
@@ -199,10 +199,12 @@ export class TrainDialog
     public static async Edit(context : BlisContext, args : any, cb : (responses: (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[]) => void) : Promise<void>
     {
         // Extract args
-        let appId = context.State(UserStates.APP);
         let [dialogId, turnNum] = args.split(" ");
         let input = Utils.RemoveWords(args, 2);
         turnNum = +turnNum-1;  // 0-based array
+
+        let memory = context.Memory() 
+        let appId = await memory.BotState().AppId()
 
         // Error checking
         let error = null;
@@ -239,7 +241,7 @@ export class TrainDialog
                 trainDialog.dialog.turns[turnNum].input.textAlts = altTexts;
         
                 // Save
-                await BlisClient.client.EditTrainDialog(context.State(UserStates.APP), dialogId, trainDialog);
+                await BlisClient.client.EditTrainDialog(appId, dialogId, trainDialog);
 
                 // Show item with new content
                 TrainDialog.Get(context, true, (responses) => {
@@ -270,9 +272,11 @@ export class TrainDialog
         }
 
         try
-        {        
-            // TODO clear savelookup
-            await BlisClient.client.DeleteTrainDialog(context.State(UserStates.APP), dialogId)
+        {       
+            let memory = context.Memory() 
+            let appId = await memory.BotState().AppId()
+
+            await BlisClient.client.DeleteTrainDialog(appId, dialogId)
             let card = Utils.MakeHero(`Deleted TrainDialog`, null, dialogId, null);
             cb([card]);
         }
@@ -286,13 +290,15 @@ export class TrainDialog
     {
         try 
         {
-            let appId = context.State(UserStates.APP);
+            let memory = context.Memory() 
+            let appId = await memory.BotState().AppId()
+
             if (refreshCache)
             {
                 BlisClient.client.ClearExportCache(appId)
             }
             let blisApp = await BlisClient.client.ExportApp(appId);
-            let dialogs = await blisApp.FindTrainDialogs(appId, Pager.SearchTerm(context.session));
+            let dialogs = await blisApp.FindTrainDialogs(appId, await Pager.SearchTerm(context));
 
             if (dialogs.length == 0)
             {
@@ -300,8 +306,8 @@ export class TrainDialog
                 return;
             }
             
-            Pager.SetLength(context.session, dialogs.length);
-            let index = Pager.Index(context.session);
+            await Pager.SetLength(context, dialogs.length);
+            let index = await Pager.Index(context);
             // Show result
             let responses = [];
             for (let i in dialogs) {

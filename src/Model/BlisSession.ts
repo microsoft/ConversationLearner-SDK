@@ -4,7 +4,7 @@ import { BlisMemory } from '../BlisMemory';
 import { BlisClient } from '../BlisClient';
 import { Utils } from '../Utils';
 import { BlisContext} from '../BlisContext';
-import { UserStates, ActionCommand, ActionTypes } from './Consts';
+import { ActionCommand, ActionTypes } from './Consts';
 import { IntCommands, LineCommands } from './Command';
 import { EditableResponse } from './EditableResponse';
 
@@ -13,19 +13,23 @@ export class BlisSession
 { 
     public static async EndSession(context : BlisContext, cb : (text) => void) : Promise<void>
     {
+        let memory = context.Memory();
         try
-        {        
+        {  
+            let appId = await memory.BotState().AppId();
+            let sessionId = await memory.BotState().SessionId();
+
             // Ending teaching session (which trains the model if necessary), update modelId
-            let sessionId = await BlisClient.client.EndSession(context.State(UserStates.APP), context.State(UserStates.SESSION));
-            let modelId = await BlisClient.client.GetModel(context.State(UserStates.APP));
-            new BlisMemory(context.session).EndSession();
-            context.SetState(UserStates.MODEL, modelId);
+            sessionId = await BlisClient.client.EndSession(appId, sessionId);
+            let modelId = await BlisClient.client.GetModel(appId);
+            await memory.EndSession();
+            await memory.BotState().SetModelId(modelId);
             cb(sessionId);
         }
         catch (error)
         {
             // End session so user doesn't get trapped
-            new BlisMemory(context.session).EndSession();
+            await memory.EndSession();
             let errMsg = BlisDebug.Error(error); 
             cb(errMsg);
         }
@@ -35,14 +39,19 @@ export class BlisSession
     {
        BlisDebug.Log(`Trying to create new session, Teach = ${teach}`);
 
+       let memory = context.Memory();
+
        try {
+            let appId = await memory.BotState().AppId();
+            let sessionId = await memory.BotState().SessionId();
+
             // Close any existing session
-            let endId = await BlisClient.client.EndSession(context.State(UserStates.APP), context.State(UserStates.SESSION));
+            let endId = await BlisClient.client.EndSession(appId, sessionId);
             BlisDebug.Log(`Ended session ${endId}`);
 
             // Start a new session
-            let sessionId = await BlisClient.client.StartSession(context.State(UserStates.APP), teach);
-            new BlisMemory(context.session).StartSession(sessionId, teach);
+            sessionId = await BlisClient.client.StartSession(appId, teach);
+            await memory.StartSession(sessionId, teach);
             BlisDebug.Log(`Started session ${sessionId}`)   
             if (teach)
             {
@@ -64,16 +73,16 @@ export class BlisSession
        }
        catch (error) {
             let errMsg = BlisDebug.Error(error); 
-            context.SetState(UserStates.SESSION, null);  // Clear the bad session
+            await memory.BotState().SetSessionId(null);  // Clear the bad session
             cb([errMsg]);
        }
     }
 
     /** Return text of current training steps */
-    public static TrainStepText(context : BlisContext) : string
+    public static async TrainStepText(context : BlisContext) : Promise<string>
     {
         let memory = context.Memory();
-        let trainSteps = memory.TrainSteps();
+        let trainSteps = await memory.TrainHistory().Steps();
         let msg = "** New Dialog Summary **\n\n";
         msg += `-----------------------------\n\n`;
 

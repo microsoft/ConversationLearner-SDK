@@ -3,9 +3,10 @@ import { BlisRecognizer, IBlisResult, IBlisOptions } from './BlisRecognizer';
 import { BlisDebug } from './BlisDebug';
 import { Utils } from './Utils';
 import { Menu } from './Menu';
+import { BlisMemory } from './BlisMemory';
 import { EditableResponse } from './Model/EditableResponse';
 import { BlisContext} from './BlisContext';
-import { UserStates, BLIS_INTENT_WRAPPER } from './Model/Consts';
+import { BLIS_INTENT_WRAPPER } from './Model/Consts';
 
 
 export class BlisDialog extends builder.Dialog {
@@ -61,10 +62,7 @@ export class BlisDialog extends builder.Dialog {
                 session.send(err.message);
                 return;
             }
-
-            // Clear memory of last posts -- todo clear editable cache
-            session.conversationData.lastPosts = [];
-
+            
             // If reponses present, send to user
             if (blisResponse.responses)
             {            
@@ -128,14 +126,18 @@ export class BlisDialog extends builder.Dialog {
             {
                 // If in teach mode wrap the intent so can give next input cue when intent dialog completes
                 let context = new BlisContext(null, session);
-                if (context.State(UserStates.TEACH))
+                let memory = context.Memory();
+                memory.BotState().InTeachSync((err, inTeach) =>
                 {
-                    session.beginDialog(BLIS_INTENT_WRAPPER, {intent: blisResponse.intent, entities: blisResponse.entities});
-                }
-                else
-                {
-                    session.beginDialog(blisResponse.intent, blisResponse.entities);
-                }
+                    if (inTeach == "true")
+                    {
+                        session.beginDialog(BLIS_INTENT_WRAPPER, {intent: blisResponse.intent, entities: blisResponse.entities});
+                    }
+                    else
+                    {
+                        session.beginDialog(blisResponse.intent, blisResponse.entities);
+                    }
+                });
             }
         });
     }

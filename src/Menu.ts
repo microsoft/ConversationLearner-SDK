@@ -1,7 +1,7 @@
 import * as builder from 'botbuilder';
-import {  UserStates } from './Model/Consts';
 import { IntCommands, LineCommands, CueCommands, HelpCommands } from './Model/Command';
 import { Utils } from './Utils';
+import { BlisMemory } from './BlisMemory';
 import { Action } from './Model/Action';
 import { Entity } from './Model/Entity';
 import { EditableResponse } from './Model/EditableResponse';
@@ -11,11 +11,15 @@ export class Menu {
 
     public static AddEditCards(context : BlisContext, responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[]) : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[]
     {
+        let memory = context.Memory();
+        let inTeach = memory.BotState().InTeach();
+
         // Only add edit menu when not in teach mode
-        if (context.State(UserStates.TEACH))
+        if (inTeach)
         {
             return responses;
         }
+        
         return responses.concat(Menu.EditCards(true));
     }
 

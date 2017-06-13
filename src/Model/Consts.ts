@@ -68,20 +68,3 @@ export const ActionCommand =
     TERMINAL: "WAIT",
     DEBUG: "/d"
 }
-
-export const UserStates =
-{
-    APP : "APP",
-    SESSION : "SESSION",
-    MODEL : "MODEL",
-    TEACH: "TEACH",
-    DEBUG: "DEBUG",
-    MEMORY: "MEMORY",
-    ENTITYLOOKUP: "ENTITYLOOKUP",
-    LASTSTEP: "LASTSTEP", 
-    CURSTEP: "CURSTEP", 
-    TRAINSTEPS: "TRAINSTEPS",
-    CUECOMMAND: "CUECOMMAND",       // Command to call after input prompt
-    PAGE: "PAGE",                   // Current page on paging UI
-    POSTS: "POSTS"                  // Array of last messages sent to user
-}
