@@ -22,10 +22,14 @@ export const MemoryType =
 
 export class BlisMemory {
 
-    // TODO: create own redis account
-    private static redisClient = redis.createClient(6380, 'libot.redis.cache.windows.net', { auth_pass: 'SKbD9LlGF0NdPm6NpIyHpslRvqB3/z4dYYurFakJ4HM=', tls: { servername: 'libot.redis.cache.windows.net' } });
+    private static redisClient = null;
 
     private memCache = {};
+
+    public static Init(redisServer : string, redisKey : string) : void
+    {
+        this.redisClient = redis.createClient(6380, redisServer, { auth_pass: redisKey, tls: { servername: redisServer } });
+    }
 
     constructor(private userkey : string)
     {

@@ -45,6 +45,10 @@ export interface IBlisOptions extends builder.IIntentRecognizerSetOptions {
     // BLIS application to employ
     appId?: string; 
 
+    redisServer: string;
+
+    redisKey: string;
+
     // Optional callback than runs after LUIS but before BLIS.  Allows Bot to substitute entities
     luisCallback? : (text: string, luisEntities : LabelEntity[], memory : BlisMemory, done : (ttr : TakeTurnRequest) => void) => void;
 
@@ -95,7 +99,8 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     private async init(options: IBlisOptions) {
         try {
             BlisDebug.Log("Creating client...");
-            BlisClient.InitClient(options.serviceUri, options.user, options.secret, options.azureFunctionsUrl, options.azureFunctionsKey);
+            BlisClient.Init(options.serviceUri, options.user, options.secret, options.azureFunctionsUrl, options.azureFunctionsKey);
+            BlisMemory.Init(options.redisServer, options.redisKey);
             this.luisCallback = options.luisCallback;
             this.apiCallbacks = options.apiCallbacks;
             this.intApiCallbacks[APICalls.SETTASK] = this.SetTaskCB;
