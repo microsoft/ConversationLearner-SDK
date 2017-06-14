@@ -11,11 +11,21 @@ export const TakeTurnModes =
 
 export const ActionTypes =
 {
-    TEXT : "text",
-    API : "api"
+    TEXT : "TEXT",
+    API_LOCAL : "API_LOCAL",
+    API_AZURE : "API_AZURE",
+    INTENT : "INTENT",
+    CARD : "CARD"
 }
 
-export const APITypes =
+export const ActionTypes_v1 =
+{
+    TEXT : "text",
+    API : "api",
+    CARD : "card"
+}
+
+export const APITypes_v1 =
 {
     AZURE : "AZURE",
     LOCAL : "LOCAL",

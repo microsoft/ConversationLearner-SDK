@@ -2,11 +2,11 @@ import * as builder from 'botbuilder';
 import { deserialize, serialize } from 'json-typescript-mapper';
 import { BlisDebug} from '../BlisDebug';
 import { BlisClient } from '../BlisClient';
-import { TakeTurnModes, EntityTypes, TeachStep, ActionTypes, APICalls, ActionCommand } from '../Model/Consts';
+import { TakeTurnModes, EntityTypes, TeachStep, ActionTypes_v1, APICalls, ActionCommand } from '../Model/Consts';
 import { BlisMemory } from '../BlisMemory';
-import { Action } from './Action';
+import { Action_v1 } from './Action';
 import { Utils } from '../Utils';import { JsonProperty } from 'json-typescript-mapper';
-import { Entity } from './Entity';
+import { Entity_v1 } from './Entity';
 import { Menu } from '../Menu';
 import { TrainDialog } from './TrainDialog';
 import { BlisContext } from '../BlisContext';
@@ -15,11 +15,11 @@ import { EditableResponse } from './EditableResponse';
 
 export class BlisAppContent
 {
-    @JsonProperty({clazz: Action, name: 'actions'})
-    public actions : Action[];
+    @JsonProperty({clazz: Action_v1, name: 'actions'})
+    public actions : Action_v1[];
 
-    @JsonProperty({clazz: Entity, name: 'entities'})
-    public entities : Entity[];
+    @JsonProperty({clazz: Entity_v1, name: 'entities'})
+    public entities : Entity_v1[];
 
     @JsonProperty({clazz: TrainDialog, name: 'traindialogs'})
     public trainDialogs : TrainDialog[];
@@ -171,13 +171,13 @@ export class BlisAppContent
             }
 
             // Load entities to generate lookup table
-            await Entity.Get(context, null, (text) =>
+            await Entity_v1.Get(context, null, (text) =>
             {
                 BlisDebug.Log(`Entity lookup generated`);
             }); 
 
             // Load actions to generate lookup table
-            let numActions = await Action.GetAll(context, null, null, (text) =>
+            let numActions = await Action_v1.GetAll(context, null, null, (text) =>
             {
                 BlisDebug.Log(`Action lookup generated`);
             }); 

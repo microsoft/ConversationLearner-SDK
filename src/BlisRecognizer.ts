@@ -8,9 +8,9 @@ import { BlisDebug} from './BlisDebug';
 import { BlisContext} from './BlisContext';
 import { LabelEntity } from './Model/LabelEntity';
 import { LabelAction } from './Model/LabelAction';
-import { Action } from './Model/Action';
+import { Action_v1 } from './Model/Action';
 import { TrainDialog } from './Model/TrainDialog';
-import { TakeTurnModes, EntityTypes,  TeachStep, TeachAction, ActionTypes, SaveStep, APICalls, ActionCommand, BLIS_INTENT_WRAPPER } from './Model/Consts';
+import { TakeTurnModes, EntityTypes,  TeachStep, TeachAction, ActionTypes_v1, SaveStep, APICalls, ActionCommand, BLIS_INTENT_WRAPPER } from './Model/Consts';
 import { Command, IntCommands, LineCommands, CueCommands, HelpCommands } from './Model/Command';
 import { BlisHelp } from './Model/Help'; 
 import { TakeTurnResponse } from './Model/TakeTurnResponse'
@@ -304,7 +304,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         {
             // Look for suggested entity in previous response
             let lastResponses = await memory.TrainHistory().LastStep(SaveStep.RESPONSES);
-            let suggestedEntity = Action.GetEntitySuggestion(lastResponses); 
+            let suggestedEntity = Action_v1.GetEntitySuggestion(lastResponses); 
             if (suggestedEntity)
             {
                 // Add suggested entity as a choice
@@ -677,7 +677,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                 let action = takeTurnResponse.actions[0];
                 let memory = recsess.context.Memory();
 
-                if (action.actionType == ActionTypes.TEXT)
+                if (action.actionType == ActionTypes_v1.TEXT)
                 {
                     await this.TakeTurnCallback(recsess, takeTurnResponse);
 
@@ -699,7 +699,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                 }
 
                 // API CALLS
-                else if (action.actionType == ActionTypes.API)
+                else if (action.actionType == ActionTypes_v1.API)
                 {
                     let apiString = action.content;
                     let [apiName] = apiString.split(' ');

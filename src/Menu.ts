@@ -2,8 +2,8 @@ import * as builder from 'botbuilder';
 import { IntCommands, LineCommands, CueCommands, HelpCommands } from './Model/Command';
 import { Utils } from './Utils';
 import { BlisMemory } from './BlisMemory';
-import { Action } from './Model/Action';
-import { Entity } from './Model/Entity';
+import { Action_v1 } from './Model/Action';
+import { Entity_v1 } from './Model/Entity';
 import { EditableResponse } from './Model/EditableResponse';
 import { BlisContext} from './BlisContext';
 
@@ -185,7 +185,7 @@ export class Menu {
         return card;
     }
 
-    public static EditAPICall(action? : Action) : builder.IIsAttachment
+    public static EditAPICall(action? : Action_v1) : builder.IIsAttachment
     {
         let subheader = action ? action.content : null;
         let card = Utils.MakeHero(`Edit API Call`, subheader, "Enter new API Name", 
@@ -196,7 +196,7 @@ export class Menu {
         return card;
     }
 
-    public static EditEntity(entity? : Entity) : builder.IIsAttachment
+    public static EditEntity(entity? : Entity_v1) : builder.IIsAttachment
     {
         let title = entity ? `Edit: (${entity.name})` : "";
         let subheader = entity ? (entity.luisPreName ? entity.luisPreName : entity.entityType) : "";
@@ -209,7 +209,7 @@ export class Menu {
         return card;
     }
 
-    public static EditResponse(action? : Action) : builder.IIsAttachment
+    public static EditResponse(action? : Action_v1) : builder.IIsAttachment
     {
         let subheader = action ? action.content : null;
         let card = Utils.MakeHero(`Edit Response`, subheader, "Enter new Response context", 

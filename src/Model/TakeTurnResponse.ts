@@ -1,6 +1,6 @@
 import * as builder from 'botbuilder';
 import { JsonProperty } from 'json-typescript-mapper';
-import { Action } from './Action';
+import { Action_v1 } from './Action';
 import { LabelEntity } from './LabelEntity';
 import { LabelAction } from './LabelAction';
 import { EditableResponse } from './EditableResponse';
@@ -17,11 +17,11 @@ export class TakeTurnResponse
     @JsonProperty('mode')
     public mode : string;
 
-    @JsonProperty({clazz: Action, name: 'actions'})
-    public actions : Action[];
+    @JsonProperty({clazz: Action_v1, name: 'actions'})
+    public actions : Action_v1[];
 
-    @JsonProperty({clazz: Action, name: 'action'})
-    public action : Action;
+    @JsonProperty({clazz: Action_v1, name: 'action'})
+    public action : Action_v1;
 
     @JsonProperty('teach_step')
     public teachStep : string;

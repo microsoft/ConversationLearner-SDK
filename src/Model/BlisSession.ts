@@ -4,7 +4,7 @@ import { BlisMemory } from '../BlisMemory';
 import { BlisClient } from '../BlisClient';
 import { Utils } from '../Utils';
 import { BlisContext} from '../BlisContext';
-import { ActionCommand, ActionTypes } from './Consts';
+import { ActionCommand, ActionTypes_v1 } from './Consts';
 import { IntCommands, LineCommands } from './Command';
 import { EditableResponse } from './EditableResponse';
 

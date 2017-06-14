@@ -1,12 +1,12 @@
 const request = require('request');
 import { deserialize, serialize } from 'json-typescript-mapper';
 import { Credentials } from './Http/Credentials';
-import { Action, ActionMetaData } from './Model/Action'
+import { Action_v1, ActionMetaData_v1 } from './Model/Action'
 import { Dialog, TrainDialog } from './Model/TrainDialog'
 import { BlisApp } from './Model/BlisApp'
 import { BlisAppContent } from './Model/BlisAppContent'
-import { Entity, EntityMetaData } from './Model/Entity'
-import { TakeTurnModes, ActionTypes, APICalls } from './Model/Consts';
+import { Entity_v1, EntityMetaData } from './Model/Entity'
+import { TakeTurnModes, ActionTypes_v1, APICalls } from './Model/Consts';
 import { TakeTurnResponse } from './Model/TakeTurnResponse'
 import { TakeTurnRequest } from './Model/TakeTurnRequest'
 import { BlisMemory } from './BlisMemory';
@@ -49,7 +49,7 @@ export class BlisClient {
         this.exportCache.del(appId);
     }
 
-    public AddAction(appId : string, action : Action) : Promise<string>
+    public AddAction(appId : string, action : Action_v1) : Promise<string>
     {
         let apiPath = `app/${appId}/action`;
 
@@ -79,7 +79,7 @@ export class BlisClient {
         )
     }
 
-    public AddEntity(appId : string, entity : Entity) : Promise<string>
+    public AddEntity(appId : string, entity : Entity_v1) : Promise<string>
     {
         let apiPath = `app/${appId}/entity`;
 
@@ -297,7 +297,7 @@ export class BlisClient {
         )
     }
 
-public EditAction(appId : string, action : Action) : Promise<string>
+public EditAction(appId : string, action : Action_v1) : Promise<string>
     {
         let apiPath = `app/${appId}/action/${action.id}`;
 
@@ -374,7 +374,7 @@ public EditAction(appId : string, action : Action) : Promise<string>
         )
     }
 
-    public EditEntity(appId : string, entity : Entity) : Promise<string>
+    public EditEntity(appId : string, entity : Entity_v1) : Promise<string>
     { 
         let apiPath = `app/${appId}/entity/${entity.id}`;
 
@@ -581,7 +581,7 @@ public EditAction(appId : string, action : Action) : Promise<string>
         )
     }
 
-    public GetAction(appId : string, actionId : string) : Promise<Action>
+    public GetAction(appId : string, actionId : string) : Promise<Action_v1>
     {
         return new Promise(
             (resolve, reject) => {
@@ -610,7 +610,7 @@ public EditAction(appId : string, action : Action) : Promise<string>
                         reject(body);
                     }
                     else {
-                        var action = deserialize(Action, body);
+                        var action = deserialize(Action_v1, body);
                         action.id = actionId;
                         this.actionCache.set(actionId, action);
                         resolve(action);
@@ -677,7 +677,7 @@ public EditAction(appId : string, action : Action) : Promise<string>
         )
     }
 
-    public GetEntity(appId : string, entityId : string) : Promise<Entity>
+    public GetEntity(appId : string, entityId : string) : Promise<Entity_v1>
     {
         return new Promise(
             (resolve, reject) => {
@@ -705,7 +705,7 @@ public EditAction(appId : string, action : Action) : Promise<string>
                         reject(body);
                     }
                     else {
-                        var entity = deserialize(Entity, body);
+                        var entity = deserialize(Entity_v1, body);
                         entity.id = entityId;
                         if (!entity.metadata)
                         {
