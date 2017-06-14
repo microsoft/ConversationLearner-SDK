@@ -3,12 +3,12 @@ import { JsonProperty } from 'json-typescript-mapper';
 import { BlisHelp } from '../Model/Help'; 
 import { BlisDebug} from '../BlisDebug';
 import { BlisClient } from '../BlisClient';
-import { TakeTurnModes, EntityTypes, TeachStep, ActionTypes, APICalls, ActionCommand } from '../Model/Consts';
+import { TakeTurnModes, EntityTypes, TeachStep, ActionTypes_v1, APICalls, ActionCommand } from '../Model/Consts';
 import { IntCommands, LineCommands, CueCommands, HelpCommands } from './Command';
 import { BlisMemory } from '../BlisMemory';
 import { Utils } from '../Utils';
-import { Action } from './Action';
-import { Entity } from './Entity';
+import { Action_v1 } from './Action';
+import { Entity_v1 } from './Entity';
 import { Menu } from '../Menu';
 import { Pager } from '../Memory/Pager';
 import { BlisContext } from '../BlisContext';
@@ -78,7 +78,7 @@ export class Input
             let text = `${this.text}`;
             for (let entityId of this.entityIds)
             {
-                let entityName = await Entity.toText(appId, entityId)
+                let entityName = await Entity_v1.toText(appId, entityId)
                 let entityValue = this.EntityValue(entityId);
                 if (entityValue)
                 {
@@ -134,7 +134,7 @@ export class Turn
     public async toText(appId : string) : Promise<string>
     {
         let inputText = await this.input.toText(appId);
-        let actionText = await Action.toText(appId, this.actionId);
+        let actionText = await Action_v1.toText(appId, this.actionId);
         if (inputText)
         {
             return `${inputText}\n\n     ${actionText}`;

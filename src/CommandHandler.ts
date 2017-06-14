@@ -8,13 +8,13 @@ import { BlisDebug} from './BlisDebug';
 import { BlisSession} from './Model/BlisSession';
 import { CueCommand } from './Memory/CueCommand';
 import { BlisHelp } from './Model/Help';
-import { Action } from './Model/Action';
-import { Entity } from './Model/Entity';
+import { Action_v1 } from './Model/Action';
+import { Entity_v1 } from './Model/Entity';
 import { Pager } from './Memory/Pager';
 import { BlisContext } from './BlisContext';
 import { BlisAppContent } from './Model/BlisAppContent'
 import { Utils } from './Utils';
-import { ActionCommand, ActionTypes, TeachAction, APITypes } from './Model/Consts';
+import { ActionCommand, ActionTypes_v1, TeachAction, APITypes_v1 } from './Model/Consts';
 import { COMMANDPREFIX, LineCommands, IntCommands, CueCommands, HelpCommands } from './Model/Command';
 import { EditableResponse } from './Model/EditableResponse';
 
@@ -324,57 +324,57 @@ export class CommandHandler
         // Commands allowed at any time
         if (command == LineCommands.ACTIONS)
         {
-            Action.GetAll(context, null, args, (responses) => {
+            Action_v1.GetAll(context, null, args, (responses) => {
                 cb(responses);
             });
         }
         else if (command == LineCommands.ADDAPICALL)
         {
-            Action.Add_v1(context, null, ActionTypes.API, null, args, (responses, actionId) => {
+            Action_v1.Add_v1(context, null, ActionTypes_v1.API, null, args, (responses, actionId) => {
                 cb(responses, TeachAction.PICKACTION, actionId);
             });
         }
         else if (command == LineCommands.ADDAPIAZURE)
         {
-            Action.Add_v1(context, null, ActionTypes.API, APITypes.AZURE, args, (responses, actionId) => {
+            Action_v1.Add_v1(context, null, ActionTypes_v1.API, APITypes_v1.AZURE, args, (responses, actionId) => {
                 cb(responses, TeachAction.PICKACTION, actionId);
             });
         }
         else if (command == LineCommands.ADDAPILOCAL)
         {
-            Action.Add_v1(context, null, ActionTypes.API, APITypes.LOCAL, args, (responses, actionId) => {
+            Action_v1.Add_v1(context, null, ActionTypes_v1.API, APITypes_v1.LOCAL, args, (responses, actionId) => {
                 cb(responses, TeachAction.PICKACTION, actionId);
             });
         }
         else if (command == LineCommands.ADDRESPONSE)
         {         
-            Action.Add_v1(context, null, ActionTypes.TEXT, null, args, (responses, actionId) => {
+            Action_v1.Add_v1(context, null, ActionTypes_v1.TEXT, null, args, (responses, actionId) => {
                 cb(responses, TeachAction.PICKACTION, actionId);
             });
         }
         else if (command == LineCommands.ADDRESPONSETEXT)
         {
-            Action.Add_v1(context, null, ActionTypes.TEXT, null, args, (responses, actionId) => {
+            Action_v1.Add_v1(context, null, ActionTypes_v1.TEXT, null, args, (responses, actionId) => {
                 cb(responses, TeachAction.PICKACTION, actionId);
             });
         }
         else if (command == LineCommands.ADDRESPONSEINTENT)
         {
             // NOTE: Response Type INTENT are actuall API calls
-            Action.Add_v1(context, null, ActionTypes.API, APITypes.INTENT, args, (responses, actionId) => {
+            Action_v1.Add_v1(context, null, ActionTypes_v1.API, APITypes_v1.INTENT, args, (responses, actionId) => {
                 cb(responses, TeachAction.PICKACTION, actionId);
             });
         }
         else if (command == LineCommands.ADDENTITY)
         {
             let [content, type] = args.split(' ');
-            Entity.Add_v1(context, null, type, content, (responses) => {
+            Entity_v1.Add_v1(context, null, type, content, (responses) => {
                 cb(responses, TeachAction.RETRAIN);
             });
         }
         else if (command == LineCommands.CUEAPICALLS)
         {
-            Action.GetAll(context, ActionTypes.API, args, (responses) => {
+            Action_v1.GetAll(context, ActionTypes_v1.API, args, (responses) => {
                 cb(responses);
             });
         }
@@ -397,7 +397,7 @@ export class CommandHandler
         }
         else if (command == LineCommands.ENTITIES)
         { 
-            Entity.Get(context, args, (responses) => {
+            Entity_v1.Get(context, args, (responses) => {
                 cb(responses);
             });
         }
@@ -407,7 +407,7 @@ export class CommandHandler
         }
         else if (command == LineCommands.RESPONSES)
         {
-            Action.GetAll(context, ActionTypes.TEXT, args, (responses) => {
+            Action_v1.GetAll(context, ActionTypes_v1.TEXT, args, (responses) => {
                 cb(responses);
             });
         }
@@ -460,7 +460,7 @@ export class CommandHandler
             else if (command == LineCommands.DELETEACTION)
             {
                 let [actionId] = args.split(' ');
-                Action.Delete_v1(context, actionId, (responses) => {
+                Action_v1.Delete_v1(context, actionId, (responses) => {
                     cb(responses);
                 });
             }
@@ -475,7 +475,7 @@ export class CommandHandler
             else if (command == LineCommands.DELETEENTITY)
             {
                 let [entityId] = args.split(' ');
-                Entity.Delete(context, entityId, (responses) => {
+                Entity_v1.Delete(context, entityId, (responses) => {
                     cb(responses);
                 });
             }
@@ -494,7 +494,7 @@ export class CommandHandler
             {   
                 let [actionId] = args.split(' '); 
                 let content = Utils.RemoveWords(args, 1);
-                Action.Add_v1(context, actionId, ActionTypes.API, null, content, (responses) => {
+                Action_v1.Add_v1(context, actionId, ActionTypes_v1.API, null, content, (responses) => {
                     cb(responses);
                 });
             }
@@ -502,14 +502,14 @@ export class CommandHandler
             {   
                 let [actionId] = args.split(' '); 
                 let content = Utils.RemoveWords(args, 1);
-                Action.Add_v1(context, actionId, ActionTypes.TEXT, null, content, (responses) => {
+                Action_v1.Add_v1(context, actionId, ActionTypes_v1.TEXT, null, content, (responses) => {
                     cb(responses);
                 });
             }
             else if (command == LineCommands.EDITENTITY)  
             {         
                 let [entityId, content] = args.split(' ');     
-                Entity.Add_v1(context, entityId, null, content, (responses) => {
+                Entity_v1.Add_v1(context, entityId, null, content, (responses) => {
                     cb(responses);
                 });
             }

@@ -1,7 +1,7 @@
 import * as builder from 'botbuilder';
 import { BlisDebug} from '../BlisDebug';
 import { BlisClient } from '../BlisClient';
-import { TakeTurnModes, EntityTypes, TeachStep, ActionTypes, APICalls, ActionCommand } from '../Model/Consts';
+import { TakeTurnModes, EntityTypes, TeachStep, ActionTypes_v1, APICalls, ActionCommand } from '../Model/Consts';
 import { BlisHelp } from '../Model/Help'; 
 import { BlisApp } from '../Model/BlisApp';
 import { BlisAppContent } from '../Model/BlisAppContent';
@@ -55,6 +55,11 @@ export class EntityMetaData
 
 export class Entity
 {
+
+}
+
+export class Entity_v1
+{
     @JsonProperty('id')
     public id : string;
 
@@ -70,7 +75,7 @@ export class Entity
     @JsonProperty({clazz: EntityMetaData, name: 'metadata'})
     public metadata : EntityMetaData;
 
-    public constructor(init?:Partial<Entity>)
+    public constructor(init?:Partial<Entity_v1>)
     {
         this.id = undefined;
         this.entityType = undefined;
@@ -80,7 +85,7 @@ export class Entity
         (<any>Object).assign(this, init);
     }
 
-    public Equal(entity : Entity) : boolean
+    public Equal(entity : Entity_v1) : boolean
     {
         if (this.entityType != entity.entityType) return false;
         if (this.luisPreName != entity.luisPreName) return false;
@@ -108,7 +113,7 @@ export class Entity
     }
 
     /** Return negative entity if it exists */
-    private async GetNegativeEntity(appId : string, context : BlisContext) : Promise<Entity>
+    private async GetNegativeEntity(appId : string, context : BlisContext) : Promise<Entity_v1>
     {
         if (this.metadata && this.metadata.negative)
         {
@@ -155,12 +160,12 @@ export class Entity
     private static MakeHero(title : string, name : string, id : string, type: string, prebuilt : string, metadata: EntityMetaData, buttons : boolean = true) : builder.HeroCard
     {
         let desc = this.Description(type, prebuilt, metadata);
-        return Utils.MakeHero(title, desc, name, buttons ? Entity.Buttons(name, id) : null);
+        return Utils.MakeHero(title, desc, name, buttons ? Entity_v1.Buttons(name, id) : null);
     }
 
     public Description() : string
     {
-        return Entity.Description(this.entityType, this.luisPreName, this.metadata);
+        return Entity_v1.Description(this.entityType, this.luisPreName, this.metadata);
     }
 
     public static Description(type : string, prebuilt : string, metadata : EntityMetaData) : string
@@ -172,7 +177,7 @@ export class Entity
         return description;
     }
 
-    public static Sort(entities : Entity[]) : Entity[]
+    public static Sort(entities : Entity_v1[]) : Entity_v1[]
     {
         return entities.sort((n1, n2) => {
             let c1 = n1.name.toLowerCase();
@@ -187,7 +192,7 @@ export class Entity
         });
     }
 
-    public static async Add(appId : string, entity: Entity) : Promise<AdminResponse>
+    public static async Add(appId : string, entity: Entity_v1) : Promise<AdminResponse>
     {
          BlisDebug.Log(`Trying to Add Entity ${entity.Description}`);
 /* IN PROGRESS
@@ -396,12 +401,12 @@ export class Entity
             let responses = [];
             let changeType = "";
             
-            let negName = Entity.NegativeName(content);
+            let negName = Entity_v1.NegativeName(content);
             if (entityId)
             {
                 // Get old entity
                 let oldEntity = await BlisClient.client.GetEntity(appId, entityId);
-                let oldNegName = Entity.NegativeName(oldEntity.name);
+                let oldNegName = Entity_v1.NegativeName(oldEntity.name);
 
                 // Note: Entity Type cannot be changed.  Use old type.
                 entityType = oldEntity.entityType; 
@@ -416,13 +421,13 @@ export class Entity
                         let metadata = new EntityMetaData({bucket : isBucket, task: taskId, negative : oldNegId});
                         await BlisClient.client.EditEntity_v1(appId, entityId, content, null, prebuiltName, metadata);
                         await memory.EntityLookup().Add(content, entityId);
-                        responses.push(Entity.MakeHero("Entity Edited", content, entityId, entityType, prebuiltName, metadata)); 
+                        responses.push(Entity_v1.MakeHero("Entity Edited", content, entityId, entityType, prebuiltName, metadata)); 
 
                         // Update Negative
                         let negmeta = new EntityMetaData({bucket : isBucket, task: taskId, positive : entityId});
                         await BlisClient.client.EditEntity_v1(appId, oldNegId, negName, null, prebuiltName, negmeta);
                         await memory.EntityLookup().Add(negName, oldNegId);
-                        responses.push(Entity.MakeHero("Entity Edited", negName, oldNegId, entityType, prebuiltName,  negmeta)); 
+                        responses.push(Entity_v1.MakeHero("Entity Edited", negName, oldNegId, entityType, prebuiltName,  negmeta)); 
                     }
                     else
                     {
@@ -430,12 +435,12 @@ export class Entity
                         let metadata = new EntityMetaData({bucket : isBucket, task: taskId, negative : null});
                         await BlisClient.client.EditEntity_v1(appId, entityId, content, null, prebuiltName, metadata);
                         await memory.EntityLookup().Add(content, entityId);
-                        responses.push(Entity.MakeHero("Entity Edited", content, entityId, entityType, prebuiltName, metadata));
+                        responses.push(Entity_v1.MakeHero("Entity Edited", content, entityId, entityType, prebuiltName, metadata));
 
                         // Delete Negative
                         await BlisClient.client.DeleteEntity(appId, oldNegId);
                         await memory.EntityLookup().Remove(oldNegName); 
-                        responses.push(Entity.MakeHero("Entity Deleted", oldNegName, oldNegId, entityType, prebuiltName, oldEntity.metadata, false)); 
+                        responses.push(Entity_v1.MakeHero("Entity Deleted", oldNegName, oldNegId, entityType, prebuiltName, oldEntity.metadata, false)); 
                     } 
                 }
                 // Update Entity with new Negation
@@ -445,13 +450,13 @@ export class Entity
                     let negmeta = new EntityMetaData({bucket : isBucket, task: taskId, positive : oldEntity.id});
                     let newNegId = await BlisClient.client.AddEntity_v1(appId, negName, entityType, prebuiltName, negmeta);
                     await memory.EntityLookup().Add(negName, newNegId);
-                    responses.push(Entity.MakeHero("Entity Added", negName, newNegId, entityType, prebuiltName, negmeta)); 
+                    responses.push(Entity_v1.MakeHero("Entity Added", negName, newNegId, entityType, prebuiltName, negmeta)); 
 
                     // Update Positive
                     let metadata = new EntityMetaData({bucket : isBucket, task: taskId, negative : newNegId});
                     await BlisClient.client.EditEntity_v1(appId, entityId, content, null, prebuiltName, metadata);
                     await memory.EntityLookup().Add(content, entityId);
-                    responses.push(Entity.MakeHero("Entity Edited", content, entityId, entityType, prebuiltName, metadata));
+                    responses.push(Entity_v1.MakeHero("Entity Edited", content, entityId, entityType, prebuiltName, metadata));
                 }
                 else
                 {
@@ -459,7 +464,7 @@ export class Entity
                     let metadata = new EntityMetaData({bucket : isBucket, task: taskId});
                     await BlisClient.client.EditEntity_v1(appId, entityId, content, null, prebuiltName, metadata);
                     await memory.EntityLookup().Add(content, entityId);
-                    responses.push(Entity.MakeHero("Entity Edited", content, entityId, entityType, prebuiltName, metadata));
+                    responses.push(Entity_v1.MakeHero("Entity Edited", content, entityId, entityType, prebuiltName, metadata));
                 }
             }
             else
@@ -471,7 +476,7 @@ export class Entity
 
                 if (!isNegatable)
                 {
-                    responses.push(Entity.MakeHero("Entity Added", content, entityId, entityType, prebuiltName, metadata));
+                    responses.push(Entity_v1.MakeHero("Entity Added", content, entityId, entityType, prebuiltName, metadata));
                 }
                 else
                 {
@@ -479,12 +484,12 @@ export class Entity
                     let negmeta =  new EntityMetaData({bucket : isBucket, task: taskId, positive : entityId});
                     let newNegId = await BlisClient.client.AddEntity_v1(appId, negName, entityType, prebuiltName, negmeta);
                     await memory.EntityLookup().Add(negName, newNegId);
-                    responses.push(Entity.MakeHero("Entity Added", negName, newNegId, entityType, prebuiltName,negmeta));
+                    responses.push(Entity_v1.MakeHero("Entity Added", negName, newNegId, entityType, prebuiltName,negmeta));
 
                     // Update Positive Reference
                     let metadata = new EntityMetaData({bucket : isBucket, task: taskId, negative : newNegId});
                     await BlisClient.client.EditEntity_v1(appId, entityId, content, null, prebuiltName, metadata);
-                    responses.push(Entity.MakeHero("Entity Edited", content, entityId, entityType, prebuiltName, metadata));
+                    responses.push(Entity_v1.MakeHero("Entity Edited", content, entityId, entityType, prebuiltName, metadata));
                 }
             }
             // Add newline and edit hards
@@ -545,7 +550,7 @@ export class Entity
             }
             await BlisClient.client.DeleteEntity(appId, entityId)
             await memory.EntityLookup().Remove(entity.name);
-            responses.push(Entity.MakeHero("Entity Deleted", entity.name, entity.id, entity.entityType, entity.luisPreName, entity.metadata, false)); 
+            responses.push(Entity_v1.MakeHero("Entity Deleted", entity.name, entity.id, entity.entityType, entity.luisPreName, entity.metadata, false)); 
 
             // If there's an associted negative entity, delete it too
             if (entity.metadata && entity.metadata.negative)
@@ -553,7 +558,7 @@ export class Entity
                 let negEntity = await entity.GetNegativeEntity(appId, context);
                 await BlisClient.client.DeleteEntity(appId, entity.metadata.negative);
                 await memory.EntityLookup().Remove(negEntity.name); 
-                responses.push(Entity.MakeHero("Entity Deleted", negEntity.name, negEntity.id, negEntity.entityType, negEntity.luisPreName, negEntity.metadata, false)); 
+                responses.push(Entity_v1.MakeHero("Entity Deleted", negEntity.name, negEntity.id, negEntity.entityType, negEntity.luisPreName, negEntity.metadata, false)); 
 
             }   
             responses = responses.concat(Menu.EditCards(true));                    
@@ -616,7 +621,7 @@ export class Entity
                 await memory.EntityLookup().Add(entity.name, entityId);
             }
             // Sort
-            entities = Entity.Sort(entities);
+            entities = Entity_v1.Sort(entities);
 
             // Generate output
             for (let entity of entities)
@@ -628,7 +633,7 @@ export class Entity
                 else
                 {
                     let desc = entity.Description();
-                    responses.push(Utils.MakeHero(entity.name, desc, null, Entity.Buttons(entity.name, entity.id)));
+                    responses.push(Utils.MakeHero(entity.name, desc, null, Entity_v1.Buttons(entity.name, entity.id)));
                 }
             }
 
