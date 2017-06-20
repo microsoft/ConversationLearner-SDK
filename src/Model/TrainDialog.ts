@@ -14,7 +14,7 @@ import { Pager } from '../Memory/Pager';
 import { BlisContext } from '../BlisContext';
 import { EditableResponse } from './EditableResponse';
 
-export class LabelEntity
+export class LabeledEntity
 {
     @JsonProperty('startCharIndex')
     public startCharIndex : number;
@@ -28,7 +28,7 @@ export class LabelEntity
     @JsonProperty('entityText')
     public entityText : string;
 
-    public constructor(init?:Partial<TextVariation>)
+    public constructor(init?:Partial<LabeledEntity>)
     {
         this.startCharIndex = undefined;
         this.endCharIndex = undefined;
@@ -43,8 +43,8 @@ export class TextVariation
     @JsonProperty('text')
     public text : String;
 
-   @JsonProperty({clazz: LabelEntity, name: 'labelEntities'})
-    public labelEntities : LabelEntity[];
+   @JsonProperty({clazz: LabeledEntity, name: 'labelEntities'})
+    public labelEntities : LabeledEntity[];
 
     public constructor(init?:Partial<TextVariation>)
     {
@@ -72,7 +72,7 @@ export class Input
     public filledEntities : string[];
 
     @JsonProperty('context')
-    public contextRaw : string;
+    public context : string;
 
     @JsonProperty('maskedActions')
     public maskedActions : string[];
@@ -80,7 +80,7 @@ export class Input
     public constructor(init?:Partial<ScorerStep>)
     {
         this.filledEntities = undefined;
-        this.contextRaw = undefined;
+        this.context = undefined;
         this.maskedActions = undefined;
         (<any>Object).assign(this, init);
     }
@@ -104,10 +104,10 @@ export class ScorerStep
 
 export class Round
 {
-    @JsonProperty({clazz: ExtractorStep, name: 'input'})
+    @JsonProperty({clazz: ExtractorStep, name: 'extractorStep'})
     public extractorStep : ExtractorStep;
 
-    @JsonProperty({clazz: ScorerStep, name: 'output'})
+    @JsonProperty({clazz: ScorerStep, name: 'scorerSteps'})
     public scorerSteps : ScorerStep[];
 
     public constructor(init?:Partial<Round>)
