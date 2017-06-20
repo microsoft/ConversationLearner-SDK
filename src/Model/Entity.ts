@@ -3,7 +3,7 @@ import { BlisDebug} from '../BlisDebug';
 import { BlisClient } from '../BlisClient';
 import { TakeTurnModes, EntityTypes, TeachStep, ActionTypes_v1, APICalls, ActionCommand } from '../Model/Consts';
 import { BlisHelp } from '../Model/Help'; 
-import { BlisApp } from '../Model/BlisApp';
+import { BlisApp_v1 } from '../Model/BlisApp';
 import { BlisAppContent } from '../Model/BlisAppContent';
 import { BlisMemory } from '../BlisMemory';
 import { Utils } from '../Utils';
@@ -614,7 +614,7 @@ export class Entity_v1
 
         try 
         {
-            if (!BlisApp.HaveApp(appId, context, cb))
+            if (!BlisApp_v1.HaveApp_v1(appId, context, cb))
             {
                 return;
             }
@@ -848,7 +848,7 @@ export class Entity_v1
             let memory = context.Memory() 
             let appId = await memory.BotState().AppId()
             
-            if (!BlisApp.HaveApp(appId, context, cb))
+            if (!BlisApp_v1.HaveApp_v1(appId, context, cb))
             {
                 return;
             }

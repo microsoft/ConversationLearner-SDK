@@ -159,7 +159,7 @@ export class BlisAppContent
             try
             {            
                 // Validate appId, will fail if handed a bad appId
-                let app = await BlisClient.client.GetApp(appId)
+                let app = await BlisClient.client.GetApp_v1(appId)
                 await  memory.BotState().SetAppId(app.id);  
                 BlisDebug.Log(`Loaded App: ${app.id}`);
             }

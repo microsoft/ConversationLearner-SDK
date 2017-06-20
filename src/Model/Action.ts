@@ -1,7 +1,7 @@
 import * as builder from 'botbuilder';
 import { JsonProperty } from 'json-typescript-mapper';
 import { BlisHelp } from '../Model/Help'; 
-import { BlisApp } from '../Model/BlisApp'; 
+import { BlisApp_v1 } from '../Model/BlisApp'; 
 import { AdminResponse } from '../Model/AdminResponse'; 
 import { BlisDebug} from '../BlisDebug';
 import { BlisClient } from '../BlisClient';
@@ -656,7 +656,7 @@ export class Action_v1
         let memory = context.Memory();
         let appId = await memory.BotState().AppId();
         
-        if (!BlisApp.HaveApp(appId, context, cb))
+        if (!BlisApp_v1.HaveApp_v1(appId, context, cb))
         {
             return;
         }
@@ -818,7 +818,7 @@ export class Action_v1
             let memory = context.Memory();
             let appId = await memory.BotState().AppId();
 
-            if (!BlisApp.HaveApp(appId, context, cb))
+            if (!BlisApp_v1.HaveApp_v1(appId, context, cb))
             {
                 return;
             }

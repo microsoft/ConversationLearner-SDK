@@ -2,7 +2,7 @@ import * as builder from 'botbuilder';
 import { Menu} from './Menu';
 import { BlisClient } from './BlisClient';
 import { TrainDialog } from './Model/TrainDialog';
-import { BlisApp } from './Model/BlisApp'
+import { BlisApp_v1 } from './Model/BlisApp'
 import { BlisMemory } from './BlisMemory';
 import { BlisDebug} from './BlisDebug';
 import { BlisSession} from './Model/BlisSession';
@@ -259,7 +259,7 @@ export class CommandHandler
         else 
         { 
             if (command == IntCommands.DELETEAPP) {
-                BlisApp.Delete(context, arg, (responses) => {
+                BlisApp_v1.Delete_v1(context, arg, (responses) => {
                     cb(responses);
                 });
             }
@@ -440,20 +440,20 @@ export class CommandHandler
             }
             else if (command == LineCommands.APPS)
             {
-                BlisApp.GetAll(context, args, (responses) => {
+                BlisApp_v1.GetAll_v1(context, args, (responses) => {
                     cb(responses);
                 });
             }
             else if (command == LineCommands.CREATEAPP)
             {
                 let [appname, luiskey] = args.split(' ');
-                BlisApp.Create(context, appname, luiskey, (responses) => {
+                BlisApp_v1.Create_v1(context, appname, luiskey, (responses) => {
                     cb(responses);
                 });
             }
             else if (command == LineCommands.DELETEALLAPPS)
             {
-                BlisApp.DeleteAll(context, (responses) => {
+                BlisApp_v1.DeleteAll_v1(context, (responses) => {
                     cb(responses);
                 });
             }
@@ -468,7 +468,7 @@ export class CommandHandler
             {
                 Utils.SendMessage(context, "Deleting app...");
                 let [appid] = args.split(' ');
-                BlisApp.Delete(context, appid, (responses) => {
+                BlisApp_v1.Delete_v1(context, appid, (responses) => {
                     cb(responses);
                 });
             }

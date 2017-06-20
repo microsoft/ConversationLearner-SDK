@@ -1,6 +1,6 @@
 import * as builder from 'botbuilder';
 import { TakeTurnRequest } from './Model/TakeTurnRequest'
-import { BlisApp } from './Model/BlisApp'
+import { BlisApp_v1 } from './Model/BlisApp'
 import { BlisAppContent } from './Model/BlisAppContent'
 import { BlisClient } from './BlisClient';
 import { BlisMemory } from './BlisMemory';

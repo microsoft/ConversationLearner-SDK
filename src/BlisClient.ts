@@ -3,8 +3,9 @@ import { deserialize, serialize } from 'json-typescript-mapper';
 import { Credentials } from './Http/Credentials';
 import { Action, Action_v1, ActionMetaData_v1 } from './Model/Action'
 import { Dialog, TrainDialog } from './Model/TrainDialog'
-import { BlisApp } from './Model/BlisApp'
+import { BlisApp_v1 } from './Model/BlisApp'
 import { BlisAppContent } from './Model/BlisAppContent'
+import { BlisApp } from './Model/BlisApp'
 import { Entity, Entity_v1, EntityMetaData_v1 } from './Model/Entity'
 import { TakeTurnModes, ActionTypes_v1, APICalls } from './Model/Consts';
 import { TakeTurnResponse } from './Model/TakeTurnResponse'
@@ -79,6 +80,37 @@ export class BlisClient {
         )
     }
 
+    public AddApp(blisApp : BlisApp) : Promise<string>
+    {
+        var apiPath = "app";
+
+        return new Promise(
+            (resolve, reject) => {
+                const requestData = {
+                    url: this.serviceUri + apiPath,
+                    headers: {
+                        'Cookie' : this.credentials.Cookiestring(),
+                    },
+                    body: serialize(blisApp),
+                    json: true
+                }
+                BlisDebug.LogRequest("POST",apiPath, requestData);
+                request.post(requestData, (error, response, body) => {
+                    if (error) {
+                        reject(error);
+                    }
+                    else if (response.statusCode >= 300) {
+                        reject(body);
+                    }
+                    else {
+                        var appId = body.id;
+                        resolve(appId);
+                    }
+                });
+            }
+        )
+    }
+
     public AddEntity(appId : string, entity : Entity) : Promise<string>
     {
         let apiPath = `app/${appId}/entity`;
@@ -144,7 +176,7 @@ export class BlisClient {
         )
     }
 
-    public CreateApp(name : string, luisKey : string) : Promise<string>
+    public CreateApp_v1(name : string, luisKey : string) : Promise<string>
     {
         var apiPath = "app";
 
@@ -573,6 +605,37 @@ public EditAction(appId : string, action : Action) : Promise<string>
                     }
                     else {
                         var blisApp = deserialize(BlisApp, body);
+                        blisApp.appId = appId;
+                        resolve(blisApp);
+                    }
+                });
+            }
+        )
+    }
+
+    public GetApp_v1(appId : string) : Promise<BlisApp_v1>
+    {
+        let apiPath = `app/${appId}`;
+
+        return new Promise(
+            (resolve, reject) => {
+                let url = this.serviceUri+apiPath;
+                const requestData = {
+                    headers: {
+                        'Cookie' : this.credentials.Cookiestring()
+                    },
+                    json: true
+                }
+                BlisDebug.LogRequest("GET",apiPath, requestData);
+                request.get(url, requestData, (error, response, body) => {
+                    if (error) {
+                         reject(error);
+                    }
+                    else if (response.statusCode >= 300) {
+                        reject(body);
+                    }
+                    else {
+                        var blisApp = deserialize(BlisApp_v1, body);
                         blisApp.id = appId;
                         resolve(blisApp);
                     }
