@@ -28,7 +28,7 @@ export class Metrics
     }
 }
 
-export class PredictedEntity extends LabelEntity
+export class PredictedEntity extends LabeledEntity
 {
     @JsonProperty('score')
     public score : number;
