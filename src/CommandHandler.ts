@@ -77,7 +77,7 @@ export class CommandHandler
             else if (command == LineCommands.EDITENTITY)
             {
                 let appId = await context.Memory().BotState().AppId();
-                let entity = await BlisClient.client.GetEntity(appId, args);
+                let entity = await BlisClient.client.GetEntity_v1(appId, args);
                 cb([Menu.EditEntity(entity)]);
             }
             else if (command == LineCommands.EDITRESPONSE)
@@ -475,7 +475,7 @@ export class CommandHandler
             else if (command == LineCommands.DELETEENTITY)
             {
                 let [entityId] = args.split(' ');
-                Entity_v1.Delete(context, entityId, (responses) => {
+                Entity_v1.Delete_v1(context, entityId, (responses) => {
                     cb(responses);
                 });
             }

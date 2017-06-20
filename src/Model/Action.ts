@@ -142,15 +142,13 @@ export class Action
 
     public static async Add(appId : string, action : Action) : Promise<AdminResponse>
     {
-        let action_v1 = Action_v1.TOV1(action); // TEMPV1
-        let actionId = await BlisClient.client.AddAction(appId, action_v1); 
+        let actionId = await BlisClient.client.AddAction(appId, action); 
         return AdminResponse.Result(actionId);
     }
 
     public static async Edit(appId : string, action : Action) : Promise<AdminResponse>
     {
-        let action_v1 = Action_v1.TOV1(action); // TEMPV1
-        let actionId = await BlisClient.client.EditAction(appId, action_v1); 
+        let actionId = await BlisClient.client.EditAction(appId, action); 
         return AdminResponse.Result(actionId);
     }
 
@@ -239,10 +237,9 @@ export class Action_v1
         (<any>Object).assign(this, init);
     }
 
-    // TEMPV1
     public TOV2() : Action
     {
-        let metadataV2 = new ActionMetaData;
+        let metadataV2 = new ActionMetaData();
         if (this.actionType == ActionTypes_v1.API)
         {
             if (this.metadata.type == APITypes_v1.AZURE)
@@ -281,7 +278,6 @@ export class Action_v1
         });
     }
 
-    // TEMPV1
     static TOV1(action : Action) : Action_v1
     {
         let metadataV1 = new ActionMetaData_v1();
@@ -633,27 +629,32 @@ export class Action_v1
             let error = await this.ProcessCommandString(context, actionSet, commands);
             if (error)
             {
-           //v1   cb(Menu.AddEditCards(context, [error]), null);
+                cb(Menu.AddEditCards(context, [error]), null);
                return;
             }
 
             error = await this.ProcessResponse(context, actionSet, action);
             if (error)
             {
-           //    cb(Menu.AddEditCards(context, [error]), null);
+            cb(Menu.AddEditCards(context, [error]), null);
                return;
             }
 
             let changeType = (actionType == ActionTypes_v1.TEXT) ? "Response" : (apiType = APITypes_v1.INTENT) ? "Intent Call" : "API Call"
             if (actionId) 
             {
-                let editAction = new Action_v1({
-                    id : actionId,
-                    actionType : actionType,
-                    content : action,
+                let metaData = new ActionMetaData(
+                    {
+                        actionType : actionType
+                    }
+                )
+                let editAction = new Action({
+                    actionId : actionId,
+                    payload : action,
                     negativeEntities : actionSet.negIds,
                     requiredEntities : actionSet.posIds,
-                    waitAction : actionSet.waitAction
+                    isTerminal : actionSet.waitAction,
+                    metadata : metaData
                 });
 
                 actionId = await BlisClient.client.EditAction(appId, editAction);
@@ -661,14 +662,13 @@ export class Action_v1
             }
             else 
             {
-                let metadata = new ActionMetaData_v1({type : apiType});
+                let metadata = new ActionMetaData({actionType : apiType});
 
-                let newAction = new Action_v1({
-                    actionType : actionType,
-                    content : action,
+                let newAction = new Action({
+                    payload : action,
                     negativeEntities : actionSet.negIds,
                     requiredEntities : actionSet.posIds,
-                    waitAction : actionSet.waitAction,
+                    isTerminal : actionSet.waitAction,
                     metadata : metadata
                 });
                 actionId = await BlisClient.client.AddAction(appId, newAction);

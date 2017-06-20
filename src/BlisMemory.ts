@@ -35,11 +35,15 @@ export class BlisMemory {
     {
     }
 
-    public static GetMemory(session : builder.Session) : BlisMemory
+    public static GetMemory(key : string) : BlisMemory
     {
-        // Create key for this user from their address
-        let key = Utils.HashCode(JSON.stringify(session.message.address.user));
-        return new BlisMemory(`${key}`);
+        return new BlisMemory(key);
+    }
+
+    // Generate memory key from session
+    public static SessionKey(session : builder.Session) : string 
+    {
+        return Utils.HashCode(JSON.stringify(session.message.address.user)).toString();
     }
 
     private Key(datakey : string) : string {

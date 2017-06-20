@@ -1,5 +1,5 @@
 import { JsonProperty } from 'json-typescript-mapper';
-import { EntityMetaData } from './Entity';
+import { EntityMetaData_v1 } from './Entity';
 
 /** Entity matched in a user's string */
 export class LabelEntity
@@ -25,8 +25,8 @@ export class LabelEntity
     public id : string;
 
     /** The metadate for the entity */
-    @JsonProperty({clazz: EntityMetaData, name: 'metadata'})
-    public metadata : EntityMetaData;
+    @JsonProperty({clazz: EntityMetaData_v1, name: 'metadata'})
+    public metadata : EntityMetaData_v1;
 
     /** The entityID of the matched entity or prebuld name */
     @JsonProperty('type')
