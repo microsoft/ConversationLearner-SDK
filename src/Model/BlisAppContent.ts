@@ -177,7 +177,7 @@ export class BlisAppContent
             }); 
 
             // Load actions to generate lookup table
-            let numActions = await Action_v1.GetAll(context, null, null, (text) =>
+            let numActions = await Action_v1.GetAll_v1(context, null, null, (text) =>
             {
                 BlisDebug.Log(`Action lookup generated`);
             }); 
@@ -304,7 +304,7 @@ export class BlisAppContent
             for (let action1 of app1.actions)
             {
                 // If entity name is same, use original entity
-                if (action1.Equal(action2)) 
+                if (action1.Equal_v1(action2)) 
                 {
                     swapList[action2.id] = action1.id;
                     swap = true;

@@ -581,7 +581,46 @@ public EditAction(appId : string, action : Action) : Promise<string>
         )
     }
 
-    public GetAction(appId : string, actionId : string) : Promise<Action_v1>
+    public GetAction(appId : string, actionId : string) : Promise<Action>
+    {
+        return new Promise(
+            (resolve, reject) => {
+                // Check cache first
+                let action = this.actionCache.get(actionId);
+                if (action) {
+                    resolve(action);
+                    return;
+                }
+
+                // Call API
+                let apiPath = `app/${appId}/action/${actionId}`;
+                const requestData = {
+                        url: this.serviceUri+apiPath,
+                        headers: {
+                            'Cookie' : this.credentials.Cookiestring()
+                        },
+                        json: true
+                    }
+                BlisDebug.LogRequest("GET",apiPath, requestData);
+                request.get(requestData, (error, response, body) => {
+                    if (error) {
+                        reject(error);
+                    }
+                    else if (response.statusCode >= 300) {
+                        reject(body);
+                    }
+                    else {
+                        var action = deserialize(Action, body);
+                        action.actionId = actionId;
+                        this.actionCache.set(actionId, action);
+                        resolve(action);
+                    }
+                });
+            }
+        )
+    }
+
+    public GetAction_v1(appId : string, actionId : string) : Promise<Action_v1>
     {
         return new Promise(
             (resolve, reject) => {

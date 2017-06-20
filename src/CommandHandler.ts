@@ -71,7 +71,7 @@ export class CommandHandler
             else if (command == LineCommands.EDITAPICALL)
             {
                 let appId = await context.Memory().BotState().AppId();
-                let action = await BlisClient.client.GetAction(appId, args);
+                let action = await BlisClient.client.GetAction_v1(appId, args);
                 cb([Menu.EditAPICall(action)]);
             }
             else if (command == LineCommands.EDITENTITY)
@@ -83,7 +83,7 @@ export class CommandHandler
             else if (command == LineCommands.EDITRESPONSE)
             {
                 let appId = await context.Memory().BotState().AppId();
-                let action = await BlisClient.client.GetAction(appId, args);
+                let action = await BlisClient.client.GetAction_v1(appId, args);
                 cb([Menu.EditResponse(action)]);
             }
             else if (command == LineCommands.ENTITIES)
@@ -324,7 +324,7 @@ export class CommandHandler
         // Commands allowed at any time
         if (command == LineCommands.ACTIONS)
         {
-            Action_v1.GetAll(context, null, args, (responses) => {
+            Action_v1.GetAll_v1(context, null, args, (responses) => {
                 cb(responses);
             });
         }
@@ -374,7 +374,7 @@ export class CommandHandler
         }
         else if (command == LineCommands.CUEAPICALLS)
         {
-            Action_v1.GetAll(context, ActionTypes_v1.API, args, (responses) => {
+            Action_v1.GetAll_v1(context, ActionTypes_v1.API, args, (responses) => {
                 cb(responses);
             });
         }
@@ -407,7 +407,7 @@ export class CommandHandler
         }
         else if (command == LineCommands.RESPONSES)
         {
-            Action_v1.GetAll(context, ActionTypes_v1.TEXT, args, (responses) => {
+            Action_v1.GetAll_v1(context, ActionTypes_v1.TEXT, args, (responses) => {
                 cb(responses);
             });
         }
