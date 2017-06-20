@@ -2,7 +2,7 @@ const request = require('request');
 import { deserialize, serialize } from 'json-typescript-mapper';
 import { Credentials } from './Http/Credentials';
 import { Action, Action_v1, ActionMetaData_v1 } from './Model/Action'
-import { Dialog, TrainDialog } from './Model/TrainDialog'
+import { Dialog_v1, TrainDialog_v1 } from './Model/TrainDialog'
 import { BlisApp_v1 } from './Model/BlisApp'
 import { BlisAppContent } from './Model/BlisAppContent'
 import { BlisApp } from './Model/BlisApp'
@@ -514,7 +514,7 @@ public EditAction(appId : string, action : Action) : Promise<string>
         )
     }
 
-    public EditTrainDialog(appId : string, dialogId : string, trainDialog : TrainDialog) : Promise<string>
+    public EditTrainDialog(appId : string, dialogId : string, trainDialog : TrainDialog_v1) : Promise<string>
     {
         let apiPath = `app/${appId}/traindialog/${dialogId}`;
 
@@ -921,7 +921,7 @@ public EditAction(appId : string, action : Action) : Promise<string>
         )
     }
 
-    public GetTrainDialog(appId : string, dialogId : string) : Promise<TrainDialog>
+    public GetTrainDialog(appId : string, dialogId : string) : Promise<TrainDialog_v1>
     {
         let apiPath = `app/${appId}/traindialog/${dialogId}`;
 
@@ -943,8 +943,8 @@ public EditAction(appId : string, action : Action) : Promise<string>
                         reject(body);
                     }
                     else {
-                        let dialog = deserialize(Dialog, body);
-                        let trainDialog = new TrainDialog({dialog: dialog, id: dialogId});
+                        let dialog = deserialize(Dialog_v1, body);
+                        let trainDialog = new TrainDialog_v1({dialog: dialog, id: dialogId});
                         resolve(trainDialog);
                     }
                 });

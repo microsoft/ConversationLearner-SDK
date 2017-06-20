@@ -2,7 +2,7 @@ import { JsonProperty } from 'json-typescript-mapper';
 import { ActionCommand} from '../Model/Consts';
 import { BlisMemory } from '../BlisMemory';
 import { BlisDebug} from '../BlisDebug';
-import { LabelEntity} from '../Model/LabelEntity';
+import { LabelEntity_v1} from '../Model/LabelEntity';
 import * as builder from 'botbuilder'
 
 export class BotMemory 
@@ -130,7 +130,7 @@ export class BotMemory
     }  
 
     /** Remember entity value */
-    public static async RememberByLabel(entity : LabelEntity) : Promise<void> {
+    public static async RememberByLabel(entity : LabelEntity_v1) : Promise<void> {
         try {
             let botmemory = await this.Get();
 
@@ -229,7 +229,7 @@ export class BotMemory
     }
 
     /** Forget the EntityId that I've remembered */
-    public static async ForgetByLabel(entity : LabelEntity) : Promise<void>
+    public static async ForgetByLabel(entity : LabelEntity_v1) : Promise<void>
     {
         try {
             let positiveId = entity.metadata.positive;

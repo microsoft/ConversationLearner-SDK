@@ -14,7 +14,140 @@ import { Pager } from '../Memory/Pager';
 import { BlisContext } from '../BlisContext';
 import { EditableResponse } from './EditableResponse';
 
-export class TextEntity
+export class LabelEntity
+{
+    @JsonProperty('startCharIndex')
+    public startCharIndex : number;
+
+    @JsonProperty('endCharIndex')
+    public endCharIndex : number;
+
+    @JsonProperty('entityId')
+    public entityId : string;
+
+    @JsonProperty('entityText')
+    public entityText : string;
+
+    public constructor(init?:Partial<TextVariation>)
+    {
+        this.startCharIndex = undefined;
+        this.endCharIndex = undefined;
+        this.entityId = undefined;
+        this.entityText = undefined;
+        (<any>Object).assign(this, init);
+    }
+}
+
+export class TextVariation
+{
+    @JsonProperty('text')
+    public text : String;
+
+   @JsonProperty({clazz: LabelEntity, name: 'labelEntities'})
+    public labelEntities : LabelEntity[];
+
+    public constructor(init?:Partial<TextVariation>)
+    {
+        this.text = undefined;
+        this.labelEntities = undefined;
+        (<any>Object).assign(this, init);
+    }
+}
+
+export class ExtractorStep
+{
+    @JsonProperty({clazz: TextVariation, name: 'textVariations'})
+    public textVariations : TextVariation[];
+
+    public constructor(init?:Partial<ExtractorStep>)
+    {
+        this.textVariations = undefined;
+        (<any>Object).assign(this, init);
+    }
+}
+
+export class Input
+{
+    @JsonProperty('filledEntities')
+    public filledEntities : string[];
+
+    @JsonProperty('context')
+    public contextRaw : string;
+
+    @JsonProperty('maskedActions')
+    public maskedActions : string[];
+
+    public constructor(init?:Partial<ScorerStep>)
+    {
+        this.filledEntities = undefined;
+        this.contextRaw = undefined;
+        this.maskedActions = undefined;
+        (<any>Object).assign(this, init);
+    }
+}
+
+export class ScorerStep
+{
+    @JsonProperty({clazz: Input, name: 'input'})
+    public input : Input;
+
+    @JsonProperty('labelAction')
+    public labelAction : string;
+
+    public constructor(init?:Partial<ScorerStep>)
+    {
+        this.input = undefined;
+        this.labelAction = undefined;
+        (<any>Object).assign(this, init);
+    }
+}
+
+export class Round
+{
+    @JsonProperty({clazz: ExtractorStep, name: 'input'})
+    public extractorStep : ExtractorStep;
+
+    @JsonProperty({clazz: ScorerStep, name: 'output'})
+    public scorerSteps : ScorerStep[];
+
+    public constructor(init?:Partial<Round>)
+    {
+        this.extractorStep = undefined;
+        this.scorerSteps = undefined;
+        (<any>Object).assign(this, init);
+    }
+}
+
+export class TrainDialog
+{
+    @JsonProperty('trainDialogId')
+    public trainDialogId : string;
+
+    @JsonProperty('version')
+    public version : number;
+
+    @JsonProperty('packageCreationId')
+    public packageCreationId : number;
+
+    @JsonProperty('packageDeletionId')
+    public packageDeletionId : number;
+
+    @JsonProperty({clazz: Round, name: 'rounds'})
+    public rounds : Round[];
+
+    public constructor(init?:Partial<TrainDialog>)
+    {
+        this.trainDialogId = undefined;
+        this.version = undefined;
+        this.packageCreationId = undefined;
+        this.packageDeletionId = undefined;
+        this.rounds = undefined;
+        (<any>Object).assign(this, init);
+    }
+}
+
+// ================== V1 ===============================================
+export class TextEntity_v1
 {
     @JsonProperty('EndToken')  
     public endToken : number;
@@ -25,7 +158,7 @@ export class TextEntity
     @JsonProperty('StartToken')  
     public startToken : number;
 
-    public constructor(init?:Partial<Input>)
+    public constructor(init?:Partial<Input_v1>)
     {
         this.endToken = undefined;
         this.entityId = undefined;
@@ -34,15 +167,15 @@ export class TextEntity
     }
 }
 
-export class AltText
+export class AltText_v1
 {
     @JsonProperty('text')  
     public text : string;
         
-    @JsonProperty({clazz: TextEntity, name: 'text-entities'})
-    public textEntities : TextEntity[];
+    @JsonProperty({clazz: TextEntity_v1, name: 'text-entities'})
+    public textEntities : TextEntity_v1[];
 
-    public constructor(init?:Partial<Input>)
+    public constructor(init?:Partial<Input_v1>)
     {
         this.text = undefined;
         this.textEntities = undefined;
@@ -50,7 +183,7 @@ export class AltText
     }
 }
 
-export class Input
+export class Input_v1
 {
     @JsonProperty('context')  
     public context : {};
@@ -64,11 +197,11 @@ export class Input
     @JsonProperty('text')  
     public text : string;
 
-    @JsonProperty({clazz: AltText, name: 'text-alts'})
-    public textAlts : AltText[];
+    @JsonProperty({clazz: AltText_v1, name: 'text-alts'})
+    public textAlts : AltText_v1[];
 
-    @JsonProperty({clazz: TextEntity, name: 'text-entities'})
-    public textEntities : TextEntity[];
+    @JsonProperty({clazz: TextEntity_v1, name: 'text-entities'})
+    public textEntities : TextEntity_v1[];
 
     public async toText(appId : string) : Promise<string>
     {
@@ -110,7 +243,7 @@ export class Input
         }
     }
 
-    public constructor(init?:Partial<Input>)
+    public constructor(init?:Partial<Input_v1>)
     {
         this.context = undefined;
         this.entityIds = undefined;
@@ -123,10 +256,10 @@ export class Input
     }
 }
 
-export class Turn
+export class Turn_v1
 {
-    @JsonProperty({clazz: Input, name: 'input'})  
-    public input : Input;
+    @JsonProperty({clazz: Input_v1, name: 'input'})  
+    public input : Input_v1;
 
     @JsonProperty('output')  
     public actionId : string;
@@ -142,7 +275,7 @@ export class Turn
         return `     ${actionText}`
     }
 
-    public constructor(init?:Partial<Turn>) 
+    public constructor(init?:Partial<Turn_v1>) 
     {
         this.input = undefined;
         this.actionId = undefined;
@@ -150,10 +283,10 @@ export class Turn
     }
 }
 
-export class Dialog
+export class Dialog_v1
 {
-    @JsonProperty({clazz: Turn, name: 'turns'})
-    public turns : Turn[];
+    @JsonProperty({clazz: Turn_v1, name: 'turns'})
+    public turns : Turn_v1[];
     
     public async toText(appId : string) : Promise<string>
     {
@@ -168,20 +301,20 @@ export class Dialog
         return text;
     }
 
-    public constructor(init?:Partial<Dialog>)
+    public constructor(init?:Partial<Dialog_v1>)
     {
         this.turns = undefined;
         (<any>Object).assign(this, init);
     }
 }
 
-export class TrainDialog
+export class TrainDialog_v1
 {
     @JsonProperty('id')
     public id : string;
 
-    @JsonProperty({clazz: Dialog, name: 'dialog'})
-    public dialog : Dialog;
+    @JsonProperty({clazz: Dialog_v1, name: 'dialog'})
+    public dialog : Dialog_v1;
 
     public async toText(appId : string, number = false) : Promise<string>
     {
@@ -189,7 +322,7 @@ export class TrainDialog
         return `${dialogText}`;
     }
 
-    public constructor(init?:Partial<TrainDialog>)
+    public constructor(init?:Partial<TrainDialog_v1>)
     {
         this.id = undefined;
         this.dialog = undefined;
@@ -236,7 +369,7 @@ export class TrainDialog
                 if (!altTexts) altTexts = [];
                 
                 // Add new text
-                let nextText = new AltText({text: input});
+                let nextText = new AltText_v1({text: input});
                 altTexts.push(nextText);
                 trainDialog.dialog.turns[turnNum].input.textAlts = altTexts;
         
@@ -244,7 +377,7 @@ export class TrainDialog
                 await BlisClient.client.EditTrainDialog(appId, dialogId, trainDialog);
 
                 // Show item with new content
-                TrainDialog.Get(context, true, (responses) => {
+                TrainDialog_v1.Get(context, true, (responses) => {
                     cb(responses);
                 });
             }
@@ -253,7 +386,7 @@ export class TrainDialog
         {
             let cards = [];
             cards.push(Utils.ErrorCard(error, "Expected input format {turn number} {new input text}"));
-            TrainDialog.Get(context, true, (responses) => {
+            TrainDialog_v1.Get(context, true, (responses) => {
                 cards = cards.concat(responses);
                 cb(cards);
             });

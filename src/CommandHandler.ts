@@ -1,7 +1,7 @@
 import * as builder from 'botbuilder';
 import { Menu} from './Menu';
 import { BlisClient } from './BlisClient';
-import { TrainDialog } from './Model/TrainDialog';
+import { TrainDialog_v1 } from './Model/TrainDialog';
 import { BlisApp_v1 } from './Model/BlisApp'
 import { BlisMemory } from './BlisMemory';
 import { BlisDebug} from './BlisDebug';
@@ -265,16 +265,16 @@ export class CommandHandler
             }
             else if (command == IntCommands.DELETEDIALOG) {
                 // Delete
-                TrainDialog.Delete(context, arg, (dreponses) => {
+                TrainDialog_v1.Delete(context, arg, (dreponses) => {
                     // Continue displaying remaining dialogs
-                    TrainDialog.Get(context, true, (responses) => {
+                    TrainDialog_v1.Get(context, true, (responses) => {
                         responses = dreponses.concat(responses);
                         cb(responses);
                     });
                 });
             }
             else if (command == IntCommands.EDITDIALOG) {
-                TrainDialog.Edit(context, arg, (responses) => {
+                TrainDialog_v1.Edit(context, arg, (responses) => {
                     cb(responses);
                 });
             }
@@ -285,7 +285,7 @@ export class CommandHandler
             {
                 // Next page
                 await Pager.Next(context);
-                TrainDialog.Get(context, false, (responses) => {
+                TrainDialog_v1.Get(context, false, (responses) => {
                     cb(responses);
                 });
             }
@@ -293,7 +293,7 @@ export class CommandHandler
             {
                 // Next page
                 await Pager.Prev(context);
-                TrainDialog.Get(context, false, (responses) => {
+                TrainDialog_v1.Get(context, false, (responses) => {
                     cb(responses);
                 });
             }
@@ -434,7 +434,7 @@ export class CommandHandler
         else {
             if (command == LineCommands.ADDALTTEXT)
             {
-                TrainDialog.Edit(context, args, (responses) => {
+                TrainDialog_v1.Edit(context, args, (responses) => {
                     cb(responses);
                 });
             }
@@ -554,7 +554,7 @@ export class CommandHandler
 
                 // Set up pager
                 await memory.Pager().Init(search);
-                TrainDialog.Get(context, true, (responses) => {
+                TrainDialog_v1.Get(context, true, (responses) => {
                     cb(responses);
                 });
             }

@@ -8,7 +8,7 @@ import { Action_v1 } from './Action';
 import { Utils } from '../Utils';import { JsonProperty } from 'json-typescript-mapper';
 import { Entity_v1 } from './Entity';
 import { Menu } from '../Menu';
-import { TrainDialog } from './TrainDialog';
+import { TrainDialog_v1 } from './TrainDialog';
 import { BlisContext } from '../BlisContext';
 import { EditableResponse } from './EditableResponse';
 
@@ -21,8 +21,8 @@ export class BlisAppContent
     @JsonProperty({clazz: Entity_v1, name: 'entities'})
     public entities : Entity_v1[];
 
-    @JsonProperty({clazz: TrainDialog, name: 'traindialogs'})
-    public trainDialogs : TrainDialog[];
+    @JsonProperty({clazz: TrainDialog_v1, name: 'traindialogs'})
+    public trainDialogs : TrainDialog_v1[];
 
     @JsonProperty('blis-app-version')
     public appVersion : string;

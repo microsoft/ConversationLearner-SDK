@@ -2,7 +2,7 @@ import { JsonProperty } from 'json-typescript-mapper';
 import { EntityMetaData_v1 } from './Entity';
 
 /** Entity matched in a user's string */
-export class LabelEntity
+export class LabelEntity_v1
 {
     /** Start char number in string containing the entity */
     @JsonProperty('endIndex')
@@ -34,7 +34,7 @@ export class LabelEntity
 
     public resolution : any; 
 
-    public constructor(init?:Partial<LabelEntity>)
+    public constructor(init?:Partial<LabelEntity_v1>)
     {
         this.endIndex = null;
         this.value = null;

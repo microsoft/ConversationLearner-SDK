@@ -1,7 +1,7 @@
 import * as builder from 'botbuilder';
 import { JsonProperty } from 'json-typescript-mapper';
 import { Action_v1 } from './Action';
-import { LabelEntity } from './LabelEntity';
+import { LabelEntity_v1 } from './LabelEntity';
 import { LabelAction } from './LabelAction';
 import { EditableResponse } from './EditableResponse';
 
@@ -11,8 +11,8 @@ export class TakeTurnResponse
     @JsonProperty('orig-text')
     public originalText : string;
 
-    @JsonProperty({clazz: LabelEntity, name: 'entities'})
-    public entities : LabelEntity[];
+    @JsonProperty({clazz: LabelEntity_v1, name: 'entities'})
+    public entities : LabelEntity_v1[];
 
     @JsonProperty('mode')
     public mode : string;
@@ -26,8 +26,8 @@ export class TakeTurnResponse
     @JsonProperty('teach_step')
     public teachStep : string;
 
-    @JsonProperty({clazz: LabelEntity, name : 'teach_label_entity'})
-    public teachLabelEntities : LabelEntity[];
+    @JsonProperty({clazz: LabelEntity_v1, name : 'teach_label_entity'})
+    public teachLabelEntities : LabelEntity_v1[];
 
     @JsonProperty({clazz: LabelAction, name : 'teach_label_action'})
     public teachLabelActions : LabelAction[];

@@ -10,7 +10,7 @@ import { Action_v1 } from '../Model/Action';
 import { Utils } from '../Utils';import { JsonProperty } from 'json-typescript-mapper';
 import { Entity_v1 } from './Entity';
 import { BlisContext } from '../BlisContext';
-import { TrainDialog } from './TrainDialog';
+import { TrainDialog_v1 } from './TrainDialog';
 import { Menu } from '../Menu';
 import { EditableResponse } from './EditableResponse';
 import { AdminResponse } from './AdminResponse';
