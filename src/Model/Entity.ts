@@ -307,6 +307,64 @@ export class Entity
         }
     }
 
+/** Get all actions **/
+    public static async Get(key : string, search : string) : Promise<AdminResponse>
+    {
+        BlisDebug.Log(`Getting entities`);
+
+        try
+        {   
+            let memory = BlisMemory.GetMemory(key);
+            let appId = await memory.BotState().AppId()
+            
+            if (!appId)
+            {
+                return AdminResponse.Error(`No app has been loaded.`);
+            }
+
+            let debug = false;
+            if (search && search.indexOf(ActionCommand.DEBUG) > -1)
+            {
+                debug = true;
+                search = search.replace(ActionCommand.DEBUG, "");
+            }
+
+            let entityIds = [];
+            let json = await BlisClient.client.GetEntities(appId)
+            entityIds = JSON.parse(json)['ids'];
+            BlisDebug.Log(`Found ${entityIds.length} entities`);;
+
+            if (entityIds.length == 0)
+            {
+                return AdminResponse.Result([]);
+            }
+            let entities = [];
+
+            if (search) search = search.toLowerCase();
+
+            for (let entityId of entityIds)
+            {
+                let entity = await BlisClient.client.GetEntity(appId, entityId);
+                if (!search || entity.entityName.toLowerCase().indexOf(search) > -1)
+                { 
+                    entities.push(entity);
+                }
+
+                // Add to entity lookup table
+                await memory.EntityLookup().Add(entity.entityName, entityId);
+            }
+            // Sort
+            entities = Entity.Sort(entities);
+
+            // Return result
+            return AdminResponse.Result(entities);
+        }
+        catch (error) {
+            let errMsg = BlisDebug.Error(error); 
+            return AdminResponse.Error(errMsg);
+        }
+    }
+
     /** Return negative entity name */
     private static NegativeName(name : string) : string
     {
@@ -354,6 +412,21 @@ export class Entity
         description += `${metadata.negativeId ? " (negatable)" : ""}`;
         description += `${metadata.positiveId ? " (delete)" : ""}`;
         return description;
+    }
+
+    public static Sort(entities : Entity[]) : Entity[]
+    {
+        return entities.sort((n1, n2) => {
+            let c1 = n1.entityName.toLowerCase();
+            let c2 = n2.entityName.toLowerCase();
+            if (c1 > c2) {
+                return 1;
+            }
+            if (c1 < c2){
+                return -1;
+            }
+            return 0;
+        });
     }
 }
 
@@ -516,7 +589,7 @@ export class Entity_v1
         return description;
     }
 
-    public static Sort(entities : Entity_v1[]) : Entity_v1[]
+    public static Sort_v1(entities : Entity_v1[]) : Entity_v1[]
     {
         return entities.sort((n1, n2) => {
             let c1 = n1.name.toLowerCase();
@@ -766,7 +839,7 @@ export class Entity_v1
     }
 
     /** Get all actions **/
-    public static async Get(context : BlisContext, search : string, cb : (text) => void) : Promise<void>
+    public static async Get_v1(context : BlisContext, search : string, cb : (text) => void) : Promise<void>
     {
         BlisDebug.Log(`Getting entities`);
 
@@ -815,7 +888,7 @@ export class Entity_v1
                 await memory.EntityLookup().Add(entity.name, entityId);
             }
             // Sort
-            entities = Entity_v1.Sort(entities);
+            entities = Entity_v1.Sort_v1(entities);
 
             // Generate output
             for (let entity of entities)

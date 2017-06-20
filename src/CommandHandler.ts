@@ -397,7 +397,7 @@ export class CommandHandler
         }
         else if (command == LineCommands.ENTITIES)
         { 
-            Entity_v1.Get(context, args, (responses) => {
+            Entity_v1.Get_v1(context, args, (responses) => {
                 cb(responses);
             });
         }

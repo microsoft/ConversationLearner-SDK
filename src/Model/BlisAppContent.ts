@@ -171,7 +171,7 @@ export class BlisAppContent
             }
 
             // Load entities to generate lookup table
-            await Entity_v1.Get(context, null, (text) =>
+            await Entity_v1.Get_v1(context, null, (text) =>
             {
                 BlisDebug.Log(`Entity lookup generated`);
             }); 
