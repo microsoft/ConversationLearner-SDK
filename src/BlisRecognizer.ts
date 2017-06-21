@@ -1,15 +1,15 @@
 import * as builder from 'botbuilder';
 import { TakeTurnRequest } from './Model/TakeTurnRequest'
-import { BlisApp } from './Model/BlisApp'
+import { BlisApp_v1 } from './Model/BlisApp'
 import { BlisAppContent } from './Model/BlisAppContent'
 import { BlisClient } from './BlisClient';
 import { BlisMemory } from './BlisMemory';
 import { BlisDebug} from './BlisDebug';
 import { BlisContext} from './BlisContext';
-import { LabelEntity } from './Model/LabelEntity';
+import { LabelEntity_v1 } from './Model/LabelEntity';
 import { LabelAction } from './Model/LabelAction';
 import { Action_v1 } from './Model/Action';
-import { TrainDialog } from './Model/TrainDialog';
+import { TrainDialog_v1 } from './Model/TrainDialog';
 import { TakeTurnModes, EntityTypes,  TeachStep, TeachAction, ActionTypes_v1, SaveStep, APICalls, ActionCommand, BLIS_INTENT_WRAPPER } from './Model/Consts';
 import { Command, IntCommands, LineCommands, CueCommands, HelpCommands } from './Model/Command';
 import { BlisHelp } from './Model/Help'; 
@@ -50,7 +50,7 @@ export interface IBlisOptions extends builder.IIntentRecognizerSetOptions {
     redisKey: string;
 
     // Optional callback than runs after LUIS but before BLIS.  Allows Bot to substitute entities
-    luisCallback? : (text: string, luisEntities : LabelEntity[], memory : BlisMemory, done : (ttr : TakeTurnRequest) => void) => void;
+    luisCallback? : (text: string, luisEntities : LabelEntity_v1[], memory : BlisMemory, done : (ttr : TakeTurnRequest) => void) => void;
 
     // Optional callback that runs after BLIS is called but before the Action is rendered
     blisCallback? : (text : string, memory : BlisMemory, done : (text : string) => void) => void;
@@ -83,7 +83,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     protected entityValues = {};
 
     // Optional callback than runs after LUIS but before BLIS.  Allows Bot to substitute entities
-    private luisCallback? : (text: string, luisEntities : LabelEntity[], memory : BlisMemory, done : (takeTurnRequest : TakeTurnRequest)=> void) => void;
+    private luisCallback? : (text: string, luisEntities : LabelEntity_v1[], memory : BlisMemory, done : (takeTurnRequest : TakeTurnRequest)=> void) => void;
 
     // Mappting between user defined API names and functions
     private apiCallbacks : { string : () => TakeTurnRequest };
@@ -563,7 +563,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         }
     }
 
-    private async PromisifyLC(luisCallback, text: string, luisEntities : LabelEntity[], memory : BlisMemory) {
+    private async PromisifyLC(luisCallback, text: string, luisEntities : LabelEntity_v1[], memory : BlisMemory) {
         return new Promise(function(resolve,reject){
             luisCallback(text, luisEntities, memory, (takeTurnRequest) =>
             {
@@ -825,7 +825,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         return new TakeTurnResponse({ mode : TakeTurnModes.ERROR, error: error});
     }
 
-    public async DefaultLuisCallback(text: string, entities : LabelEntity[], memory : BlisMemory, done : (takeTurnRequest : TakeTurnRequest)=> void) : Promise<void>
+    public async DefaultLuisCallback(text: string, entities : LabelEntity_v1[], memory : BlisMemory, done : (takeTurnRequest : TakeTurnRequest)=> void) : Promise<void>
     {
         // Update entities in my memory
         for (var entity of entities)

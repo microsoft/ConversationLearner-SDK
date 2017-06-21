@@ -8,7 +8,7 @@ import { Action_v1 } from './Action';
 import { Utils } from '../Utils';import { JsonProperty } from 'json-typescript-mapper';
 import { Entity_v1 } from './Entity';
 import { Menu } from '../Menu';
-import { TrainDialog } from './TrainDialog';
+import { TrainDialog_v1 } from './TrainDialog';
 import { BlisContext } from '../BlisContext';
 import { EditableResponse } from './EditableResponse';
 
@@ -21,8 +21,8 @@ export class BlisAppContent
     @JsonProperty({clazz: Entity_v1, name: 'entities'})
     public entities : Entity_v1[];
 
-    @JsonProperty({clazz: TrainDialog, name: 'traindialogs'})
-    public trainDialogs : TrainDialog[];
+    @JsonProperty({clazz: TrainDialog_v1, name: 'traindialogs'})
+    public trainDialogs : TrainDialog_v1[];
 
     @JsonProperty('blis-app-version')
     public appVersion : string;
@@ -159,7 +159,7 @@ export class BlisAppContent
             try
             {            
                 // Validate appId, will fail if handed a bad appId
-                let app = await BlisClient.client.GetApp(appId)
+                let app = await BlisClient.client.GetApp_v1(appId)
                 await  memory.BotState().SetAppId(app.id);  
                 BlisDebug.Log(`Loaded App: ${app.id}`);
             }
@@ -171,13 +171,13 @@ export class BlisAppContent
             }
 
             // Load entities to generate lookup table
-            await Entity_v1.Get(context, null, (text) =>
+            await Entity_v1.Get_v1(context, null, (text) =>
             {
                 BlisDebug.Log(`Entity lookup generated`);
             }); 
 
             // Load actions to generate lookup table
-            let numActions = await Action_v1.GetAll(context, null, null, (text) =>
+            let numActions = await Action_v1.GetAll_v1(context, null, null, (text) =>
             {
                 BlisDebug.Log(`Action lookup generated`);
             }); 
@@ -304,7 +304,7 @@ export class BlisAppContent
             for (let action1 of app1.actions)
             {
                 // If entity name is same, use original entity
-                if (action1.Equal(action2)) 
+                if (action1.Equal_v1(action2)) 
                 {
                     swapList[action2.id] = action1.id;
                     swap = true;
