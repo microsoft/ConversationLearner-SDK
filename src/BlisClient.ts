@@ -88,12 +88,20 @@ export class BlisClient {
 
     public AddApp(blisApp : BlisApp) : Promise<string>
     {
+<<<<<<< HEAD
         var apiPath = `app`;
+=======
+        var apiPath = "app";
+>>>>>>> master
 
         return new Promise(
             (resolve, reject) => {
                 const requestData = {
+<<<<<<< HEAD
                     url: this.MakeURL(apiPath),
+=======
+                    url: this.serviceUri + apiPath,
+>>>>>>> master
                     headers: {
                         'Cookie' : this.credentials.Cookiestring(),
                     },
@@ -106,7 +114,11 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
+<<<<<<< HEAD
                         reject(`AddApp: ${response.statusMessage} : ${body}`);
+=======
+                        reject(body);
+>>>>>>> master
                     }
                     else {
                         var appId = body.id;
@@ -231,6 +243,7 @@ export class BlisClient {
         )
     }
 
+<<<<<<< HEAD
     public EditAction(appId : string, action : Action) : Promise<string>
     {
         let apiPath = `app/${appId}/action/${action.actionId}`;
@@ -536,6 +549,8 @@ export class BlisClient_v1 {
         this.exportCache.del(appId);
     }
 
+=======
+>>>>>>> master
     public AddEntity_v1(appId : string, entityName : string, entityType : string, prebuiltEntityName : string, metaData : EntityMetaData_v1) : Promise<string>
     {
         let apiPath = `app/${appId}/entity`;
@@ -724,6 +739,44 @@ export class BlisClient_v1 {
         )
     }
 
+<<<<<<< HEAD
+=======
+public EditAction(appId : string, action : Action) : Promise<string>
+    {
+        let apiPath = `app/${appId}/action/${action.actionId}`;
+
+       // Clear old one from cache
+        this.actionCache.del(action.actionId);
+
+        return new Promise(
+            (resolve, reject) => {
+               const requestData = {
+                    url: this.serviceUri+apiPath,
+                    headers: {
+                        'Cookie' : this.credentials.Cookiestring()
+                    },
+                    body: serialize(action),
+                    json: true
+                }
+
+                BlisDebug.LogRequest("PUT",apiPath, requestData);
+                request.put(requestData, (error, response, body) => {
+                    if (error) {
+                        reject(error);
+                    }
+                    else if (response.statusCode >= 300) {
+                        reject(body);
+                    }
+                    else {
+                        // Service returns a 204
+                        resolve(body);
+                    }
+                });
+            }
+        )
+    }
+
+>>>>>>> master
     public EditAction_v1(appId : string, actionId : string, content : string, actionType : string, sequenceTerminal : boolean, requiredEntityList : string[] = [], negativeEntityList : string[] = [], prebuiltEntityName : string = null) : Promise<string>
     {
         let apiPath = `app/${appId}/action/${actionId}`;
@@ -766,6 +819,43 @@ export class BlisClient_v1 {
         )
     }
 
+<<<<<<< HEAD
+=======
+    public EditEntity(appId : string, entity : Entity) : Promise<string>
+    { 
+        let apiPath = `app/${appId}/entity/${entity.entityId}`;
+
+        // Clear old one from cache
+        this.entityCache.del(entity.entityId);
+
+        return new Promise(
+            (resolve, reject) => {
+               const requestData = {
+                    url: this.serviceUri+apiPath,
+                    headers: {
+                        'Cookie' : this.credentials.Cookiestring()
+                    },
+                    body: serialize(entity),
+                    json: true
+                }
+
+                BlisDebug.LogRequest("PUT",apiPath, requestData);
+                request.put(requestData, (error, response, body) => {
+                    if (error) {
+                        reject(error);
+                    }
+                    else if (response.statusCode >= 300) {
+                        reject(body);
+                    }
+                    else {
+                        resolve(body);
+                    }
+                });
+            }
+        )
+    }
+
+>>>>>>> master
     public EditEntity_v1(appId : string, entityId: string, entityName : string, entityType : string, prebuiltEntityName : string, metaData : EntityMetaData_v1) : Promise<string>
     { 
         let apiPath = `app/${appId}/entity/${entityId}`;
@@ -930,6 +1020,40 @@ export class BlisClient_v1 {
                         reject(`${response.statusMessage} : ${body}`);
                     }
                     else {
+<<<<<<< HEAD
+=======
+                        var blisApp = deserialize(BlisApp, body);
+                        blisApp.appId = appId;
+                        resolve(blisApp);
+                    }
+                });
+            }
+        )
+    }
+
+    public GetApp_v1(appId : string) : Promise<BlisApp_v1>
+    {
+        let apiPath = `app/${appId}`;
+
+        return new Promise(
+            (resolve, reject) => {
+                let url = this.serviceUri+apiPath;
+                const requestData = {
+                    headers: {
+                        'Cookie' : this.credentials.Cookiestring()
+                    },
+                    json: true
+                }
+                BlisDebug.LogRequest("GET",apiPath, requestData);
+                request.get(url, requestData, (error, response, body) => {
+                    if (error) {
+                         reject(error);
+                    }
+                    else if (response.statusCode >= 300) {
+                        reject(body);
+                    }
+                    else {
+>>>>>>> master
                         var blisApp = deserialize(BlisApp_v1, body);
                         blisApp.id = appId;
                         resolve(blisApp);
@@ -939,6 +1063,48 @@ export class BlisClient_v1 {
         )
     }
 
+<<<<<<< HEAD
+=======
+    public GetAction(appId : string, actionId : string) : Promise<Action>
+    {
+        return new Promise(
+            (resolve, reject) => {
+                // Check cache first
+                let action = this.actionCache.get(actionId);
+                if (action) {
+                    resolve(action);
+                    return;
+                }
+
+                // Call API
+                let apiPath = `app/${appId}/action/${actionId}`;
+                const requestData = {
+                        url: this.serviceUri+apiPath,
+                        headers: {
+                            'Cookie' : this.credentials.Cookiestring()
+                        },
+                        json: true
+                    }
+                BlisDebug.LogRequest("GET",apiPath, requestData);
+                request.get(requestData, (error, response, body) => {
+                    if (error) {
+                        reject(error);
+                    }
+                    else if (response.statusCode >= 300) {
+                        reject(body);
+                    }
+                    else {
+                        var action = deserialize(Action, body);
+                        action.actionId = actionId;
+                        this.actionCache.set(actionId, action);
+                        resolve(action);
+                    }
+                });
+            }
+        )
+    }
+
+>>>>>>> master
     public GetAction_v1(appId : string, actionId : string) : Promise<Action_v1>
     {
         return new Promise(
@@ -1035,6 +1201,52 @@ export class BlisClient_v1 {
         )
     }
 
+<<<<<<< HEAD
+=======
+    public GetEntity(appId : string, entityId : string) : Promise<Entity>
+    {
+            return new Promise(
+            (resolve, reject) => {
+                // Check cache first
+                let entity = this.entityCache.get(entityId);
+                if (entity) {
+                    resolve(entity);
+                    return;
+                }
+
+               let apiPath = `app/${appId}/entity/${entityId}`;
+               const requestData = {
+                    url: this.serviceUri+apiPath,
+                    headers: {
+                        'Cookie' : this.credentials.Cookiestring()
+                    },
+                    json: true
+                }
+                BlisDebug.LogRequest("GET",apiPath, requestData);
+                request.get(requestData, (error, response, body) => {
+                    if (error) {
+                        reject(error);
+                    }
+                    else if (response.statusCode >= 300) {
+                        reject(body);
+                    }
+                    else {
+                        var entity_v1 = deserialize(Entity_v1, body);
+                        entity_v1.id = entityId;
+                        if (!entity_v1.metadata)
+                        {
+                            entity_v1.metadata = new EntityMetaData_v1();
+                        }
+                        let entity = entity_v1.TOV2();
+                        this.entityCache.set(entityId, entity_v1);
+                        resolve(entity);
+                    }
+                });
+            }
+        )
+    }
+
+>>>>>>> master
     public GetEntity_v1(appId : string, entityId : string) : Promise<Entity_v1>
     {
         return new Promise(

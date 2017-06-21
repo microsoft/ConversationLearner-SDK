@@ -1,7 +1,11 @@
 import * as builder from 'botbuilder';
 import { Test} from './Test';
 import { Menu} from './Menu';
+<<<<<<< HEAD
 import { BlisClient_v1 } from './BlisClient';
+=======
+import { BlisClient } from './BlisClient';
+>>>>>>> master
 import { TrainDialog_v1 } from './Model/TrainDialog';
 import { BlisApp_v1 } from './Model/BlisApp'
 import { BlisMemory } from './BlisMemory';
@@ -72,19 +76,31 @@ export class CommandHandler
             else if (command == LineCommands.EDITAPICALL)
             {
                 let appId = await context.Memory().BotState().AppId();
+<<<<<<< HEAD
                 let action = await BlisClient_v1.client.GetAction_v1(appId, args);
+=======
+                let action = await BlisClient.client.GetAction_v1(appId, args);
+>>>>>>> master
                 cb([Menu.EditAPICall(action)]);
             }
             else if (command == LineCommands.EDITENTITY)
             {
                 let appId = await context.Memory().BotState().AppId();
+<<<<<<< HEAD
                 let entity = await BlisClient_v1.client.GetEntity_v1(appId, args);
+=======
+                let entity = await BlisClient.client.GetEntity_v1(appId, args);
+>>>>>>> master
                 cb([Menu.EditEntity(entity)]);
             }
             else if (command == LineCommands.EDITRESPONSE)
             {
                 let appId = await context.Memory().BotState().AppId();
+<<<<<<< HEAD
                 let action = await BlisClient_v1.client.GetAction_v1(appId, args);
+=======
+                let action = await BlisClient.client.GetAction_v1(appId, args);
+>>>>>>> master
                 cb([Menu.EditResponse(action)]);
             }
             else if (command == LineCommands.ENTITIES)

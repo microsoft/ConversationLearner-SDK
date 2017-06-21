@@ -207,7 +207,11 @@ export class Action
 
             // Get actions
             let actionIds = [];
+<<<<<<< HEAD
             let json = await BlisClient_v1.client.GetActions(appId)
+=======
+            let json = await BlisClient.client.GetActions(appId)
+>>>>>>> master
             actionIds = JSON.parse(json)['ids'];
             BlisDebug.Log(`Found ${actionIds.length} actions`);
 
@@ -450,7 +454,11 @@ export class Action_v1
     {
         try
         {            
+<<<<<<< HEAD
             let action = await BlisClient_v1.client.GetAction_v1(appId, actionId);
+=======
+            let action = await BlisClient.client.GetAction_v1(appId, actionId);
+>>>>>>> master
             let msg = action.content;
             if (action.waitAction) 
             {
@@ -785,7 +793,11 @@ export class Action_v1
             let appId = await memory.BotState().AppId();
        
 
+<<<<<<< HEAD
             let action = await BlisClient_v1.client.GetAction_v1(appId, actionId);  
+=======
+            let action = await BlisClient.client.GetAction_v1(appId, actionId);  
+>>>>>>> master
             let inUse = await action.InUse_v1(appId);
 
             if (inUse)
@@ -852,7 +864,11 @@ export class Action_v1
 
             for (let actionId of actionIds)
             {
+<<<<<<< HEAD
                 let action = await BlisClient_v1.client.GetAction_v1(appId, actionId)
+=======
+                let action = await BlisClient.client.GetAction_v1(appId, actionId)
+>>>>>>> master
 
                 if ((!search || action.content.toLowerCase().indexOf(search) > -1) && (!actionType || action.DisplayType_v1() == actionType))
                 { 
