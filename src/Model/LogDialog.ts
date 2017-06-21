@@ -2,11 +2,7 @@ import * as builder from 'botbuilder';
 import { JsonProperty } from 'json-typescript-mapper';
 import { BlisHelp } from '../Model/Help'; 
 import { BlisDebug} from '../BlisDebug';
-<<<<<<< HEAD
 import { BlisClient_v1 } from '../BlisClient';
-=======
-import { BlisClient } from '../BlisClient';
->>>>>>> master
 import { TakeTurnModes, EntityTypes, TeachStep, ActionTypes_v1, APICalls, ActionCommand } from '../Model/Consts';
 import { IntCommands, LineCommands, CueCommands, HelpCommands } from './Command';
 import { BlisMemory } from '../BlisMemory';

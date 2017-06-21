@@ -67,11 +67,7 @@ export class BlisApp
             let memory = BlisMemory.GetMemory(key);
             let curAppId = await memory.BotState().AppId();
 
-<<<<<<< HEAD
             await BlisClient_v1.client.DeleteApp(curAppId, appId)
-=======
-            await BlisClient.client.DeleteApp(curAppId, appId)
->>>>>>> master
 
             // Did I delete my loaded app
             if (appId == curAppId)
@@ -141,11 +137,7 @@ export class BlisApp
 
             // Get app ids
             let appIds = [];
-<<<<<<< HEAD
             let json = await BlisClient_v1.client.GetApps()
-=======
-            let json = await BlisClient.client.GetApps()
->>>>>>> master
             appIds = JSON.parse(json)['ids'];
             BlisDebug.Log(`Found ${appIds.length} apps`);
 
@@ -185,11 +177,7 @@ export class BlisApp
         {
             // Get app ids
             let appIds = [];
-<<<<<<< HEAD
             let json = await BlisClient_v1.client.GetApps()
-=======
-            let json = await BlisClient.client.GetApps()
->>>>>>> master
             appIds = JSON.parse(json)['ids'];
             BlisDebug.Log(`Found ${appIds.length} apps`);
 
@@ -197,11 +185,7 @@ export class BlisApp
             let curAppId = await memory.BotState().AppId();
 
             for (let appId of appIds){
-<<<<<<< HEAD
                 let text = await BlisClient_v1.client.DeleteApp(curAppId, appId)
-=======
-                let text = await BlisClient.client.DeleteApp(curAppId, appId)
->>>>>>> master
                 BlisDebug.Log(`Deleted ${appId} apps`);
             }
 
@@ -305,11 +289,7 @@ export class BlisApp_v1
 
         try
         {       
-<<<<<<< HEAD
             let appId = await BlisClient_v1.client.CreateApp_v1(appName, luisKey)
-=======
-            let appId = await BlisClient.client.CreateApp_v1(appName, luisKey)
->>>>>>> master
 
             // Initialize
             await context.Memory().Init(appId);
@@ -353,11 +333,7 @@ export class BlisApp_v1
 
             for (let appId of appIds)
             {   
-<<<<<<< HEAD
                 let blisApp = await BlisClient_v1.client.GetApp_v1(appId)
-=======
-                let blisApp = await BlisClient.client.GetApp_v1(appId)
->>>>>>> master
 
                 if (!search || blisApp.name.toLowerCase().indexOf(search) > -1)
                 { 
