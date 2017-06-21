@@ -4,6 +4,9 @@ const INTPREFIX = "%int%"
 // Command the cue user text entry
 const CUEPREFIX = "%cue%"
 
+// Command the cue user text entry
+const TESTPREFIX = "test "
+
 // Command line prefix
 export const COMMANDPREFIX = "!"
 
@@ -103,6 +106,14 @@ export const HelpCommands =
     PICKENTITY : HELPPREFIX+"pickentity"
 }
 
+// Internal commands. (Not for user)
+export const TestCommands =
+{
+    ACTIONROUNDTRIP : TESTPREFIX + "action",
+    APPROUNDTRIP : TESTPREFIX + "app",
+    ENTITYROUNDTRIP : TESTPREFIX + "entity"
+} 
+
 export class Command {
 
     constructor(public name : string, public description : string, public detail : string[], public args : string, public examples : string[]){
@@ -127,5 +138,10 @@ export class Command {
     public static IsHelpCommand(text: string) : boolean
     {
         return text.startsWith(HELPPREFIX);
+    }
+
+    public static IsTestCommand(text: string) : boolean
+    {
+        return text.startsWith(TESTPREFIX);
     }
 }

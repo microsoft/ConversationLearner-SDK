@@ -1,14 +1,14 @@
 import * as builder from 'botbuilder';
 import { deserialize, serialize } from 'json-typescript-mapper';
 import { BlisDebug} from '../BlisDebug';
-import { BlisClient } from '../BlisClient';
+import { BlisClient_v1 } from '../BlisClient';
 import { TakeTurnModes, EntityTypes, TeachStep, ActionTypes_v1, APICalls, ActionCommand } from '../Model/Consts';
 import { BlisMemory } from '../BlisMemory';
 import { Action_v1 } from './Action';
 import { Utils } from '../Utils';import { JsonProperty } from 'json-typescript-mapper';
 import { Entity_v1 } from './Entity';
 import { Menu } from '../Menu';
-import { TrainDialog } from './TrainDialog';
+import { TrainDialog_v1 } from './TrainDialog';
 import { BlisContext } from '../BlisContext';
 import { EditableResponse } from './EditableResponse';
 
@@ -21,8 +21,8 @@ export class BlisAppContent
     @JsonProperty({clazz: Entity_v1, name: 'entities'})
     public entities : Entity_v1[];
 
-    @JsonProperty({clazz: TrainDialog, name: 'traindialogs'})
-    public trainDialogs : TrainDialog[];
+    @JsonProperty({clazz: TrainDialog_v1, name: 'traindialogs'})
+    public trainDialogs : TrainDialog_v1[];
 
     @JsonProperty('blis-app-version')
     public appVersion : string;
@@ -62,7 +62,7 @@ export class BlisAppContent
 
             // Get actions
             let dialogIds = [];
-            let BlisAppContent = await BlisClient.client.ExportApp(appId)
+            let BlisAppContent = await BlisClient_v1.client.ExportApp(appId)
             let msg = JSON.stringify(serialize(BlisAppContent));
             if (context.Address().channelId == "emulator")
             {
@@ -90,10 +90,10 @@ export class BlisAppContent
             let curAppId = await memory.BotState().AppId();
 
             // Get current app
-            let currentApp = await BlisClient.client.ExportApp(curAppId);
+            let currentApp = await BlisClient_v1.client.ExportApp(curAppId);
 
             // Get imported app
-            let mergeApp = await BlisClient.client.ExportApp(appId);
+            let mergeApp = await BlisClient_v1.client.ExportApp(appId);
 
             // Merge any duplicate entities
             mergeApp = this.MergeEntities(currentApp, mergeApp);
@@ -102,7 +102,7 @@ export class BlisAppContent
             mergeApp = this.MergeActions(currentApp, mergeApp);
 
             // Upload merged app to currentApp
-            let finalApp = await BlisClient.client.ImportApp(curAppId, mergeApp);
+            let finalApp = await BlisClient_v1.client.ImportApp(curAppId, mergeApp);
 
             // reload
             let responses = await this.Load(context, curAppId);
@@ -133,7 +133,7 @@ export class BlisAppContent
             let blisApp = deserialize(BlisAppContent, json);
             let memory = context.Memory();
             let appId = await memory.BotState().AppId();
-            let newApp = await BlisClient.client.ImportApp(appId, blisApp)
+            let newApp = await BlisClient_v1.client.ImportApp(appId, blisApp)
             
             // Reload the app
             let reponses = await BlisAppContent.Load(context, appId);
@@ -159,7 +159,7 @@ export class BlisAppContent
             try
             {            
                 // Validate appId, will fail if handed a bad appId
-                let app = await BlisClient.client.GetApp(appId)
+                let app = await BlisClient_v1.client.GetApp_v1(appId)
                 await  memory.BotState().SetAppId(app.id);  
                 BlisDebug.Log(`Loaded App: ${app.id}`);
             }
@@ -171,13 +171,13 @@ export class BlisAppContent
             }
 
             // Load entities to generate lookup table
-            await Entity_v1.Get(context, null, (text) =>
+            await Entity_v1.Get_v1(context, null, (text) =>
             {
                 BlisDebug.Log(`Entity lookup generated`);
             }); 
 
             // Load actions to generate lookup table
-            let numActions = await Action_v1.GetAll(context, null, null, (text) =>
+            let numActions = await Action_v1.GetAll_v1(context, null, null, (text) =>
             {
                 BlisDebug.Log(`Action lookup generated`);
             }); 
@@ -192,12 +192,12 @@ export class BlisAppContent
             try
             {
                 // Load or train a new modelId
-                modelId = await BlisClient.client.GetModel(appId);
+                modelId = await BlisClient_v1.client.GetModel(appId);
                 if (!modelId)
                 {        
                     Utils.SendMessage(context, `Training the model...`);
 
-                    modelId = await BlisClient.client.TrainModel(appId); 
+                    modelId = await BlisClient_v1.client.TrainModel(appId); 
                     await memory.BotState().SetModelId(modelId);
 
                     BlisDebug.Log(`Model trained: ${modelId}`);
@@ -209,7 +209,7 @@ export class BlisAppContent
                 let errMsg = Utils.ErrorString(error);
                 Utils.SendMessage(context, `${errMsg}\n\n\n\nFailed. Retraining the model from scratch...`);    
 
-                modelId = await BlisClient.client.TrainModel(appId, true);
+                modelId = await BlisClient_v1.client.TrainModel(appId, true);
                 await memory.BotState().SetModelId(modelId);
 
                 BlisDebug.Log(`Model trained: ${modelId}`);
@@ -304,7 +304,7 @@ export class BlisAppContent
             for (let action1 of app1.actions)
             {
                 // If entity name is same, use original entity
-                if (action1.Equal(action2)) 
+                if (action1.Equal_v1(action2)) 
                 {
                     swapList[action2.id] = action1.id;
                     swap = true;

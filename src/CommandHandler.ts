@@ -1,8 +1,9 @@
 import * as builder from 'botbuilder';
+import { Test} from './Test';
 import { Menu} from './Menu';
-import { BlisClient } from './BlisClient';
-import { TrainDialog } from './Model/TrainDialog';
-import { BlisApp } from './Model/BlisApp'
+import { BlisClient_v1 } from './BlisClient';
+import { TrainDialog_v1 } from './Model/TrainDialog';
+import { BlisApp_v1 } from './Model/BlisApp'
 import { BlisMemory } from './BlisMemory';
 import { BlisDebug} from './BlisDebug';
 import { BlisSession} from './Model/BlisSession';
@@ -15,7 +16,7 @@ import { BlisContext } from './BlisContext';
 import { BlisAppContent } from './Model/BlisAppContent'
 import { Utils } from './Utils';
 import { ActionCommand, ActionTypes_v1, TeachAction, APITypes_v1 } from './Model/Consts';
-import { COMMANDPREFIX, LineCommands, IntCommands, CueCommands, HelpCommands } from './Model/Command';
+import { COMMANDPREFIX, LineCommands, IntCommands, CueCommands, HelpCommands, TestCommands } from './Model/Command';
 import { EditableResponse } from './Model/EditableResponse';
 
 export class CommandHandler
@@ -71,19 +72,19 @@ export class CommandHandler
             else if (command == LineCommands.EDITAPICALL)
             {
                 let appId = await context.Memory().BotState().AppId();
-                let action = await BlisClient.client.GetAction(appId, args);
+                let action = await BlisClient_v1.client.GetAction_v1(appId, args);
                 cb([Menu.EditAPICall(action)]);
             }
             else if (command == LineCommands.EDITENTITY)
             {
                 let appId = await context.Memory().BotState().AppId();
-                let entity = await BlisClient.client.GetEntity(appId, args);
+                let entity = await BlisClient_v1.client.GetEntity_v1(appId, args);
                 cb([Menu.EditEntity(entity)]);
             }
             else if (command == LineCommands.EDITRESPONSE)
             {
                 let appId = await context.Memory().BotState().AppId();
-                let action = await BlisClient.client.GetAction(appId, args);
+                let action = await BlisClient_v1.client.GetAction_v1(appId, args);
                 cb([Menu.EditResponse(action)]);
             }
             else if (command == LineCommands.ENTITIES)
@@ -207,6 +208,28 @@ export class CommandHandler
         }
     }
 
+    public static async HandleTestCommand(context : BlisContext, input : string, cb: (responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], teachAction? : string, actionData? : string) => void) : Promise<void> {
+        
+        let [command, arg, arg2, arg3] = input.split(' ');
+            command = command.toLowerCase();
+
+        if (input == TestCommands.ACTIONROUNDTRIP) {
+            let result = await Test.T_ActionRoundtrip();
+            cb([result.message]);
+            return;
+        }
+        else if (input == TestCommands.APPROUNDTRIP) {
+            let result = await Test.T_AppRoundtrip();
+            cb([result.message]);
+            return;
+        }
+        else if (input == TestCommands.ENTITYROUNDTRIP) {
+            let result = await Test.T_EntityRoundtrip();
+            cb([result.message]);
+            return;
+        }
+    }
+
     public static async HandleIntCommand(context : BlisContext, input : string, cb: (responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], teachAction? : string, actionData? : string) => void) : Promise<void> {
     
         let [command, arg, arg2, arg3] = input.split(' ');
@@ -259,22 +282,22 @@ export class CommandHandler
         else 
         { 
             if (command == IntCommands.DELETEAPP) {
-                BlisApp.Delete(context, arg, (responses) => {
+                BlisApp_v1.Delete_v1(context, arg, (responses) => {
                     cb(responses);
                 });
             }
             else if (command == IntCommands.DELETEDIALOG) {
                 // Delete
-                TrainDialog.Delete(context, arg, (dreponses) => {
+                TrainDialog_v1.Delete(context, arg, (dreponses) => {
                     // Continue displaying remaining dialogs
-                    TrainDialog.Get(context, true, (responses) => {
+                    TrainDialog_v1.Get(context, true, (responses) => {
                         responses = dreponses.concat(responses);
                         cb(responses);
                     });
                 });
             }
             else if (command == IntCommands.EDITDIALOG) {
-                TrainDialog.Edit(context, arg, (responses) => {
+                TrainDialog_v1.Edit(context, arg, (responses) => {
                     cb(responses);
                 });
             }
@@ -285,7 +308,7 @@ export class CommandHandler
             {
                 // Next page
                 await Pager.Next(context);
-                TrainDialog.Get(context, false, (responses) => {
+                TrainDialog_v1.Get(context, false, (responses) => {
                     cb(responses);
                 });
             }
@@ -293,7 +316,7 @@ export class CommandHandler
             {
                 // Next page
                 await Pager.Prev(context);
-                TrainDialog.Get(context, false, (responses) => {
+                TrainDialog_v1.Get(context, false, (responses) => {
                     cb(responses);
                 });
             }
@@ -324,7 +347,7 @@ export class CommandHandler
         // Commands allowed at any time
         if (command == LineCommands.ACTIONS)
         {
-            Action_v1.GetAll(context, null, args, (responses) => {
+            Action_v1.GetAll_v1(context, null, args, (responses) => {
                 cb(responses);
             });
         }
@@ -374,7 +397,7 @@ export class CommandHandler
         }
         else if (command == LineCommands.CUEAPICALLS)
         {
-            Action_v1.GetAll(context, ActionTypes_v1.API, args, (responses) => {
+            Action_v1.GetAll_v1(context, ActionTypes_v1.API, args, (responses) => {
                 cb(responses);
             });
         }
@@ -397,7 +420,7 @@ export class CommandHandler
         }
         else if (command == LineCommands.ENTITIES)
         { 
-            Entity_v1.Get(context, args, (responses) => {
+            Entity_v1.Get_v1(context, args, (responses) => {
                 cb(responses);
             });
         }
@@ -407,7 +430,7 @@ export class CommandHandler
         }
         else if (command == LineCommands.RESPONSES)
         {
-            Action_v1.GetAll(context, ActionTypes_v1.TEXT, args, (responses) => {
+            Action_v1.GetAll_v1(context, ActionTypes_v1.TEXT, args, (responses) => {
                 cb(responses);
             });
         }
@@ -434,26 +457,26 @@ export class CommandHandler
         else {
             if (command == LineCommands.ADDALTTEXT)
             {
-                TrainDialog.Edit(context, args, (responses) => {
+                TrainDialog_v1.Edit(context, args, (responses) => {
                     cb(responses);
                 });
             }
             else if (command == LineCommands.APPS)
             {
-                BlisApp.GetAll(context, args, (responses) => {
+                BlisApp_v1.GetAll_v1(context, args, (responses) => {
                     cb(responses);
                 });
             }
             else if (command == LineCommands.CREATEAPP)
             {
                 let [appname, luiskey] = args.split(' ');
-                BlisApp.Create(context, appname, luiskey, (responses) => {
+                BlisApp_v1.Create_v1(context, appname, luiskey, (responses) => {
                     cb(responses);
                 });
             }
             else if (command == LineCommands.DELETEALLAPPS)
             {
-                BlisApp.DeleteAll(context, (responses) => {
+                BlisApp_v1.DeleteAll_v1(context, (responses) => {
                     cb(responses);
                 });
             }
@@ -468,14 +491,14 @@ export class CommandHandler
             {
                 Utils.SendMessage(context, "Deleting app...");
                 let [appid] = args.split(' ');
-                BlisApp.Delete(context, appid, (responses) => {
+                BlisApp_v1.Delete_v1(context, appid, (responses) => {
                     cb(responses);
                 });
             }
             else if (command == LineCommands.DELETEENTITY)
             {
                 let [entityId] = args.split(' ');
-                Entity_v1.Delete(context, entityId, (responses) => {
+                Entity_v1.Delete_v1(context, entityId, (responses) => {
                     cb(responses);
                 });
             }
@@ -554,7 +577,7 @@ export class CommandHandler
 
                 // Set up pager
                 await memory.Pager().Init(search);
-                TrainDialog.Get(context, true, (responses) => {
+                TrainDialog_v1.Get(context, true, (responses) => {
                     cb(responses);
                 });
             }

@@ -1,5 +1,5 @@
 import * as builder from 'botbuilder';
-import { BlisClient } from './BlisClient';
+import { BlisClient_v1 } from './BlisClient';
 import { BlisMemory } from './BlisMemory'
 
 export class BlisContext
@@ -11,7 +11,8 @@ export class BlisContext
     constructor(bot : builder.UniversalBot, session : builder.Session) {
         this.bot = bot;
         this.session = session;
-        this.memory = BlisMemory.GetMemory(session);
+        let key = BlisMemory.SessionKey(session);
+        this.memory = BlisMemory.GetMemory(key);
     }
 
     public Address() : builder.IAddress

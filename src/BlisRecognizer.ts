@@ -1,15 +1,15 @@
 import * as builder from 'botbuilder';
 import { TakeTurnRequest } from './Model/TakeTurnRequest'
-import { BlisApp } from './Model/BlisApp'
+import { BlisApp_v1 } from './Model/BlisApp'
 import { BlisAppContent } from './Model/BlisAppContent'
-import { BlisClient } from './BlisClient';
+import { BlisClient_v1 } from './BlisClient';
 import { BlisMemory } from './BlisMemory';
 import { BlisDebug} from './BlisDebug';
 import { BlisContext} from './BlisContext';
-import { LabelEntity } from './Model/LabelEntity';
+import { LabelEntity_v1 } from './Model/LabelEntity';
 import { LabelAction } from './Model/LabelAction';
 import { Action_v1 } from './Model/Action';
-import { TrainDialog } from './Model/TrainDialog';
+import { TrainDialog_v1 } from './Model/TrainDialog';
 import { TakeTurnModes, EntityTypes,  TeachStep, TeachAction, ActionTypes_v1, SaveStep, APICalls, ActionCommand, BLIS_INTENT_WRAPPER } from './Model/Consts';
 import { Command, IntCommands, LineCommands, CueCommands, HelpCommands } from './Model/Command';
 import { BlisHelp } from './Model/Help'; 
@@ -50,7 +50,7 @@ export interface IBlisOptions extends builder.IIntentRecognizerSetOptions {
     redisKey: string;
 
     // Optional callback than runs after LUIS but before BLIS.  Allows Bot to substitute entities
-    luisCallback? : (text: string, luisEntities : LabelEntity[], memory : BlisMemory, done : (ttr : TakeTurnRequest) => void) => void;
+    luisCallback? : (text: string, luisEntities : LabelEntity_v1[], memory : BlisMemory, done : (ttr : TakeTurnRequest) => void) => void;
 
     // Optional callback that runs after BLIS is called but before the Action is rendered
     blisCallback? : (text : string, memory : BlisMemory, done : (text : string) => void) => void;
@@ -75,7 +75,7 @@ class RecSession
 }
 
 export class BlisRecognizer implements builder.IIntentRecognizer {
-    protected blisClient : BlisClient;
+    protected blisClient : BlisClient_v1;
     protected blisCallback : (test : string, memory : BlisMemory, done : (text : string)=> void) => void;
     protected connector : builder.ChatConnector;
     protected defaultApp : string;
@@ -83,7 +83,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     protected entityValues = {};
 
     // Optional callback than runs after LUIS but before BLIS.  Allows Bot to substitute entities
-    private luisCallback? : (text: string, luisEntities : LabelEntity[], memory : BlisMemory, done : (takeTurnRequest : TakeTurnRequest)=> void) => void;
+    private luisCallback? : (text: string, luisEntities : LabelEntity_v1[], memory : BlisMemory, done : (takeTurnRequest : TakeTurnRequest)=> void) => void;
 
     // Mappting between user defined API names and functions
     private apiCallbacks : { string : () => TakeTurnRequest };
@@ -99,7 +99,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     private async init(options: IBlisOptions) {
         try {
             BlisDebug.Log("Creating client...");
-            BlisClient.Init(options.serviceUri, options.user, options.secret, options.azureFunctionsUrl, options.azureFunctionsKey);
+            BlisClient_v1.Init(options.serviceUri, options.user, options.secret, options.azureFunctionsUrl, options.azureFunctionsKey);
             BlisMemory.Init(options.redisServer, options.redisKey);
             this.luisCallback = options.luisCallback;
             this.apiCallbacks = options.apiCallbacks;
@@ -174,7 +174,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                 Utils.SendResponses(recsess.context, responses);
 
                 // Retrain the model
-                BlisClient.client.Retrain(appId, sessionId)
+                BlisClient_v1.client.Retrain(appId, sessionId)
                     .then(async (takeTurnResponse) => 
                     {
                         // Continue teach session
@@ -191,7 +191,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                 Utils.SendResponses(recsess.context, responses);
 
                 // Retrain the model
-                BlisClient.client.Retrain(appId, sessionId)
+                BlisClient_v1.client.Retrain(appId, sessionId)
                     .then(async (takeTurnResponse) => 
                     {
                         // Take the next turn
@@ -481,6 +481,14 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                             });
                         return;
                     }
+                    if (Command.IsTestCommand(userInput)) {
+                        CommandHandler.HandleTestCommand(context, userInput, 
+                            async (responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], teachAction: string, actionData: string) => 
+                            {
+                                await this.ProcessResult(recsess, responses, null, null, teachAction, actionData);
+                            });
+                            return;
+                    }
                     if (Command.IsIntCommand(userInput)) {
                         CommandHandler.HandleIntCommand(context, userInput, 
                             async (responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], teachAction: string, actionData: string) => 
@@ -563,7 +571,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         }
     }
 
-    private async PromisifyLC(luisCallback, text: string, luisEntities : LabelEntity[], memory : BlisMemory) {
+    private async PromisifyLC(luisCallback, text: string, luisEntities : LabelEntity_v1[], memory : BlisMemory) {
         return new Promise(function(resolve,reject){
             luisCallback(text, luisEntities, memory, (takeTurnRequest) =>
             {
@@ -636,7 +644,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
 
         try
         {
-            var takeTurnResponse = await BlisClient.client.SendTurnRequest(appId, sessionId, requestBody)
+            var takeTurnResponse = await BlisClient_v1.client.SendTurnRequest(appId, sessionId, requestBody)
 
             BlisDebug.Verbose(`TakeTurnResponse: ${takeTurnResponse.mode}`);
             
@@ -781,7 +789,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         {
             return;
         }*/
-        if (!BlisClient.client.azureFunctionsUrl)
+        if (!BlisClient_v1.client.azureFunctionsUrl)
         {
             var errCard = Utils.ErrorCard("Attempt to call Azure Function with no URL.","Must set 'azureFunctionsUrl' in Bot implimentation.");
             Utils.SendMessage(context, errCard);
@@ -790,7 +798,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         {
        //   await memory.BotMemory().ForgetByName("company", null); // TEMP
             let [funct, query] = args.split(' ');
-            let output = await AzureFunctions.Call(BlisClient.client.azureFunctionsUrl, BlisClient.client.azureFunctionsKey, funct, query);
+            let output = await AzureFunctions.Call(BlisClient_v1.client.azureFunctionsUrl, BlisClient_v1.client.azureFunctionsKey, funct, query);
             if (output)
             {
                 Utils.SendMessage(context, output);
@@ -825,7 +833,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         return new TakeTurnResponse({ mode : TakeTurnModes.ERROR, error: error});
     }
 
-    public async DefaultLuisCallback(text: string, entities : LabelEntity[], memory : BlisMemory, done : (takeTurnRequest : TakeTurnRequest)=> void) : Promise<void>
+    public async DefaultLuisCallback(text: string, entities : LabelEntity_v1[], memory : BlisMemory, done : (takeTurnRequest : TakeTurnRequest)=> void) : Promise<void>
     {
         // Update entities in my memory
         for (var entity of entities)

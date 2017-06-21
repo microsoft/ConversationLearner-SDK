@@ -60,7 +60,7 @@ export class BlisDebug {
     }
 
     public static Error(error : any) : string {
-        let text = Utils.ErrorString(error);
+        let text = error ? Utils.ErrorString(error) : "";
         BlisDebug.Log(`ERROR: ${text}`);
         return text;
     }

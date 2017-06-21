@@ -1,7 +1,7 @@
 import * as builder from 'botbuilder';
 import { BlisDebug } from '../BlisDebug';
 import { BlisMemory } from '../BlisMemory';
-import { BlisClient } from '../BlisClient';
+import { BlisClient_v1 } from '../BlisClient';
 import { Utils } from '../Utils';
 import { BlisContext} from '../BlisContext';
 import { ActionCommand, ActionTypes_v1 } from './Consts';
@@ -20,8 +20,8 @@ export class BlisSession
             let sessionId = await memory.BotState().SessionId();
 
             // Ending teaching session (which trains the model if necessary), update modelId
-            sessionId = await BlisClient.client.EndSession(appId, sessionId);
-            let modelId = await BlisClient.client.GetModel(appId);
+            sessionId = await BlisClient_v1.client.EndSession(appId, sessionId);
+            let modelId = await BlisClient_v1.client.GetModel(appId);
             await memory.EndSession();
             await memory.BotState().SetModelId(modelId);
             cb(sessionId);
@@ -46,11 +46,11 @@ export class BlisSession
             let sessionId = await memory.BotState().SessionId();
 
             // Close any existing session
-            let endId = await BlisClient.client.EndSession(appId, sessionId);
+            let endId = await BlisClient_v1.client.EndSession(appId, sessionId);
             BlisDebug.Log(`Ended session ${endId}`);
 
             // Start a new session
-            sessionId = await BlisClient.client.StartSession(appId, teach);
+            sessionId = await BlisClient_v1.client.StartSession(appId, teach);
             await memory.StartSession(sessionId, teach);
             BlisDebug.Log(`Started session ${sessionId}`)   
             if (teach)
