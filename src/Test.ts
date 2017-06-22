@@ -20,7 +20,42 @@ export class TestResult {
     }
 }
 
+/** Descriptor used to add a method as a test function */
+function AddTest(target : Object, propertyKey : string, descriptor : TypedPropertyDescriptor<any>)
+{
+    Test.AddTest(propertyKey, descriptor.value);
+    return descriptor;
+}
+
 export class Test {
+
+    public static tests = {};
+
+    public static AddTest(testName : string, obj : Object) 
+    {
+        this.tests[testName.toLowerCase()] = obj;
+    }
+
+    public static async RunTest(testName : string) : Promise<string[]>
+    {
+        if (testName == "all")
+        {
+            let results = [];
+            for (let test in this.tests)
+            {
+                let result = await this.tests[test]();
+                results.push(result.message);
+            }
+            return results;
+        }
+        var test = this.tests[testName.toLowerCase()];
+        if (test)
+        {
+            let result = await test();
+            return [result.message];
+        }
+        return ["FAIL: No test of this name found."];
+    }
 
     private static InitClient() : void
     {
@@ -34,17 +69,25 @@ export class Test {
 
     private static async InitApp() : Promise<string>
     {
-        this.InitClient();
-        let blisApp = this.MakeApp();
+        Test.InitClient();
+        let blisApp = Test.MakeApp();
         return await BlisClient.client.AddApp(blisApp);
     }
 
-    public static async T_AppRoundtrip() : Promise<TestResult>
+    @AddTest
+    public static async AppAll() : Promise<TestResult>
+    {
+        Test.InitClient();
+        return TestResult.Pass();
+    }
+
+    @AddTest
+    public static async AppRoundtrip() : Promise<TestResult>
     {
         try
         {
-            this.InitClient();
-            let inApp = this.MakeApp();
+            Test.InitClient();
+            let inApp = Test.MakeApp();
             let appId = await BlisClient.client.AddApp(inApp);
             let outApp = await BlisClient.client.GetApp(appId);
             if (outApp.appId != appId) return TestResult.Fail("appId");
@@ -67,12 +110,13 @@ export class Test {
         }
     }
 
-    public static async T_EntityRoundtrip() : Promise<TestResult>
+    @AddTest
+    public static async EntityRoundtrip() : Promise<TestResult>
     {
         try
        { 
-            let appId = await this.InitApp();
-            let inEntity = this.MakeEntity();
+            let appId = await Test.InitApp();
+            let inEntity = Test.MakeEntity();
             let entityId = await BlisClient.client.AddEntity(appId, inEntity);
 
             let outEntity = await BlisClient.client.GetEntity(appId, entityId);
@@ -100,20 +144,21 @@ export class Test {
         }
     }
 
-    public static async T_ActionRoundtrip() : Promise<TestResult>
+    @AddTest
+    public static async ActionRoundtrip() : Promise<TestResult>
     {
         try
        { 
-            let appId = await this.InitApp();
-            let inAction = this.MakeAction();
+            let appId = await Test.InitApp();
+            let inAction = Test.MakeAction();
             let actionId = await BlisClient.client.AddAction(appId, inAction);
 
             let outAction = await BlisClient.client.GetAction(appId, actionId);
             if (outAction.actionId != actionId) return TestResult.Fail("actionId");
             if (outAction.payload != inAction.payload) return TestResult.Fail("payload");
             if (outAction.isTerminal != inAction.isTerminal) return TestResult.Fail("isTerminal");
-            if (!this.IsSame(outAction.requiredEntities, inAction.requiredEntities)) return TestResult.Fail("requiredEntities");
-            if (!this.IsSame(outAction.negativeEntities, inAction.negativeEntities)) return TestResult.Fail("negativeEntities");
+            if (!Test.IsSame(outAction.requiredEntities, inAction.requiredEntities)) return TestResult.Fail("requiredEntities");
+            if (!Test.IsSame(outAction.negativeEntities, inAction.negativeEntities)) return TestResult.Fail("negativeEntities");
             if (outAction.version != inAction.version) return TestResult.Fail("version");
             if (outAction.packageCreationId != inAction.packageCreationId) return TestResult.Fail("packageCreationId");
             if (outAction.packageDeletionId != inAction.packageDeletionId) return TestResult.Fail("packageDeletionId");
