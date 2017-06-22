@@ -16,6 +16,7 @@ import { BlisHelp } from './Model/Help';
 import { TakeTurnResponse } from './Model/TakeTurnResponse'
 import { Utils } from './Utils';
 import { Menu } from './Menu';
+import { Server } from './Http/Server';
 import { CommandHandler } from './CommandHandler'
 import { AzureFunctions } from './AzureFunctions'
 import { EditableResponse } from './Model/EditableResponse';
@@ -98,7 +99,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
 
     private async init(options: IBlisOptions) {
         try {
-            BlisDebug.Log("Creating client...");
+            BlisDebug.Log("Creating client....");
             BlisClient_v1.Init(options.serviceUri, options.user, options.secret, options.azureFunctionsUrl, options.azureFunctionsKey);
             BlisMemory.Init(options.redisServer, options.redisKey);
             this.luisCallback = options.luisCallback;
@@ -108,6 +109,8 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             this.connector = options.connector;
             this.defaultApp = options.appId;
             this.blisCallback = options.blisCallback;
+
+            Server.Init();
 
             // Create a wrapper for handling intent calls during training 
             // This allows prompt for next input after intent call is done

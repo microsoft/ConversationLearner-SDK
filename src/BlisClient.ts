@@ -3,9 +3,8 @@ import { deserialize, serialize } from 'json-typescript-mapper';
 import { Credentials } from './Http/Credentials';
 import { Action, Action_v1, ActionMetaData_v1 } from './Model/Action'
 import { Dialog_v1, TrainDialog_v1 } from './Model/TrainDialog'
-import { BlisApp_v1 } from './Model/BlisApp'
+import { BlisApp_v1, BlisApp, BlisAppList } from './Model/BlisApp'
 import { BlisAppContent } from './Model/BlisAppContent'
-import { BlisApp } from './Model/BlisApp'
 import { Entity, Entity_v1, EntityMetaData_v1 } from './Model/Entity'
 import { TakeTurnModes, ActionTypes_v1, APICalls } from './Model/Consts';
 import { TakeTurnResponse } from './Model/TakeTurnResponse'
@@ -107,7 +106,7 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(`AddApp: ${response.statusMessage} : ${body}`);
+                        reject(response);
                     }
                     else {
                         var appId = body.id;
@@ -194,7 +193,7 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(`DeleteApp: ${response.statusMessage} : ${body}`);
+                        reject(response);
                     }
                     else {
                         resolve(body);
@@ -320,7 +319,7 @@ export class BlisClient {
                          reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(`GetApp: ${response.statusMessage} : ${body}`);
+                        reject(response);
                     }
                     else {
                         var blisApp = deserialize(BlisApp, body);
@@ -399,7 +398,7 @@ export class BlisClient {
         )
     }
 
-    public GetApps() : Promise<string>
+    public GetApps() : Promise<BlisAppList>
     {
         let apiPath = `app`;
 
@@ -421,7 +420,8 @@ export class BlisClient {
                         reject(`GetApps: ${response.statusMessage} : ${body}`);
                     }
                     else {
-                        resolve(body);
+                        let apps = deserialize(BlisAppList, body);
+                        resolve(apps);
                     }
                 });
             }
