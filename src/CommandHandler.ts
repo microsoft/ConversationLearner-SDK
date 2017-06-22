@@ -16,7 +16,7 @@ import { BlisContext } from './BlisContext';
 import { BlisAppContent } from './Model/BlisAppContent'
 import { Utils } from './Utils';
 import { ActionCommand, ActionTypes_v1, TeachAction, APITypes_v1 } from './Model/Consts';
-import { COMMANDPREFIX, LineCommands, IntCommands, CueCommands, HelpCommands, TestCommands } from './Model/Command';
+import { COMMANDPREFIX, LineCommands, IntCommands, CueCommands, HelpCommands } from './Model/Command';
 import { EditableResponse } from './Model/EditableResponse';
 
 export class CommandHandler
@@ -205,28 +205,6 @@ export class CommandHandler
             {   
                 cb([`${command} isn't a valid cue command or can't be performed while teaching.`]);
             }
-        }
-    }
-
-    public static async HandleTestCommand(context : BlisContext, input : string, cb: (responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], teachAction? : string, actionData? : string) => void) : Promise<void> {
-        
-        let [command, arg, arg2, arg3] = input.split(' ');
-            command = command.toLowerCase();
-
-        if (input == TestCommands.ACTIONROUNDTRIP) {
-            let result = await Test.T_ActionRoundtrip();
-            cb([result.message]);
-            return;
-        }
-        else if (input == TestCommands.APPROUNDTRIP) {
-            let result = await Test.T_AppRoundtrip();
-            cb([result.message]);
-            return;
-        }
-        else if (input == TestCommands.ENTITYROUNDTRIP) {
-            let result = await Test.T_EntityRoundtrip();
-            cb([result.message]);
-            return;
         }
     }
 
@@ -433,6 +411,11 @@ export class CommandHandler
             Action_v1.GetAll_v1(context, ActionTypes_v1.TEXT, args, (responses) => {
                 cb(responses);
             });
+        }
+        else if (command == LineCommands.TEST)
+        {
+            let result = await Test.RunTest(args);
+            cb([result.message]);
         }
         //---------------------------------------------------
         // Command only allowed in TEACH

@@ -481,14 +481,6 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                             });
                         return;
                     }
-                    if (Command.IsTestCommand(userInput)) {
-                        CommandHandler.HandleTestCommand(context, userInput, 
-                            async (responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], teachAction: string, actionData: string) => 
-                            {
-                                await this.ProcessResult(recsess, responses, null, null, teachAction, actionData);
-                            });
-                            return;
-                    }
                     if (Command.IsIntCommand(userInput)) {
                         CommandHandler.HandleIntCommand(context, userInput, 
                             async (responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], teachAction: string, actionData: string) => 
