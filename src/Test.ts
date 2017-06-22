@@ -75,9 +75,10 @@ export class Test {
     }
 
     @AddTest
-    public static async AppAll() : Promise<TestResult>
+    public static async GetApps() : Promise<TestResult>
     {
         Test.InitClient();
+        let apps = await BlisClient.client.GetApps();
         return TestResult.Pass();
     }
 

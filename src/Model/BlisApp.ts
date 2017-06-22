@@ -218,6 +218,19 @@ export class BlisApp
         });
     }
 }
+
+export class BlisAppList
+{
+    @JsonProperty('apps')  
+    public apps : BlisApp[];
+
+    public constructor(init?:Partial<BlisAppList>)
+    {
+        this.apps = undefined;
+        (<any>Object).assign(this, init);
+    }
+}
+
 export class BlisApp_v1
 {
     @JsonProperty('app-name')
