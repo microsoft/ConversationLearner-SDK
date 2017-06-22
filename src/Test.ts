@@ -36,18 +36,25 @@ export class Test {
         this.tests[testName.toLowerCase()] = obj;
     }
 
-    public static async RunTest(testName : string) : Promise<TestResult>
+    public static async RunTest(testName : string) : Promise<string[]>
     {
         if (testName == "all")
         {
-            for (let test in )
+            let results = [];
+            for (let test in this.tests)
+            {
+                let result = await this.tests[test]();
+                results.push(result.message);
+            }
+            return results;
         }
         var test = this.tests[testName.toLowerCase()];
         if (test)
         {
-            return await test();
+            let result = await test();
+            return [result.message];
         }
-        return TestResult.Fail("No test of this name found.");
+        return ["FAIL: No test of this name found."];
     }
 
     private static InitClient() : void
@@ -79,7 +86,7 @@ export class Test {
     {
         try
         {
-            this.InitClient();
+            Test.InitClient();
             let inApp = Test.MakeApp();
             let appId = await BlisClient.client.AddApp(inApp);
             let outApp = await BlisClient.client.GetApp(appId);

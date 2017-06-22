@@ -414,8 +414,8 @@ export class CommandHandler
         }
         else if (command == LineCommands.TEST)
         {
-            let result = await Test.RunTest(args);
-            cb([result.message]);
+            let results = await Test.RunTest(args);
+            cb(results);
         }
         //---------------------------------------------------
         // Command only allowed in TEACH
