@@ -75,10 +75,10 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(`AddAction: ${response.statusMessage} : ${body}`);
+                        reject(response);
                     }
                     else {
-                        resolve(body.id);
+                        resolve(body.actionId);
                     }
                 });
             }
@@ -109,7 +109,7 @@ export class BlisClient {
                         reject(response);
                     }
                     else {
-                        var appId = body.id;
+                        var appId = body.appId;
                         resolve(appId);
                     }
                 });
@@ -137,10 +137,10 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(`AddEntity: ${response.statusMessage} : ${body}`);
+                        reject(response);
                     }
                     else {
-                        resolve(body.id);
+                        resolve(body.entityId);
                     }
                 });
             }
@@ -165,7 +165,7 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(`DeleteAction: ${response.statusMessage} : ${body}`);
+                        reject(response);
                     }
                     else {
                         resolve(body.id);
@@ -221,7 +221,7 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(`DeleteEntity: ${response.statusMessage} : ${body}`);
+                        reject(response);
                     }
                     else {
                         resolve(body.id);
@@ -255,7 +255,7 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(`EditAction: ${response.statusMessage} : ${body}`);
+                        reject(response);
                     }
                     else {
                         // Service returns a 204
@@ -300,37 +300,6 @@ export class BlisClient {
         )
     }
 
-    public GetApp(appId : string) : Promise<BlisApp>
-    {
-        let apiPath = `app/${appId}?userId=${this.user}`;
-
-        return new Promise(
-            (resolve, reject) => {
-                let url = this.MakeURL(apiPath);
-                const requestData = {
-                    headers: {
-                        'Cookie' : this.credentials.Cookiestring()
-                    },
-                    json: true
-                }
-                BlisDebug.LogRequest("GET",apiPath, requestData);
-                request.get(url, requestData, (error, response, body) => {
-                    if (error) {
-                         reject(error);
-                    }
-                    else if (response.statusCode >= 300) {
-                        reject(response);
-                    }
-                    else {
-                        var blisApp = deserialize(BlisApp, body);
-                        blisApp.appId = appId;
-                        resolve(blisApp);
-                    }
-                });
-            }
-        )
-    }
-
     public GetAction(appId : string, actionId : string) : Promise<Action>
     {
         return new Promise(
@@ -357,7 +326,7 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(`GetAction: ${response.statusMessage} : ${body}`);
+                        reject(response);
                     }
                     else {
                         var action = deserialize(Action, body);
@@ -398,9 +367,40 @@ export class BlisClient {
         )
     }
 
+    public GetApp(appId : string) : Promise<BlisApp>
+    {
+        let apiPath = `app/${appId}?userId=${this.user}`;
+
+        return new Promise(
+            (resolve, reject) => {
+                let url = this.MakeURL(apiPath);
+                const requestData = {
+                    headers: {
+                        'Cookie' : this.credentials.Cookiestring()
+                    },
+                    json: true
+                }
+                BlisDebug.LogRequest("GET",apiPath, requestData);
+                request.get(url, requestData, (error, response, body) => {
+                    if (error) {
+                         reject(error);
+                    }
+                    else if (response.statusCode >= 300) {
+                        reject(response);
+                    }
+                    else {
+                        var blisApp = deserialize(BlisApp, body);
+                        blisApp.appId = appId;
+                        resolve(blisApp);
+                    }
+                });
+            }
+        )
+    }
+
     public GetApps() : Promise<BlisAppList>
     {
-        let apiPath = `app`;
+        let apiPath = `apps`;
 
         return new Promise(
             (resolve, reject) => {
@@ -453,7 +453,7 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(`GetEntity: ${response.statusMessage} : ${body}`);
+                        reject(response);
                     }
                     else {
                         var entity_v1 = deserialize(Entity_v1, body);
@@ -1009,7 +1009,7 @@ export class BlisClient_v1 {
 
     public GetApps() : Promise<string>
     {
-        let apiPath = `app`;
+        let apiPath = `apps`;
 
         return new Promise(
             (resolve, reject) => {
