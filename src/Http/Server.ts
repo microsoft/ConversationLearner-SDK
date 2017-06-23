@@ -115,6 +115,22 @@ export class Server {
             }
         );
 
+        this.server.get("/apps", async (req, res, next) =>
+            {
+                this.InitClient();  // TEMP
+
+                try
+                {
+                    let apps = await BlisClient.client.GetApps();
+                    res.send(serialize(apps));
+                }
+                catch (error)
+                {
+                    res.send(error.statusCode, Server.ErrorMessage(error));
+                }
+            }
+        );
+
         //-------------------------------------
         // Action
         //-------------------------------------
@@ -185,6 +201,42 @@ export class Server {
             }
         );
 
+        this.server.get("/app/:appId/actions", async (req, res, next) =>
+            {
+                let appId = req.params.appId;
+
+                this.InitClient();  // TEMP
+
+                try
+                {
+                    let actions = await BlisClient.client.GetActions(appId);
+                    res.send(serialize(actions));
+                }
+                catch (error)
+                {
+                    res.send(error.statusCode, Server.ErrorMessage(error));
+                }
+            }
+        );
+
+        this.server.get("/app/:appId/actionIds", async (req, res, next) =>
+            {
+                let appId = req.params.appId;
+
+                this.InitClient();  // TEMP
+
+                try
+                {
+                    let actions = await BlisClient.client.GetActionIds(appId);
+                    res.send(serialize(actions));
+                }
+                catch (error)
+                {
+                    res.send(error.statusCode, Server.ErrorMessage(error));
+                }
+            }
+        );
+
         //-------------------------------------
         // Entity
         //-------------------------------------
@@ -247,6 +299,42 @@ export class Server {
                 {
                     await BlisClient.client.DeleteEntity(appId, entityId);
                     res.send(200);
+                }
+                catch (error)
+                {
+                    res.send(error.statusCode, Server.ErrorMessage(error));
+                }
+            }
+        );
+
+        this.server.get("/app/:appId/entities", async (req, res, next) =>
+            {
+                let appId = req.params.appId;
+
+                this.InitClient();  // TEMP
+
+                try
+                {
+                    let entities = await BlisClient.client.GetEntities(appId);
+                    res.send(serialize(entities));
+                }
+                catch (error)
+                {
+                    res.send(error.statusCode, Server.ErrorMessage(error));
+                }
+            }
+        );
+
+        this.server.get("/app/:appId/entityIds", async (req, res, next) =>
+            {
+                let appId = req.params.appId;
+
+                this.InitClient();  // TEMP
+
+                try
+                {
+                    let actions = await BlisClient.client.GetEntityIds(appId);
+                    res.send(serialize(actions));
                 }
                 catch (error)
                 {
