@@ -1,11 +1,11 @@
 const request = require('request');
 import { deserialize, serialize } from 'json-typescript-mapper';
 import { Credentials } from './Http/Credentials';
-import { Action, Action_v1, ActionMetaData_v1 } from './Model/Action'
+import { Action, ActionMetaData, ActionList, ActionIdList, Action_v1, ActionMetaData_v1 } from './Model/Action'
 import { Dialog_v1, TrainDialog_v1 } from './Model/TrainDialog'
 import { BlisApp_v1, BlisApp, BlisAppList } from './Model/BlisApp'
 import { BlisAppContent } from './Model/BlisAppContent'
-import { Entity, Entity_v1, EntityMetaData_v1 } from './Model/Entity'
+import { Entity, EntityMetaData, EntityList, EntityIdList, Entity_v1, EntityMetaData_v1 } from './Model/Entity'
 import { TakeTurnModes, ActionTypes_v1, APICalls } from './Model/Consts';
 import { TakeTurnResponse } from './Model/TakeTurnResponse'
 import { TakeTurnRequest } from './Model/TakeTurnRequest'
@@ -61,11 +61,9 @@ export class BlisClient {
             (resolve, reject) => {
                const requestData = {
                     url: this.MakeURL(apiPath),
-                    /*
                     headers: {
                         'Cookie' : this.credentials.Cookiestring()
                     },
-                    */
                     body: serialize(action),
                     json: true
                 }
@@ -157,7 +155,8 @@ export class BlisClient {
                 const requestData = {
                     headers: {
                         'Cookie' : this.credentials.Cookiestring()
-                    }
+                    },
+                    json: true
                 }
                 BlisDebug.LogRequest("DELETE",apiPath, requestData);
                 request.delete(url, requestData, (error, response, body) => {
@@ -168,7 +167,7 @@ export class BlisClient {
                         reject(response);
                     }
                     else {
-                        resolve(body.id);
+                        resolve(body);
                     }
                 });
             }
@@ -185,7 +184,8 @@ export class BlisClient {
                 const requestData = {
                     headers: {
                         'Cookie' : this.credentials.Cookiestring()
-                    }
+                    },
+                    json: true
                 }
                 BlisDebug.LogRequest("DELETE",apiPath, requestData);
                 request.delete(url, requestData, (error, response, body) => {
@@ -213,7 +213,8 @@ export class BlisClient {
                 const requestData = {
                     headers: {
                         'Cookie' : this.credentials.Cookiestring()
-                    }
+                    },
+                    json: true
                 }
                 BlisDebug.LogRequest("DELETE",apiPath, requestData);
                 request.delete(url, requestData, (error, response, body) => {
@@ -224,7 +225,7 @@ export class BlisClient {
                         reject(response);
                     }
                     else {
-                        resolve(body.id);
+                        resolve(body);
                     }
                 });
             }
@@ -290,7 +291,7 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(`EditEntity: ${response.statusMessage} : ${body}`);
+                        reject(response);
                     }
                     else {
                         resolve(body);
@@ -339,7 +340,37 @@ export class BlisClient {
         )
     }
 
-    public GetActions(appId : string) : Promise<string>
+    public GetActions(appId : string) : Promise<ActionList>
+    {
+        let apiPath = `app/${appId}/actions`;
+
+        return new Promise(
+            (resolve, reject) => {
+               const requestData = {
+                    url: this.MakeURL(apiPath),
+                    headers: {
+                        'Cookie' : this.credentials.Cookiestring()
+                    },
+                    json: true
+                }
+                BlisDebug.LogRequest("GET",apiPath, requestData);
+                request.get(requestData, (error, response, body) => {
+                    if (error) {
+                        reject(error);
+                    }
+                    else if (response.statusCode >= 300) {
+                        reject(response);
+                    }
+                    else {
+                        let actions = deserialize(ActionList, body);
+                        resolve(actions);
+                    }
+                });
+            }
+        )
+    }
+
+    public GetActionIds(appId : string) : Promise<ActionList>
     {
         let apiPath = `app/${appId}/action`;
 
@@ -349,7 +380,8 @@ export class BlisClient {
                     url: this.MakeURL(apiPath),
                     headers: {
                         'Cookie' : this.credentials.Cookiestring()
-                    }
+                    },
+                    json: true
                 }
                 BlisDebug.LogRequest("GET",apiPath, requestData);
                 request.get(requestData, (error, response, body) => {
@@ -357,17 +389,18 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(`GetActions: ${response.statusMessage} : ${body}`);
+                        reject(response);
                     }
                     else {
-                        resolve(body);
+                        let actions = deserialize(ActionIdList, body);
+                        resolve(actions);
                     }
                 });
             }
         )
     }
 
-    public GetApp(appId : string) : Promise<BlisApp>
+    public GetApp(appId : string) : Promise<BlisApp> 
     {
         let apiPath = `app/${appId}?userId=${this.user}`;
 
@@ -408,7 +441,8 @@ export class BlisClient {
                     url: this.MakeURL(apiPath),
                     headers: {
                         'Cookie' : this.credentials.Cookiestring()
-                    }
+                    },
+                    json: true
                 }
 
                 BlisDebug.LogRequest("GET",apiPath, requestData);
@@ -417,7 +451,7 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(`GetApps: ${response.statusMessage} : ${body}`);
+                        reject(response);
                     }
                     else {
                         let apps = deserialize(BlisAppList, body);
@@ -456,14 +490,13 @@ export class BlisClient {
                         reject(response);
                     }
                     else {
-                        var entity_v1 = deserialize(Entity_v1, body);
-                        entity_v1.id = entityId;
-                        if (!entity_v1.metadata)
+                        let entity = deserialize(Entity, body);
+                        entity.entityId = entityId;
+                        if (!entity.metadata)
                         {
-                            entity_v1.metadata = new EntityMetaData_v1();
+                            entity.metadata = new EntityMetaData();
                         }
-                        let entity = entity_v1.TOV2();
-                        this.entityCache.set(entityId, entity_v1);
+                        this.entityCache.set(entityId, entity);
                         resolve(entity);
                     }
                 });
@@ -471,7 +504,37 @@ export class BlisClient {
         )
     }
 
-    public GetEntities(appId : string) : Promise<string>
+    public GetEntities(appId : string) : Promise<EntityList>
+    {
+        let apiPath = `app/${appId}/entities`;
+
+        return new Promise(
+            (resolve, reject) => {
+               const requestData = {
+                    url: this.MakeURL(apiPath),
+                    headers: {
+                        'Cookie' : this.credentials.Cookiestring()
+                    },
+                    json: true
+                }
+                BlisDebug.LogRequest("GET",apiPath, requestData);
+                request.get(requestData, (error, response, body) => {
+                    if (error) {
+                        reject(error);
+                    }
+                    else if (response.statusCode >= 300) {
+                        reject(response);
+                    }
+                    else {
+                        let entities = deserialize(EntityList, body);
+                        resolve(entities);
+                    }
+                });
+            }
+        )
+    }
+
+    public GetEntityIds(appId : string) : Promise<EntityList>
     {
         let apiPath = `app/${appId}/entity`;
 
@@ -481,7 +544,8 @@ export class BlisClient {
                     url: this.MakeURL(apiPath),
                     headers: {
                         'Cookie' : this.credentials.Cookiestring()
-                    }
+                    },
+                    json: true
                 }
                 BlisDebug.LogRequest("GET",apiPath, requestData);
                 request.get(requestData, (error, response, body) => {
@@ -489,16 +553,16 @@ export class BlisClient {
                         reject(error);
                     }
                     else if (response.statusCode >= 300) {
-                        reject(`GetEntities: ${response.statusMessage} : ${body}`);
+                        reject(response);
                     }
                     else {
-                        resolve(body);
+                        let entityIds = deserialize(EntityIdList, body);
+                        resolve(entityIds);
                     }
                 });
             }
         )
     }
-
 }
 
 export class BlisClient_v1 {
@@ -979,7 +1043,7 @@ export class BlisClient_v1 {
         )
     }
 
-    public GetActions(appId : string, ) : Promise<string>
+    public GetActions_v1(appId : string, ) : Promise<string>
     {
         let apiPath = `app/${appId}/action`;
 

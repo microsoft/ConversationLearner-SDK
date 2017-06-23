@@ -99,8 +99,7 @@ export class EntityMetaData_v1
 
 }
 
-export class Entity
-{
+export class Entity {
     @JsonProperty('entityId')
     public entityId : string;
 
@@ -307,7 +306,7 @@ export class Entity
         }
     }
 
-/** Get all actions **/
+    /** Get all actions **/
     public static async Get(key : string, search : string) : Promise<AdminResponse>
     {
         BlisDebug.Log(`Getting entities`);
@@ -427,6 +426,30 @@ export class Entity
             }
             return 0;
         });
+    }
+}
+
+export class EntityList
+{
+    @JsonProperty('entities')  
+    public entities : Entity[];
+
+    public constructor(init?:Partial<EntityList>)
+    {
+        this.entities = undefined;
+        (<any>Object).assign(this, init);
+    }
+}
+
+export class EntityIdList
+{
+    @JsonProperty('entityIds')  
+    public entityIds : string[];
+
+    public constructor(init?:Partial<EntityIdList>)
+    {
+        this.entityIds = undefined;
+        (<any>Object).assign(this, init);
     }
 }
 

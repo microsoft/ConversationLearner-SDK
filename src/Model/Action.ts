@@ -207,7 +207,7 @@ export class Action
 
             // Get actions
             let actionIds = [];
-            let json = await BlisClient_v1.client.GetActions(appId)
+            let json = await BlisClient_v1.client.GetActions_v1(appId)
             actionIds = JSON.parse(json)['ids'];
             BlisDebug.Log(`Found ${actionIds.length} actions`);
 
@@ -272,6 +272,30 @@ export class Action
 
         // Negative also can't be in use
         return (appString.indexOf(this.actionId) > -1);
+    }
+}
+
+export class ActionList
+{
+    @JsonProperty('actions')  
+    public actions : Action[];
+
+    public constructor(init?:Partial<ActionList>)
+    {
+        this.actions = undefined;
+        (<any>Object).assign(this, init);
+    }
+}
+
+export class ActionIdList
+{
+    @JsonProperty('actionIds')  
+    public actionIds : string[];
+
+    public constructor(init?:Partial<ActionIdList>)
+    {
+        this.actionIds = undefined;
+        (<any>Object).assign(this, init);
     }
 }
 
@@ -833,7 +857,7 @@ export class Action_v1
             // Get actions
             let actionIds = [];
             let responses = [];
-            let json = await BlisClient_v1.client.GetActions(appId)
+            let json = await BlisClient_v1.client.GetActions_v1(appId)
             actionIds = JSON.parse(json)['ids'];
             BlisDebug.Log(`Found ${actionIds.length} actions`);
 
