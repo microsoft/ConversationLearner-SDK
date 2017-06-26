@@ -13,7 +13,7 @@ import { Menu } from '../Menu';
 import { Pager } from '../Memory/Pager';
 import { BlisContext } from '../BlisContext';
 import { EditableResponse } from './EditableResponse';
-import { Input, LabeledEntity } from './TrainDialog';
+import { ScorerInput, LabeledEntity } from './TrainDialog';
 
 
 export class Metrics
@@ -119,8 +119,8 @@ export class PredictionDetails
 
 export class LogScorerStep
 {
-    @JsonProperty({clazz: Input, name: 'input'})
-    public input : Input;
+    @JsonProperty({clazz: ScorerInput, name: 'input'})
+    public input : ScorerInput;
 
     @JsonProperty('predictedAction')
     public predictedAction : string;

@@ -66,7 +66,7 @@ export class ExtractorStep
     }
 }
 
-export class Input
+export class ScorerInput
 {
     @JsonProperty('filledEntities')
     public filledEntities : string[];
@@ -77,7 +77,7 @@ export class Input
     @JsonProperty('maskedActions')
     public maskedActions : string[];
 
-    public constructor(init?:Partial<ScorerStep>)
+    public constructor(init?:Partial<ScorerInput>)
     {
         this.filledEntities = undefined;
         this.context = undefined;
@@ -86,15 +86,15 @@ export class Input
     }
 }
 
-export class ScorerStep
+export class ScorerResponse
 {
-    @JsonProperty({clazz: Input, name: 'input'})
-    public input : Input;
+    @JsonProperty({clazz: ScorerInput, name: 'input'})
+    public input : ScorerInput;
 
     @JsonProperty('labelAction')
     public labelAction : string;
 
-    public constructor(init?:Partial<ScorerStep>)
+    public constructor(init?:Partial<ScorerResponse>)
     {
         this.input = undefined;
         this.labelAction = undefined;
@@ -107,8 +107,8 @@ export class Round
     @JsonProperty({clazz: ExtractorStep, name: 'extractorStep'})
     public extractorStep : ExtractorStep;
 
-    @JsonProperty({clazz: ScorerStep, name: 'scorerSteps'})
-    public scorerSteps : ScorerStep[];
+    @JsonProperty({clazz: ScorerResponse, name: 'scorerSteps'})
+    public scorerSteps : ScorerResponse[];
 
     public constructor(init?:Partial<Round>)
     {
