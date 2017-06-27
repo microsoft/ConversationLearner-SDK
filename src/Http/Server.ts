@@ -93,6 +93,23 @@ export class Server {
             }
         );
 
+        this.server.put("/app/:appId", async (req, res, next) =>
+            {
+                try
+                {
+                    this.InitClient();  // TEMP
+
+                    let app = deserialize(BlisApp, req.body);
+                    let appId = await BlisClient.client.EditApp(app);
+                    res.send(appId);
+                }
+                catch (error)
+                {
+                    res.send(error.statusCode, Server.ErrorMessage(error));
+                }
+            }
+        );
+
         this.server.del("/app/:appId", async (req, res, next) =>
         {
                 let appId = req.params.appId;
@@ -167,6 +184,31 @@ export class Server {
                     let appId = req.params.appId;
                     let action = deserialize(Action, req.body);
                     let actionId = await BlisClient.client.AddAction(appId, action);
+                    res.send(actionId);
+                }
+                catch (error)
+                {
+                    res.send(error.statusCode, Server.ErrorMessage(error));
+                }
+            }
+        );
+
+        this.server.put("/app/:appId/action/:actionId", async (req, res, next) =>
+            {
+                try
+                {
+                    this.InitClient();  // TEMP
+
+                    let appId = req.params.appId;
+                    let action = deserialize(Action, req.body);
+
+                    if (req.params.actionId != action.actionId)
+                    {
+                        return next(new restify.InvalidArgumentError("ActionId of object does not match URI"));
+                    }
+                    // Do not send Id
+                    delete action.actionId;
+                    let actionId = await BlisClient.client.EditAction(appId, action);
                     res.send(actionId);
                 }
                 catch (error)
@@ -273,6 +315,24 @@ export class Server {
                     let appId = req.params.appId;
                     let entity = deserialize(Entity, req.body);
                     let entityId = await BlisClient.client.AddEntity(appId, entity);
+                    res.send(entityId);
+                }
+                catch (error)
+                {
+                    res.send(error.statusCode, Server.ErrorMessage(error));
+                }
+            }
+        );
+
+        this.server.put("/app/:appId/entity/:entityId", async (req, res, next) =>
+            {
+                try
+                {
+                    this.InitClient();  // TEMP
+
+                    let appId = req.params.appId;
+                    let entity = deserialize(Entity, req.body);
+                    let entityId = await BlisClient.client.EditEntity(appId, entity);
                     res.send(entityId);
                 }
                 catch (error)

@@ -177,7 +177,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                 Utils.SendResponses(recsess.context, responses);
 
                 // Retrain the model
-                BlisClient_v1.client.Retrain(appId, sessionId)
+                BlisClient_v1.client.Retrain_v1(appId, sessionId)
                     .then(async (takeTurnResponse) => 
                     {
                         // Continue teach session
@@ -194,7 +194,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                 Utils.SendResponses(recsess.context, responses);
 
                 // Retrain the model
-                BlisClient_v1.client.Retrain(appId, sessionId)
+                BlisClient_v1.client.Retrain_v1(appId, sessionId)
                     .then(async (takeTurnResponse) => 
                     {
                         // Take the next turn
