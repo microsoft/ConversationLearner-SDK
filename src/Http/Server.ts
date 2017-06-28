@@ -4,6 +4,7 @@ import { BlisClient} from '../BlisClient';
 import { BlisApp } from '../Model/BlisApp';
 import { Action } from '../Model/Action';
 import { Entity } from '../Model/Entity';
+import { TrainDialog } from '../Model/TrainDialog'
 import { ExtractorStep, ScorerResponse } from '../Model/TrainDialog'
 import { deserialize, serialize } from 'json-typescript-mapper';
 
@@ -101,6 +102,16 @@ export class Server {
                         this.InitClient();  // TEMP
 
                         let app = deserialize(BlisApp, req.body);
+                        
+                        if (!app.appId)
+                        {
+                            app.appId = req.params.appId;
+                        }
+                        else if (req.params.appId != app.appId)
+                        {
+                            return next(new restify.InvalidArgumentError("AppId of object does not match URI"));
+                        }
+
                         let appId = await BlisClient.client.EditApp(app);
                         res.send(appId);
                     }
@@ -203,12 +214,14 @@ export class Server {
                         let appId = req.params.appId;
                         let action = deserialize(Action, req.body);
 
-                        if (req.params.actionId != action.actionId)
+                        if (!action.actionId)
+                        {
+                            action.actionId = req.params.actionId;
+                        }
+                        else if (req.params.actionId != action.actionId)
                         {
                             return next(new restify.InvalidArgumentError("ActionId of object does not match URI"));
                         }
-                        // Do not send Id
-                        delete action.actionId;
                         let actionId = await BlisClient.client.EditAction(appId, action);
                         res.send(actionId);
                     }
@@ -280,9 +293,31 @@ export class Server {
                 }
             );
 
+        
+ 
+
         //========================================================
-        // Entity
+        // Entities
         //========================================================
+
+            this.server.get("/app/:appId/entityIds", async (req, res, next) =>
+                {
+                    let appId = req.params.appId;
+
+                    this.InitClient();  // TEMP
+
+                    try
+                    {
+                        let actions = await BlisClient.client.GetEntityIds(appId);
+                        res.send(serialize(actions));
+                    }
+                    catch (error)
+                    {
+                        res.send(error.statusCode, Server.ErrorMessage(error));
+                    }
+                }
+            );
+
             this.server.get("/app/:appId/entity/:entityId", async (req, res, next) =>
                 {
                     let appId = req.params.appId;
@@ -333,6 +368,16 @@ export class Server {
 
                         let appId = req.params.appId;
                         let entity = deserialize(Entity, req.body);
+
+                        if (!entity.entityId)
+                        {
+                            entity.entityId = req.params.entityId;
+                        }
+                        else if (req.params.entityId != entity.entityId)
+                        {
+                            return next(new restify.InvalidArgumentError("EntityId of object does not match URI"));
+                        }
+
                         let entityId = await BlisClient.client.EditEntity(appId, entity);
                         res.send(entityId);
                     }
@@ -394,8 +439,96 @@ export class Server {
 
                     try
                     {
-                        let actions = await BlisClient.client.GetEntityIds(appId);
-                        res.send(serialize(actions));
+                        let entityIds = await BlisClient.client.GetEntityIds(appId);
+                        res.send(serialize(entityIds));
+                    }
+                    catch (error)
+                    {
+                        res.send(error.statusCode, Server.ErrorMessage(error));
+                    }
+                }
+            );
+        
+        //========================================================
+        // LogDialogs
+        //========================================================
+            this.server.get("/app/:appId/logdialog/:logDialogId", async (req, res, next) =>
+                {
+                    let appId = req.params.appId;
+                    let logDialogId = req.params.logDialogId;
+        
+                    if (!logDialogId)
+                    {
+                        res.send(400, Error("Missing Log Dialog Id"));
+                        return;
+                    }
+                    this.InitClient();  // TEMP
+
+                    try
+                    {
+                        let logDialog = await BlisClient.client.GetLogDialog(appId, logDialogId);
+                        res.send(serialize(logDialog));
+                    }
+                    catch (error)
+                    {
+                        res.send(error.statusCode, Server.ErrorMessage(error));
+                    }
+                }
+            );
+
+            this.server.del("/app/:appId/logdialogs/:logDialogId", async (req, res, next) =>
+                {
+                    let appId = req.params.appId;
+                    let logDialogId = req.params.logDialogId;
+    
+                    if (!logDialogId)
+                    {
+                        res.send(400, Error("Missing Log Dialog Id"));
+                        return;
+                    }
+
+                    this.InitClient();  // TEMP
+
+                    try
+                    {
+                        await BlisClient.client.DeleteLogDialog(appId, logDialogId);
+                        res.send(200);
+                    }
+                    catch (error)
+                    {
+                        res.send(error.statusCode, Server.ErrorMessage(error));
+                    }
+                }
+            );
+
+            this.server.get("/app/:appId/logdialogs", async (req, res, next) =>
+                {
+                    let appId = req.params.appId;
+                    let query = req.getQuery();
+                    this.InitClient();  // TEMP
+
+                    try
+                    {
+                        let logDialogs = await BlisClient.client.GetLogDialogs(appId, query);
+                        res.send(serialize(logDialogs));
+                    }
+                    catch (error)
+                    {
+                        res.send(error.statusCode, Server.ErrorMessage(error));
+                    }
+                }
+            );
+
+            this.server.get("/app/:appId/logDialogIds", async (req, res, next) =>
+                {
+                    let appId = req.params.appId;
+                    let query = req.getQuery();
+                    this.InitClient();  // TEMP
+
+                    try
+                    {
+                        let logDialogIds = await BlisClient.client.GetLogDialogIds(appId);
+                        res.send(serialize(logDialogIds));
                     }
                     catch (error)
                     {
@@ -405,7 +538,141 @@ export class Server {
             );
 
         //========================================================
-        // Training
+        // TrainDialogs
+        //========================================================
+            
+            this.server.post("/app/:appId/traindialog", async (req, res, next) =>
+                {
+                    try
+                    {
+                        this.InitClient();  // TEMP
+
+                        let appId = req.params.appId;
+                        let trainDialog = deserialize(TrainDialog, req.body);
+                        let trainDialogId = await BlisClient.client.AddTrainDialog(appId, trainDialog);
+                        res.send(trainDialogId);
+                    }
+                    catch (error)
+                    {
+                        res.send(error.statusCode, Server.ErrorMessage(error));
+                    }
+                }
+            );
+
+            this.server.put("/app/:appId/traindialog/:traindialogId", async (req, res, next) =>
+                {
+                    try
+                    {
+                        this.InitClient();  // TEMP
+
+                        let appId = req.params.appId;
+                        let trainDialog = deserialize(TrainDialog, req.body);
+
+                        if (!trainDialog.trainDialogId)
+                        {
+                            trainDialog.trainDialogId = req.params.trainDialogId;
+                        }
+                        else if (req.params.trainDialogId != trainDialog.trainDialogId)
+                        {
+                            return next(new restify.InvalidArgumentError("ActionId of object does not match URI"));
+                        }
+                        let trainDialogId = await BlisClient.client.EditTrainDialog(appId, trainDialog);
+                        res.send(trainDialogId);
+                    }
+                    catch (error)
+                    {
+                        res.send(error.statusCode, Server.ErrorMessage(error));
+                    }
+                }
+            );
+
+            this.server.get("/app/:appId/traindialog/:trainDialogId", async (req, res, next) =>
+                {
+                    let appId = req.params.appId;
+                    let trainDialogId = req.params.trainDialogId;
+        
+                    if (!trainDialogId)
+                    {
+                        res.send(400, Error("Missing TrainDialog Id"));
+                        return;
+                    }
+                    this.InitClient();  // TEMP
+
+                    try
+                    {
+                        let trainDialog = await BlisClient.client.GetTrainDialog(appId, trainDialogId);
+                        res.send(serialize(trainDialog));
+                    }
+                    catch (error)
+                    {
+                        res.send(error.statusCode, Server.ErrorMessage(error));
+                    }
+                }
+            );
+
+            this.server.del("/app/:appId/traindialogs/:trainDialogId", async (req, res, next) =>
+                {
+                    let appId = req.params.appId;
+                    let trainDialogId = req.params.trainDialogId;
+    
+                    if (!trainDialogId)
+                    {
+                        res.send(400, Error("Missing TrainDialog Id"));
+                        return;
+                    }
+
+                    this.InitClient();  // TEMP
+
+                    try
+                    {
+                        await BlisClient.client.DeleteTrainDialog(appId, trainDialogId);
+                        res.send(200);
+                    }
+                    catch (error)
+                    {
+                        res.send(error.statusCode, Server.ErrorMessage(error));
+                    }
+                }
+            );
+
+            this.server.get("/app/:appId/traindialogs", async (req, res, next) =>
+                {
+                    let appId = req.params.appId;
+                    let query = req.getQuery();
+                    this.InitClient();  // TEMP
+
+                    try
+                    {
+                        let trainDialogs = await BlisClient.client.GetTrainDialogs(appId, query);
+                        res.send(serialize(trainDialogs));
+                    }
+                    catch (error)
+                    {
+                        res.send(error.statusCode, Server.ErrorMessage(error));
+                    }
+                }
+            );
+
+            this.server.get("/app/:appId/trainDialogIds", async (req, res, next) =>
+                {
+                    let appId = req.params.appId;
+                    let query = req.getQuery();
+                    this.InitClient();  // TEMP
+
+                    try
+                    {
+                        let trainDialogIds = await BlisClient.client.GetTrainDialogIds(appId);
+                        res.send(serialize(trainDialogIds));
+                    }
+                    catch (error)
+                    {
+                        res.send(error.statusCode, Server.ErrorMessage(error));
+                    }
+                }
+            );
+
+        //========================================================
+        // Sessions & Training
         //========================================================
 
             /** Uploads a labeled entity extraction instance

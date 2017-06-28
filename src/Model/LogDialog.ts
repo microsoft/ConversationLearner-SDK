@@ -207,3 +207,15 @@ export class LogDialogList
         (<any>Object).assign(this, init);
     }
 }
+
+export class LogDialogIdList
+{
+    @JsonProperty('logdialogIds')  
+    public logDialogIds : string[];
+
+    public constructor(init?:Partial<LogDialogIdList>)
+    {
+        this.logDialogIds = undefined;
+        (<any>Object).assign(this, init);
+    }
+}

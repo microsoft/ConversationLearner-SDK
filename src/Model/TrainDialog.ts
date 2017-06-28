@@ -478,4 +478,28 @@ export class TrainDialog_v1
         }
     }
 }
+
+export class TrainDialogList
+{
+    @JsonProperty({clazz: TrainDialog, name: 'trainDialogs'})
+    public trainDialogs : TrainDialog[];
+
+    public constructor(init?:Partial<TrainDialogList>)
+    {
+        this.trainDialogs = undefined;
+        (<any>Object).assign(this, init);
+    }
+}
+
+export class TrainDialogIdList
+{
+    @JsonProperty('trainDialogIds')  
+    public trainDialogIds : string[];
+
+    public constructor(init?:Partial<TrainDialogIdList>)
+    {
+        this.trainDialogIds = undefined;
+        (<any>Object).assign(this, init);
+    }
+}
     

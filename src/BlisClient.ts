@@ -3,7 +3,8 @@ import { deserialize, serialize } from 'json-typescript-mapper';
 import { Credentials } from './Http/Credentials';
 import { Action, ActionMetaData, ActionList, ActionIdList, Action_v1, ActionMetaData_v1 } from './Model/Action'
 import { ExtractorStep, ScorerInput, ScorerResponse, Dialog_v1, TrainDialog_v1 } from './Model/TrainDialog'
-import { LogDialog, LogDialogList } from './Model/LogDialog'
+import { LogDialog, LogDialogList, LogDialogIdList } from './Model/LogDialog'
+import { TrainDialog, TrainDialogList, TrainDialogIdList } from './Model/TrainDialog'
 import { BlisApp_v1, BlisApp, BlisAppList } from './Model/BlisApp'
 import { BlisAppContent } from './Model/BlisAppContent'
 import { Entity, EntityMetaData, EntityList, EntityIdList, Entity_v1, EntityMetaData_v1 } from './Model/Entity'
@@ -659,7 +660,7 @@ export class BlisClient {
                 return new Promise(
                 (resolve, reject) => {
 
-                let apiPath = `app/${appId}/logdialog/${logdialogId}`;
+                let apiPath = `app/${appId}/logdialog/${logDialogId}`;
                 const requestData = {
                         url: this.MakeURL(apiPath),
                         headers: {
@@ -677,7 +678,7 @@ export class BlisClient {
                         }
                         else {
                             let logDialog = deserialize(LogDialog, body);
-                            logDialog.logDialogId = logdialogId;
+                            logDialog.logDialogId = logDialogId;
                             resolve(logDialog);
                         }
                     });
@@ -688,7 +689,7 @@ export class BlisClient {
         /** Retrieves the contents of many/all logDialogs.  
          * To retrieve just a list of IDs of all logDialogs, 
          * see the GET GetLogDialogIds method. */
-        public GetLogDialogs(appId : string, searchTerm : string) : Promise<LogDialogList>
+        public GetLogDialogs(appId : string, query : string) : Promise<LogDialogList>
         {
             let apiPath = `app/${appId}/logdialogs`;
 
@@ -700,7 +701,7 @@ export class BlisClient {
                             'Cookie' : this.credentials.Cookiestring()
                         },
                         json: true,
-                        qs : { text : searchTerm }
+                        qs : query
                     }
                     BlisDebug.LogRequest("GET",apiPath, requestData);
                     request.get(requestData, (error, response, body) => {
@@ -721,9 +722,9 @@ export class BlisClient {
 
         /** Retrieves just the IDs of logDialogs.  
          * To retrieve the contents of many logDialogs, see the GetLogDialogs method. */
-        public GetLogDialogIds(appId : string) : Promise<EntityList>
+        public GetLogDialogIds(appId : string) : Promise<LogDialogIdList>
         {
-            let apiPath = `app/${appId}/entity`;
+            let apiPath = `app/${appId}/logdialog`;
 
             return new Promise(
                 (resolve, reject) => {
@@ -743,53 +744,18 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let entityIds = deserialize(EntityIdList, body);
-                            resolve(entityIds);
+                            let logDialogsIds = deserialize(LogDialogIdList, body);
+                            resolve(logDialogsIds);
                         }
                     });
                 }
             )
         }
 
-        /** Updates name and/or metadata on an existing entity */
-        public EditEntity(appId : string, entity : Entity) : Promise<string>
-        { 
-            let apiPath = `app/${appId}/entity/${entity.entityId}`;
-
-            // Clear old one from cache
-            this.entityCache.del(entity.entityId);
-
-            return new Promise(
-                (resolve, reject) => {
-                const requestData = {
-                        url: this.MakeURL(apiPath),
-                        headers: {
-                            'Cookie' : this.credentials.Cookiestring()
-                        },
-                        body: serialize(entity),
-                        json: true
-                    }
-
-                    BlisDebug.LogRequest("PUT",apiPath, requestData);
-                    request.put(requestData, (error, response, body) => {
-                        if (error) {
-                            reject(error);
-                        }
-                        else if (response.statusCode >= 300) {
-                            reject(response);
-                        }
-                        else {
-                            resolve(body);
-                        }
-                    });
-                }
-            )
-        }
-
-        /** Deletes an entity */
-        public DeleteEntity(appId : string, entityId : string) : Promise<string>
+        /** Deletes a LogDialog */
+        public DeleteLogDialog(appId : string, logDialogId : string) : Promise<string>
         {
-            let apiPath = `app/${appId}/entity/${entityId}`;
+            let apiPath = `app/${appId}/logdialog/${logDialogId}`;
 
             return new Promise(
                 (resolve, reject) => {
@@ -816,10 +782,15 @@ export class BlisClient {
             )
         }
 
-        /** Create a new entity */
-        public AddEntity(appId : string, entity : Entity) : Promise<string>
+    
+    //=============================================================================
+    // Train Dialogs
+    //=============================================================================
+    
+        /** Create a new TrainDialog */
+        public AddTrainDialog(appId : string, trainDialog : TrainDialog) : Promise<string>
         {
-            let apiPath = `app/${appId}/entity`;
+            let apiPath = `app/${appId}/traindialog`;
 
             return new Promise(
                 (resolve, reject) => {
@@ -828,7 +799,7 @@ export class BlisClient {
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
                         },
-                        body: serialize(entity),
+                        body: serialize(trainDialog),
                         json: true
                     }
                     BlisDebug.LogRequest("POST",apiPath, requestData);
@@ -840,7 +811,172 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            resolve(body.entityId);
+                            resolve(body.trainDialogId);
+                        }
+                    });
+                }
+            )
+        }
+
+        /** Updates a trainDialog, overwriting the content of its dialog */
+        public EditTrainDialog(appId : string, trainDialog : TrainDialog) : Promise<string>
+        { 
+            let apiPath = `app/${appId}/traindialog/${trainDialog.trainDialogId}`;
+
+            // Clear old one from cache
+            this.entityCache.del(trainDialog.trainDialogId);
+
+            return new Promise(
+                (resolve, reject) => {
+                const requestData = {
+                        url: this.MakeURL(apiPath),
+                        headers: {
+                            'Cookie' : this.credentials.Cookiestring()
+                        },
+                        body: serialize(trainDialog),
+                        json: true
+                    }
+
+                    BlisDebug.LogRequest("PUT",apiPath, requestData);
+                    request.put(requestData, (error, response, body) => {
+                        if (error) {
+                            reject(error);
+                        }
+                        else if (response.statusCode >= 300) {
+                            reject(response);
+                        }
+                        else {
+                            resolve(body);
+                        }
+                    });
+                }
+            )
+        }
+
+        /** Retrieves information about a specific trainDialog in the current package 
+         * (or the specified package, if provided) */
+        public GetTrainDialog(appId : string, trainDialogId : string) : Promise<TrainDialog>
+        {
+                return new Promise(
+                (resolve, reject) => {
+
+                let apiPath = `app/${appId}/traindialog/${trainDialogId}`;
+                const requestData = {
+                        url: this.MakeURL(apiPath),
+                        headers: {
+                            'Cookie' : this.credentials.Cookiestring()
+                        },
+                        json: true
+                    }
+                    BlisDebug.LogRequest("GET",apiPath, requestData);
+                    request.get(requestData, (error, response, body) => {
+                        if (error) {
+                            reject(error);
+                        }
+                        else if (response.statusCode >= 300) {
+                            reject(response);
+                        }
+                        else {
+                            let trainDialog = deserialize(TrainDialog, body);
+                            trainDialog.trainDialogId = trainDialogId;
+                            resolve(trainDialog);
+                        }
+                    });
+                }
+            )
+        }
+
+        /** Retrieves the contents of many/all train dialogs.  
+         * To retrieve just a list of IDs of all trainDialogs, 
+         * see the GetTrainDialogIds method */
+        public GetTrainDialogs(appId : string, query : string) : Promise<TrainDialogList>
+        {
+            let apiPath = `app/${appId}/traindialogs`;
+
+            return new Promise(
+                (resolve, reject) => {
+                const requestData = {
+                        url: this.MakeURL(apiPath),
+                        headers: {
+                            'Cookie' : this.credentials.Cookiestring()
+                        },
+                        json: true,
+                        qs : query
+                    }
+                    BlisDebug.LogRequest("GET",apiPath, requestData);
+                    request.get(requestData, (error, response, body) => {
+                        if (error) {
+                            reject(error);
+                        }
+                        else if (response.statusCode >= 300) {
+                            reject(response);
+                        }
+                        else {
+                            let trainDialogList = deserialize(TrainDialogList, body);
+                            resolve(trainDialogList);
+                        }
+                    });
+                }
+            )
+        }
+
+        /** Retrieves a list of trainDialog IDs. 
+         * To retrieve the contents of multiple trainDialogs, 
+         * see the GetTrainDialogs method */
+        public GetTrainDialogIds(appId : string) : Promise<TrainDialogIdList>
+        {
+            let apiPath = `app/${appId}/traindialog`;
+
+            return new Promise(
+                (resolve, reject) => {
+                const requestData = {
+                        url: this.MakeURL(apiPath),
+                        headers: {
+                            'Cookie' : this.credentials.Cookiestring()
+                        },
+                        json: true
+                    }
+                    BlisDebug.LogRequest("GET",apiPath, requestData);
+                    request.get(requestData, (error, response, body) => {
+                        if (error) {
+                            reject(error);
+                        }
+                        else if (response.statusCode >= 300) {
+                            reject(response);
+                        }
+                        else {
+                            let trainDialogsIds = deserialize(TrainDialogIdList, body);
+                            resolve(trainDialogsIds);
+                        }
+                    });
+                }
+            )
+        }
+
+        /** Deletes a TrainDialog */
+        public DeleteTrainDialog(appId : string, trainDialogId : string) : Promise<string>
+        {
+            let apiPath = `app/${appId}/traindialog/${trainDialogId}`;
+
+            return new Promise(
+                (resolve, reject) => {
+                    let url = this.MakeURL(apiPath);
+                    const requestData = {
+                        headers: {
+                            'Cookie' : this.credentials.Cookiestring()
+                        },
+                        json: true
+                    }
+                    BlisDebug.LogRequest("DELETE",apiPath, requestData);
+                    request.delete(url, requestData, (error, response, body) => {
+                        if (error) {
+                            reject(error);
+                        }
+                        else if (response.statusCode >= 300) {
+                            reject(response);
+                        }
+                        else {
+                            resolve(body);
                         }
                     });
                 }
