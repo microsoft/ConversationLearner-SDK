@@ -15,7 +15,6 @@ import { BlisContext } from '../BlisContext';
 import { EditableResponse } from './EditableResponse';
 import { ScorerInput, LabeledEntity } from './TrainDialog';
 
-
 export class Metrics
 {
     @JsonProperty('wallTime')
@@ -193,6 +192,18 @@ export class LogDialog
         this.packageId = undefined;
         this.metrics = undefined;
         this.rounds = undefined;
+        (<any>Object).assign(this, init);
+    }
+}
+
+export class LogDialogList
+{
+    @JsonProperty({clazz: LogDialog, name: 'logDialogs'})
+    public logDialogs : LogDialog[];
+
+    public constructor(init?:Partial<LogDialogList>)
+    {
+        this.logDialogs = undefined;
         (<any>Object).assign(this, init);
     }
 }

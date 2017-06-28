@@ -14,6 +14,13 @@ import { Pager } from '../Memory/Pager';
 import { BlisContext } from '../BlisContext';
 import { EditableResponse } from './EditableResponse';
 
+export class SearchParameters
+{
+    public text : string;
+    public actions : string[];
+    public entities : string[];
+    public 
+}
 export class LabeledEntity
 {
     @JsonProperty('startCharIndex')

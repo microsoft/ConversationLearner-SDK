@@ -431,7 +431,7 @@ export class Entity {
 
 export class EntityList
 {
-    @JsonProperty('entities')  
+    @JsonProperty({clazz: Entity, name: 'entities'})
     public entities : Entity[];
 
     public constructor(init?:Partial<EntityList>)

@@ -3,6 +3,7 @@ import { deserialize, serialize } from 'json-typescript-mapper';
 import { Credentials } from './Http/Credentials';
 import { Action, ActionMetaData, ActionList, ActionIdList, Action_v1, ActionMetaData_v1 } from './Model/Action'
 import { ExtractorStep, ScorerInput, ScorerResponse, Dialog_v1, TrainDialog_v1 } from './Model/TrainDialog'
+import { LogDialog, LogDialogList } from './Model/LogDialog'
 import { BlisApp_v1, BlisApp, BlisAppList } from './Model/BlisApp'
 import { BlisAppContent } from './Model/BlisAppContent'
 import { Entity, EntityMetaData, EntityList, EntityIdList, Entity_v1, EntityMetaData_v1 } from './Model/Entity'
@@ -523,6 +524,204 @@ export class BlisClient {
          * (or the specified package, if provided).  To retrieve the definitions
          * of many entities, see the GetEntities method */
         public GetEntityIds(appId : string) : Promise<EntityList>
+        {
+            let apiPath = `app/${appId}/entity`;
+
+            return new Promise(
+                (resolve, reject) => {
+                const requestData = {
+                        url: this.MakeURL(apiPath),
+                        headers: {
+                            'Cookie' : this.credentials.Cookiestring()
+                        },
+                        json: true
+                    }
+                    BlisDebug.LogRequest("GET",apiPath, requestData);
+                    request.get(requestData, (error, response, body) => {
+                        if (error) {
+                            reject(error);
+                        }
+                        else if (response.statusCode >= 300) {
+                            reject(response);
+                        }
+                        else {
+                            let entityIds = deserialize(EntityIdList, body);
+                            resolve(entityIds);
+                        }
+                    });
+                }
+            )
+        }
+
+        /** Updates name and/or metadata on an existing entity */
+        public EditEntity(appId : string, entity : Entity) : Promise<string>
+        { 
+            let apiPath = `app/${appId}/entity/${entity.entityId}`;
+
+            // Clear old one from cache
+            this.entityCache.del(entity.entityId);
+
+            return new Promise(
+                (resolve, reject) => {
+                const requestData = {
+                        url: this.MakeURL(apiPath),
+                        headers: {
+                            'Cookie' : this.credentials.Cookiestring()
+                        },
+                        body: serialize(entity),
+                        json: true
+                    }
+
+                    BlisDebug.LogRequest("PUT",apiPath, requestData);
+                    request.put(requestData, (error, response, body) => {
+                        if (error) {
+                            reject(error);
+                        }
+                        else if (response.statusCode >= 300) {
+                            reject(response);
+                        }
+                        else {
+                            resolve(body);
+                        }
+                    });
+                }
+            )
+        }
+
+        /** Deletes an entity */
+        public DeleteEntity(appId : string, entityId : string) : Promise<string>
+        {
+            let apiPath = `app/${appId}/entity/${entityId}`;
+
+            return new Promise(
+                (resolve, reject) => {
+                    let url = this.MakeURL(apiPath);
+                    const requestData = {
+                        headers: {
+                            'Cookie' : this.credentials.Cookiestring()
+                        },
+                        json: true
+                    }
+                    BlisDebug.LogRequest("DELETE",apiPath, requestData);
+                    request.delete(url, requestData, (error, response, body) => {
+                        if (error) {
+                            reject(error);
+                        }
+                        else if (response.statusCode >= 300) {
+                            reject(response);
+                        }
+                        else {
+                            resolve(body);
+                        }
+                    });
+                }
+            )
+        }
+
+        /** Create a new entity */
+        public AddEntity(appId : string, entity : Entity) : Promise<string>
+        {
+            let apiPath = `app/${appId}/entity`;
+
+            return new Promise(
+                (resolve, reject) => {
+                const requestData = {
+                        url: this.MakeURL(apiPath),
+                        headers: {
+                            'Cookie' : this.credentials.Cookiestring()
+                        },
+                        body: serialize(entity),
+                        json: true
+                    }
+                    BlisDebug.LogRequest("POST",apiPath, requestData);
+                    request.post(requestData, (error, response, body) => {
+                        if (error) {
+                            reject(error);
+                        }
+                        else if (response.statusCode >= 300) {
+                            reject(response);
+                        }
+                        else {
+                            resolve(body.entityId);
+                        }
+                    });
+                }
+            )
+        }
+
+    //=============================================================================
+    // Log Dialogs
+    //=============================================================================
+    
+        /** Retrieves information about a specific logDialog */
+        public GetLogDialog(appId : string, logDialogId : string) : Promise<LogDialog>
+        {
+                return new Promise(
+                (resolve, reject) => {
+
+                let apiPath = `app/${appId}/logdialog/${logdialogId}`;
+                const requestData = {
+                        url: this.MakeURL(apiPath),
+                        headers: {
+                            'Cookie' : this.credentials.Cookiestring()
+                        },
+                        json: true
+                    }
+                    BlisDebug.LogRequest("GET",apiPath, requestData);
+                    request.get(requestData, (error, response, body) => {
+                        if (error) {
+                            reject(error);
+                        }
+                        else if (response.statusCode >= 300) {
+                            reject(response);
+                        }
+                        else {
+                            let logDialog = deserialize(LogDialog, body);
+                            logDialog.logDialogId = logdialogId;
+                            resolve(logDialog);
+                        }
+                    });
+                }
+            )
+        }
+
+        /** Retrieves the contents of many/all logDialogs.  
+         * To retrieve just a list of IDs of all logDialogs, 
+         * see the GET GetLogDialogIds method. */
+        public GetLogDialogs(appId : string, searchTerm : string) : Promise<LogDialogList>
+        {
+            let apiPath = `app/${appId}/logdialogs`;
+
+            return new Promise(
+                (resolve, reject) => {
+                const requestData = {
+                        url: this.MakeURL(apiPath),
+                        headers: {
+                            'Cookie' : this.credentials.Cookiestring()
+                        },
+                        json: true,
+                        qs : { text : searchTerm }
+                    }
+                    BlisDebug.LogRequest("GET",apiPath, requestData);
+                    request.get(requestData, (error, response, body) => {
+                        if (error) {
+                            reject(error);
+                        }
+                        else if (response.statusCode >= 300) {
+                            reject(response);
+                        }
+                        else {
+                            let logDialogList = deserialize(LogDialogList, body);
+                            resolve(logDialogList);
+                        }
+                    });
+                }
+            )
+        }
+
+        /** Retrieves just the IDs of logDialogs.  
+         * To retrieve the contents of many logDialogs, see the GetLogDialogs method. */
+        public GetLogDialogIds(appId : string) : Promise<EntityList>
         {
             let apiPath = `app/${appId}/entity`;
 
