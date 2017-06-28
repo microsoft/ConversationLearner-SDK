@@ -14,6 +14,13 @@ import { Pager } from '../Memory/Pager';
 import { BlisContext } from '../BlisContext';
 import { EditableResponse } from './EditableResponse';
 
+export class SearchParameters
+{
+    public text : string;
+    public actions : string[];
+    public entities : string[];
+    public 
+}
 export class LabeledEntity
 {
     @JsonProperty('startCharIndex')
@@ -469,6 +476,30 @@ export class TrainDialog_v1
             let errMsg = BlisDebug.Error(error); 
             cb([errMsg]);
         }
+    }
+}
+
+export class TrainDialogList
+{
+    @JsonProperty({clazz: TrainDialog, name: 'trainDialogs'})
+    public trainDialogs : TrainDialog[];
+
+    public constructor(init?:Partial<TrainDialogList>)
+    {
+        this.trainDialogs = undefined;
+        (<any>Object).assign(this, init);
+    }
+}
+
+export class TrainDialogIdList
+{
+    @JsonProperty('trainDialogIds')  
+    public trainDialogIds : string[];
+
+    public constructor(init?:Partial<TrainDialogIdList>)
+    {
+        this.trainDialogIds = undefined;
+        (<any>Object).assign(this, init);
     }
 }
     
