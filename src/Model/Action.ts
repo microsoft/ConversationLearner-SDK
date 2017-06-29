@@ -164,7 +164,7 @@ export class Action
                 return AdminResponse.Error(`You must provide the ID of the action to delete.`);
             }
 
-            let action = await BlisClient.client.GetAction(appId, actionId);  
+            let action = await BlisClient.client.GetAction(appId, actionId, null);  
             let inUse = await action.InUse(appId);
 
             if (inUse)
@@ -224,7 +224,7 @@ export class Action
 
             for (let actionId of actionIds)
             {
-                let action = await BlisClient.client.GetAction(appId, actionId)
+                let action = await BlisClient.client.GetAction(appId, actionId, null)
 
                 if ((!search || action.payload.toLowerCase().indexOf(search) > -1) && (!actionType || action.metadata.actionType == actionType))
                 { 

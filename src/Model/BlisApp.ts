@@ -149,7 +149,7 @@ export class BlisApp
 
             for (let appId of appIds)
             {   
-                let blisApp = await BlisClient.client.GetApp(appId)
+                let blisApp = await BlisClient.client.GetApp(appId, null)
 
                 if (!search || blisApp.appId.toLowerCase().indexOf(search) > -1)
                 { 
