@@ -155,7 +155,7 @@ export class Entity {
             if (entity.entityId)
             {
                 // Get old entity
-                let oldEntity = await BlisClient.client.GetEntity(appId, entity.entityId);
+                let oldEntity = await BlisClient.client.GetEntity(appId, entity.entityId, null);
                 let oldNegName = Entity.NegativeName(oldEntity.entityName);
 
                 // Note: Entity Type cannot be changed.  Use old type.
@@ -173,7 +173,7 @@ export class Entity {
                         await memory.EntityLookup().Add(entity.entityName, entity.entityId);
 
                         // Update Negative
-                        let oldEntity = await BlisClient.client.GetEntity(appId, oldNegId);
+                        let oldEntity = await BlisClient.client.GetEntity(appId, oldNegId, null);
                         oldEntity.metadata = new EntityMetaData({isBucket : entity.metadata.isBucket, positiveId : entity.entityId});
                         await BlisClient.client.EditEntity(appId, oldEntity);
                         await memory.EntityLookup().Add(negName, oldNegId);
@@ -274,8 +274,8 @@ export class Entity {
             let memory = BlisMemory.GetMemory(key);
 
             let appId = await memory.BotState().AppId();
-            let entity = await BlisClient.client.GetEntity(appId, entityId);
-
+            let entity = await BlisClient.client.GetEntity(appId, entityId, null);
+ 
             // Make sure we're not trying to delete a negative entity
             if (entity.metadata && entity.metadata.positiveId)
             {
@@ -343,7 +343,7 @@ export class Entity {
 
             for (let entityId of entityIds)
             {
-                let entity = await BlisClient.client.GetEntity(appId, entityId);
+                let entity = await BlisClient.client.GetEntity(appId, entityId, null);
                 if (!search || entity.entityName.toLowerCase().indexOf(search) > -1)
                 { 
                     entities.push(entity);
@@ -375,7 +375,7 @@ export class Entity {
     {
         if (this.metadata && this.metadata.negativeId)
         {
-            return await BlisClient.client.GetEntity(appId, this.metadata.negativeId);
+            return await BlisClient.client.GetEntity(appId, this.metadata.negativeId, null);
         }
         return null;
     }

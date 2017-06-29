@@ -70,7 +70,7 @@ export class BlisClient {
 
         /** Retrieves information about a specific action for the current package
          *  (or the specified package if provided) */
-        public GetAction(appId : string, actionId : string) : Promise<Action>
+        public GetAction(appId : string, actionId : string, query : string) : Promise<Action>
         {
             return new Promise(
                 (resolve, reject) => {
@@ -88,7 +88,8 @@ export class BlisClient {
                             headers: {
                                 'Cookie' : this.credentials.Cookiestring()
                             },
-                            json: true
+                            json: true,
+                            qs : query
                         }
                     BlisDebug.LogRequest("GET",apiPath, requestData);
                     request.get(requestData, (error, response, body) => {
@@ -112,7 +113,7 @@ export class BlisClient {
         /** Retrieves definitions of ALL actions for the current package 
          * (or the specified package if provided). To retrieve just the 
          * IDs of actions, see the GetActionIds Method */
-        public GetActions(appId : string) : Promise<ActionList>
+        public GetActions(appId : string, query : string) : Promise<ActionList>
         {
             let apiPath = `app/${appId}/actions`;
 
@@ -123,7 +124,8 @@ export class BlisClient {
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
                         },
-                        json: true
+                        json: true,
+                        qs : query
                     }
                     BlisDebug.LogRequest("GET",apiPath, requestData);
                     request.get(requestData, (error, response, body) => {
@@ -145,7 +147,7 @@ export class BlisClient {
         /** Retrieves a list of action IDs for the latest package 
          * (or the specified package, if provided).  To retrieve 
          * the definitions of many actions, see the GetAction method */
-        public GetActionIds(appId : string) : Promise<ActionList>
+        public GetActionIds(appId : string, query : string) : Promise<ActionList>
         {
             let apiPath = `app/${appId}/action`;
 
@@ -156,7 +158,8 @@ export class BlisClient {
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
                         },
-                        json: true
+                        json: true,
+                        qs : query
                     }
                     BlisDebug.LogRequest("GET",apiPath, requestData);
                     request.get(requestData, (error, response, body) => {
@@ -280,7 +283,7 @@ export class BlisClient {
          * If the app ID isn't found in the set of (non-archived) apps, 
          * returns 404 error ("not found") 
          */
-        public GetApp(appId : string) : Promise<BlisApp> 
+        public GetApp(appId : string, query : string) : Promise<BlisApp> 
         {
             let apiPath = `app/${appId}?userId=${this.user}`;
 
@@ -291,7 +294,8 @@ export class BlisClient {
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
                         },
-                        json: true
+                        json: true,
+                        qs : query
                     }
                     BlisDebug.LogRequest("GET",apiPath, requestData);
                     request.get(url, requestData, (error, response, body) => {
@@ -453,7 +457,7 @@ export class BlisClient {
 
         /** Retrieves information about a specific entity in the latest package
          * (or the specified package, if provided) */
-        public GetEntity(appId : string, entityId : string) : Promise<Entity>
+        public GetEntity(appId : string, entityId : string, query : string) : Promise<Entity>
         {
                 return new Promise(
                 (resolve, reject) => {
@@ -470,7 +474,8 @@ export class BlisClient {
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
                         },
-                        json: true
+                        json: true,
+                        qs : query
                     }
                     BlisDebug.LogRequest("GET",apiPath, requestData);
                     request.get(requestData, (error, response, body) => {
@@ -498,7 +503,7 @@ export class BlisClient {
         /** Retrieves definitions of ALL entities in the latest package 
          * (or the specified package, if provided).  To retrieve just the IDs 
          * of all entities, see the GetEntityIds method */
-        public GetEntities(appId : string) : Promise<EntityList>
+        public GetEntities(appId : string, query : string) : Promise<EntityList>
         {
             let apiPath = `app/${appId}/entities`;
 
@@ -509,7 +514,8 @@ export class BlisClient {
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
                         },
-                        json: true
+                        json: true,
+                        qs : query
                     }
                     BlisDebug.LogRequest("GET",apiPath, requestData);
                     request.get(requestData, (error, response, body) => {
@@ -531,7 +537,7 @@ export class BlisClient {
         /** Retrieves a list of entity IDs for the latest package 
          * (or the specified package, if provided).  To retrieve the definitions
          * of many entities, see the GetEntities method */
-        public GetEntityIds(appId : string) : Promise<EntityList>
+        public GetEntityIds(appId : string, query : string) : Promise<EntityList>
         {
             let apiPath = `app/${appId}/entity`;
 
@@ -542,7 +548,8 @@ export class BlisClient {
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
                         },
-                        json: true
+                        json: true,
+                        qs : query
                     }
                     BlisDebug.LogRequest("GET",apiPath, requestData);
                     request.get(requestData, (error, response, body) => {
@@ -729,7 +736,7 @@ export class BlisClient {
 
         /** Retrieves just the IDs of logDialogs.  
          * To retrieve the contents of many logDialogs, see the GetLogDialogs method. */
-        public GetLogDialogIds(appId : string) : Promise<LogDialogIdList>
+        public GetLogDialogIds(appId : string, query : string) : Promise<LogDialogIdList>
         {
             let apiPath = `app/${appId}/logdialog`;
 
@@ -740,7 +747,8 @@ export class BlisClient {
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
                         },
-                        json: true
+                        json: true,
+                        qs : query
                     }
                     BlisDebug.LogRequest("GET",apiPath, requestData);
                     request.get(requestData, (error, response, body) => {
@@ -932,7 +940,7 @@ export class BlisClient {
         /** Retrieves a list of trainDialog IDs. 
          * To retrieve the contents of multiple trainDialogs, 
          * see the GetTrainDialogs method */
-        public GetTrainDialogIds(appId : string) : Promise<TrainDialogIdList>
+        public GetTrainDialogIds(appId : string, query : string) : Promise<TrainDialogIdList>
         {
             let apiPath = `app/${appId}/traindialog`;
 
@@ -943,7 +951,8 @@ export class BlisClient {
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
                         },
-                        json: true
+                        json: true,
+                        qs : query
                     }
                     BlisDebug.LogRequest("GET",apiPath, requestData);
                     request.get(requestData, (error, response, body) => {
@@ -1128,7 +1137,7 @@ export class BlisClient {
         }
 
         /** End a session. */
-        public EndSession(appId : string, sessionId : string) : Promise<string>
+        public EndSession(appId : string, sessionId : string, query : string) : Promise<string>
         {
             let apiPath = `app/${appId}/session/${sessionId}`;
 
@@ -1139,7 +1148,8 @@ export class BlisClient {
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
                         },
-                        json: true
+                        json: true,
+                        qs : query
                     }
                     BlisDebug.LogRequest("DELETE",apiPath, requestData);
                     request.delete(url, requestData, (error, response, body) => {

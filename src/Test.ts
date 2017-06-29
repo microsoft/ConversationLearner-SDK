@@ -90,7 +90,7 @@ export class Test {
             Test.InitClient();
             let inApp = Test.MakeApp();
             let appId = await BlisClient.client.AddApp(inApp);
-            let outApp = await BlisClient.client.GetApp(appId);
+            let outApp = await BlisClient.client.GetApp(appId, null);
             if (outApp.appId != appId) return TestResult.Fail("appId");
             if (outApp.appName != inApp.appName) return TestResult.Fail("appName");
             if (outApp.luisKey != inApp.luisKey) return TestResult.Fail("luisKey");
@@ -100,7 +100,7 @@ export class Test {
             await BlisClient.client.DeleteApp(appId);
  
             // Try to reload
-            let deletedApp = await BlisClient.client.GetApp(appId);
+            let deletedApp = await BlisClient.client.GetApp(appId, null);
             if (deletedApp) return TestResult.Fail("Delete");
             return TestResult.Pass();
         }
@@ -120,7 +120,7 @@ export class Test {
             let inEntity = Test.MakeEntity();
             let entityId = await BlisClient.client.AddEntity(appId, inEntity);
 
-            let outEntity = await BlisClient.client.GetEntity(appId, entityId);
+            let outEntity = await BlisClient.client.GetEntity(appId, entityId, null);
             if (outEntity.entityId != entityId) return TestResult.Fail("entityId");
             if (outEntity.entityName != inEntity.entityName) return TestResult.Fail("entityName");
             if (outEntity.entityType != inEntity.entityType) return TestResult.Fail("entityType");
@@ -133,7 +133,7 @@ export class Test {
             await BlisClient.client.DeleteEntity(appId, entityId);
  
             // Try to reload
-            let deletedEntity = await BlisClient.client.GetEntity(appId, entityId);
+            let deletedEntity = await BlisClient.client.GetEntity(appId, entityId, null);
             if (deletedEntity) return TestResult.Fail("Delete");
 
             return TestResult.Pass();
@@ -154,7 +154,7 @@ export class Test {
             let inAction = Test.MakeAction();
             let actionId = await BlisClient.client.AddAction(appId, inAction);
 
-            let outAction = await BlisClient.client.GetAction(appId, actionId);
+            let outAction = await BlisClient.client.GetAction(appId, actionId, null);
             if (outAction.actionId != actionId) return TestResult.Fail("actionId");
             if (outAction.payload != inAction.payload) return TestResult.Fail("payload");
             if (outAction.isTerminal != inAction.isTerminal) return TestResult.Fail("isTerminal");
@@ -169,7 +169,7 @@ export class Test {
             await BlisClient.client.DeleteAction(appId, actionId);
  
             // Try to reload
-            let deletedAction = await BlisClient.client.GetAction(appId, actionId);
+            let deletedAction = await BlisClient.client.GetAction(appId, actionId, null);
             if (deletedAction) return TestResult.Fail("Delete");
 
             return TestResult.Pass();

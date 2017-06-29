@@ -59,16 +59,14 @@ export class Server {
             this.server.get("/app/:appId", async (req, res, next) =>
                 {
                     let appId = req.params.appId;
-                    if (!appId)
-                    {
-                        res.send(400, Error("Missing Application Id"));
-                        return;
-                    }
+                    let query = req.getQuery();                    
+
                     this.InitClient();  // TEMP
 
                     try
                     {
-                        let app = await BlisClient.client.GetApp(appId);
+
+                        let app = await BlisClient.client.GetApp(appId, query);
                         res.send(serialize(app));
                     }
                     catch (error)
@@ -167,7 +165,7 @@ export class Server {
                 {
                     let appId = req.params.appId;
                     let actionId = req.params.actionId;
-        
+                    let query = req.getQuery();   
                     if (!actionId)
                     {
                         res.send(400, Error("Missing Action Id"));
@@ -177,7 +175,7 @@ export class Server {
 
                     try
                     {
-                        let action = await BlisClient.client.GetAction(appId, actionId);
+                        let action = await BlisClient.client.GetAction(appId, actionId, query);
                         res.send(serialize(action));
                     }
                     catch (error)
@@ -260,12 +258,12 @@ export class Server {
             this.server.get("/app/:appId/actions", async (req, res, next) =>
                 {
                     let appId = req.params.appId;
-
+                    let query = req.getQuery();   
                     this.InitClient();  // TEMP
 
                     try
                     {
-                        let actions = await BlisClient.client.GetActions(appId);
+                        let actions = await BlisClient.client.GetActions(appId, query);
                         res.send(serialize(actions));
                     }
                     catch (error)
@@ -278,12 +276,13 @@ export class Server {
             this.server.get("/app/:appId/actionIds", async (req, res, next) =>
                 {
                     let appId = req.params.appId;
+                    let query = req.getQuery();   
 
                     this.InitClient();  // TEMP
 
                     try
                     {
-                        let actions = await BlisClient.client.GetActionIds(appId);
+                        let actions = await BlisClient.client.GetActionIds(appId, query);
                         res.send(serialize(actions));
                     }
                     catch (error)
@@ -303,12 +302,12 @@ export class Server {
             this.server.get("/app/:appId/entityIds", async (req, res, next) =>
                 {
                     let appId = req.params.appId;
-
+                    let query = req.getQuery();    
                     this.InitClient();  // TEMP
 
                     try
                     {
-                        let actions = await BlisClient.client.GetEntityIds(appId);
+                        let actions = await BlisClient.client.GetEntityIds(appId, query);
                         res.send(serialize(actions));
                     }
                     catch (error)
@@ -322,7 +321,8 @@ export class Server {
                 {
                     let appId = req.params.appId;
                     let entityId = req.params.entityId;
-        
+                    let query = req.getQuery();    
+
                     if (!entityId)
                     {
                         res.send(400, Error("Missing Entity Id"));
@@ -332,7 +332,7 @@ export class Server {
 
                     try
                     {
-                        let entity = await BlisClient.client.GetEntity(appId, entityId);
+                        let entity = await BlisClient.client.GetEntity(appId, entityId, query);
                         res.send(serialize(entity));
                     }
                     catch (error)
@@ -367,7 +367,7 @@ export class Server {
                         this.InitClient();  // TEMP
 
                         let appId = req.params.appId;
-                        let entity = deserialize(Entity, req.body);
+                        let entity = deserialize(Entity, req.body);    
 
                         if (!entity.entityId)
                         {
@@ -416,12 +416,13 @@ export class Server {
             this.server.get("/app/:appId/entities", async (req, res, next) =>
                 {
                     let appId = req.params.appId;
+                    let query = req.getQuery();    
 
                     this.InitClient();  // TEMP
 
                     try
                     {
-                        let entities = await BlisClient.client.GetEntities(appId);
+                        let entities = await BlisClient.client.GetEntities(appId, query);
                         res.send(serialize(entities));
                     }
                     catch (error)
@@ -434,12 +435,13 @@ export class Server {
             this.server.get("/app/:appId/entityIds", async (req, res, next) =>
                 {
                     let appId = req.params.appId;
+                    let query = req.getQuery();    
 
                     this.InitClient();  // TEMP
 
                     try
                     {
-                        let entityIds = await BlisClient.client.GetEntityIds(appId);
+                        let entityIds = await BlisClient.client.GetEntityIds(appId, query);
                         res.send(serialize(entityIds));
                     }
                     catch (error)
@@ -527,7 +529,7 @@ export class Server {
 
                     try
                     {
-                        let logDialogIds = await BlisClient.client.GetLogDialogIds(appId);
+                        let logDialogIds = await BlisClient.client.GetLogDialogIds(appId, query);
                         res.send(serialize(logDialogIds));
                     }
                     catch (error)
@@ -661,7 +663,7 @@ export class Server {
 
                     try
                     {
-                        let trainDialogIds = await BlisClient.client.GetTrainDialogIds(appId);
+                        let trainDialogIds = await BlisClient.client.GetTrainDialogIds(appId, query);
                         res.send(serialize(trainDialogIds));
                     }
                     catch (error)
@@ -717,12 +719,13 @@ export class Server {
             {
                 let appId = req.params.appId;
                 let sessionId = req.params.sessionId;
+                let query = req.getQuery();    
 
                 this.InitClient();  // TEMP
 
                 try
                 {
-                    let response = await BlisClient.client.EndSession(appId, sessionId);
+                    let response = await BlisClient.client.EndSession(appId, sessionId, query);
                     res.send(response);
                 }
                 catch (error)
