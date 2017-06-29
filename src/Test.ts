@@ -78,7 +78,7 @@ export class Test {
     public static async GetApps() : Promise<TestResult>
     {
         Test.InitClient();
-        let apps = await BlisClient.client.GetApps();
+        let apps = await BlisClient.client.GetApps(null);
         return TestResult.Pass();
     }
 
@@ -97,7 +97,7 @@ export class Test {
             if (outApp.locale != inApp.locale) return TestResult.Fail("luisKey");
 
             // Now delete the app
-            await BlisClient.client.Archive(appId);
+            await BlisClient.client.ArchiveApp(appId);
  
             // Try to reload
             let deletedApp = await BlisClient.client.GetApp(appId, null);
