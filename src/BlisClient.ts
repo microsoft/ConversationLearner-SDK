@@ -64,7 +64,7 @@ export class BlisClient {
         this.exportCache.del(appId);
     }
 
-    //==============================================================================
+    //=============================================================================
     // Action
     //=============================================================================
 
@@ -316,7 +316,7 @@ export class BlisClient {
         }
 
         /** Retrieve a list of (active) applications */
-        public GetApps() : Promise<BlisAppList>
+        public GetApps(query : string) : Promise<BlisAppList>
         {
             let apiPath = `apps`;
 
@@ -327,7 +327,8 @@ export class BlisClient {
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
                         },
-                        json: true
+                        json: true,
+                        qs : query
                     }
 
                     BlisDebug.LogRequest("GET",apiPath, requestData);
@@ -350,7 +351,7 @@ export class BlisClient {
         /** Rename an existing application or changes its LUIS key
          * Note: Renaming an application does not affect packages
          */
-        public EditApp(app : BlisApp) : Promise<string>
+        public EditApp(app : BlisApp, query : string) : Promise<string>
         {
             let apiPath = `app/${app.appId}`;
 
@@ -362,7 +363,8 @@ export class BlisClient {
                             'Cookie' : this.credentials.Cookiestring()
                         },
                         body: serialize(app),
-                        json: true
+                        json: true,
+                        qs : query
                     }
 
                     BlisDebug.LogRequest("PUT",apiPath, requestData);
@@ -388,7 +390,7 @@ export class BlisClient {
          * can be restored with the next API call.  At the end of the archive period, 
          * the application is destroyed.
          */
-        public DeleteApp(appId : string) : Promise<string>
+        public ArchiveApp(appId : string) : Promise<string>
         {
             let apiPath = `app/${appId}`;
 
@@ -445,6 +447,104 @@ export class BlisClient {
                         else {
                             var appId = body.appId;
                             resolve(appId);
+                        }
+                    });
+                }
+            )
+        }
+
+        /** Destroys an existing application, including all its models, sessions, and logged dialogs
+         * Deleting an application from the archive really destroys it – no undo.
+         */
+        public DeleteApp(appId : string) : Promise<string>
+        {
+            let apiPath = `archive/${appId}`;
+
+            return new Promise(
+                (resolve, reject) => {
+                    let url = this.MakeURL(apiPath);
+                    const requestData = {
+                        headers: {
+                            'Cookie' : this.credentials.Cookiestring()
+                        },
+                        json: true
+                    }
+                    BlisDebug.LogRequest("DELETE",apiPath, requestData);
+                    request.delete(url, requestData, (error, response, body) => {
+                        if (error) {
+                            reject(error);
+                        }
+                        else if (response.statusCode >= 300) {
+                            reject(response);
+                        }
+                        else {
+                            resolve(body);
+                        }
+                    });
+                }
+            )
+        }
+
+        /** Moves an application from the archive to the set of active applications */
+        public RestoreApp(app : BlisApp) : Promise<string>
+        {
+            let apiPath = `archive/${app.appId}`;
+
+            return new Promise(
+                (resolve, reject) => {
+                const requestData = {
+                        url: this.MakeURL(apiPath),
+                        headers: {
+                            'Cookie' : this.credentials.Cookiestring()
+                        },
+                        body: serialize(app),
+                        json: true
+                    }
+
+                    BlisDebug.LogRequest("PUT",apiPath, requestData);
+                    request.put(requestData, (error, response, body) => {
+                        if (error) {
+                            reject(error);
+                        }
+                        else if (response.statusCode >= 300) {
+                            reject(response);
+                        }
+                        else {
+                            // Service returns a 204
+                            resolve(body);
+                        }
+                    });
+                }
+            )
+        }
+
+        /** Retrieves a list of applications in the archive for the given user */
+        public GetArchivedApps(query : string) : Promise<BlisAppList>
+        {
+            let apiPath = `archive`;
+
+            return new Promise(
+                (resolve, reject) => {
+                const requestData = {
+                        url: this.MakeURL(apiPath),
+                        headers: {
+                            'Cookie' : this.credentials.Cookiestring()
+                        },
+                        json: true, 
+                        qs : query
+                    }
+
+                    BlisDebug.LogRequest("GET",apiPath, requestData);
+                    request.get(requestData, (error, response, body) => {
+                        if (error) {
+                            reject(error);
+                        }
+                        else if (response.statusCode >= 300) {
+                            reject(response);
+                        }
+                        else {
+                            let apps = deserialize(BlisAppList, body);
+                            resolve(apps);
                         }
                     });
                 }
