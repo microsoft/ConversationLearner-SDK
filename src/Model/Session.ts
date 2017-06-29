@@ -1,23 +1,33 @@
 import { JsonProperty } from 'json-typescript-mapper';
 
-export const SessionType =
-{
-    Teach : "Teach",
-    Run : "Run" 
-}
-
 export class Session
 {
     @JsonProperty("sessionId")
     public sessionId : string;
 
-    @JsonProperty("sessionType")
-    public sessionType : string;
+    @JsonProperty("createdDatetime")
+    public createdDatetime : string;
+
+    @JsonProperty("lastQueryDatetime")
+    public lastQueryDatetime : string;
+
+    @JsonProperty("lastQueryDatetime")
+    public packageId : number;
+
+    @JsonProperty("rlFlag")
+    public rlFlag : boolean;
+
+    @JsonProperty("saveToLog")
+    public saveToLog : boolean;
 
     public constructor(init?:Partial<Session>)
     {
         this.sessionId = undefined;
-        this.sessionType = undefined;
+        this.createdDatetime = undefined;
+        this.lastQueryDatetime = undefined;
+        this.packageId = undefined;
+        this.rlFlag = undefined;
+        this.saveToLog = undefined;
         (<any>Object).assign(this, init);
     } 
 }

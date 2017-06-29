@@ -11,6 +11,7 @@ import { Action_v1 } from './Action';
 import { Entity_v1 } from './Entity';
 import { Menu } from '../Menu';
 import { Pager } from '../Memory/Pager';
+import { ScoreInput } from './Score';
 import { BlisContext } from '../BlisContext';
 import { EditableResponse } from './EditableResponse';
 
@@ -61,47 +62,27 @@ export class TextVariation
     }
 }
 
-export class ExtractorStep
+export class TrainExtractorStep
 {
     @JsonProperty({clazz: TextVariation, name: 'textVariations'})
     public textVariations : TextVariation[];
 
-    public constructor(init?:Partial<ExtractorStep>)
+    public constructor(init?:Partial<TrainExtractorStep>)
     {
         this.textVariations = undefined;
         (<any>Object).assign(this, init);
     }
 }
 
-export class ScorerInput
+export class TrainScorerStep
 {
-    @JsonProperty('filledEntities')
-    public filledEntities : string[];
-
-    @JsonProperty('context')
-    public context : string;
-
-    @JsonProperty('maskedActions')
-    public maskedActions : string[];
-
-    public constructor(init?:Partial<ScorerInput>)
-    {
-        this.filledEntities = undefined;
-        this.context = undefined;
-        this.maskedActions = undefined;
-        (<any>Object).assign(this, init);
-    }
-}
-
-export class ScorerResponse
-{
-    @JsonProperty({clazz: ScorerInput, name: 'input'})
-    public input : ScorerInput;
+    @JsonProperty({clazz: ScoreInput, name: 'input'})
+    public input : ScoreInput;
 
     @JsonProperty('labelAction')
     public labelAction : string;
 
-    public constructor(init?:Partial<ScorerResponse>)
+    public constructor(init?:Partial<TrainScorerStep>)
     {
         this.input = undefined;
         this.labelAction = undefined;
@@ -109,15 +90,15 @@ export class ScorerResponse
     }
 }
 
-export class Round
+export class TrainRound
 {
-    @JsonProperty({clazz: ExtractorStep, name: 'extractorStep'})
-    public extractorStep : ExtractorStep;
+    @JsonProperty({clazz: TrainExtractorStep, name: 'extractorStep'})
+    public extractorStep : TrainExtractorStep;
 
-    @JsonProperty({clazz: ScorerResponse, name: 'scorerSteps'})
-    public scorerSteps : ScorerResponse[];
+    @JsonProperty({clazz: TrainScorerStep, name: 'scorerSteps'})
+    public scorerSteps : TrainScorerStep[];
 
-    public constructor(init?:Partial<Round>)
+    public constructor(init?:Partial<TrainRound>)
     {
         this.extractorStep = undefined;
         this.scorerSteps = undefined;
@@ -139,8 +120,8 @@ export class TrainDialog
     @JsonProperty('packageDeletionId')
     public packageDeletionId : number;
 
-    @JsonProperty({clazz: Round, name: 'rounds'})
-    public rounds : Round[];
+    @JsonProperty({clazz: TrainRound, name: 'rounds'})
+    public rounds : TrainRound[];
 
     public constructor(init?:Partial<TrainDialog>)
     {
@@ -151,6 +132,26 @@ export class TrainDialog
         this.rounds = undefined;
         (<any>Object).assign(this, init);
     }
+}
+
+export class TrainResponse
+{
+    @JsonProperty("packageId")
+    public packageId : number;
+
+    @JsonProperty("trainingStatus")
+    public trainingStatus : string;
+
+    @JsonProperty("trainDialogId")
+    public trainDialogId : string;
+
+    public constructor(init?:Partial<TrainResponse>)
+    {
+        this.packageId = undefined;
+        this.trainingStatus = undefined;
+        this.trainDialogId = undefined;
+        (<any>Object).assign(this, init);
+    } 
 }
 
 // ================== V1 ===============================================
@@ -262,6 +263,7 @@ export class Input_v1
         (<any>Object).assign(this, init);
     }
 }
+
 
 export class Turn_v1
 {
