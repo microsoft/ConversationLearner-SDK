@@ -97,7 +97,7 @@ export class Test {
             if (outApp.locale != inApp.locale) return TestResult.Fail("luisKey");
 
             // Now delete the app
-            await BlisClient.client.DeleteApp(appId);
+            await BlisClient.client.Archive(appId);
  
             // Try to reload
             let deletedApp = await BlisClient.client.GetApp(appId, null);

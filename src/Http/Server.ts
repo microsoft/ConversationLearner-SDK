@@ -56,6 +56,8 @@ export class Server {
         //========================================================
         // App
         //========================================================
+           
+            /** Retrieves information about a specific application */
             this.server.get("/app/:appId", async (req, res, next) =>
                 {
                     let appId = req.params.appId;
@@ -76,6 +78,7 @@ export class Server {
                 }
             );
 
+            /** Create a new application */
             this.server.post("/app", async (req, res, next) =>
                 {
                     try
@@ -93,6 +96,8 @@ export class Server {
                 }
             );
 
+            /** Renames an existing application or changes its LUIS key
+             * Note: Renaming an application does not affect packages */
             this.server.put("/app/:appId", async (req, res, next) =>
                 {
                     try
@@ -110,7 +115,8 @@ export class Server {
                             return next(new restify.InvalidArgumentError("AppId of object does not match URI"));
                         }
 
-                        let appId = await BlisClient.client.EditApp(app);
+                        let query = req.getQuery();
+                        let appId = await BlisClient.client.EditApp(app, query);
                         res.send(appId);
                     }
                     catch (error)
@@ -120,7 +126,32 @@ export class Server {
                 }
             );
 
+            /** Archives an existing application */
             this.server.del("/app/:appId", async (req, res, next) =>
+            {
+                    let appId = req.params.appId;
+                    if (!appId)
+                    {
+                        res.send(400, Error("Missing Application Id"));
+                        return;
+                    }
+                    this.InitClient();  // TEMP
+
+                    try
+                    {
+                        await BlisClient.client.ArchiveApp(appId);
+                        res.send(200);
+                    }
+                    catch (error)
+                    {
+                        res.send(error.statusCode, Server.ErrorMessage(error));
+                    }
+                }
+            );
+
+            /** Destroys an existing application, including all its models, sessions, and logged dialogs
+             * Deleting an application from the archive really destroys it – no undo. */
+            this.server.del("/archive/:appId", async (req, res, next) =>
             {
                     let appId = req.params.appId;
                     if (!appId)
@@ -142,14 +173,53 @@ export class Server {
                 }
             );
 
+            /** Retrieves a list of (active) applications */
             this.server.get("/apps", async (req, res, next) =>
                 {
                     this.InitClient();  // TEMP
 
                     try
                     {
-                        let apps = await BlisClient.client.GetApps();
+                        let query = req.getQuery();
+                        let apps = await BlisClient.client.GetApps(query);
                         res.send(serialize(apps));
+                    }
+                    catch (error)
+                    {
+                        res.send(error.statusCode, Server.ErrorMessage(error));
+                    }
+                }
+            );
+
+            /** Retrieves a list of applications in the archive for the given user */
+            this.server.get("/archive", async (req, res, next) =>
+                {
+                    this.InitClient();  // TEMP
+
+                    try
+                    {
+                        let query = req.getQuery();
+                        let apps = await BlisClient.client.GetArchivedApps(query);
+                        res.send(serialize(apps));
+                    }
+                    catch (error)
+                    {
+                        res.send(error.statusCode, Server.ErrorMessage(error));
+                    }
+                }
+            );
+
+            /** Moves an application from the archive to the set of active applications */
+            this.server.put("/archive/:appId", async (req, res, next) =>
+                {
+                    let appId = req.params.appId;                 
+
+                    this.InitClient();  // TEMP
+
+                    try
+                    {
+                        let app = await BlisClient.client.RestoreApp(appId);
+                        res.send(serialize(app));
                     }
                     catch (error)
                     {
@@ -674,11 +744,11 @@ export class Server {
             );
 
         //========================================================
-        // Sessions & Training
+        // Session
         //========================================================
 
-        /** Creates a new session and a corresponding logDialog */
-        this.server.post("/app/:appId/session", async (req, res, next) =>
+            /** Creates a new session and a corresponding logDialog */
+            this.server.post("/app/:appId/session", async (req, res, next) =>
             {
                 try
                 {
@@ -693,10 +763,10 @@ export class Server {
                     res.send(error.statusCode, Server.ErrorMessage(error));
                 }
             }
-        );
+            );
 
-        /** Retrieves information about the specified session */
-        this.server.get("/app/:appId/teach/:sessionId", async (req, res, next) =>
+            /** Retrieves information about the specified session */
+            this.server.get("/app/:appId/teach/:sessionId", async (req, res, next) =>
             {
                 try
                 {
@@ -712,10 +782,10 @@ export class Server {
                     res.send(error.statusCode, Server.ErrorMessage(error));
                 }
             }
-        );
+            );
 
-        /** End a session. */
-        this.server.del("/app/:appId/session/:sessionId", async (req, res, next) =>
+            /** End a session. */
+            this.server.del("/app/:appId/session/:sessionId", async (req, res, next) =>
             {
                 let appId = req.params.appId;
                 let sessionId = req.params.sessionId;
@@ -733,7 +803,7 @@ export class Server {
                     res.send(error.statusCode, Server.ErrorMessage(error));
                 }
             }
-        );
+            );
 
         //========================================================
         // Teach

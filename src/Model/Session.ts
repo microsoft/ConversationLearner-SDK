@@ -14,9 +14,6 @@ export class Session
     @JsonProperty("lastQueryDatetime")
     public packageId : number;
 
-    @JsonProperty("rlFlag")
-    public rlFlag : boolean;
-
     @JsonProperty("saveToLog")
     public saveToLog : boolean;
 
@@ -26,7 +23,6 @@ export class Session
         this.createdDatetime = undefined;
         this.lastQueryDatetime = undefined;
         this.packageId = undefined;
-        this.rlFlag = undefined;
         this.saveToLog = undefined;
         (<any>Object).assign(this, init);
     } 
