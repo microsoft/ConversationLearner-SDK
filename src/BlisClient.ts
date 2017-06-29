@@ -2,19 +2,26 @@ const request = require('request');
 import { deserialize, serialize } from 'json-typescript-mapper';
 import { Credentials } from './Http/Credentials';
 import { Action, ActionMetaData, ActionList, ActionIdList, Action_v1, ActionMetaData_v1 } from './Model/Action'
-import { ExtractorStep, ScorerInput, ScorerResponse, Dialog_v1, TrainDialog_v1 } from './Model/TrainDialog'
+import { TrainExtractorStep, TrainScorerStep, Dialog_v1, TrainDialog_v1 } from './Model/TrainDialog'
 import { LogDialog, LogDialogList, LogDialogIdList } from './Model/LogDialog'
-import { TrainDialog, TrainDialogList, TrainDialogIdList } from './Model/TrainDialog'
+import { TrainDialog, TrainDialogList, TrainDialogIdList, TrainResponse } from './Model/TrainDialog'
 import { BlisApp_v1, BlisApp, BlisAppList } from './Model/BlisApp'
 import { BlisAppContent } from './Model/BlisAppContent'
 import { Entity, EntityMetaData, EntityList, EntityIdList, Entity_v1, EntityMetaData_v1 } from './Model/Entity'
 import { TakeTurnModes, ActionTypes_v1, APICalls } from './Model/Consts';
-import { TakeTurnResponse } from './Model/TakeTurnResponse'
-import { TakeTurnRequest } from './Model/TakeTurnRequest'
+import { Teach, TeachResponse } from './Model/Teach'
+import { ScoreInput, ScoreResponse } from './Model/Score'
+import { ExtractResponse } from './Model/Extract'
+import { Session } from './Model/Session'
 import { UserInput } from './Model/UserInput';
 import { BlisMemory } from './BlisMemory';
 import { BlisDebug } from './BlisDebug';
 import * as NodeCache from 'node-cache';
+
+// V1
+import { TakeTurnResponse } from './Model/TakeTurnResponse'
+import { TakeTurnRequest } from './Model/TakeTurnRequest'
+
 
 export class BlisClient {
 
@@ -788,7 +795,7 @@ export class BlisClient {
     //=============================================================================
     
         /** Create a new TrainDialog */
-        public AddTrainDialog(appId : string, trainDialog : TrainDialog) : Promise<string>
+        public AddTrainDialog(appId : string, trainDialog : TrainDialog) : Promise<TrainResponse>
         {
             let apiPath = `app/${appId}/traindialog`;
 
@@ -811,7 +818,8 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            resolve(body.trainDialogId);
+                            let editResponse = deserialize(TrainResponse, body);
+                            resolve(editResponse);
                         }
                     });
                 }
@@ -819,7 +827,7 @@ export class BlisClient {
         }
 
         /** Updates a trainDialog, overwriting the content of its dialog */
-        public EditTrainDialog(appId : string, trainDialog : TrainDialog) : Promise<string>
+        public EditTrainDialog(appId : string, trainDialog : TrainDialog) : Promise<TrainResponse>
         { 
             let apiPath = `app/${appId}/traindialog/${trainDialog.trainDialogId}`;
 
@@ -846,7 +854,8 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            resolve(body);
+                            let editResponse = deserialize(TrainResponse, body);
+                            resolve(editResponse);
                         }
                     });
                 }
@@ -954,7 +963,7 @@ export class BlisClient {
         }
 
         /** Deletes a TrainDialog */
-        public DeleteTrainDialog(appId : string, trainDialogId : string) : Promise<string>
+        public DeleteTrainDialog(appId : string, trainDialogId : string) : Promise<TrainResponse>
         {
             let apiPath = `app/${appId}/traindialog/${trainDialogId}`;
 
@@ -976,7 +985,8 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            resolve(body);
+                            let deleteResponse = deserialize(TrainResponse, body);
+                            resolve(deleteResponse);
                         }
                     });
                 }
@@ -984,40 +994,8 @@ export class BlisClient {
         }
 
     //=============================================================================
-    // Sessions & Training
+    // Session
     //=============================================================================
-        
-        /** Creates a new teaching session and a corresponding trainDialog */
-        public StartTeachSession(appId : string) : Promise<string>
-        {
-            let apiPath = `app/${appId}/teach`;
-
-            return new Promise(
-                (resolve, reject) => {
-                const requestData = {
-                        url: this.MakeURL(apiPath),
-                        headers: {
-                            'Cookie' : this.credentials.Cookiestring()
-                        },
-                        body: {},
-                        json: true
-                    }
-
-                    BlisDebug.LogRequest("POST",apiPath, requestData);
-                    request.post(requestData, (error, response, body) => {
-                        if (error) {
-                            reject(error);
-                        }
-                        else if (response.statusCode >= 300) {
-                            reject(response);
-                        }
-                        else {
-                            resolve(body);
-                        }
-                    });
-                }
-            )
-        }
 
         /** Creates a new session and a corresponding logDialog */
         public StartSession(appId : string) : Promise<string>
@@ -1051,16 +1029,42 @@ export class BlisClient {
             )
         }
 
-        /** Runs entity extraction (prediction). 
-         * For Train sessions, if a more recent version of the package is available on 
-         * the server, the session will first migrate to that newer version.  This 
-         * doesn't affect the trainDialog maintained.
-         */
-        public Extract(appId : string, sessionId : string, sessionType : string, userInput : UserInput) : Promise<string>
+        /** Retrieves information about the specified session */
+        public GetSession(appId : string, sessionId : string) : Promise<Session>
         {
-            let apiPath = (sessionType == "teach") ? 
-                `app/${appId}/teach/${sessionId}/extractor` : 
-                `app/${appId}/session/${sessionId}/extractor`;
+                return new Promise(
+                (resolve, reject) => {
+
+                let apiPath = `app/${appId}/session/${sessionId}`;
+                const requestData = {
+                        url: this.MakeURL(apiPath),
+                        headers: {
+                            'Cookie' : this.credentials.Cookiestring()
+                        },
+                        json: true
+                    }
+                    BlisDebug.LogRequest("GET",apiPath, requestData);
+                    request.get(requestData, (error, response, body) => {
+                        if (error) {
+                            reject(error);
+                        }
+                        else if (response.statusCode >= 300) {
+                            reject(response);
+                        }
+                        else {
+                            let session = deserialize(Session, body);
+                            session.sessionId = sessionId;
+                            resolve(session);
+                        }
+                    });
+                }
+            )
+        }
+
+         /** Runs entity extraction (prediction). */
+        public SessionExtract(appId : string, sessionId : string, userInput : UserInput) : Promise<ExtractResponse>
+        {
+            let apiPath = `app/${appId}/session/${sessionId}/extractor`;
 
             return new Promise(
                 (resolve, reject) => {
@@ -1082,7 +1086,177 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
+                            var extractResponse = deserialize(ExtractResponse, body);
+                            resolve(extractResponse);
+                        }
+                    });
+                }
+            )
+        }
+
+        /** Take a turn and returns chosen action */
+        public SessionScore(appId : string, sessionId : string, scorerInput : ScoreInput) : Promise<ScoreResponse>
+        {
+            let apiPath = `app/${appId}/session/${sessionId}/scorer`;
+
+            return new Promise(
+                (resolve, reject) => {
+                const requestData = {
+                        url: this.MakeURL(apiPath),
+                        headers: {
+                            'Cookie' : this.credentials.Cookiestring()
+                        },
+                        body: serialize(scorerInput),
+                        json: true
+                    }
+
+                    BlisDebug.LogRequest("PUT",apiPath, requestData);
+                    request.put(requestData, (error, response, body) => {
+                        if (error) {
+                            reject(error);
+                        }
+                        else if (response.statusCode >= 300) {
+                            reject(response);
+                        }
+                        else {
+                            var score = deserialize(ScoreResponse, body);
+                            resolve(score);
+                        }
+                    });
+                }
+            )
+        }
+
+        /** End a session. */
+        public EndSession(appId : string, sessionId : string) : Promise<string>
+        {
+            let apiPath = `app/${appId}/session/${sessionId}`;
+
+            return new Promise(
+                (resolve, reject) => {
+                    let url = this.MakeURL(apiPath);
+                    const requestData = {
+                        headers: {
+                            'Cookie' : this.credentials.Cookiestring()
+                        },
+                        json: true
+                    }
+                    BlisDebug.LogRequest("DELETE",apiPath, requestData);
+                    request.delete(url, requestData, (error, response, body) => {
+                        if (error) {
+                            reject(error);
+                        }
+                        else if (response.statusCode >= 300) {
+                            reject(response);
+                        }
+                        else {
                             resolve(body);
+                        }
+                    });
+                }
+            )
+        }
+
+    //=============================================================================
+    // Teach
+    //=============================================================================
+        
+        /** Creates a new teaching session and a corresponding trainDialog */
+        public StartTeach(appId : string) : Promise<TeachResponse>
+        {
+            let apiPath = `app/${appId}/teach`;
+
+            return new Promise(
+                (resolve, reject) => {
+                const requestData = {
+                        url: this.MakeURL(apiPath),
+                        headers: {
+                            'Cookie' : this.credentials.Cookiestring()
+                        },
+                        body: {},
+                        json: true
+                    }
+
+                    BlisDebug.LogRequest("POST",apiPath, requestData);
+                    request.post(requestData, (error, response, body) => {
+                        if (error) {
+                            reject(error);
+                        }
+                        else if (response.statusCode >= 300) {
+                            reject(response);
+                        }
+                        else {
+                            var teachResponse = deserialize(TeachResponse, body);
+                            resolve(teachResponse);
+                        }
+                    });
+                }
+            )
+        }
+
+        /** Retrieves information about the specified teach */
+        public GetTeach(appId : string, teachId : string) : Promise<Teach>
+        {
+                return new Promise(
+                (resolve, reject) => {
+
+                let apiPath = `app/${appId}/teach/${teachId}`;
+                const requestData = {
+                        url: this.MakeURL(apiPath),
+                        headers: {
+                            'Cookie' : this.credentials.Cookiestring()
+                        },
+                        json: true
+                    }
+                    BlisDebug.LogRequest("GET",apiPath, requestData);
+                    request.get(requestData, (error, response, body) => {
+                        if (error) {
+                            reject(error);
+                        }
+                        else if (response.statusCode >= 300) {
+                            reject(response);
+                        }
+                        else {
+                            let teach = deserialize(Teach, body);
+                            teach.teachId = teachId;
+                            resolve(teach);
+                        }
+                    });
+                }
+            )
+        }
+
+        /** Runs entity extraction (prediction). 
+         * If a more recent version of the package is available on 
+         * the server, the session will first migrate to that newer version.  This 
+         * doesn't affect the trainDialog maintained.
+         */
+        public TeachExtract(appId : string, teachId : string, userInput : UserInput) : Promise<ExtractResponse>
+        {
+            let apiPath = `app/${appId}/teach/${teachId}/extractor`;
+
+            return new Promise(
+                (resolve, reject) => {
+                const requestData = {
+                        url: this.MakeURL(apiPath),
+                        headers: {
+                            'Cookie' : this.credentials.Cookiestring()
+                        },
+                        body: serialize(userInput),
+                        json: true
+                    }
+
+                    BlisDebug.LogRequest("PUT",apiPath, requestData);
+                    request.put(requestData, (error, response, body) => {
+                        if (error) {
+                            reject(error);
+                        }
+                        else if (response.statusCode >= 300) {
+                            reject(response);
+                        }
+                        else {
+                            var extractResponse = deserialize(ExtractResponse, body);
+                            resolve(extractResponse);
                         }
                     });
                 }
@@ -1093,7 +1267,7 @@ export class BlisClient {
          * ie "commits" an entity extraction label, appending it to the teach session's
          * trainDialog, and advancing the dialog. This may yield produce a new package.
          */
-        public ExtractResponse(appId : string, teachId : string, extractorStep : ExtractorStep) : Promise<string>
+        public TeachExtractFeedback(appId : string, teachId : string, extractorStep : TrainExtractorStep) : Promise<TeachResponse>
         {
             let apiPath = `app/${appId}/teach/${teachId}/extractor`;
 
@@ -1117,23 +1291,22 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            resolve(body);
+                            var teachResponse = deserialize(TeachResponse, body);
+                            resolve(teachResponse);
                         }
                     });
                 }
             )
         }
 
-        /** Takes a turn.  
-         * For Train sessions, if a more recent version of the package is 
+        /** Takes a turn and return distribution over actions.
+         * If a more recent version of the package is 
          * available on the server, the session will first migrate to that newer version.  
          * This doesn't affect the trainDialog maintained by the teaching session.
          */
-        public Score(appId : string, sessionId : string, sessionType : string, scorerInput : ScorerInput) : Promise<string>
+        public TeachScore(appId : string, teachId : string, scorerInput : ScoreInput) : Promise<TeachResponse>
         {
-            let apiPath = (sessionType == "teach") ?
-                `app/${appId}/teach/${sessionId}/scorer` :
-                `app/${appId}/session/${sessionId}/scorer`;
+            let apiPath = `app/${appId}/teach/${teachId}/scorer`;
 
             return new Promise(
                 (resolve, reject) => {
@@ -1155,7 +1328,8 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            resolve(body);
+                            var scoreResponse = deserialize(TeachResponse, body);
+                            resolve(scoreResponse);
                         }
                     });
                 }
@@ -1166,7 +1340,7 @@ export class BlisClient {
          * – ie "commits" a scorer label, appending it to the teach session's 
          * trainDialog, and advancing the dialog. This may yield produce a new package.
          */
-        public ScoreResponse(appId : string, teachId : string, scorerResponse : ScorerResponse) : Promise<string>
+        public TeachScoreFeedback(appId : string, teachId : string, scorerResponse : TrainScorerStep) : Promise<TeachResponse>
         {
             let apiPath = `app/${appId}/teach/${teachId}/scorer`;
 
@@ -1190,22 +1364,21 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            resolve(body);
+                            var teachResponse = deserialize(TeachResponse, body);
+                            resolve(teachResponse);
                         }
                     });
                 }
             )
         }
 
-        /** Ends a session.  
+        /** Ends a teach.   
          * For Teach sessions, does NOT delete the associated trainDialog.
          * To delete the associated trainDialog, call DELETE on the trainDialog.
          */
-        public EndSession(appId : string, sessionId : string, sessionType : string) : Promise<string>
+        public EndTeach(appId : string, teachId : string) : Promise<TrainResponse>
         {
-            let apiPath = (sessionType == "teach") ?
-                `app/${appId}/teach/${sessionId}` :
-                `app/${appId}/session/${sessionId}`;
+            let apiPath = `app/${appId}/teach/${teachId}`;
 
             return new Promise(
                 (resolve, reject) => {
@@ -1225,7 +1398,8 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            resolve(body);
+                            var trainResponse = deserialize(TrainResponse, body);
+                            resolve(trainResponse);
                         }
                     });
                 }

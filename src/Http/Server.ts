@@ -5,7 +5,7 @@ import { BlisApp } from '../Model/BlisApp';
 import { Action } from '../Model/Action';
 import { Entity } from '../Model/Entity';
 import { TrainDialog } from '../Model/TrainDialog'
-import { ExtractorStep, ScorerResponse } from '../Model/TrainDialog'
+import { TrainExtractorStep, TrainScorerStep } from '../Model/TrainDialog'
 import { deserialize, serialize } from 'json-typescript-mapper';
 
 export class Server {
@@ -675,20 +675,118 @@ export class Server {
         // Sessions & Training
         //========================================================
 
-            /** Uploads a labeled entity extraction instance
-             * ie "commits" an entity extraction label, appending it to the teach session's
-             * trainDialog, and advancing the dialog. This may yield produce a new package.
-             */
-            this.server.post("/app/:appId/teach/${sessionId}/extractor", async (req, res, next) =>
+        /** Creates a new session and a corresponding logDialog */
+        this.server.post("/app/:appId/session", async (req, res, next) =>
+            {
+                try
+                {
+                    this.InitClient();  // TEMP
+
+                    let appId = req.params.appId;
+                    let response = await BlisClient.client.StartSession(appId);
+                    res.send(response);
+                }
+                catch (error)
+                {
+                    res.send(error.statusCode, Server.ErrorMessage(error));
+                }
+            }
+        );
+
+        /** Retrieves information about the specified session */
+        this.server.get("/app/:appId/teach/:sessionId", async (req, res, next) =>
+            {
+                try
+                {
+                    this.InitClient();  // TEMP
+
+                    let appId = req.params.appId;
+                    let sessionId = req.params.sessionId;
+                    let response = await BlisClient.client.GetSession(appId, sessionId);
+                    res.send(response); 
+                }
+                catch (error)
+                {
+                    res.send(error.statusCode, Server.ErrorMessage(error));
+                }
+            }
+        );
+
+        /** End a session. */
+        this.server.del("/app/:appId/session/:sessionId", async (req, res, next) =>
+            {
+                let appId = req.params.appId;
+                let sessionId = req.params.sessionId;
+
+                this.InitClient();  // TEMP
+
+                try
+                {
+                    let response = await BlisClient.client.EndSession(appId, sessionId);
+                    res.send(response);
+                }
+                catch (error)
+                {
+                    res.send(error.statusCode, Server.ErrorMessage(error));
+                }
+            }
+        );
+
+        //========================================================
+        // Teach
+        //========================================================
+            
+            /** Creates a new teaching session and a corresponding trainDialog */
+            this.server.post("/app/:appId/teach", async (req, res, next) =>
                 {
                     try
                     {
                         this.InitClient();  // TEMP
 
                         let appId = req.params.appId;
-                        let sessionId = req.params.sessionId;
-                        let extractorStep = deserialize(ExtractorStep, req.body);
-                        let response = await BlisClient.client.ExtractResponse(appId, sessionId, extractorStep);
+                        let response = await BlisClient.client.StartTeach(appId);
+                        res.send(response);
+                    }
+                    catch (error)
+                    {
+                        res.send(error.statusCode, Server.ErrorMessage(error));
+                    }
+                }
+            );
+
+            /** Retrieves information about the specified teach */
+            this.server.get("/app/:appId/teach/:teachId", async (req, res, next) =>
+                {
+                    try
+                    {
+                        this.InitClient();  // TEMP
+
+                        let appId = req.params.appId;
+                        let teachId = req.params.teachId;
+                        let response = await BlisClient.client.GetTeach(appId, teachId);
+                        res.send(response); 
+                    }
+                    catch (error)
+                    {
+                        res.send(error.statusCode, Server.ErrorMessage(error));
+                    }
+                }
+            );
+
+            /** Uploads a labeled entity extraction instance
+             * ie "commits" an entity extraction label, appending it to the teach session's
+             * trainDialog, and advancing the dialog. This may yield produce a new package.
+             */
+            this.server.post("/app/:appId/teach/:teachId/extractor", async (req, res, next) =>
+                {
+                    try
+                    {
+                        this.InitClient();  // TEMP
+
+                        let appId = req.params.appId;
+                        let teachId = req.params.teachId;
+                        let extractorStep = deserialize(TrainExtractorStep, req.body);
+                        let response = await BlisClient.client.TeachExtractFeedback(appId, teachId, extractorStep);
                         res.send(response);
                     }
                     catch (error)
@@ -702,16 +800,45 @@ export class Server {
              * – ie "commits" a scorer label, appending it to the teach session's 
              * trainDialog, and advancing the dialog. This may yield produce a new package.
              */
-            this.server.post("/app/:appId/teach/${sessionId}/scorer", async (req, res, next) =>
+            this.server.post("/app/:appId/teach/:teachId/scorer", async (req, res, next) =>
                 {
                     try
                     {
                         this.InitClient();  // TEMP
 
                         let appId = req.params.appId;
-                        let sessionId = req.params.sessionId;
-                        let scorerResponse = deserialize(ScorerResponse, req.body);
-                        let response = await BlisClient.client.ScoreResponse(appId, sessionId, scorerResponse);
+                        let teachId = req.params.teachId;
+                        let scorerResponse = deserialize(TrainScorerStep, req.body);
+                        let response = await BlisClient.client.TeachScoreFeedback(appId, teachId, scorerResponse);
+                        res.send(response);
+                    }
+                    catch (error)
+                    {
+                        res.send(error.statusCode, Server.ErrorMessage(error));
+                    }
+                }
+            );
+
+            /** Ends a teach.   
+             * For Teach sessions, does NOT delete the associated trainDialog.
+             * To delete the associated trainDialog, call DELETE on the trainDialog.
+             */
+            this.server.del("/app/:appId/teach/:teachId", async (req, res, next) =>
+                {
+                    let appId = req.params.appId;
+                    let teachId = req.params.teachId;
+    
+                    if (!teachId)
+                    {
+                        res.send(400, Error("Missing Entity Id"));
+                        return;
+                    }
+
+                    this.InitClient();  // TEMP
+
+                    try
+                    {
+                        let response = await BlisClient.client.EndTeach(appId, teachId);
                         res.send(response);
                     }
                     catch (error)
