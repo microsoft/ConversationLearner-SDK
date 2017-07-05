@@ -136,6 +136,16 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         }
     }
     
+    /** Receive input from user and returns a socre */
+    public recognize(reginput: builder.IRecognizeContext, recCb: (error: Error, result: IBlisResult) => void): void 
+    {  
+        // Always recognize, but score is less than 1.0 so prompts can still win
+        var result: IBlisResult = { recognizer: this, score: 0.4, intent: null, entities : null };
+
+        // Send callback
+        recCb(null, result);
+    }
+
     public LoadUser(session: builder.Session, 
                         cb : (responses: (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], context: BlisContext) => void )
     {
@@ -145,7 +155,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     }
 
     /** Send result to user */
-    private SendResult(recsess : RecSession, responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], intent? : string, entities?: builder.IEntity[]  ) 
+    private SendResult_v1(recsess : RecSession, responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], intent? : string, entities?: builder.IEntity[]  ) 
     {
         if (!responses && !intent)
         {
@@ -160,7 +170,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     }
 
     /** Process result before sending to user */
-    private async ProcessResult(recsess : RecSession, responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], intent : string, entities: builder.IEntity[], teachAction?: string, actionData? : string) 
+    private async ProcessResult_v1(recsess : RecSession, responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], intent : string, entities: builder.IEntity[], teachAction?: string, actionData? : string) 
     {
         // Some commands require taking a post command TeachAction (if user is in teach mode)
         let memory = recsess.context.Memory();
@@ -181,10 +191,10 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                     .then(async (takeTurnResponse) => 
                     {
                         // Continue teach session
-                        await this.TakeTurnCallback(recsess, takeTurnResponse);
+                        await this.TakeTurnCallback_v1(recsess, takeTurnResponse);
                     })
                     .catch((error) => {
-                        this.SendResult(recsess, [error])
+                        this.SendResult_v1(recsess, [error])
                     });
             }
             else if (teachAction == TeachAction.PICKACTION && actionData != null)
@@ -199,20 +209,20 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                     {
                         // Take the next turn
                         BlisDebug.Log("TT: Retrain", "flow");
-                        await this.TakeTurn(recsess, recsess.userInput, actionData);
+                        await this.TakeTurn_v1(recsess, recsess.userInput, actionData);
                     })
                     .catch((error) => {
-                        this.SendResult(recsess, [error])
+                        this.SendResult_v1(recsess, [error])
                     });             
             }
         }
         else 
         {
-            this.SendResult(recsess, responses, intent, entities);
+            this.SendResult_v1(recsess, responses, intent, entities);
         }
     }
 
-    private async TakeTurnCallback(recsess : RecSession, ttResponse : TakeTurnResponse, error? : string) : Promise<void> 
+    private async TakeTurnCallback_v1(recsess : RecSession, ttResponse : TakeTurnResponse, error? : string) : Promise<void> 
     { 
         BlisDebug.Verbose("TakeTurnCallback");
         let memory = recsess.context.Memory();
@@ -221,7 +231,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         if (error)
         {
             let responses = Menu.AddEditCards(recsess.context, [error]);
-            await this.ProcessResult(recsess, responses, null, null);
+            await this.ProcessResult_v1(recsess, responses, null, null);
             return;
         }
 
@@ -230,11 +240,11 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         if (ttResponse.mode == TakeTurnModes.TEACH)
         {
             if (ttResponse.teachStep == TeachStep.LABELENTITY) {
-                await this.ProcessLabelEntity(recsess, ttResponse, responses);
+                await this.ProcessLabelEntity_v1(recsess, ttResponse, responses);
             }
             else if (ttResponse.teachStep == TeachStep.LABELACTION)
             {
-                await this.ProcessLabelAction(recsess, ttResponse, responses);
+                await this.ProcessLabelAction_v1(recsess, ttResponse, responses);
             }
             else
             {
@@ -283,12 +293,12 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
 
         if (responses && responses.length > 0)
         {
-            await this.ProcessResult(recsess, responses, null, null);
+            await this.ProcessResult_v1(recsess, responses, null, null);
         }
     }
 
     /** Process Label Entity Training Step */
-    private async ProcessLabelEntity(recsess : RecSession, ttResponse : TakeTurnResponse, responses: (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[]) : Promise<void>
+    private async ProcessLabelEntity_v1(recsess : RecSession, ttResponse : TakeTurnResponse, responses: (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[]) : Promise<void>
     {
         BlisDebug.Verbose("ProcessLabelEntity");
 
@@ -349,7 +359,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     }
 
     /** Process Label Action Training Step */
-    private async ProcessLabelAction(recsess : RecSession, ttResponse : TakeTurnResponse, responses: (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[]) : Promise<void>
+    private async ProcessLabelAction_v1(recsess : RecSession, ttResponse : TakeTurnResponse, responses: (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[]) : Promise<void>
     {
         BlisDebug.Verbose("ProcessLabelEntity");
 
@@ -408,16 +418,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         }              
     }
 
-    public recognize(reginput: builder.IRecognizeContext, recCb: (error: Error, result: IBlisResult) => void): void 
-    {  
-        // Always recognize, but score is less than 1.0 so prompts can still win
-        var result: IBlisResult = { recognizer: this, score: 0.4, intent: null, entities : null };
-
-        // Send callback
-        recCb(null, result);
-    }
-
-    public invoke(session: builder.Session, recCb: (error: Error, result: IBlisResponse) => void): void 
+    public invoke_v1(session: builder.Session, recCb: (error: Error, result: IBlisResponse) => void): void 
     {    
         try
         {  
@@ -451,7 +452,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                     if (Command.IsHelpCommand(userInput))
                     {
                         let help = BlisHelp.Get(userInput);
-                        await this.ProcessResult(recsess, help, null, null);
+                        await this.ProcessResult_v1(recsess, help, null, null);
                         return;
                     }
 
@@ -461,7 +462,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                         CommandHandler.HandleCueCommand(context, userInput, 
                             async (responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], teachAction: string, actionData : string) => 
                             {
-                                await this.ProcessResult(recsess, responses, null, null, teachAction, actionData);
+                                await this.ProcessResult_v1(recsess, responses, null, null, teachAction, actionData);
                             });
                         return;
                     }
@@ -470,7 +471,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                     {
                         CommandHandler.ProcessCueCommand(context, userInput, async (responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], teachAction: string, actionData : string) => 
                             {
-                                await this.ProcessResult(recsess, responses, null, null, teachAction, actionData);
+                                await this.ProcessResult_v1(recsess, responses, null, null, teachAction, actionData);
                             });
                         return;
                     }
@@ -480,7 +481,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                         CommandHandler.HandleLineCommand(context, userInput, 
                             async (responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], teachAction: string, actionData : string) => 
                             {
-                                await this.ProcessResult(recsess, responses, null, null, teachAction, actionData);
+                                await this.ProcessResult_v1(recsess, responses, null, null, teachAction, actionData);
                             });
                         return;
                     }
@@ -488,7 +489,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                         CommandHandler.HandleIntCommand(context, userInput, 
                             async (responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], teachAction: string, actionData: string) => 
                             {
-                                await this.ProcessResult(recsess, responses, null, null, teachAction, actionData);
+                                await this.ProcessResult_v1(recsess, responses, null, null, teachAction, actionData);
                             });
                             return;
                     }
@@ -499,7 +500,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                         // If error was thrown will be in responses
                         if (!responses) responses = [];
                         responses = responses.concat(Menu.AppPanel('No App Loaded','Load or Create one'));
-                        await this.ProcessResult(recsess, responses, null, null);
+                        await this.ProcessResult_v1(recsess, responses, null, null);
                         return;
                     }
                     // No session
@@ -509,7 +510,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                         // If prev error was thrown will be in responses
                         if (!responses) responses = [];
                         responses = responses.concat(Menu.Home("The app has not been started"));
-                        await this.ProcessResult(recsess, responses, null, null);
+                        await this.ProcessResult_v1(recsess, responses, null, null);
                         return;
                     }
                     else 
@@ -525,19 +526,19 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                                 if (!choices[userInput])
                                 {
                                     let msg = "Please select one of the action from above or click 'Add Action' for a new Action";
-                                    await this.ProcessResult(recsess, [msg], null, null, );
+                                    await this.ProcessResult_v1(recsess, [msg], null, null, );
                                     return;
                                 }
                                 // Convert numeric choice to actionId
                                 let actionId = choices[userInput];
                                 await memory.TrainHistory().SetLastStep(SaveStep.CHOICES, null);
                                 BlisDebug.Log("TT: Choose Action", "flow");
-                                await this.TakeTurn(recsess, null, actionId);
+                                await this.TakeTurn_v1(recsess, null, actionId);
                             }
                             else
                             {
                                 BlisDebug.Log("TT: Choose Action", "flow");
-                                await this.TakeTurn(recsess, userInput, null);
+                                await this.TakeTurn_v1(recsess, userInput, null);
                             }
                         }
                         // If not in teach mode remember last user input
@@ -545,7 +546,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                         {
                             await memory.TrainHistory().SetLastStep(SaveStep.INPUT, userInput);  
                             BlisDebug.Log("TT: Main", "flow");
-                            await this.TakeTurn(recsess, userInput, null);
+                            await this.TakeTurn_v1(recsess, userInput, null);
                         }
                     } 
                 }
@@ -553,7 +554,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                 {
                     Utils.SendMessage(context, "Importing application...");
                     BlisAppContent.ImportAttachment(context, session.message.attachments[0] , async (text) => {
-                        await this.ProcessResult(recsess, [text], null, null);
+                        await this.ProcessResult_v1(recsess, [text], null, null);
                     }); 
                     return;
                 }
@@ -584,7 +585,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         });
     }
 
-    public async TakeTurn(recsess : RecSession, input : string | TakeTurnRequest, actionId : string) : Promise<void>
+    public async TakeTurn_v1(recsess : RecSession, input : string | TakeTurnRequest, actionId : string) : Promise<void>
     {
         BlisDebug.Verbose("TakeTurn");
 
@@ -597,7 +598,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         {
             let card = Menu.AppPanel("No Application has been loaded..");
             let response = this.ErrorResponse(card[0]);
-            await this.TakeTurnCallback(recsess, response);
+            await this.TakeTurnCallback_v1(recsess, response);
             return;
         }
         let modelId = await  memory.BotState().ModelId();
@@ -605,7 +606,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         if (!modelId  && !inTeach)
         {
             let response = this.ErrorResponse(Menu.Home("This application needs to be trained first."));
-            await this.TakeTurnCallback(recsess, response);
+            await this.TakeTurnCallback_v1(recsess, response);
             return;
         }
 
@@ -613,7 +614,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         if (!sessionId)
         {
             let response = this.ErrorResponse(Menu.Home("The app has not been started"));
-            await this.TakeTurnCallback(recsess, response);
+            await this.TakeTurnCallback_v1(recsess, response);
             return;
         }
 
@@ -647,7 +648,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             if (!takeTurnResponse.mode || expectedNextModes.indexOf(takeTurnResponse.mode) < 0)
             {
                 var response = new TakeTurnResponse({ mode : TakeTurnModes.ERROR, error: `Unexpected mode ${takeTurnResponse.mode}`} );
-                await this.TakeTurnCallback(recsess, response);
+                await this.TakeTurnCallback_v1(recsess, response);
                 return; 
             }
 
@@ -665,12 +666,12 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                     takeTurnRequest = await this.PromisifyLC(this.DefaultLuisCallback, takeTurnResponse.originalText, takeTurnResponse.entities, memory);
                 }
                 BlisDebug.Log("TT: Post LC", "flow");
-                await this.TakeTurn(recsess, takeTurnRequest, null);
+                await this.TakeTurn_v1(recsess, takeTurnRequest, null);
             }
             // TEACH
             else if (takeTurnResponse.mode == TakeTurnModes.TEACH)
             {
-                await this.TakeTurnCallback(recsess, takeTurnResponse);
+                await this.TakeTurnCallback_v1(recsess, takeTurnResponse);
                 return;
             }
 
@@ -682,7 +683,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
 
                 if (action.actionType == ActionTypes_v1.TEXT)
                 {
-                    await this.TakeTurnCallback(recsess, takeTurnResponse);
+                    await this.TakeTurnCallback_v1(recsess, takeTurnResponse);
 
                     // Is this the last itteration?
                     if (!action.waitAction)
@@ -692,7 +693,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                         let takeTurnRequest = new TakeTurnRequest({entities: entityIds});
                         expectedNextModes = [TakeTurnModes.ACTION, TakeTurnModes.TEACH];
                         BlisDebug.Log("TT: Action Text", "flow");
-                        await this.TakeTurn(recsess, takeTurnRequest, null);
+                        await this.TakeTurn_v1(recsess, takeTurnRequest, null);
                     }
                     else if (inTeach)
                     {
@@ -715,7 +716,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                         let [intentName] = args.split(' ');
                         let iArgs = Utils.RemoveWords(args, 1);
                         let entities = await memory.BotMemory().GetEntities(iArgs);
-                        await this.ProcessResult(recsess, null, intentName, entities);
+                        await this.ProcessResult_v1(recsess, null, intentName, entities);
                         await memory.TrainHistory().SetStep(SaveStep.APICALLS, `${intentName} ${entities}`);
                         return;
                     }
@@ -749,7 +750,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                         {
                             expectedNextModes = [TakeTurnModes.ACTION, TakeTurnModes.TEACH];
                             BlisDebug.Log("TT: API", "flow");
-                            await this.TakeTurn(recsess, takeTurnRequest, null);
+                            await this.TakeTurn_v1(recsess, takeTurnRequest, null);
                         }      
                         else if (inTeach)
                         {
@@ -762,14 +763,14 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                     else 
                     {
                         let response = this.ErrorResponse(`API ${apiName} not defined`);
-                        await this.TakeTurnCallback(recsess, response);
+                        await this.TakeTurnCallback_v1(recsess, response);
                     }
                 }
             }
         }
         catch (error) {
             let errMsg = BlisDebug.Error(error); 
-            await this.TakeTurnCallback(recsess, null, errMsg);
+            await this.TakeTurnCallback_v1(recsess, null, errMsg);
         }
     }
 
@@ -779,8 +780,8 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     private async CallAzureFuncCB(context : BlisContext, memory : BlisMemory, args : string) : Promise<TakeTurnRequest>
     {
         // Disallow repetative API calls in case BLIS gets stuck TODO
-   /*     var lastResponse = memory.TrainHistory().LastStep(SaveStep.RESPONSE);
-        if (lastResponse == args)
+        /*     var lastResponse = memory.TrainHistory().LastStep(SaveStep.RESPONSE);
+     if (lastResponse == args)
         {
             return;
         }*/
