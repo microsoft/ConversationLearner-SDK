@@ -41,6 +41,16 @@ export class Server {
 
         this.server.use(restify.bodyParser());
 
+        //CORS
+        this.server.use(restify.CORS());
+        this.server.opts(/.*/, (req, res, next) => {
+            res.header("Access-Control-Allow-Origin", "*");
+            res.header("Access-Control-Allow-Methods", "*");
+            res.header("Access-Control-Allow-Headers", "*");
+            res.send(200);
+            return next();
+        });
+
         this.server.listen(5000, (err) =>
         {
             if (err)
