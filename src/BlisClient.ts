@@ -1,22 +1,25 @@
 const request = require('request');
+import { 
+        ActionBase, ActionList, ActionIdList, 
+        BlisAppList, 
+        EntityMetaData, EntityList, EntityIdList, 
+        LogDialog, LogDialogList, LogDialogIdList, 
+        TrainDialog, TrainResponse, TrainDialogList, TrainDialogIdList, 
+        Session, 
+        UserInput, 
+        ExtractResponse, 
+        ScoreInput, ScoreResponse, 
+        TeachResponse, Teach, 
+        TrainExtractorStep, TrainScorerStep 
+    } from 'blis-models';
 import { deserialize, serialize } from 'json-typescript-mapper';
 import { Credentials } from './Http/Credentials';
-import { Action, Action_v1, ActionMetaData_v1 } from './Model/Action'
-import { ActionMetaData, ActionList, ActionIdList } from './NPM/Action'
+import { Action, Action_v1, ActionMetaData_v1 } from './Model/Action';
 import { Dialog_v1, TrainDialog_v1 } from './Model/TrainDialog'
-import { TrainDialog, TrainDialogList, TrainDialogIdList, TrainResponse, TrainExtractorStep, TrainScorerStep } from './NPM/TrainDialog'
-import { LogDialog, LogDialogList, LogDialogIdList } from './NPM/LogDialog'
 import { BlisApp_v1, BlisApp} from './Model/BlisApp'
-import { BlisAppList } from './NPM/BlisApp'
 import { BlisAppContent } from './Model/BlisAppContent'
 import { Entity, Entity_v1, EntityMetaData_v1 } from './Model/Entity'
-import { EntityMetaData, EntityList, EntityIdList } from './NPM/Entity'
 import { TakeTurnModes, ActionTypes_v1, APICalls } from './Model/Consts';
-import { Teach, TeachResponse } from './NPM/Teach'
-import { ScoreInput, ScoreResponse } from './NPM/Score'
-import { ExtractResponse } from './NPM/Extract'
-import { Session } from './NPM/Session'
-import { UserInput } from './NPM/UserInput';
 import { BlisMemory } from './BlisMemory';
 import { BlisDebug } from './BlisDebug';
 import * as NodeCache from 'node-cache';

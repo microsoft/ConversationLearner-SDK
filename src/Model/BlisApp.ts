@@ -1,11 +1,11 @@
 import * as builder from 'botbuilder';
+import { BlisAppBase } from 'blis-models'
 import { deserialize } from 'json-typescript-mapper';
 import { BlisDebug} from '../BlisDebug';
 import { BlisClient, BlisClient_v1 } from '../BlisClient';
 import { TakeTurnModes, EntityTypes, TeachStep, ActionTypes_v1, APICalls, ActionCommand } from '../Model/Consts';
 import { IntCommands, LineCommands, HelpCommands } from './Command';
 import { BlisHelp } from '../Model/Help'; 
-import { BlisAppBase, BlisAppMetaData } from '../NPM/BlisApp'; 
 import { BlisMemory } from '../BlisMemory';
 import { Action_v1 } from '../Model/Action';
 import { Utils } from '../Utils';import { JsonProperty } from 'json-typescript-mapper';

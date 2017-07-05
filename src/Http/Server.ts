@@ -4,7 +4,7 @@ import { BlisClient} from '../BlisClient';
 import { BlisApp } from '../Model/BlisApp';
 import { Action } from '../Model/Action';
 import { Entity } from '../Model/Entity';
-import { TrainDialog, TrainExtractorStep, TrainScorerStep  } from '../NPM/TrainDialog'
+import { TrainDialog, TrainExtractorStep, TrainScorerStep  } from 'blis-models'
 
 import { deserialize, serialize } from 'json-typescript-mapper';
 

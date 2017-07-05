@@ -1,6 +1,6 @@
 import * as builder from 'botbuilder';
 import { JsonProperty } from 'json-typescript-mapper';
-import { ActionBase } from '../NPM/Action';  
+import { ActionBase } from 'blis-models';  
 import { BlisHelp } from '../Model/Help'; 
 import { BlisApp_v1 } from '../Model/BlisApp'; 
 import { AdminResponse } from '../Model/AdminResponse'; 
