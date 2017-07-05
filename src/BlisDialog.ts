@@ -4,6 +4,7 @@ import { BlisDebug } from './BlisDebug';
 import { Utils } from './Utils';
 import { Menu } from './Menu';
 import { BlisMemory } from './BlisMemory';
+import { BlisClient } from './BlisClient';
 import { EditableResponse } from './Model/EditableResponse';
 import { BlisContext} from './BlisContext';
 import { BLIS_INTENT_WRAPPER } from './Model/Consts';
@@ -11,14 +12,16 @@ import { BLIS_INTENT_WRAPPER } from './Model/Consts';
 
 export class BlisDialog extends builder.Dialog {
 
+    protected blisClient : BlisClient;
+
     private recognizers: builder.IntentRecognizerSet;
 
-    constructor(private options: IBlisOptions) {
+    constructor(private bot : builder.UniversalBot, private options: IBlisOptions) {
         super();
-        // LARS TEMP options.intentThreshold = 0.05;
         this.recognizers = new builder.IntentRecognizerSet(options);
     }
 
+    /** Called when a new reply message has been received from a user. */
     public async replyReceived(session: builder.Session, recognizeResult?: builder.IIntentRecognizerResult): Promise<void> 
     {
         if (!recognizeResult) {
@@ -42,6 +45,8 @@ export class BlisDialog extends builder.Dialog {
         }
     }
 
+    /** Parses the users utterance and assigns a score from 0.0 - 1.0 indicating
+     * how confident the dialog is that it understood the users utterance.  */
     public recognize(context: builder.IRecognizeContext, cb: (error: Error, result: IBlisResult) => void): void {
         this.recognizers.recognize(context, cb);
     }
@@ -53,9 +58,16 @@ export class BlisDialog extends builder.Dialog {
     }
 
     private invokeAnswer(session: builder.Session, recognizeResult: builder.IIntentRecognizerResult): void {
+        let context = new BlisContext(this.bot, session);
+
+        // Send utterance to server for entity extraction
+        
+    }
+
+    private invokeAnswer_v1(session: builder.Session, recognizeResult: builder.IIntentRecognizerResult): void {
 
         var blisResult = recognizeResult as IBlisResult;
-        blisResult.recognizer.invoke(session, (err, blisResponse) =>
+        blisResult.recognizer.invoke_v1(session, (err, blisResponse) =>
         { 
             if (err)
             { 
@@ -141,7 +153,6 @@ export class BlisDialog extends builder.Dialog {
             }
         });
     }
-
 
 	private emitError(session: builder.Session, err: Error): void {
 		var m = err.toString();
