@@ -4,8 +4,8 @@ import { BlisClient} from '../BlisClient';
 import { BlisApp } from '../Model/BlisApp';
 import { Action } from '../Model/Action';
 import { Entity } from '../Model/Entity';
-import { TrainDialog } from '../Model/TrainDialog'
-import { TrainExtractorStep, TrainScorerStep } from '../Model/TrainDialog'
+import { TrainDialog, TrainExtractorStep, TrainScorerStep  } from '../NPM/TrainDialog'
+
 import { deserialize, serialize } from 'json-typescript-mapper';
 
 export class Server {

@@ -7,6 +7,7 @@ import { BlisApp_v1 } from '../Model/BlisApp';
 import { BlisAppContent } from '../Model/BlisAppContent';
 import { BlisMemory } from '../BlisMemory';
 import { Utils } from '../Utils';
+import { EntityBase, EntityMetaData } from '../NPM/Entity';
 import { IntCommands, LineCommands, CueCommands } from './Command';
 import { Menu } from '../Menu';
 import { JsonProperty } from 'json-typescript-mapper';
@@ -14,297 +15,8 @@ import { BlisContext } from '../BlisContext';
 import { EditableResponse } from './EditableResponse';
 import { AdminResponse } from './AdminResponse'; 
 
-export class EntityMetaData
-{
-    @JsonProperty('isBucket')  
-    public isBucket : boolean;
-        
-    /** If set, has a negative and positive version */
-    @JsonProperty('isReversable')  
-    public isReversable : boolean;
 
-    /** If Negatable, the Id of negative entity associates with this Entity */
-    @JsonProperty('negativeId')  
-    public negativeId : string;
-
-    /** If a Negative, Id of positive entity associated with this Entity */
-    @JsonProperty('positiveId')  
-    public positiveId : string;
-
-    public constructor(init?:Partial<EntityMetaData>)
-    {
-        this.isBucket = false;
-        this.isReversable = false;
-        this.negativeId = undefined;
-        this.positiveId = undefined;
-        (<any>Object).assign(this, init);
-    }
-
-    /** Make negate of given metadata */
-    public MakeNegative(posId : string) : EntityMetaData
-    {
-        return new EntityMetaData({ isBucket : this.isBucket, negativeId : null, positiveId : posId});
-    }
-
-}
-
-export class EntityMetaData_v1
-{
-    @JsonProperty('bucket')  
-    public bucket : boolean;
-        
-    /** If set, has a negative and positive version */
-    @JsonProperty('reversable')  
-    public reversable : boolean;
-
-    /** If Negatable, the Id of negative entity associates with this Entity */
-    @JsonProperty('negative')  
-    public negative : string;
-
-    /** If a Negative, Id of positive entity associated with this Entity */
-    @JsonProperty('positive')  
-    public positive : string;
-
-    /** Optional: Task (entityId) associated with this entity */
-    @JsonProperty('task')  
-    public task : string;
-
-    @JsonProperty('version')  
-    public version : number;
-
-    @JsonProperty('packageCreationId')  
-    public packageCreationId : number;
-
-    @JsonProperty('packageDeletionId')  
-    public packageDeletionId : number;
-
-    public constructor(init?:Partial<EntityMetaData_v1>)
-    {
-        this.bucket = false;
-        this.reversable = false;
-        this.negative = undefined;
-        this.positive = undefined;
-        this.task = undefined;
-        this.version = undefined;
-        this.packageCreationId = undefined;
-        this.packageDeletionId = undefined;
-        (<any>Object).assign(this, init);
-    }
-
-    /** Make negate of given metadata */
-    public MakeNegative(posId : string) : EntityMetaData_v1
-    {
-        return new EntityMetaData_v1({ bucket : this.bucket, negative : null, positive : posId, task: this.task});
-    }
-
-}
-
-export class Entity {
-    @JsonProperty('entityId')
-    public entityId : string;
-
-    @JsonProperty('entityName')
-    public entityName : string;
-
-    @JsonProperty('entityType')
-    public entityType : string;
-
-    @JsonProperty('version')
-    public version : number;
-
-    @JsonProperty('packageCreationId')
-    public packageCreationId : number;
-
-    @JsonProperty('packageDeletionId')
-    public packageDeletionId : number;
-
-    @JsonProperty({clazz: EntityMetaData, name: 'metadata'})
-    public metadata : EntityMetaData;
-
-    public constructor(init?:Partial<Entity>)
-    {
-        this.entityId = undefined;
-        this.entityName = undefined;
-        this.entityType = undefined;
-        this.version = undefined;
-        this.packageCreationId = undefined;
-        this.packageDeletionId = undefined;
-        this.metadata = undefined;
-        (<any>Object).assign(this, init);
-    }
-
-    public static async Add(appId : string, key : string, entity: Entity) : Promise<AdminResponse>
-    {
-         BlisDebug.Log(`Trying to Add Entity ${entity.Description}`);
-
-        try 
-        {
-            if (!entity.entityName)
-            {  
-                return AdminResponse.Error(`You must provide an entity name for the entity to create.`);
-            }
-
-            let memory = BlisMemory.GetMemory(key);
-            if (appId != await memory.BotState().AppId())
-            {
-                BlisDebug.Log("Adding Action to diff app than in memory", "warning");
-            }
-
-            let changeType = "";
-            let negName = Entity.NegativeName(entity.entityName);
-            if (entity.entityId)
-            {
-                // Get old entity
-                let oldEntity = await BlisClient.client.GetEntity(appId, entity.entityId, null);
-                let oldNegName = Entity.NegativeName(oldEntity.entityName);
-
-                // Note: Entity Type cannot be changed.  Use old type.
-                entity.entityType = oldEntity.entityType; 
-
-                // Update Entity with an existing Negation
-                if (oldEntity.metadata.negativeId)
-                {
-                    let oldNegId = await memory.EntityLookup().ToId(oldNegName);
-                    if (entity.metadata.isReversable)
-                    {
-                        // Update Positive
-                        entity.metadata = new EntityMetaData({isBucket : entity.metadata.isBucket, negativeId : oldNegId});
-                        await BlisClient.client.EditEntity(appId, entity);
-                        await memory.EntityLookup().Add(entity.entityName, entity.entityId);
-
-                        // Update Negative
-                        let oldEntity = await BlisClient.client.GetEntity(appId, oldNegId, null);
-                        oldEntity.metadata = new EntityMetaData({isBucket : entity.metadata.isBucket, positiveId : entity.entityId});
-                        await BlisClient.client.EditEntity(appId, oldEntity);
-                        await memory.EntityLookup().Add(negName, oldNegId);
-                    }
-                    else
-                    {
-                        // Update Positive
-                        entity.metadata = new EntityMetaData({isBucket : entity.metadata.isBucket, negativeId : null});
-                        await BlisClient.client.EditEntity(appId, entity);
-                        await memory.EntityLookup().Add( entity.entityName, entity.entityId);
-
-                        // Delete Negative
-                        await BlisClient.client.DeleteEntity(appId, oldNegId);
-                        await memory.EntityLookup().Remove(oldNegName); 
-                    } 
-                }
-                // Update Entity with new Negation
-                else if (entity.metadata.isReversable)
-                {
-                    // Add Negative Entity
-                    let negEntity = new Entity({
-                        entityType : entity.entityType,
-                        entityName : negName,
-                        metadata : new EntityMetaData({isBucket : entity.metadata.isBucket, positiveId : oldEntity.entityId})
-                    });
-                    let newNegId = await BlisClient.client.AddEntity(appId, negEntity);
-                    await memory.EntityLookup().Add(negName, newNegId);
-
-                    // Update Positive
-                    entity.metadata = new EntityMetaData({isBucket : entity.metadata.isBucket, negativeId : newNegId});
-                    await BlisClient.client.EditEntity(appId, entity);
-                    await memory.EntityLookup().Add(entity.entityName, entity.entityId);
-                 }
-                else
-                {
-                    // Update Positive
-                    entity.metadata = new EntityMetaData({isBucket : entity.metadata.isBucket});
-                    await BlisClient.client.EditEntity(appId, entity);
-                    await memory.EntityLookup().Add(entity.entityName, entity.entityId);
-                }
-            }
-            else
-            {
-                let entityId = await BlisClient.client.AddEntity(appId, entity);
-                await memory.EntityLookup().Add(entity.entityName, entityId);
-
-                if (entity.metadata.isReversable)
-                {
-                    // Add Negative Entity
-                    let negEntity = new Entity({
-                        entityType : entity.entityType,
-                        entityName : negName,
-                        metadata : entity.metadata
-                    });
-                    negEntity.metadata.positiveId = entity.entityId;
-                    let newNegId = await BlisClient.client.AddEntity(appId, negEntity);
-                    await memory.EntityLookup().Add(negName, newNegId);
-
-                    // Update Positive Reference
-                    entity.metadata.negativeId = newNegId;
-                    await BlisClient.client.EditEntity(appId, entity);
-                }
-            }
-        }
-        catch (error) {
-            let errMsg = BlisDebug.Error(error); 
-            return AdminResponse.Error(errMsg);
-        }
-
-        // V2 TODO - this should happen elsewhere with new training flow
-        /*
-        try
-        {
-            // Retrain the model with the new entity
-            let modelId = await BlisClient.client.TrainModel(appId);
-            context.SetState(UserStates.MODEL, modelId);
-        }
-        catch (error)()
-        {
-            // Error here is fine.  Will trigger if entity is added with no actions
-            return;
-        }
-        */
-    } 
-
-     /** Delete Entity with the given entityId **/
-    public static async Delete(appId : string, key : string, entityId : string) : Promise<AdminResponse>
-    {
-       BlisDebug.Log(`Trying to Delete Entity`);
-
-        if (!entityId)
-        {
-            return AdminResponse.Error(`You must provide the ID of the entity to delete.`);
-        }
-
-        try
-        {     
-            let memory = BlisMemory.GetMemory(key);
-
-            let appId = await memory.BotState().AppId();
-            let entity = await BlisClient.client.GetEntity(appId, entityId, null);
- 
-            // Make sure we're not trying to delete a negative entity
-            if (entity.metadata && entity.metadata.positiveId)
-            {
-                throw new Error("Can't delete a reversable Entity directly");
-            }
-
-           let inUse = await entity.InUse(appId);
-
-            if (inUse)
-            {
-                return AdminResponse.Error(`Delete Failed ${entity.entityName}.  Entity is being used by App`);
-            }
-            await BlisClient_v1.client.DeleteEntity(appId, entityId)
-            await memory.EntityLookup().Remove(entity.entityName);
-
-            // If there's an associated negative entity, delete it too
-            if (entity.metadata && entity.metadata.negativeId)
-            {
-                let negEntity = await entity.GetNegativeEntity(appId);
-                await BlisClient_v1.client.DeleteEntity(appId, entity.metadata.negativeId);
-                await memory.EntityLookup().Remove(negEntity.entityName); 
-            }   
-        }
-        catch (error)
-        {
-            let errMsg = BlisDebug.Error(error); 
-            return AdminResponse.Error(errMsg);
-        }
-    }
+export class Entity extends EntityBase {
 
     /** Get all actions **/
     public static async Get(key : string, search : string) : Promise<AdminResponse>
@@ -429,28 +141,57 @@ export class Entity {
     }
 }
 
-export class EntityList
-{
-    @JsonProperty({clazz: Entity, name: 'entities'})
-    public entities : Entity[];
+//======================================================================================
 
-    public constructor(init?:Partial<EntityList>)
+export class EntityMetaData_v1
+{
+    @JsonProperty('bucket')  
+    public bucket : boolean;
+        
+    /** If set, has a negative and positive version */
+    @JsonProperty('reversable')  
+    public reversable : boolean;
+
+    /** If Negatable, the Id of negative entity associates with this Entity */
+    @JsonProperty('negative')  
+    public negative : string;
+
+    /** If a Negative, Id of positive entity associated with this Entity */
+    @JsonProperty('positive')  
+    public positive : string;
+
+    /** Optional: Task (entityId) associated with this entity */
+    @JsonProperty('task')  
+    public task : string;
+
+    @JsonProperty('version')  
+    public version : number;
+
+    @JsonProperty('packageCreationId')  
+    public packageCreationId : number;
+
+    @JsonProperty('packageDeletionId')  
+    public packageDeletionId : number;
+
+    public constructor(init?:Partial<EntityMetaData_v1>)
     {
-        this.entities = undefined;
+        this.bucket = false;
+        this.reversable = false;
+        this.negative = undefined;
+        this.positive = undefined;
+        this.task = undefined;
+        this.version = undefined;
+        this.packageCreationId = undefined;
+        this.packageDeletionId = undefined;
         (<any>Object).assign(this, init);
     }
-}
 
-export class EntityIdList
-{
-    @JsonProperty('entityIds')  
-    public entityIds : string[];
-
-    public constructor(init?:Partial<EntityIdList>)
+    /** Make negate of given metadata */
+    public MakeNegative(posId : string) : EntityMetaData_v1
     {
-        this.entityIds = undefined;
-        (<any>Object).assign(this, init);
+        return new EntityMetaData_v1({ bucket : this.bucket, negative : null, positive : posId, task: this.task});
     }
+
 }
 
 export class Entity_v1
