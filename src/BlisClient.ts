@@ -1,19 +1,22 @@
 const request = require('request');
 import { deserialize, serialize } from 'json-typescript-mapper';
 import { Credentials } from './Http/Credentials';
-import { Action, ActionMetaData, ActionList, ActionIdList, Action_v1, ActionMetaData_v1 } from './Model/Action'
-import { TrainExtractorStep, TrainScorerStep, Dialog_v1, TrainDialog_v1 } from './Model/TrainDialog'
-import { LogDialog, LogDialogList, LogDialogIdList } from './Model/LogDialog'
-import { TrainDialog, TrainDialogList, TrainDialogIdList, TrainResponse } from './Model/TrainDialog'
-import { BlisApp_v1, BlisApp, BlisAppList } from './Model/BlisApp'
+import { Action, Action_v1, ActionMetaData_v1 } from './Model/Action'
+import { ActionMetaData, ActionList, ActionIdList } from './NPM/Action'
+import { Dialog_v1, TrainDialog_v1 } from './Model/TrainDialog'
+import { TrainDialog, TrainDialogList, TrainDialogIdList, TrainResponse, TrainExtractorStep, TrainScorerStep } from './NPM/TrainDialog'
+import { LogDialog, LogDialogList, LogDialogIdList } from './NPM/LogDialog'
+import { BlisApp_v1, BlisApp} from './Model/BlisApp'
+import { BlisAppList } from './NPM/BlisApp'
 import { BlisAppContent } from './Model/BlisAppContent'
-import { Entity, EntityMetaData, EntityList, EntityIdList, Entity_v1, EntityMetaData_v1 } from './Model/Entity'
+import { Entity, Entity_v1, EntityMetaData_v1 } from './Model/Entity'
+import { EntityMetaData, EntityList, EntityIdList } from './NPM/Entity'
 import { TakeTurnModes, ActionTypes_v1, APICalls } from './Model/Consts';
-import { Teach, TeachResponse } from './Model/Teach'
-import { ScoreInput, ScoreResponse } from './Model/Score'
-import { ExtractResponse } from './Model/Extract'
-import { Session } from './Model/Session'
-import { UserInput } from './Model/UserInput';
+import { Teach, TeachResponse } from './NPM/Teach'
+import { ScoreInput, ScoreResponse } from './NPM/Score'
+import { ExtractResponse } from './NPM/Extract'
+import { Session } from './NPM/Session'
+import { UserInput } from './NPM/UserInput';
 import { BlisMemory } from './BlisMemory';
 import { BlisDebug } from './BlisDebug';
 import * as NodeCache from 'node-cache';

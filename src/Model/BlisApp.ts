@@ -5,6 +5,7 @@ import { BlisClient, BlisClient_v1 } from '../BlisClient';
 import { TakeTurnModes, EntityTypes, TeachStep, ActionTypes_v1, APICalls, ActionCommand } from '../Model/Consts';
 import { IntCommands, LineCommands, HelpCommands } from './Command';
 import { BlisHelp } from '../Model/Help'; 
+import { BlisAppBase, BlisAppMetaData } from '../NPM/BlisApp'; 
 import { BlisMemory } from '../BlisMemory';
 import { Action_v1 } from '../Model/Action';
 import { Utils } from '../Utils';import { JsonProperty } from 'json-typescript-mapper';
@@ -15,45 +16,8 @@ import { Menu } from '../Menu';
 import { EditableResponse } from './EditableResponse';
 import { AdminResponse } from './AdminResponse';
 
-export class BlisAppMetaData
+export class BlisApp extends BlisAppBase
 {
-    @JsonProperty('botFrameworkApps')  
-    public botFrameworkApps : string[];
-
-    public constructor(init?:Partial<BlisAppMetaData>)
-    {
-        this.botFrameworkApps = undefined;
-        (<any>Object).assign(this, init);
-    }
-}
-
-export class BlisApp
-{
-    @JsonProperty('appName')
-    public appName : string;
-
-    @JsonProperty('appId')
-    public appId : string;
-
-    @JsonProperty('luisKey')
-    public luisKey : string;
-
-    @JsonProperty('locale')
-    public locale : string;
-
-    @JsonProperty({clazz: BlisAppMetaData, name: 'metadata'})
-    public metadata : BlisAppMetaData;
-
-    public constructor(init?:Partial<BlisApp>)
-    {
-        this.appName = undefined;
-        this.appId = undefined;
-        this.luisKey = undefined;
-        this.locale = undefined;
-        this.metadata = undefined;
-        (<any>Object).assign(this, init);
-    }
-
     public static async Delete(appId : string, key : string) : Promise<AdminResponse>
     {
        BlisDebug.Log(`Trying to Delete Application`);
@@ -219,18 +183,7 @@ export class BlisApp
     }
 }
 
-export class BlisAppList
-{
-    @JsonProperty('apps')  
-    public apps : BlisApp[];
-
-    public constructor(init?:Partial<BlisAppList>)
-    {
-        this.apps = undefined;
-        (<any>Object).assign(this, init);
-    }
-}
-
+//================================================
 export class BlisApp_v1
 {
     @JsonProperty('app-name')

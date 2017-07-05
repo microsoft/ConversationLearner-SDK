@@ -1,5 +1,6 @@
 import * as builder from 'botbuilder';
 import { JsonProperty } from 'json-typescript-mapper';
+import { ActionBase } from '../NPM/Action';  
 import { BlisHelp } from '../Model/Help'; 
 import { BlisApp_v1 } from '../Model/BlisApp'; 
 import { AdminResponse } from '../Model/AdminResponse'; 
@@ -13,114 +14,9 @@ import { Menu } from '../Menu';
 import { BlisContext } from '../BlisContext';
 import { EditableResponse } from './EditableResponse';
 
-export class ActionMetaData
+export class Action extends ActionBase
 {
-    // APIType
-    @JsonProperty('actionType')  
-    public actionType : string;
-
-    public constructor(init?:Partial<ActionMetaData>)
-    {
-        this.actionType = undefined;
-        (<any>Object).assign(this, init);
-    }
-
-    public Equal(metaData : ActionMetaData) : boolean
-    {
-        if (this.actionType != metaData.actionType) return false;
-        return true;
-    }
-}
-
-export class ActionMetaData_v1
-{
-    // APIType
-    @JsonProperty('type')  
-    public type : string;
-
-    @JsonProperty('version')  
-    public version : number;
-
-    @JsonProperty('packageCreationId')  
-    public packageCreationId : number;
-
-    @JsonProperty('packageDeletionId')  
-    public packageDeletionId : number;
-
-    public constructor(init?:Partial<ActionMetaData_v1>)
-    {
-        this.type = undefined;
-        this.version = undefined;
-        this.packageCreationId = undefined;
-        this.packageDeletionId = undefined;
-        (<any>Object).assign(this, init);
-    }
-
-    public Equal(metaData : ActionMetaData_v1) : boolean
-    {
-        if (this.type != metaData.type) return false;
-        return true;
-    }
-}
-
-class ActionSet
-{
-    public negIds : string[] = [];
-    public posIds : string[] = [];
-    public negNames : string[] = [];
-    public posNames : string[] = [];
-    public saveId : string;
-    public saveName : string;
-    public waitAction : boolean;
-
-    constructor(public actionType : string)
-    {}
-}
-
-
-export class Action
-{
-    @JsonProperty('actionId')
-    public actionId : string;
-
-    @JsonProperty('payload')
-    public payload : string;
-
-    @JsonProperty('isTerminal')
-    public isTerminal : boolean;
-
-    @JsonProperty('requiredEntities')
-    public requiredEntities : string[];
-
-    @JsonProperty('negativeEntities')
-    public negativeEntities : string[];
-
-    @JsonProperty('version')
-    public version : number;
-
-    @JsonProperty('packageCreationId')
-    public packageCreationId : number;
-
-    @JsonProperty('packageDeletionId')
-    public packageDeletionId : number;
-
-    @JsonProperty({clazz: ActionMetaData, name: 'metadata'})
-    public metadata : ActionMetaData;
-
-    public constructor(init?:Partial<Action>)
-    {
-        this.actionId = undefined;
-        this.payload = undefined;
-        this.isTerminal = undefined;
-        this.requiredEntities = undefined;
-        this.negativeEntities = undefined;
-        this.version = undefined;
-        this.packageCreationId = undefined;
-        this.packageDeletionId = undefined;
-        this.metadata = new ActionMetaData();
-        (<any>Object).assign(this, init);
-    } 
-
+  
     /** Returns true if content of action is equal */
     /** ID, version and package do not matter      */
     public Equal(action : Action) : boolean
@@ -138,49 +34,6 @@ export class Action
             if (action.requiredEntities.indexOf(reqEntity) < 0) return false;
         }
         return this.metadata.Equal(action.metadata);
-    }
-
-    public static async Add(appId : string, action : Action) : Promise<AdminResponse>
-    {
-        let actionId = await BlisClient.client.AddAction(appId, action); 
-        return AdminResponse.Result(actionId);
-    }
-
-    public static async Edit(appId : string, action : Action) : Promise<AdminResponse>
-    {
-        let actionId = await BlisClient.client.EditAction(appId, action); 
-        return AdminResponse.Result(actionId);
-    }
-
-    /** Delete Action with the given actionId */
-    public static async Delete(appId : string, actionId : string) : Promise<AdminResponse>
-    {
-        BlisDebug.Log(`Trying to Delete Action`);
-
-        try
-        {    
-            if (!actionId)
-            {
-                return AdminResponse.Error(`You must provide the ID of the action to delete.`);
-            }
-
-            let action = await BlisClient.client.GetAction(appId, actionId, null);  
-            let inUse = await action.InUse(appId);
-
-            if (inUse)
-            {
-                let msg = `Delete Failed ${action.payload} is being used by App`;
-                return AdminResponse.Error(msg);
-            }
-
-            // TODO clear savelookup
-            await BlisClient_v1.client.DeleteAction(appId, actionId)
-        }
-        catch (error)
-        {
-            let errMsg = BlisDebug.Error(error); 
-            return AdminResponse.Error(errMsg);
-        }
     }
 
     /** Get actions. */
@@ -275,27 +128,50 @@ export class Action
     }
 }
 
-export class ActionList
-{
-    @JsonProperty('actions')  
-    public actions : Action[];
+//===========================================================
 
-    public constructor(init?:Partial<ActionList>)
-    {
-        this.actions = undefined;
-        (<any>Object).assign(this, init);
-    }
+class ActionSet_v1
+{
+    public negIds : string[] = [];
+    public posIds : string[] = [];
+    public negNames : string[] = [];
+    public posNames : string[] = [];
+    public saveId : string;
+    public saveName : string;
+    public waitAction : boolean;
+
+    constructor(public actionType : string)
+    {}
 }
 
-export class ActionIdList
+export class ActionMetaData_v1
 {
-    @JsonProperty('actionIds')  
-    public actionIds : string[];
+    // APIType
+    @JsonProperty('type')  
+    public type : string;
 
-    public constructor(init?:Partial<ActionIdList>)
+    @JsonProperty('version')  
+    public version : number;
+
+    @JsonProperty('packageCreationId')  
+    public packageCreationId : number;
+
+    @JsonProperty('packageDeletionId')  
+    public packageDeletionId : number;
+
+    public constructor(init?:Partial<ActionMetaData_v1>)
     {
-        this.actionIds = undefined;
+        this.type = undefined;
+        this.version = undefined;
+        this.packageCreationId = undefined;
+        this.packageDeletionId = undefined;
         (<any>Object).assign(this, init);
+    }
+
+    public Equal(metaData : ActionMetaData_v1) : boolean
+    {
+        if (this.type != metaData.type) return false;
+        return true;
     }
 }
 
@@ -334,90 +210,6 @@ export class Action_v1
         this.waitAction = undefined;
         this.metadata = new ActionMetaData_v1();
         (<any>Object).assign(this, init);
-    }
-
-    public TOV2() : Action
-    {
-        let metadataV2 = new ActionMetaData();
-        if (this.actionType == ActionTypes_v1.API)
-        {
-            if (this.metadata.type == APITypes_v1.AZURE)
-            {
-                metadataV2.actionType = ActionTypes.API_AZURE;
-            }
-            else if (this.metadata.type == APITypes_v1.INTENT)
-            {
-                metadataV2.actionType = ActionTypes.INTENT;
-            }
-            else
-            {
-                metadataV2.actionType = ActionTypes.API_LOCAL;
-            }
-        } 
-        else if (this.actionType == ActionTypes_v1.CARD)
-        {
-            metadataV2.actionType = ActionTypes.CARD;
-        }
-        else
-        {
-            metadataV2.actionType = ActionTypes.INTENT;
-        }
-        
-        return new Action
-        ({
-            actionId : this.id,
-            payload : this.content,
-            isTerminal : this.waitAction,
-            requiredEntities : this.requiredEntities,
-            negativeEntities : this.negativeEntities,
-            version : this.metadata.version,
-            packageCreationId : this.metadata.packageCreationId,
-            packageDeletionId : this.metadata.packageDeletionId,
-            metadata : metadataV2
-        });
-    }
-
-    static TOV1(action : Action) : Action_v1
-    {
-        let metadataV1 = new ActionMetaData_v1();
-        let actionType = undefined;
-        switch (action.metadata.actionType)
-        {
-            case (ActionTypes.API_AZURE):
-                actionType = ActionTypes_v1.API;
-                metadataV1.type = APITypes_v1.AZURE;
-                break;
-            case (ActionTypes.API_LOCAL):
-                actionType = ActionTypes_v1.API;
-                metadataV1.type = APITypes_v1.LOCAL;
-                break;
-            case (ActionTypes.CARD):
-                actionType = ActionTypes_v1.CARD;
-                metadataV1.type = undefined;
-                break;
-            case (ActionTypes.INTENT):
-                actionType = ActionTypes_v1.API;
-                metadataV1.type = APITypes_v1.INTENT;
-                break;
-            case (ActionTypes.TEXT):
-                actionType = ActionTypes_v1.TEXT;
-                metadataV1.type = undefined;
-                break;
-        }
-        metadataV1.version = action.version;
-        metadataV1.packageCreationId = action.packageCreationId;
-        metadataV1.packageDeletionId = action.packageDeletionId;
-       
-        return new Action_v1
-        ({
-            id : action.actionId,
-            actionType : actionType,
-            content : action.payload,
-            negativeEntities : action.negativeEntities,
-            requiredEntities : action.requiredEntities,
-            waitAction : action.isTerminal,
-            metadata : metadataV1
-        });
     }
 
     public Equal_v1(action : Action_v1) : boolean
@@ -534,7 +326,7 @@ export class Action_v1
         return buttons;
     }
 
-    private static async ProcessCommandString(context: BlisContext, actionSet : ActionSet, commandString : string) : Promise<string>
+    private static async ProcessCommandString(context: BlisContext, actionSet : ActionSet_v1, commandString : string) : Promise<string>
     {
         if (!commandString) return;
         
@@ -594,7 +386,7 @@ export class Action_v1
         }
     }
 
-    private static async ProcessResponse(context: BlisContext, actionSet : ActionSet, responseString : string) : Promise<string>
+    private static async ProcessResponse(context: BlisContext, actionSet : ActionSet_v1, responseString : string) : Promise<string>
     {
         // Ignore bracketed text
         responseString = Action_v1.IgnoreBrackets(responseString);
@@ -629,7 +421,7 @@ export class Action_v1
         }
     }
 
-    private static async ProcessSuggestion(context: BlisContext, actionSet : ActionSet, word : string) : Promise<string>
+    private static async ProcessSuggestion(context: BlisContext, actionSet : ActionSet_v1, word : string) : Promise<string>
     {
         let memory = context.Memory();
 
@@ -716,7 +508,7 @@ export class Action_v1
                 }
             }
 
-            let actionSet = new ActionSet(actionType);
+            let actionSet = new ActionSet_v1(actionType);
 
             // Non INTENT API actions default to not-wait, TEXT actions to wait for user input
             actionSet.waitAction = (actionType == ActionTypes_v1.API && apiType != APITypes_v1.INTENT) ? false : true;
@@ -740,8 +532,8 @@ export class Action_v1
 
             let changeType = (actionType == ActionTypes_v1.TEXT) ? "Response" : (apiType = APITypes_v1.INTENT) ? "Intent Call" : "API Call"
             if (actionId) 
-            {
-                let metaData = new ActionMetaData(
+            {/* V1
+              let metaData = new ActionMetaData(
                     {
                         actionType : actionType
                     }
@@ -757,9 +549,10 @@ export class Action_v1
 
                 actionId = await BlisClient.client.EditAction(appId, editAction);
                 changeType = changeType + ` Edited`;
+                */
             }
             else 
-            {
+            { /* v1
                 let metadata = new ActionMetaData({actionType : apiType});
 
                 let newAction = new Action({
@@ -771,6 +564,7 @@ export class Action_v1
                 });
                 actionId = await BlisClient.client.AddAction(appId, newAction);
                 changeType = changeType + ` Created`;
+                */
             }
             let substr = actionSet.waitAction ? " (WAIT)" : "";;
             if (actionSet.posIds.length > 0) 
