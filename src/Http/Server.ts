@@ -1,4 +1,5 @@
 var restify = require('restify');
+var corsMiddleware = require('restify-cors-middleware')
 import { BlisDebug} from '../BlisDebug';
 import { BlisClient} from '../BlisClient';
 import { BlisApp } from '../Model/BlisApp';
@@ -40,6 +41,14 @@ export class Server {
         this.server = restify.createServer();
 
         this.server.use(restify.bodyParser());
+
+        
+        let cors = corsMiddleware({
+            origins: ['*'],
+            allowHeaders: ['*']
+        })
+        this.server.pre(cors.preflight)
+        this.server.use(cors.actual)
 
         this.server.listen(5000, (err) =>
         {

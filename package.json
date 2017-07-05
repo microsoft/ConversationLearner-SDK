@@ -22,6 +22,7 @@
     "redis": "^2.7.1",
     "request": "^2.79.0",
     "restify": "^4.3.0",
+    "restify-cors-middleware": "^1.0.0",
     "swagger-client": "^2.1.32",
     "tslib": "^1.5.0"
   },
