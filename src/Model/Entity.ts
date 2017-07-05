@@ -7,7 +7,7 @@ import { BlisApp_v1 } from '../Model/BlisApp';
 import { BlisAppContent } from '../Model/BlisAppContent';
 import { BlisMemory } from '../BlisMemory';
 import { Utils } from '../Utils';
-import { EntityBase, EntityMetaData } from '../NPM/Entity';
+import { EntityBase, EntityMetaData } from 'blis-models';
 import { IntCommands, LineCommands, CueCommands } from './Command';
 import { Menu } from '../Menu';
 import { JsonProperty } from 'json-typescript-mapper';
