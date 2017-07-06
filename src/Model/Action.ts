@@ -6,7 +6,7 @@ import { BlisApp_v1 } from '../Model/BlisApp';
 import { AdminResponse } from '../Model/AdminResponse'; 
 import { BlisDebug} from '../BlisDebug';
 import { BlisClient, BlisClient_v1 } from '../BlisClient';
-import { TakeTurnModes, EntityTypes, TeachStep, ActionTypes, ActionTypes_v1, APICalls, ActionCommand, APITypes_v1 } from '../Model/Consts';
+import { TakeTurnModes, EntityTypes, TeachStep, ActionTypes_v1, APICalls, ActionCommand, APITypes_v1 } from '../Model/Consts';
 import { IntCommands, LineCommands, CueCommands } from './Command';
 import { BlisMemory } from '../BlisMemory';
 import { Utils } from '../Utils';

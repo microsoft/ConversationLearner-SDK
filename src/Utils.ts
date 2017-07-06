@@ -78,6 +78,17 @@ export class Utils  {
     }
 
     /** Send an out of band message */
+    public static SendTextMessage(context : BlisContext, content : string)
+    { 
+        let message = new builder.Message()
+			.address(context.Address())
+            .text(content);
+       
+        context.session.send(message);
+    }
+
+
+    /** Send an out of band message */
     public static SendMessage(context : BlisContext, content : string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)
     { 
         let message = new builder.Message()

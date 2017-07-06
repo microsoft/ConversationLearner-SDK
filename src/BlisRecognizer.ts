@@ -16,12 +16,9 @@ import { BlisHelp } from './Model/Help';
 import { TakeTurnResponse } from './Model/TakeTurnResponse'
 import { Utils } from './Utils';
 import { Menu } from './Menu';
-import { Server } from './Http/Server';
 import { CommandHandler } from './CommandHandler'
 import { AzureFunctions } from './AzureFunctions'
 import { EditableResponse } from './Model/EditableResponse';
-
-export interface FunctionMap { [name: string] : (context : BlisContext, memory : BlisMemory, args : string) => Promise<TakeTurnRequest>; }
 
 export interface IBlisResult extends builder.IIntentRecognizerResult {
    recognizer: BlisRecognizer;
@@ -33,47 +30,13 @@ export interface IBlisResponse {
     entities?: builder.IEntity[]; 
 }
 
-export interface IBlisOptions extends builder.IIntentRecognizerSetOptions {
-    // URL for BLIS service
-    serviceUri: string;
-
-    // BLIS User Name
-    user: string;
-
-    // BLIS Secret
-    secret: string;
-
-    // BLIS application to employ
-    appId?: string; 
-
-    redisServer: string;
-
-    redisKey: string;
-
-    // Optional callback than runs after LUIS but before BLIS.  Allows Bot to substitute entities
-    luisCallback? : (text: string, luisEntities : LabelEntity_v1[], memory : BlisMemory, done : (ttr : TakeTurnRequest) => void) => void;
-
-    // Optional callback that runs after BLIS is called but before the Action is rendered
-    blisCallback? : (text : string, memory : BlisMemory, done : (text : string) => void) => void;
-
-    // Mappting between API names and functions
-    apiCallbacks? : { string : () => TakeTurnRequest };
-
-    // End point for Azure function calls
-    azureFunctionsUrl? : string;
-
-    // Key for Azure function calls (optional)
-    azureFunctionsKey? : string;
-
-    // Optional connector, required for downloading train dialogs
-    connector? : builder.ChatConnector;
-}
-
 class RecSession
 {
     constructor(public context : BlisContext, public userInput : string , public recCb: (error: Error, result: IBlisResponse) => void)
     {}
 }
+
+export interface FunctionMap_v1 { [name: string] : (context : BlisContext, memory : BlisMemory, args : string) => Promise<TakeTurnRequest>; }
 
 export class BlisRecognizer implements builder.IIntentRecognizer {
     protected blisClient : BlisClient_v1;
@@ -90,52 +53,8 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     private apiCallbacks : { string : () => TakeTurnRequest };
 
     // Mappting between prebuild API names and functions
-    private intApiCallbacks : FunctionMap = {};
-    
-    constructor(private bot : builder.UniversalBot, options: IBlisOptions){
-        this.init(options);
-        BlisDebug.InitLogger(bot);
-    }
+    private intApiCallbacks : FunctionMap_v1 = {};
 
-    private async init(options: IBlisOptions) {
-        try {
-            BlisDebug.Log("Creating client....");
-            BlisClient_v1.Init(options.serviceUri, options.user, options.secret, options.azureFunctionsUrl, options.azureFunctionsKey);
-            BlisMemory.Init(options.redisServer, options.redisKey);
-            this.luisCallback = options.luisCallback;
-            this.apiCallbacks = options.apiCallbacks;
-            this.intApiCallbacks[APICalls.SETTASK] = this.SetTaskCB;
-            this.intApiCallbacks[APICalls.AZUREFUNCTION] = this.CallAzureFuncCB;
-            this.connector = options.connector;
-            this.defaultApp = options.appId;
-            this.blisCallback = options.blisCallback;
-
-            Server.Init();
-
-            // Create a wrapper for handling intent calls during training 
-            // This allows prompt for next input after intent call is done
-            this.bot.dialog(BLIS_INTENT_WRAPPER,
-            [
-                function(session, wrappedIntent)
-                {
-                    session.beginDialog(wrappedIntent.intent, wrappedIntent.entities);
-                },
-                function(session)
-                {
-                    var card = Utils.MakeHero(null, null, "Type next user input for this Dialog or" , 
-                    { "Dialog Complete" : IntCommands.DONETEACH});
-                    let message = new builder.Message(session)
-			            .addAttachment(card);
-                    session.send(message);
-                    session.endDialog();
-                }
-            ]);
-        }
-        catch (error) {
-            BlisDebug.Error(error);
-        }
-    }
-    
     /** Receive input from user and returns a socre */
     public recognize(reginput: builder.IRecognizeContext, recCb: (error: Error, result: IBlisResult) => void): void 
     {  
@@ -146,11 +65,11 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         recCb(null, result);
     }
 
-    public LoadUser(session: builder.Session, 
+    public LoadUser_v1(session: builder.Session, 
                         cb : (responses: (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[], context: BlisContext) => void )
     {
         // TODO - move invoke contents here
-            let context = new BlisContext(this.bot, session);
+            let context = new BlisContext(/*this.bot*/ null, session);
             cb(null, context);
     }
 
@@ -268,7 +187,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             }
             else
             {
-                outText = await this.PromisifyBC(this.DefaultBlisCallback, output, memory);
+                outText = await this.PromisifyBC(this.DefaultBlisCallback_v1, output, memory);
             }
 
             if (inTeach)
@@ -428,7 +347,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
             }
 
             let address = session.message.address;
-            this.LoadUser(session, async (responses, context) => {
+            this.LoadUser_v1(session, async (responses, context) => {
 
                 let memory = context.Memory();
 
@@ -445,7 +364,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
 
                 if (session.message.text) 
                 {
-                    Utils.SendTyping(this.bot, address);
+                    // Utils.SendTyping(this.bot, address);
                     BlisDebug.SetAddress(address);   
 
                     // HELP
@@ -663,7 +582,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
                 }
                 else
                 {
-                    takeTurnRequest = await this.PromisifyLC(this.DefaultLuisCallback, takeTurnResponse.originalText, takeTurnResponse.entities, memory);
+                    takeTurnRequest = await this.PromisifyLC(this.DefaultLuisCallback_v1, takeTurnResponse.originalText, takeTurnResponse.entities, memory);
                 }
                 BlisDebug.Log("TT: Post LC", "flow");
                 await this.TakeTurn_v1(recsess, takeTurnRequest, null);
@@ -829,7 +748,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         return new TakeTurnResponse({ mode : TakeTurnModes.ERROR, error: error});
     }
 
-    public async DefaultLuisCallback(text: string, entities : LabelEntity_v1[], memory : BlisMemory, done : (takeTurnRequest : TakeTurnRequest)=> void) : Promise<void>
+    public async DefaultLuisCallback_v1(text: string, entities : LabelEntity_v1[], memory : BlisMemory, done : (takeTurnRequest : TakeTurnRequest)=> void) : Promise<void>
     {
         // Update entities in my memory
         for (var entity of entities)
@@ -863,7 +782,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         done(ttr);
     }
 
-    private async DefaultBlisCallback(text: string, memory : BlisMemory, done : (text: string)=> void) : Promise<void>
+    private async DefaultBlisCallback_v1(text: string, memory : BlisMemory, done : (text: string)=> void) : Promise<void>
     {
         let outText = await memory.BotMemory().Substitute(text);
         done(outText);
