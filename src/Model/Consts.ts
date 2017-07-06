@@ -9,15 +9,6 @@ export const TakeTurnModes =
     ERROR : "error"
 }
 
-export const ActionTypes =
-{
-    TEXT : "TEXT",
-    API_LOCAL : "API_LOCAL",
-    API_AZURE : "API_AZURE",
-    INTENT : "INTENT",
-    CARD : "CARD"
-}
-
 export const ActionTypes_v1 =
 {
     TEXT : "text",

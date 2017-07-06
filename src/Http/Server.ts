@@ -40,6 +40,7 @@ export class Server {
         this.server = restify.createServer();
 
         this.server.use(restify.bodyParser());
+        this.server.use(restify.queryParser());
 
         this.server.listen(5000, (err) =>
         {
@@ -754,7 +755,9 @@ export class Server {
                 {
                     this.InitClient();  // TEMP
 
+                    let query = req.getQuery();
                     let appId = req.params.appId;
+                    let key = req.params.key;
                     let response = await BlisClient.client.StartSession(appId);
                     res.send(response);
                 }
