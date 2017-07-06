@@ -7,6 +7,7 @@ import { TrainHistory } from './Memory/TrainHistory';
 import { EntityLookup } from './Memory/EntityLookup';
 import { BotMemory } from './Memory/BotMemory';
 import { BotState } from './Memory/BotState';
+import { KeyGen } from 'blis-models'
 
 var redis = require("redis");
 
@@ -43,7 +44,7 @@ export class BlisMemory {
     // Generate memory key from session
     public static SessionKey(session : builder.Session) : string 
     {
-        return Utils.HashCode(JSON.stringify(session.message.address.user)).toString();
+        return KeyGen.MakeKey(JSON.stringify(session.message.address.user));
     }
 
     private Key(datakey : string) : string {

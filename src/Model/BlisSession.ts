@@ -35,7 +35,7 @@ export class BlisSession
         }
     }
 
-    public static async NewSession(context : BlisContext, teach : boolean, cb : (results : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[]) => void) : Promise<void>
+    public static async NewSession_v1(context : BlisContext, teach : boolean, cb : (results : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[]) => void) : Promise<void>
     {
        BlisDebug.Log(`Trying to create new session, Teach = ${teach}`);
 

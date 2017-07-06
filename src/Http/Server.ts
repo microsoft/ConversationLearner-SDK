@@ -1,10 +1,12 @@
 var restify = require('restify');
-import { BlisDebug} from '../BlisDebug';
-import { BlisClient} from '../BlisClient';
+import { BlisDebug } from '../BlisDebug';
+import { BlisClient } from '../BlisClient';
+import { BlisDialog } from '../BlisDialog'
+import { BlisMemory } from '../BlisMemory';
 import { BlisApp } from '../Model/BlisApp';
 import { Action } from '../Model/Action';
 import { Entity } from '../Model/Entity';
-import { TrainDialog, TrainExtractorStep, TrainScorerStep  } from 'blis-models'
+import { TrainDialog, TrainExtractorStep, TrainScorerStep, ExtractResponse  } from 'blis-models'
 
 import { deserialize, serialize } from 'json-typescript-mapper';
 
@@ -744,8 +746,12 @@ export class Server {
                     let query = req.getQuery();
                     let key = req.params.key;
                     let appId = req.params.appId;
-                    let response = await BlisClient.client.StartSession(appId);
-                    res.send(response);
+                    let sessionResponse = await BlisClient.client.StartSession(appId);
+                    res.send(sessionResponse);
+
+                    // Update Memory
+                    let memory = BlisMemory.GetMemory(key);
+                    memory.StartSession(sessionResponse.sessionId, false);
                 }
                 catch (error)
                 {
@@ -787,6 +793,10 @@ export class Server {
                     let sessionId = req.params.sessionId;
                     let response = await BlisClient.client.EndSession(appId, sessionId, query);
                     res.send(response);
+
+                    // Update Memory
+                    let memory = BlisMemory.GetMemory(key);
+                    memory.EndSession()
                 }
                 catch (error)
                 {
@@ -808,8 +818,12 @@ export class Server {
                         let query = req.getQuery();
                         let key = req.params.key;
                         let appId = req.params.appId;
-                        let response = await BlisClient.client.StartTeach(appId);
-                        res.send(response);
+                        let teachResponse = await BlisClient.client.StartTeach(appId);
+                        res.send(teachResponse);
+
+                        // Update Memory
+                        let memory = BlisMemory.GetMemory(key);
+                        memory.StartSession(teachResponse.teachId, true);
                     }
                     catch (error)
                     {
@@ -838,6 +852,32 @@ export class Server {
                 }
             );
 
+
+            /** Runs entity extraction (prediction). 
+             * If a more recent version of the package is available on 
+             * the server, the session will first migrate to that newer version.  This 
+             * doesn't affect the trainDialog maintained.
+             */
+            this.server.put("/app/:appId/teach/:teachId/extractor", async (req, res, next) =>
+                {
+                    try
+                    {
+                        this.InitClient();  // TEMP
+                        let query = req.getQuery();
+                        let key = req.params.key;
+                        let appId = req.params.appId;
+                        let teachId = req.params.teachId;
+                        let userInput = req.body;
+                        let extractResponse = await BlisClient.client.TeachExtract(appId, teachId, userInput);
+                        res.send(extractResponse);
+                    }
+                    catch (error)
+                    {
+                        res.send(error.statusCode, Server.ErrorMessage(error));
+                    }
+                }
+            );
+
             /** Uploads a labeled entity extraction instance
              * ie "commits" an entity extraction label, appending it to the teach session's
              * trainDialog, and advancing the dialog. This may yield produce a new package.
@@ -852,7 +892,36 @@ export class Server {
                         let appId = req.params.appId;
                         let teachId = req.params.teachId;
                         let extractorStep = deserialize(TrainExtractorStep, req.body);
-                        let response = await BlisClient.client.TeachExtractFeedback(appId, teachId, extractorStep);
+                        let teachResponse = await BlisClient.client.TeachExtractFeedback(appId, teachId, extractorStep);
+                        res.send(teachResponse);
+                    }
+                    catch (error)
+                    {
+                        res.send(error.statusCode, Server.ErrorMessage(error));
+                    }
+                }
+            );
+
+            /** Takes a turn and return distribution over actions.
+             * If a more recent version of the package is 
+             * available on the server, the session will first migrate to that newer version.  
+             * This doesn't affect the trainDialog maintained by the teaching session.
+             */
+            this.server.put("/app/:appId/teach/:teachId/scorer", async (req, res, next) =>
+                {
+                    try
+                    {
+                        this.InitClient();  // TEMP
+                        let query = req.getQuery();
+                        let key = req.params.key;
+                        let appId = req.params.appId;
+                        let teachId = req.params.teachId;
+                        let extractResponse = deserialize(ExtractResponse, req.body);
+
+                        // Call LUIS callback to get scoreInput
+                        let memory = BlisMemory.GetMemory(key);
+                        let scoreInput = await BlisDialog.dialog.CallLuisCallback(extractResponse.text, extractResponse.predictedEntities, memory);
+                        let response = await BlisClient.client.TeachScore(appId, teachId, scoreInput);
                         res.send(response);
                     }
                     catch (error)
@@ -875,9 +944,12 @@ export class Server {
                         let key = req.params.key;
                         let appId = req.params.appId;
                         let teachId = req.params.teachId;
-                        let scorerResponse = deserialize(TrainScorerStep, req.body);
-                        let response = await BlisClient.client.TeachScoreFeedback(appId, teachId, scorerResponse);
-                        res.send(response);
+                        let trainScorerStep = deserialize(TrainScorerStep, req.body);
+                        let teachResponse = await BlisClient.client.TeachScoreFeedback(appId, teachId, trainScorerStep);
+                        res.send(teachResponse);
+
+                        // Now take the trained action
+                        BlisDialog.dialog.TakeAction(null, trainScorerStep.scoredAction);
                     }
                     catch (error)
                     {
@@ -902,6 +974,10 @@ export class Server {
                         let teachId = req.params.teachId;
                         let response = await BlisClient.client.EndTeach(appId, teachId);
                         res.send(response);
+
+                        // Update Memory
+                        let memory = BlisMemory.GetMemory(key);
+                        memory.EndSession()
                     }
                     catch (error)
                     {
