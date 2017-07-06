@@ -50,14 +50,20 @@ export interface IBlisOptions extends builder.IIntentRecognizerSetOptions {
 
 export class BlisDialog extends builder.Dialog {
 
+    public static dialog : BlisDialog;
+
+    // Create singleton
+    public static Init(bot : builder.UniversalBot, options: IBlisOptions)
+    {
+        this.dialog = new BlisDialog(bot, options);
+    }
+
    // Optional callback than runs after LUIS but before BLIS.  Allows Bot to substitute entities
     private luisCallback? : (text: string, predictedEntities : PredictedEntity[], memory : BlisMemory) => ScoreInput;
 
     // Mapping between user defined API names and functions
     // TODO private apiCallbacks : { string : () => TakeTurnRequest };
 
-
-   // protected blisClient : BlisClient;
     private recognizers: builder.IntentRecognizerSet;
 
 
@@ -65,7 +71,7 @@ export class BlisDialog extends builder.Dialog {
     protected connector : builder.ChatConnector;
     protected defaultApp : string;
 
-    constructor(private bot : builder.UniversalBot, private options: IBlisOptions) {
+    private constructor(private bot : builder.UniversalBot, private options: IBlisOptions) {
         super();
 
         try {
@@ -80,7 +86,9 @@ export class BlisDialog extends builder.Dialog {
 
             this.luisCallback = options.luisCallback;
             //TODO this.apiCallbacks = options.apiCallbacks;
-            this.connector = options.connector;  // TODO - is this used any more?
+
+            // Optional connector, required for downloading train dialogs
+            this.connector = options.connector;  
             this.defaultApp = options.appId;
             this.blisCallback = options.blisCallback;
 
@@ -171,7 +179,7 @@ export class BlisDialog extends builder.Dialog {
         }
     }
 
-    private async TakeAction(context : BlisContext, scoredAction : ScoredAction)
+    public async TakeAction(context : BlisContext, scoredAction : ScoredAction)
     {
         let actionType = scoredAction.metadata.actionType;
 
@@ -188,7 +196,7 @@ export class BlisDialog extends builder.Dialog {
         }
     }
 
-    private async CallLuisCallback(text: string, predictedEntities : PredictedEntity[], memory : BlisMemory) : Promise<ScoreInput> {
+    public async CallLuisCallback(text: string, predictedEntities : PredictedEntity[], memory : BlisMemory) : Promise<ScoreInput> {
         let scoreInput = await this.DefaultLuisCallback(text, predictedEntities, memory);
         return scoreInput;
         /* TODO handle passed in JS func

@@ -542,15 +542,15 @@ export class CommandHandler
             }
             else if (command == LineCommands.START)
             {
-                BlisSession.NewSession(context, false, (responses) => {
+                BlisSession.NewSession_v1(context, false, (responses) => {
                     cb(responses);
                 });
             }
-            else if (command == LineCommands.TEACH)
+            else if (command == LineCommands.TEACH) 
             {
                 let memory = context.Memory();
                 await memory.TrainHistory().Clear();
-                BlisSession.NewSession(context, true, (responses) => {
+                BlisSession.NewSession_v1(context, true, (responses) => {  //DONE
                     cb(responses);
                 });
             }

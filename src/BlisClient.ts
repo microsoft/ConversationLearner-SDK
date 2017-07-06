@@ -1113,7 +1113,7 @@ export class BlisClient {
     //=============================================================================
 
         /** Creates a new session and a corresponding logDialog */
-        public StartSession(appId : string) : Promise<string>
+        public StartSession(appId : string) : Promise<Session>
         {
             let apiPath = `app/${appId}/session`;
 
@@ -1137,7 +1137,8 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            resolve(body);
+                            let session = deserialize(Session, body);
+                            resolve(session);
                         }
                     });
                 }

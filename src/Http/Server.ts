@@ -1,10 +1,12 @@
 var restify = require('restify');
-import { BlisDebug} from '../BlisDebug';
-import { BlisClient} from '../BlisClient';
+import { BlisDebug } from '../BlisDebug';
+import { BlisClient } from '../BlisClient';
+import { BlisDialog } from '../BlisDialog'
+import { BlisMemory } from '../BlisMemory';
 import { BlisApp } from '../Model/BlisApp';
 import { Action } from '../Model/Action';
 import { Entity } from '../Model/Entity';
-import { TrainDialog, TrainExtractorStep, TrainScorerStep  } from 'blis-models'
+import { TrainDialog, TrainExtractorStep, TrainScorerStep, ExtractResponse  } from 'blis-models'
 
 import { deserialize, serialize } from 'json-typescript-mapper';
 
@@ -68,8 +70,9 @@ export class Server {
             /** Retrieves information about a specific application */
             this.server.get("/app/:appId", async (req, res, next) =>
                 {
-                    let appId = req.params.appId;
-                    let query = req.getQuery();                    
+                    let query = req.getQuery();
+                    let key = req.params.key;
+                    let appId = req.params.appId;                   
 
                     this.InitClient();  // TEMP
 
@@ -93,6 +96,8 @@ export class Server {
                     {
                         this.InitClient();  // TEMP
 
+                        let query = req.getQuery();
+                        let key = req.params.key;
                         let app = deserialize(BlisApp, req.body);
                         let appId = await BlisClient.client.AddApp(app);
                         res.send(appId);
@@ -111,7 +116,8 @@ export class Server {
                     try
                     {
                         this.InitClient();  // TEMP
-
+                        let query = req.getQuery();
+                        let key = req.params.key;
                         let app = deserialize(BlisApp, req.body);
                         
                         if (!app.appId)
@@ -123,7 +129,6 @@ export class Server {
                             return next(new restify.InvalidArgumentError("AppId of object does not match URI"));
                         }
 
-                        let query = req.getQuery();
                         let appId = await BlisClient.client.EditApp(app, query);
                         res.send(appId);
                     }
@@ -137,16 +142,13 @@ export class Server {
             /** Archives an existing application */
             this.server.del("/app/:appId", async (req, res, next) =>
             {
-                    let appId = req.params.appId;
-                    if (!appId)
-                    {
-                        res.send(400, Error("Missing Application Id"));
-                        return;
-                    }
                     this.InitClient();  // TEMP
 
                     try
                     {
+                        let query = req.getQuery();
+                        let key = req.params.key;
+                        let appId = req.params.appId;
                         await BlisClient.client.ArchiveApp(appId);
                         res.send(200);
                     }
@@ -161,16 +163,13 @@ export class Server {
              * Deleting an application from the archive really destroys it – no undo. */
             this.server.del("/archive/:appId", async (req, res, next) =>
             {
-                    let appId = req.params.appId;
-                    if (!appId)
-                    {
-                        res.send(400, Error("Missing Application Id"));
-                        return;
-                    }
                     this.InitClient();  // TEMP
 
                     try
                     {
+                        let query = req.getQuery();
+                        let key = req.params.key;
+                        let appId = req.params.appId;
                         await BlisClient.client.DeleteApp(appId);
                         res.send(200);
                     }
@@ -189,6 +188,7 @@ export class Server {
                     try
                     {
                         let query = req.getQuery();
+                        let key = req.params.key;
                         let apps = await BlisClient.client.GetApps(query);
                         res.send(serialize(apps));
                     }
@@ -207,6 +207,7 @@ export class Server {
                     try
                     {
                         let query = req.getQuery();
+                        let key = req.params.key;
                         let apps = await BlisClient.client.GetArchivedApps(query);
                         res.send(serialize(apps));
                     }
@@ -219,13 +220,14 @@ export class Server {
 
             /** Moves an application from the archive to the set of active applications */
             this.server.put("/archive/:appId", async (req, res, next) =>
-                {
-                    let appId = req.params.appId;                 
-
+                {                                    
                     this.InitClient();  // TEMP
 
                     try
                     {
+                        let query = req.getQuery();
+                        let key = req.params.key;
+                        let appId = req.params.appId; 
                         let app = await BlisClient.client.RestoreApp(appId);
                         res.send(serialize(app));
                     }
@@ -241,18 +243,14 @@ export class Server {
         //========================================================
             this.server.get("/app/:appId/action/:actionId", async (req, res, next) =>
                 {
-                    let appId = req.params.appId;
-                    let actionId = req.params.actionId;
-                    let query = req.getQuery();   
-                    if (!actionId)
-                    {
-                        res.send(400, Error("Missing Action Id"));
-                        return;
-                    }
                     this.InitClient();  // TEMP
 
                     try
                     {
+                        let query = req.getQuery();
+                        let key = req.params.key;
+                        let appId = req.params.appId;
+                        let actionId = req.params.actionId;
                         let action = await BlisClient.client.GetAction(appId, actionId, query);
                         res.send(serialize(action));
                     }
@@ -269,6 +267,8 @@ export class Server {
                     {
                         this.InitClient();  // TEMP
 
+                        let query = req.getQuery();
+                        let key = req.params.key;
                         let appId = req.params.appId;
                         let action = deserialize(Action, req.body);
                         let actionId = await BlisClient.client.AddAction(appId, action);
@@ -287,6 +287,8 @@ export class Server {
                     {
                         this.InitClient();  // TEMP
 
+                        let query = req.getQuery();
+                        let key = req.params.key;
                         let appId = req.params.appId;
                         let action = deserialize(Action, req.body);
 
@@ -310,19 +312,14 @@ export class Server {
 
             this.server.del("/app/:appId/action/:actionId", async (req, res, next) =>
                 {
-                    let appId = req.params.appId;
-                    let actionId = req.params.actionId;
-    
-                    if (!actionId)
-                    {
-                        res.send(400, Error("Missing Action Id"));
-                        return;
-                    }
-
                     this.InitClient();  // TEMP
 
                     try
                     {
+                        let query = req.getQuery();
+                        let key = req.params.key;
+                        let appId = req.params.appId;
+                        let actionId = req.params.actionId;
                         await BlisClient.client.DeleteAction(appId, actionId);
                         res.send(200);
                     }
@@ -335,12 +332,13 @@ export class Server {
 
             this.server.get("/app/:appId/actions", async (req, res, next) =>
                 {
-                    let appId = req.params.appId;
-                    let query = req.getQuery();   
                     this.InitClient();  // TEMP
 
                     try
                     {
+                        let query = req.getQuery();
+                        let key = req.params.key;
+                        let appId = req.params.appId;
                         let actions = await BlisClient.client.GetActions(appId, query);
                         res.send(serialize(actions));
                     }
@@ -353,13 +351,13 @@ export class Server {
 
             this.server.get("/app/:appId/actionIds", async (req, res, next) =>
                 {
-                    let appId = req.params.appId;
-                    let query = req.getQuery();   
-
                     this.InitClient();  // TEMP
 
                     try
                     {
+                        let query = req.getQuery();
+                        let key = req.params.key;
+                        let appId = req.params.appId;
                         let actions = await BlisClient.client.GetActionIds(appId, query);
                         res.send(serialize(actions));
                     }
@@ -378,13 +376,14 @@ export class Server {
         //========================================================
 
             this.server.get("/app/:appId/entityIds", async (req, res, next) =>
-                {
-                    let appId = req.params.appId;
-                    let query = req.getQuery();    
+                {    
                     this.InitClient();  // TEMP
 
                     try
                     {
+                        let query = req.getQuery();
+                        let key = req.params.key;
+                        let appId = req.params.appId;
                         let actions = await BlisClient.client.GetEntityIds(appId, query);
                         res.send(serialize(actions));
                     }
@@ -397,19 +396,14 @@ export class Server {
 
             this.server.get("/app/:appId/entity/:entityId", async (req, res, next) =>
                 {
-                    let appId = req.params.appId;
-                    let entityId = req.params.entityId;
-                    let query = req.getQuery();    
-
-                    if (!entityId)
-                    {
-                        res.send(400, Error("Missing Entity Id"));
-                        return;
-                    }
                     this.InitClient();  // TEMP
 
                     try
                     {
+                        let query = req.getQuery();
+                        let key = req.params.key;
+                        let appId = req.params.appId;
+                        let entityId = req.params.entityId;
                         let entity = await BlisClient.client.GetEntity(appId, entityId, query);
                         res.send(serialize(entity));
                     }
@@ -425,7 +419,8 @@ export class Server {
                     try
                     {
                         this.InitClient();  // TEMP
-
+                        let query = req.getQuery();
+                        let key = req.params.key;
                         let appId = req.params.appId;
                         let entity = deserialize(Entity, req.body);
                         let entityId = await BlisClient.client.AddEntity(appId, entity);
@@ -443,7 +438,8 @@ export class Server {
                     try
                     {
                         this.InitClient();  // TEMP
-
+                        let query = req.getQuery();
+                        let key = req.params.key;
                         let appId = req.params.appId;
                         let entity = deserialize(Entity, req.body);    
 
@@ -468,19 +464,14 @@ export class Server {
 
             this.server.del("/app/:appId/entity/:entityId", async (req, res, next) =>
                 {
-                    let appId = req.params.appId;
-                    let entityId = req.params.entityId;
-    
-                    if (!entityId)
-                    {
-                        res.send(400, Error("Missing Entity Id"));
-                        return;
-                    }
-
                     this.InitClient();  // TEMP
 
                     try
                     {
+                        let query = req.getQuery();
+                        let key = req.params.key;
+                        let appId = req.params.appId;
+                        let entityId = req.params.entityId;
                         await BlisClient.client.DeleteEntity(appId, entityId);
                         res.send(200);
                     }
@@ -493,13 +484,13 @@ export class Server {
 
             this.server.get("/app/:appId/entities", async (req, res, next) =>
                 {
-                    let appId = req.params.appId;
-                    let query = req.getQuery();    
-
                     this.InitClient();  // TEMP
 
                     try
                     {
+                        let query = req.getQuery();
+                        let key = req.params.key;
+                        let appId = req.params.appId;
                         let entities = await BlisClient.client.GetEntities(appId, query);
                         res.send(serialize(entities));
                     }
@@ -512,13 +503,13 @@ export class Server {
 
             this.server.get("/app/:appId/entityIds", async (req, res, next) =>
                 {
-                    let appId = req.params.appId;
-                    let query = req.getQuery();    
-
                     this.InitClient();  // TEMP
 
                     try
                     {
+                        let query = req.getQuery();
+                        let key = req.params.key;
+                        let appId = req.params.appId;
                         let entityIds = await BlisClient.client.GetEntityIds(appId, query);
                         res.send(serialize(entityIds));
                     }
@@ -534,18 +525,14 @@ export class Server {
         //========================================================
             this.server.get("/app/:appId/logdialog/:logDialogId", async (req, res, next) =>
                 {
-                    let appId = req.params.appId;
-                    let logDialogId = req.params.logDialogId;
-        
-                    if (!logDialogId)
-                    {
-                        res.send(400, Error("Missing Log Dialog Id"));
-                        return;
-                    }
                     this.InitClient();  // TEMP
 
                     try
                     {
+                        let query = req.getQuery();
+                        let key = req.params.key;
+                        let appId = req.params.appId;
+                        let logDialogId = req.params.logDialogId;
                         let logDialog = await BlisClient.client.GetLogDialog(appId, logDialogId);
                         res.send(serialize(logDialog));
                     }
@@ -558,19 +545,14 @@ export class Server {
 
             this.server.del("/app/:appId/logdialogs/:logDialogId", async (req, res, next) =>
                 {
-                    let appId = req.params.appId;
-                    let logDialogId = req.params.logDialogId;
-    
-                    if (!logDialogId)
-                    {
-                        res.send(400, Error("Missing Log Dialog Id"));
-                        return;
-                    }
-
                     this.InitClient();  // TEMP
 
                     try
                     {
+                        let query = req.getQuery();
+                        let key = req.params.key;
+                        let appId = req.params.appId;
+                        let logDialogId = req.params.logDialogId;
                         await BlisClient.client.DeleteLogDialog(appId, logDialogId);
                         res.send(200);
                     }
@@ -583,12 +565,13 @@ export class Server {
 
             this.server.get("/app/:appId/logdialogs", async (req, res, next) =>
                 {
-                    let appId = req.params.appId;
-                    let query = req.getQuery();
                     this.InitClient();  // TEMP
 
                     try
                     {
+                        let query = req.getQuery();
+                        let key = req.params.key;
+                        let appId = req.params.appId;
                         let logDialogs = await BlisClient.client.GetLogDialogs(appId, query);
                         res.send(serialize(logDialogs));
                     }
@@ -601,12 +584,13 @@ export class Server {
 
             this.server.get("/app/:appId/logDialogIds", async (req, res, next) =>
                 {
-                    let appId = req.params.appId;
-                    let query = req.getQuery();
                     this.InitClient();  // TEMP
 
                     try
                     {
+                        let query = req.getQuery();
+                        let key = req.params.key;
+                        let appId = req.params.appId;
                         let logDialogIds = await BlisClient.client.GetLogDialogIds(appId, query);
                         res.send(serialize(logDialogIds));
                     }
@@ -627,6 +611,8 @@ export class Server {
                     {
                         this.InitClient();  // TEMP
 
+                        let query = req.getQuery();
+                        let key = req.params.key;
                         let appId = req.params.appId;
                         let trainDialog = deserialize(TrainDialog, req.body);
                         let trainDialogId = await BlisClient.client.AddTrainDialog(appId, trainDialog);
@@ -645,6 +631,8 @@ export class Server {
                     {
                         this.InitClient();  // TEMP
 
+                        let query = req.getQuery();
+                        let key = req.params.key;
                         let appId = req.params.appId;
                         let trainDialog = deserialize(TrainDialog, req.body);
 
@@ -668,18 +656,14 @@ export class Server {
 
             this.server.get("/app/:appId/traindialog/:trainDialogId", async (req, res, next) =>
                 {
-                    let appId = req.params.appId;
-                    let trainDialogId = req.params.trainDialogId;
-        
-                    if (!trainDialogId)
-                    {
-                        res.send(400, Error("Missing TrainDialog Id"));
-                        return;
-                    }
                     this.InitClient();  // TEMP
 
                     try
                     {
+                        let query = req.getQuery();
+                        let key = req.params.key;
+                        let appId = req.params.appId;
+                        let trainDialogId = req.params.trainDialogId;
                         let trainDialog = await BlisClient.client.GetTrainDialog(appId, trainDialogId);
                         res.send(serialize(trainDialog));
                     }
@@ -692,19 +676,14 @@ export class Server {
 
             this.server.del("/app/:appId/traindialogs/:trainDialogId", async (req, res, next) =>
                 {
-                    let appId = req.params.appId;
-                    let trainDialogId = req.params.trainDialogId;
-    
-                    if (!trainDialogId)
-                    {
-                        res.send(400, Error("Missing TrainDialog Id"));
-                        return;
-                    }
-
                     this.InitClient();  // TEMP
 
                     try
                     {
+                        let query = req.getQuery();
+                        let key = req.params.key;
+                        let appId = req.params.appId;
+                        let trainDialogId = req.params.trainDialogId;
                         await BlisClient.client.DeleteTrainDialog(appId, trainDialogId);
                         res.send(200);
                     }
@@ -717,12 +696,13 @@ export class Server {
 
             this.server.get("/app/:appId/traindialogs", async (req, res, next) =>
                 {
-                    let appId = req.params.appId;
-                    let query = req.getQuery();
                     this.InitClient();  // TEMP
 
                     try
                     {
+                        let query = req.getQuery();
+                        let key = req.params.key;
+                        let appId = req.params.appId;
                         let trainDialogs = await BlisClient.client.GetTrainDialogs(appId, query);
                         res.send(serialize(trainDialogs));
                     }
@@ -735,12 +715,13 @@ export class Server {
 
             this.server.get("/app/:appId/trainDialogIds", async (req, res, next) =>
                 {
-                    let appId = req.params.appId;
-                    let query = req.getQuery();
                     this.InitClient();  // TEMP
 
                     try
                     {
+                        let query = req.getQuery();
+                        let key = req.params.key;
+                        let appId = req.params.appId;
                         let trainDialogIds = await BlisClient.client.GetTrainDialogIds(appId, query);
                         res.send(serialize(trainDialogIds));
                     }
@@ -763,10 +744,14 @@ export class Server {
                     this.InitClient();  // TEMP
 
                     let query = req.getQuery();
-                    let appId = req.params.appId;
                     let key = req.params.key;
-                    let response = await BlisClient.client.StartSession(appId);
-                    res.send(response);
+                    let appId = req.params.appId;
+                    let sessionResponse = await BlisClient.client.StartSession(appId);
+                    res.send(sessionResponse);
+
+                    // Update Memory
+                    let memory = BlisMemory.GetMemory(key);
+                    memory.StartSession(sessionResponse.sessionId, false);
                 }
                 catch (error)
                 {
@@ -781,7 +766,8 @@ export class Server {
                 try
                 {
                     this.InitClient();  // TEMP
-
+                    let query = req.getQuery();
+                    let key = req.params.key;
                     let appId = req.params.appId;
                     let sessionId = req.params.sessionId;
                     let response = await BlisClient.client.GetSession(appId, sessionId);
@@ -797,16 +783,20 @@ export class Server {
             /** End a session. */
             this.server.del("/app/:appId/session/:sessionId", async (req, res, next) =>
             {
-                let appId = req.params.appId;
-                let sessionId = req.params.sessionId;
-                let query = req.getQuery();    
-
                 this.InitClient();  // TEMP
 
                 try
                 {
+                    let query = req.getQuery();
+                    let key = req.params.key;
+                    let appId = req.params.appId;
+                    let sessionId = req.params.sessionId;
                     let response = await BlisClient.client.EndSession(appId, sessionId, query);
                     res.send(response);
+
+                    // Update Memory
+                    let memory = BlisMemory.GetMemory(key);
+                    memory.EndSession()
                 }
                 catch (error)
                 {
@@ -825,10 +815,15 @@ export class Server {
                     try
                     {
                         this.InitClient();  // TEMP
-
+                        let query = req.getQuery();
+                        let key = req.params.key;
                         let appId = req.params.appId;
-                        let response = await BlisClient.client.StartTeach(appId);
-                        res.send(response);
+                        let teachResponse = await BlisClient.client.StartTeach(appId);
+                        res.send(teachResponse);
+
+                        // Update Memory
+                        let memory = BlisMemory.GetMemory(key);
+                        memory.StartSession(teachResponse.teachId, true);
                     }
                     catch (error)
                     {
@@ -843,11 +838,38 @@ export class Server {
                     try
                     {
                         this.InitClient();  // TEMP
-
+                        let query = req.getQuery();
+                        let key = req.params.key;
                         let appId = req.params.appId;
                         let teachId = req.params.teachId;
                         let response = await BlisClient.client.GetTeach(appId, teachId);
                         res.send(response); 
+                    }
+                    catch (error)
+                    {
+                        res.send(error.statusCode, Server.ErrorMessage(error));
+                    }
+                }
+            );
+
+
+            /** Runs entity extraction (prediction). 
+             * If a more recent version of the package is available on 
+             * the server, the session will first migrate to that newer version.  This 
+             * doesn't affect the trainDialog maintained.
+             */
+            this.server.put("/app/:appId/teach/:teachId/extractor", async (req, res, next) =>
+                {
+                    try
+                    {
+                        this.InitClient();  // TEMP
+                        let query = req.getQuery();
+                        let key = req.params.key;
+                        let appId = req.params.appId;
+                        let teachId = req.params.teachId;
+                        let userInput = req.body;
+                        let extractResponse = await BlisClient.client.TeachExtract(appId, teachId, userInput);
+                        res.send(extractResponse);
                     }
                     catch (error)
                     {
@@ -865,11 +887,41 @@ export class Server {
                     try
                     {
                         this.InitClient();  // TEMP
-
+                        let query = req.getQuery();
+                        let key = req.params.key;
                         let appId = req.params.appId;
                         let teachId = req.params.teachId;
                         let extractorStep = deserialize(TrainExtractorStep, req.body);
-                        let response = await BlisClient.client.TeachExtractFeedback(appId, teachId, extractorStep);
+                        let teachResponse = await BlisClient.client.TeachExtractFeedback(appId, teachId, extractorStep);
+                        res.send(teachResponse);
+                    }
+                    catch (error)
+                    {
+                        res.send(error.statusCode, Server.ErrorMessage(error));
+                    }
+                }
+            );
+
+            /** Takes a turn and return distribution over actions.
+             * If a more recent version of the package is 
+             * available on the server, the session will first migrate to that newer version.  
+             * This doesn't affect the trainDialog maintained by the teaching session.
+             */
+            this.server.put("/app/:appId/teach/:teachId/scorer", async (req, res, next) =>
+                {
+                    try
+                    {
+                        this.InitClient();  // TEMP
+                        let query = req.getQuery();
+                        let key = req.params.key;
+                        let appId = req.params.appId;
+                        let teachId = req.params.teachId;
+                        let extractResponse = deserialize(ExtractResponse, req.body);
+
+                        // Call LUIS callback to get scoreInput
+                        let memory = BlisMemory.GetMemory(key);
+                        let scoreInput = await BlisDialog.dialog.CallLuisCallback(extractResponse.text, extractResponse.predictedEntities, memory);
+                        let response = await BlisClient.client.TeachScore(appId, teachId, scoreInput);
                         res.send(response);
                     }
                     catch (error)
@@ -888,12 +940,16 @@ export class Server {
                     try
                     {
                         this.InitClient();  // TEMP
-
+                        let query = req.getQuery();
+                        let key = req.params.key;
                         let appId = req.params.appId;
                         let teachId = req.params.teachId;
-                        let scorerResponse = deserialize(TrainScorerStep, req.body);
-                        let response = await BlisClient.client.TeachScoreFeedback(appId, teachId, scorerResponse);
-                        res.send(response);
+                        let trainScorerStep = deserialize(TrainScorerStep, req.body);
+                        let teachResponse = await BlisClient.client.TeachScoreFeedback(appId, teachId, trainScorerStep);
+                        res.send(teachResponse);
+
+                        // Now take the trained action
+                        BlisDialog.dialog.TakeAction(null, trainScorerStep.scoredAction);
                     }
                     catch (error)
                     {
@@ -908,21 +964,20 @@ export class Server {
              */
             this.server.del("/app/:appId/teach/:teachId", async (req, res, next) =>
                 {
-                    let appId = req.params.appId;
-                    let teachId = req.params.teachId;
-    
-                    if (!teachId)
-                    {
-                        res.send(400, Error("Missing Entity Id"));
-                        return;
-                    }
-
                     this.InitClient();  // TEMP
 
                     try
                     {
+                        let query = req.getQuery();
+                        let key = req.params.key;
+                        let appId = req.params.appId;
+                        let teachId = req.params.teachId;
                         let response = await BlisClient.client.EndTeach(appId, teachId);
                         res.send(response);
+
+                        // Update Memory
+                        let memory = BlisMemory.GetMemory(key);
+                        memory.EndSession()
                     }
                     catch (error)
                     {
