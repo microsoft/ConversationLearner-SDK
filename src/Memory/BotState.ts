@@ -1,3 +1,4 @@
+import * as builder from 'botbuilder';
 import { Serializable } from './Serializable';
 import { JsonProperty } from 'json-typescript-mapper';
 import { BlisMemory, MemoryType } from '../BlisMemory';
@@ -19,7 +20,10 @@ export class BotState extends Serializable
     public inTeach : boolean = false;
  
     @JsonProperty('inDebug') 
-    public inDebug : boolean= false;
+    public inDebug : boolean = false;
+
+    @JsonProperty('address') 
+    public address : string = null;
 
     public static memory : BlisMemory;
 
@@ -31,6 +35,7 @@ export class BotState extends Serializable
         this.modelId = undefined;
         this.inTeach = false;
         this.inDebug = false;
+        this.address = undefined;
         (<any>Object).assign(this, init);
     }
 
@@ -38,7 +43,7 @@ export class BotState extends Serializable
     {
         if (!this.memory)
         {
-            throw new Error("BotState called without initialzing memory");
+            throw new Error("BotState called without initializing memory");
         }
          // Load bot state
         let data = await this.memory.GetAsync(this.MEMKEY);
@@ -166,5 +171,31 @@ export class BotState extends Serializable
         let botState = await this.Get();    
         botState.inDebug = isTrue;
         await this.Set(botState);
+    }
+
+
+    public static async SetAddress(address : builder.IAddress) : Promise<void> {
+        let botState = await this.Get();    
+        botState.address = JSON.stringify(address);
+        await this.Set(botState);
+    }
+
+    public static async Address() : Promise<builder.IAddress> {
+        let botState = await this.Get();    
+        let addressString = botState.address;
+        return JSON.parse(addressString);
+    }
+
+    public static async Session(bot : builder.UniversalBot) {
+        let address = await this.Address();
+        return new Promise(function(resolve,reject) {
+            bot.loadSession(address, (err, session) => {
+                if(err !== null)
+                {
+                 return reject(err);
+                }
+                resolve(session);
+            });
+        });
     }
 }

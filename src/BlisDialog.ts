@@ -11,6 +11,7 @@ import { BlisContext} from './BlisContext';
 import { BLIS_INTENT_WRAPPER } from './Model/Consts';
 import { Action } from './Model/Action';
 import { Server } from './Http/Server';
+import { AzureFunctions } from './AzureFunctions'
 
 export interface IBlisOptions extends builder.IIntentRecognizerSetOptions {
     // URL for BLIS service
@@ -35,8 +36,8 @@ export interface IBlisOptions extends builder.IIntentRecognizerSetOptions {
     // Optional callback that runs after BLIS is called but before the Action is rendered
     blisCallback? : (text : string, memory : BlisMemory) => string;
 
-    // Mappting between API names and functions
-    //TODO  apiCallbacks? : { string : () => TakeTurnRequest };
+    // Mapping between API names and functions
+    apiCallbacks? : { string : () => void };
 
     // End point for Azure function calls
     azureFunctionsUrl? : string;
@@ -62,7 +63,7 @@ export class BlisDialog extends builder.Dialog {
     private luisCallback? : (text: string, predictedEntities : PredictedEntity[], memory : BlisMemory) => ScoreInput;
 
     // Mapping between user defined API names and functions
-    // TODO private apiCallbacks : { string : () => TakeTurnRequest };
+    private apiCallbacks : { string : () => void };
 
     private recognizers: builder.IntentRecognizerSet;
 
@@ -85,12 +86,13 @@ export class BlisDialog extends builder.Dialog {
             BlisMemory.Init(options.redisServer, options.redisKey);
 
             this.luisCallback = options.luisCallback;
-            //TODO this.apiCallbacks = options.apiCallbacks;
+            this.apiCallbacks = options.apiCallbacks;
+            this.blisCallback = options.blisCallback;
 
             // Optional connector, required for downloading train dialogs
             this.connector = options.connector;  
             this.defaultApp = options.appId;
-            this.blisCallback = options.blisCallback;
+            
 
             Server.Init();
         }
@@ -174,26 +176,115 @@ export class BlisDialog extends builder.Dialog {
             // Take the action
             if (bestAction)
             {
-                this.TakeAction(context, bestAction);
+                this.TakeAction(bestAction, memory);
             }
         }
     }
 
-    public async TakeAction(context : BlisContext, scoredAction : ScoredAction)
+    public async TakeAction(scoredAction : ScoredAction, memory : BlisMemory) : Promise<void>
     {
+        let session = memory.BotState().Session();
         let actionType = scoredAction.metadata.actionType;
 
         switch (actionType)  {
             case ActionTypes.TEXT:
-                let outText = await this.CallBlisCallback(scoredAction, context.Memory());
-                Utils.SendTextMessage(context, outText);
+                await this.TakeTextAction(scoredAction, memory);
                 break;
             case ActionTypes.CARD:
+                await this.TakeCardAction(scoredAction, memory);
+                break;
             case ActionTypes.INTENT:
+                await this.TakeIntentAction(scoredAction, memory);
+                break;
             case ActionTypes.API_AZURE:
+                await this.TakeAzureAPIAction(scoredAction, memory);
+                break;
             case ActionTypes.API_LOCAL:
-            break;
+                await this.TakeLocalAPIAction(scoredAction, memory);
+                break;
         }
+    }
+
+    private async TakeTextAction(scoredAction : ScoredAction, memory : BlisMemory) : Promise<void>
+    {
+        let outText = await this.CallBlisCallback(scoredAction, memory);
+        Utils.SendText(memory, outText);
+    }
+
+    private async TakeCardAction(scoredAction : ScoredAction, memory : BlisMemory) : Promise<void>
+    {
+        //TODO
+    }
+
+    private async TakeLocalAPIAction(scoredAction : ScoredAction, memory : BlisMemory) : Promise<void>
+    {
+        if (!this.apiCallbacks)
+        {
+            BlisDebug.Error("No Local APIs defined.")
+            return;
+        }
+
+        // Extract API name and entities
+        let apiString = scoredAction.payload;
+        let [apiName] = apiString.split(' ');
+        let args = Utils.RemoveWords(apiString, 1);
+
+        // Make any entity substitutions
+        let entities = await memory.BotMemory().SubstituteEntities(args);
+
+        let api = this.apiCallbacks[apiName];
+        if (!api)
+        {
+            BlisDebug.Error(`${api} undefined`);
+            return;
+        }
+
+        let output = await api(memory, args);
+        if (output)
+        {
+            Utils.SendText(memory, output);
+        }  
+    }
+
+    private async TakeAzureAPIAction(scoredAction : ScoredAction, memory : BlisMemory) : Promise<void>
+    {
+        // Extract API name and entities
+        let apiString = scoredAction.payload;
+        let [funcName] = apiString.split(' ');
+        let args = Utils.RemoveWords(apiString, 1);
+
+        // Make any entity substitutions
+        let entities = await memory.BotMemory().SubstituteEntities(args);
+
+        // Call Azure function and send output (if any)
+        let output = await AzureFunctions.Call(BlisClient.client.azureFunctionsUrl, BlisClient.client.azureFunctionsKey, funcName, entities);
+        if (output)
+        {
+            Utils.SendText(memory, output);
+        }          
+    }
+
+    private async TakeIntentAction(scoredAction : ScoredAction, memory : BlisMemory) : Promise<void>
+    {
+        // Extract intent name and entities
+        let apiString = scoredAction.payload;
+        let [intentName] = apiString.split(' ');
+        let args = Utils.RemoveWords(apiString, 1);
+
+        // Make any entity substitutions
+        let entities = await memory.BotMemory().GetEntities(args);
+        let session = memory.BotState().Session();
+
+        // If in teach mode wrap the intent so can give next input cue when intent dialog completes
+        let inTeach = memory.BotState().InTeach();
+        if (inTeach == "true")
+        {
+            session.beginDialog(BLIS_INTENT_WRAPPER, {intent: intentName, entities: entities});
+        }
+        else
+        {
+            session.beginDialog(intentName, entities);
+        }                
     }
 
     public async CallLuisCallback(text: string, predictedEntities : PredictedEntity[], memory : BlisMemory) : Promise<ScoreInput> {

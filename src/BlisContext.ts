@@ -11,8 +11,7 @@ export class BlisContext
     constructor(bot : builder.UniversalBot, session : builder.Session) {
         this.bot = bot;
         this.session = session;
-        let key = BlisMemory.SessionKey(session);
-        this.memory = BlisMemory.GetMemory(key);
+        this.memory = BlisMemory.InitMemory(session);
     }
 
     public Address() : builder.IAddress

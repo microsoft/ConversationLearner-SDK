@@ -71,8 +71,8 @@ export class Test {
     {
         Test.InitClient();
         let blisApp = Test.MakeApp();
-        return await BlisClient.client.AddApp(blisApp);
-    }
+        return await BlisClient.client.AddApp(blisApp, null);
+    } 
 
     @AddTest
     public static async GetApps() : Promise<TestResult>
@@ -89,7 +89,7 @@ export class Test {
         {
             Test.InitClient();
             let inApp = Test.MakeApp();
-            let appId = await BlisClient.client.AddApp(inApp);
+            let appId = await BlisClient.client.AddApp(inApp, null);
             let outApp = await BlisClient.client.GetApp(appId, null);
             if (outApp.appId != appId) return TestResult.Fail("appId");
             if (outApp.appName != inApp.appName) return TestResult.Fail("appName");

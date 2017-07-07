@@ -99,8 +99,11 @@ export class Server {
                         let query = req.getQuery();
                         let key = req.params.key;
                         let app = deserialize(BlisApp, req.body);
-                        let appId = await BlisClient.client.AddApp(app);
+                        let appId = await BlisClient.client.AddApp(app, query);
                         res.send(appId);
+
+                        // Initialize memory
+                        await BlisMemory.GetMemory(key).Init(appId);
                     }
                     catch (error)
                     {
@@ -171,6 +174,26 @@ export class Server {
                         let key = req.params.key;
                         let appId = req.params.appId;
                         await BlisClient.client.DeleteApp(appId);
+                        res.send(200);
+                    }
+                    catch (error)
+                    {
+                        res.send(error.statusCode, Server.ErrorMessage(error));
+                    }
+                }
+            );
+
+            /** Retrieves details for a specific $appId */
+            this.server.get("/archive/:appId", async (req, res, next) =>
+            {
+                    this.InitClient();  // TEMP
+
+                    try
+                    {
+                        let query = req.getQuery();
+                        let key = req.params.key;
+                        let appId = req.params.appId;
+                        await BlisClient.client.GetAppStatus(appId);
                         res.send(200);
                     }
                     catch (error)
@@ -349,7 +372,7 @@ export class Server {
                 }
             );
 
-            this.server.get("/app/:appId/actionIds", async (req, res, next) =>
+            this.server.get("/app/:appId/action", async (req, res, next) =>
                 {
                     this.InitClient();  // TEMP
 
@@ -501,7 +524,7 @@ export class Server {
                 }
             );
 
-            this.server.get("/app/:appId/entityIds", async (req, res, next) =>
+            this.server.get("/app/:appId/entity", async (req, res, next) =>
                 {
                     this.InitClient();  // TEMP
 
@@ -761,7 +784,7 @@ export class Server {
             );
 
             /** Retrieves information about the specified session */
-            this.server.get("/app/:appId/teach/:sessionId", async (req, res, next) =>
+            this.server.get("/app/:appId/session/:sessionId", async (req, res, next) =>
             {
                 try
                 {
@@ -803,6 +826,46 @@ export class Server {
                     res.send(error.statusCode, Server.ErrorMessage(error));
                 }
             }
+            );
+
+            /** Retrieves definitions of ALL open sessions */
+            this.server.get("/app/:appId/sessions", async (req, res, next) =>
+                {
+                    this.InitClient();  // TEMP
+
+                    try
+                    {
+                        let query = req.getQuery();
+                        let key = req.params.key;
+                        let appId = req.params.appId;
+                        let sessions = await BlisClient.client.GetSessions(appId, query);
+                        res.send(serialize(sessions));
+                    }
+                    catch (error)
+                    {
+                        res.send(error.statusCode, Server.ErrorMessage(error));
+                    }
+                }
+            );
+ 
+            /** Retrieves a list of session IDs */
+            this.server.get("/app/:appId/session", async (req, res, next) =>
+                {
+                    this.InitClient();  // TEMP
+
+                    try
+                    {
+                        let query = req.getQuery();
+                        let key = req.params.key;
+                        let appId = req.params.appId;
+                        let sessionIds = await BlisClient.client.GetSessionIds(appId, query);
+                        res.send(serialize(sessionIds));
+                    }
+                    catch (error)
+                    {
+                        res.send(error.statusCode, Server.ErrorMessage(error));
+                    }
+                }
             );
 
         //========================================================
@@ -949,7 +1012,8 @@ export class Server {
                         res.send(teachResponse);
 
                         // Now take the trained action
-                        BlisDialog.dialog.TakeAction(null, trainScorerStep.scoredAction);
+                        let memory = BlisMemory.GetMemory(key);
+                        BlisDialog.dialog.TakeAction(trainScorerStep.scoredAction, memory);
                     }
                     catch (error)
                     {
@@ -978,6 +1042,46 @@ export class Server {
                         // Update Memory
                         let memory = BlisMemory.GetMemory(key);
                         memory.EndSession()
+                    }
+                    catch (error)
+                    {
+                        res.send(error.statusCode, Server.ErrorMessage(error));
+                    }
+                }
+            );
+
+            /** Retrieves definitions of ALL open teach sessions */
+            this.server.get("/app/:appId/teaches", async (req, res, next) =>
+                {
+                    this.InitClient();  // TEMP
+
+                    try
+                    {
+                        let query = req.getQuery();
+                        let key = req.params.key;
+                        let appId = req.params.appId;
+                        let teaches = await BlisClient.client.GetTeaches(appId, query);
+                        res.send(serialize(teaches));
+                    }
+                    catch (error)
+                    {
+                        res.send(error.statusCode, Server.ErrorMessage(error));
+                    }
+                }
+            );
+ 
+            /** Retrieves a list of teach session IDs */
+            this.server.get("/app/:appId/teach", async (req, res, next) =>
+                {
+                    this.InitClient();  // TEMP
+
+                    try
+                    {
+                        let query = req.getQuery();
+                        let key = req.params.key;
+                        let appId = req.params.appId;
+                        let teachIds = await BlisClient.client.GetTeachIds(appId, query);
+                        res.send(serialize(teachIds));
                     }
                     catch (error)
                     {
