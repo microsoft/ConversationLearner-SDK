@@ -1,8 +1,7 @@
 import { JsonProperty } from 'json-typescript-mapper';
-import { ActionCommand} from '../Model/Consts';
+import { ActionCommand } from '../Model/Consts';
 import { BlisMemory } from '../BlisMemory';
 import { BlisDebug} from '../BlisDebug';
-import { LabelEntity_v1} from '../Model/LabelEntity';
 import * as builder from 'botbuilder'
 
 export class BotMemory 
@@ -129,32 +128,6 @@ export class BotMemory
         }
     }  
 
-    /** Remember entity value */
-    public static async RememberByLabel(entity : LabelEntity_v1) : Promise<void> {
-        try {
-            let botmemory = await this.Get();
-
-            // Check if entity buckets values
-            if (entity.metadata && entity.metadata.bucket)
-            {
-                if (!botmemory.entityMap[entity.id])
-                {
-                    botmemory.entityMap[entity.id] = [];
-                }
-                botmemory.entityMap[entity.id].push(entity.value);
-            }
-            else
-            {
-               botmemory.entityMap[entity.id] = entity.value;
-            }
-            await this.Set(botmemory);
-        }
-        catch (error)
-        {
-            BlisDebug.Error(error);
-        }
-    } 
-
     // Returns true if entity was remembered
     public static async WasRemembered(entityId : string) : Promise<boolean> {
         let botmemory = await this.Get();
@@ -226,48 +199,6 @@ export class BotMemory
         {
             BlisDebug.Error(`Unknown Entity: ${entityName}`);
         }
-    }
-
-    /** Forget the EntityId that I've remembered */
-    public static async ForgetByLabel(entity : LabelEntity_v1) : Promise<void>
-    {
-        try {
-            let positiveId = entity.metadata.positive;
-
-            if (!positiveId)
-            {
-                throw new Error('Called with no PositiveId');
-            }
-
-            let botmemory = await this.Get();
-            if (entity.metadata && entity.metadata.bucket)
-            {
-                // Find case insensitive index
-                let lowerCaseNames = botmemory.entityMap[positiveId].map(function(value) {
-                    return value.toLowerCase();
-                });
-
-                let index = lowerCaseNames.indexOf(entity.value.toLowerCase());
-                if (index > -1)
-                {
-                    botmemory.entityMap[positiveId].splice(index, 1);
-                    if (botmemory.entityMap[positiveId].length == 0)
-                    {
-                        delete botmemory.entityMap[positiveId];
-                    }
-                }             
-            }
-            else
-            {
-                let positiveId = entity.metadata.positive;
-                delete botmemory.entityMap[positiveId];
-            }  
-            await this.Set(botmemory);
-        }
-        catch (error)
-        {
-             BlisDebug.Error(error);
-        }  
     }
 
      //--------------------------------------------------------

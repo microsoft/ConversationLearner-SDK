@@ -154,6 +154,16 @@ export class Server {
                         let appId = req.params.appId;
                         await BlisClient.client.ArchiveApp(appId);
                         res.send(200);
+
+                        // Did I delete my loaded app, if so clear my state
+                        let memory = BlisMemory.GetMemory(key);
+                        let curAppId = await memory.BotState().AppId();
+                        if (appId == curAppId)
+                        {
+                            await memory.BotState().SetAppId(null);
+                            await memory.BotState().SetModelId(null);
+                            await memory.BotState().SetSessionId(null);
+                        }
                     }
                     catch (error)
                     {

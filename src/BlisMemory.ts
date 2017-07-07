@@ -1,7 +1,5 @@
 import * as builder from 'botbuilder'
 import { BlisDebug} from './BlisDebug';
-import { Utils} from './Utils';
-import { CueCommand } from './Memory/CueCommand';
 import { Pager } from './Memory/Pager';
 import { TrainHistory } from './Memory/TrainHistory';
 import { EntityLookup } from './Memory/EntityLookup';
@@ -170,7 +168,6 @@ export class BlisMemory {
         await this.BotMemory().Clear();
         await this.EntityLookup().Clear();
         await this.TrainHistory().Clear();
-        await this.CueCommand().Clear();
         await this.Pager().Clear();
     }
 
@@ -213,12 +210,6 @@ export class BlisMemory {
     {
         BotState.memory = this;
         return BotState;
-    }
-
-    public CueCommand() : any
-    {
-        CueCommand.memory = this;
-        return CueCommand;
     }
 
     public Pager() : any
