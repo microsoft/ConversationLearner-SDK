@@ -48,7 +48,7 @@ export class BlisApp extends BlisAppBase
     }
 
     /** Create a new app, return new appId */
-    public static async Add(key : string, blisApp : BlisApp) : Promise<AdminResponse>
+    public static async Add_v1(key : string, blisApp : BlisApp) : Promise<AdminResponse>
     {
        BlisDebug.Log(`Trying to Create Application`);
 
@@ -73,10 +73,10 @@ export class BlisApp extends BlisAppBase
 
         try
         {       
-            let appId = await BlisClient.client.AddApp(blisApp);
+            let appId = null//await BlisClient.client.AddApp(blisApp);
 
             // Initialize
-            await BlisMemory.GetMemory(key).Init(appId);
+            await BlisMemory.GetMemory(key).Init(appId);  // DONE
             return AdminResponse.Result(appId);
         }
         catch (error) {

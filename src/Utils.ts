@@ -2,6 +2,7 @@ import * as builder from 'botbuilder';
 import * as util from 'util';
 import * as request from 'request';
 import { BlisContext } from './BlisContext';
+import { BlisMemory } from './BlisMemory';
 import { EditableResponse } from './Model/EditableResponse';
 
 export class Utils  {
@@ -77,16 +78,18 @@ export class Utils  {
         bot.send(msg);
     }
 
-    /** Send an out of band message */
-    public static SendTextMessage(context : BlisContext, content : string)
+    /** Send a text message */
+    public static SendText(memory : BlisMemory, content : string)
     { 
+        let address = memory.BotState().Address();
+        let session = memory.BotState().Session();
+
         let message = new builder.Message()
-			.address(context.Address())
+			.address(address)
             .text(content);
        
-        context.session.send(message);
+        session.send(message);
     }
-
 
     /** Send an out of band message */
     public static SendMessage(context : BlisContext, content : string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)

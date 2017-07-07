@@ -696,7 +696,7 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
     //====================================================
     // Built in API calls
     //====================================================
-    private async CallAzureFuncCB(context : BlisContext, memory : BlisMemory, args : string) : Promise<TakeTurnRequest>
+    private async CallAzureFuncCB_v1(context : BlisContext, memory : BlisMemory, args : string) : Promise<TakeTurnRequest>
     {
         // Disallow repetative API calls in case BLIS gets stuck TODO
         /*     var lastResponse = memory.TrainHistory().LastStep(SaveStep.RESPONSE);

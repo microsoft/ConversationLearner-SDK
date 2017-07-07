@@ -5,11 +5,11 @@ import {
         EntityMetaData, EntityList, EntityIdList, 
         LogDialog, LogDialogList, LogDialogIdList, 
         TrainDialog, TrainResponse, TrainDialogList, TrainDialogIdList, 
-        Session, 
+        Session, SessionList, SessionIdList,
         UserInput, 
         ExtractResponse, 
         ScoreInput, ScoreResponse, 
-        TeachResponse, Teach, 
+        Teach, TeachResponse, TeachList, TeachIdList,
         TrainExtractorStep, TrainScorerStep 
     } from 'blis-models';
 import { deserialize, serialize } from 'json-typescript-mapper';
@@ -60,9 +60,11 @@ export class BlisClient {
         this.azureFunctionsKey = azureFunctionsKey;
     }
 
-    private MakeURL(apiPath : string) 
+    private MakeURL(apiPath : string, query? : string) 
     {
-        return this.serviceUri + apiPath + `?userId=${this.user}`;
+        let uri = this.serviceUri + apiPath;
+        if (query) uri +=  `?${query}`;
+        return uri;
     }
 
     public ClearExportCache(appId : string) : void
@@ -90,12 +92,11 @@ export class BlisClient {
                     // Call API
                     let apiPath = `app/${appId}/action/${actionId}`;
                     const requestData = {
-                            url: this.MakeURL(apiPath),
+                            url: this.MakeURL(apiPath, query),
                             headers: {
                                 'Cookie' : this.credentials.Cookiestring()
                             },
-                            json: true,
-                            qs : query
+                            json: true
                         }
                     BlisDebug.LogRequest("GET",apiPath, requestData);
                     request.get(requestData, (error, response, body) => {
@@ -126,12 +127,11 @@ export class BlisClient {
             return new Promise(
                 (resolve, reject) => {
                 const requestData = {
-                        url: this.MakeURL(apiPath),
+                        url: this.MakeURL(apiPath, query),
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
                         },
-                        json: true,
-                        qs : query
+                        json: true
                     }
                     BlisDebug.LogRequest("GET",apiPath, requestData);
                     request.get(requestData, (error, response, body) => {
@@ -160,12 +160,11 @@ export class BlisClient {
             return new Promise(
                 (resolve, reject) => {
                 const requestData = {
-                        url: this.MakeURL(apiPath),
+                        url: this.MakeURL(apiPath, query),
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
                         },
-                        json: true,
-                        qs : query
+                        json: true
                     }
                     BlisDebug.LogRequest("GET",apiPath, requestData);
                     request.get(requestData, (error, response, body) => {
@@ -295,13 +294,12 @@ export class BlisClient {
 
             return new Promise(
                 (resolve, reject) => {
-                    let url = this.MakeURL(apiPath);
+                    let url = this.MakeURL(apiPath, query);
                     const requestData = {
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
                         },
-                        json: true,
-                        qs : query
+                        json: true
                     }
                     BlisDebug.LogRequest("GET",apiPath, requestData);
                     request.get(url, requestData, (error, response, body) => {
@@ -329,12 +327,11 @@ export class BlisClient {
             return new Promise(
                 (resolve, reject) => {
                 const requestData = {
-                        url: this.MakeURL(apiPath),
+                        url: this.MakeURL(apiPath, query),
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
                         },
-                        json: true,
-                        qs : query
+                        json: true
                     }
 
                     BlisDebug.LogRequest("GET",apiPath, requestData);
@@ -364,13 +361,12 @@ export class BlisClient {
             return new Promise(
                 (resolve, reject) => {
                 const requestData = {
-                        url: this.MakeURL(apiPath),
+                        url: this.MakeURL(apiPath, query),
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
                         },
                         body: serialize(app),
-                        json: true,
-                        qs : query
+                        json: true
                     }
 
                     BlisDebug.LogRequest("PUT",apiPath, requestData);
@@ -427,7 +423,7 @@ export class BlisClient {
     
         /** Create a new application
          */
-        public AddApp(blisApp : BlisApp) : Promise<string>
+        public AddApp(blisApp : BlisApp, query : string) : Promise<string>
         {
             var apiPath = `app`;
 
@@ -435,7 +431,7 @@ export class BlisClient {
             return new Promise(
                 (resolve, reject) => {
                     const requestData = {
-                        url: this.MakeURL(apiPath),
+                        url: this.MakeURL(apiPath, query),
                         headers: {
                             'Cookie' : this.credentials.Cookiestring(),
                         },
@@ -491,6 +487,36 @@ export class BlisClient {
             )
         }
 
+        /** Retrieves details for a specific $appId*/
+        public GetAppStatus(appId : string) : Promise<string>
+        {
+            let apiPath = `archive/${appId}`;
+
+            return new Promise(
+                (resolve, reject) => {
+                    let url = this.MakeURL(apiPath);
+                    const requestData = {
+                        headers: {
+                            'Cookie' : this.credentials.Cookiestring()
+                        },
+                        json: true
+                    }
+                    BlisDebug.LogRequest("DELETE",apiPath, requestData);
+                    request.get(url, requestData, (error, response, body) => {
+                        if (error) {
+                            reject(error);
+                        }
+                        else if (response.statusCode >= 300) {
+                            reject(response);
+                        }
+                        else {
+                            resolve(body);
+                        }
+                    });
+                }
+            )
+        }
+
         /** Moves an application from the archive to the set of active applications */
         public RestoreApp(app : BlisApp) : Promise<string>
         {
@@ -503,7 +529,6 @@ export class BlisClient {
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
                         },
-                        body: serialize(app),
                         json: true
                     }
 
@@ -532,12 +557,11 @@ export class BlisClient {
             return new Promise(
                 (resolve, reject) => {
                 const requestData = {
-                        url: this.MakeURL(apiPath),
+                        url: this.MakeURL(apiPath, query),
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
                         },
-                        json: true, 
-                        qs : query
+                        json: true
                     }
 
                     BlisDebug.LogRequest("GET",apiPath, requestData);
@@ -576,12 +600,11 @@ export class BlisClient {
 
                 let apiPath = `app/${appId}/entity/${entityId}`;
                 const requestData = {
-                        url: this.MakeURL(apiPath),
+                        url: this.MakeURL(apiPath, query),
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
                         },
-                        json: true,
-                        qs : query
+                        json: true
                     }
                     BlisDebug.LogRequest("GET",apiPath, requestData);
                     request.get(requestData, (error, response, body) => {
@@ -616,12 +639,11 @@ export class BlisClient {
             return new Promise(
                 (resolve, reject) => {
                 const requestData = {
-                        url: this.MakeURL(apiPath),
+                        url: this.MakeURL(apiPath, query),
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
                         },
-                        json: true,
-                        qs : query
+                        json: true
                     }
                     BlisDebug.LogRequest("GET",apiPath, requestData);
                     request.get(requestData, (error, response, body) => {
@@ -643,19 +665,18 @@ export class BlisClient {
         /** Retrieves a list of entity IDs for the latest package 
          * (or the specified package, if provided).  To retrieve the definitions
          * of many entities, see the GetEntities method */
-        public GetEntityIds(appId : string, query : string) : Promise<EntityList>
+        public GetEntityIds(appId : string, query : string) : Promise<EntityIdList>
         {
             let apiPath = `app/${appId}/entity`;
 
             return new Promise(
                 (resolve, reject) => {
                 const requestData = {
-                        url: this.MakeURL(apiPath),
+                        url: this.MakeURL(apiPath,query),
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
                         },
-                        json: true,
-                        qs : query
+                        json: true
                     }
                     BlisDebug.LogRequest("GET",apiPath, requestData);
                     request.get(requestData, (error, response, body) => {
@@ -816,12 +837,11 @@ export class BlisClient {
             return new Promise(
                 (resolve, reject) => {
                 const requestData = {
-                        url: this.MakeURL(apiPath),
+                        url: this.MakeURL(apiPath, query),
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
                         },
-                        json: true,
-                        qs : query
+                        json: true
                     }
                     BlisDebug.LogRequest("GET",apiPath, requestData);
                     request.get(requestData, (error, response, body) => {
@@ -849,12 +869,11 @@ export class BlisClient {
             return new Promise(
                 (resolve, reject) => {
                 const requestData = {
-                        url: this.MakeURL(apiPath),
+                        url: this.MakeURL(apiPath, query),
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
                         },
-                        json: true,
-                        qs : query
+                        json: true
                     }
                     BlisDebug.LogRequest("GET",apiPath, requestData);
                     request.get(requestData, (error, response, body) => {
@@ -1019,12 +1038,11 @@ export class BlisClient {
             return new Promise(
                 (resolve, reject) => {
                 const requestData = {
-                        url: this.MakeURL(apiPath),
+                        url: this.MakeURL(apiPath, query),
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
                         },
-                        json: true,
-                        qs : query
+                        json: true
                     }
                     BlisDebug.LogRequest("GET",apiPath, requestData);
                     request.get(requestData, (error, response, body) => {
@@ -1053,12 +1071,11 @@ export class BlisClient {
             return new Promise(
                 (resolve, reject) => {
                 const requestData = {
-                        url: this.MakeURL(apiPath),
+                        url: this.MakeURL(apiPath, query),
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
                         },
-                        json: true,
-                        qs : query
+                        json: true
                     }
                     BlisDebug.LogRequest("GET",apiPath, requestData);
                     request.get(requestData, (error, response, body) => {
@@ -1250,13 +1267,12 @@ export class BlisClient {
 
             return new Promise(
                 (resolve, reject) => {
-                    let url = this.MakeURL(apiPath);
+                    let url = this.MakeURL(apiPath, query);
                     const requestData = {
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
                         },
-                        json: true,
-                        qs : query
+                        json: true
                     }
                     BlisDebug.LogRequest("DELETE",apiPath, requestData);
                     request.delete(url, requestData, (error, response, body) => {
@@ -1268,6 +1284,70 @@ export class BlisClient {
                         }
                         else {
                             resolve(body);
+                        }
+                    });
+                }
+            )
+        }
+
+        /** Retrieves definitions of ALL open sessions 
+         * To retrieve just the IDs, see the GetSessionIds method */
+        public GetSessions(appId : string, query : string) : Promise<SessionList>
+        {
+            let apiPath = `app/${appId}/sessions`;
+
+            return new Promise(
+                (resolve, reject) => {
+                const requestData = {
+                        url: this.MakeURL(apiPath, query),
+                        headers: {
+                            'Cookie' : this.credentials.Cookiestring()
+                        },
+                        json: true
+                    }
+                    BlisDebug.LogRequest("GET",apiPath, requestData);
+                    request.get(requestData, (error, response, body) => {
+                        if (error) {
+                            reject(error);
+                        }
+                        else if (response.statusCode >= 300) {
+                            reject(response);
+                        }
+                        else {
+                            let sessions = deserialize(SessionList, body);
+                            resolve(sessions);
+                        }
+                    });
+                }
+            )
+        }
+
+        /** Retrieves a list of session IDs 
+         * To retrieve the definitions, see the GetSessions method */
+        public GetSessionIds(appId : string, query : string) : Promise<SessionList>
+        {
+            let apiPath = `app/${appId}/session`;
+
+            return new Promise(
+                (resolve, reject) => {
+                const requestData = {
+                        url: this.MakeURL(apiPath,query),
+                        headers: {
+                            'Cookie' : this.credentials.Cookiestring()
+                        },
+                        json: true
+                    }
+                    BlisDebug.LogRequest("GET",apiPath, requestData);
+                    request.get(requestData, (error, response, body) => {
+                        if (error) {
+                            reject(error);
+                        }
+                        else if (response.statusCode >= 300) {
+                            reject(response);
+                        }
+                        else {
+                            let sessionIds = deserialize(SessionIdList, body);
+                            resolve(sessionIds);
                         }
                     });
                 }
@@ -1523,6 +1603,69 @@ export class BlisClient {
             )
         }
 
+        /** Retrieves definitions of ALL teaching sessions 
+         * To retrieve just the IDs, see the GetTeachIds method */
+        public GetTeaches(appId : string, query : string) : Promise<TeachList>
+        {
+            let apiPath = `app/${appId}/teaches`;
+
+            return new Promise(
+                (resolve, reject) => {
+                const requestData = {
+                        url: this.MakeURL(apiPath, query),
+                        headers: {
+                            'Cookie' : this.credentials.Cookiestring()
+                        },
+                        json: true
+                    }
+                    BlisDebug.LogRequest("GET",apiPath, requestData);
+                    request.get(requestData, (error, response, body) => {
+                        if (error) {
+                            reject(error);
+                        }
+                        else if (response.statusCode >= 300) {
+                            reject(response);
+                        }
+                        else {
+                            let teaches = deserialize(TeachList, body);
+                            resolve(teaches);
+                        }
+                    });
+                }
+            )
+        }
+
+        /** Retrieves a list of teach session IDs 
+         * To retrieve the definitions, see the GetTeaches method */
+        public GetTeachIds(appId : string, query : string) : Promise<TeachList>
+        {
+            let apiPath = `app/${appId}/teach`;
+
+            return new Promise(
+                (resolve, reject) => {
+                const requestData = {
+                        url: this.MakeURL(apiPath,query),
+                        headers: {
+                            'Cookie' : this.credentials.Cookiestring()
+                        },
+                        json: true
+                    }
+                    BlisDebug.LogRequest("GET",apiPath, requestData);
+                    request.get(requestData, (error, response, body) => {
+                        if (error) {
+                            reject(error);
+                        }
+                        else if (response.statusCode >= 300) {
+                            reject(response);
+                        }
+                        else {
+                            let teachIds = deserialize(TeachIdList, body);
+                            resolve(teachIds);
+                        }
+                    });
+                }
+            )
+        }
 }
 
 export class BlisClient_v1 {

@@ -32,7 +32,7 @@ export class BlisMemory {
         this.redisClient = redis.createClient(6380, redisServer, { auth_pass: redisKey, tls: { servername: redisServer } });
     }
 
-    constructor(private userkey : string)
+    private constructor(private userkey : string)
     {
     }
 
@@ -42,9 +42,12 @@ export class BlisMemory {
     }
 
     // Generate memory key from session
-    public static SessionKey(session : builder.Session) : string 
+    public static InitMemory(session : builder.Session) : BlisMemory 
     {
-        return KeyGen.MakeKey(JSON.stringify(session.message.address.user));
+        let key = KeyGen.MakeKey(JSON.stringify(session.message.address.user));
+        let memory = new BlisMemory(key);
+        memory.BotState().SetAddress(session.message.address.user);
+        return memory;
     }
 
     private Key(datakey : string) : string {
