@@ -3,73 +3,8 @@ import * as util from 'util';
 import * as request from 'request';
 import { BlisContext } from './BlisContext';
 import { BlisMemory } from './BlisMemory';
-import { EditableResponse } from './Model/EditableResponse';
 
 export class Utils  {
-    
-    /** Add hero card and keyboard to reponse list */  // NOT CURRENTL USED
-    public static AddHeroKeyboard(responses: any, title : string, subtitle : string, text : string, buttons : {}) : void
-    {
-        responses.push(this.MakeHero(title, subtitle, text, []));
-        responses.push(this.MakeKeyboard(buttons));
-    } 
-
-    /** Make hero card with buttons */
-    public static MakeHero(title : string, subtitle : string, text : string, buttons : {}) : builder.HeroCard
-    {
-        var buttonList : builder.CardAction[] = [];
-        for (var message in buttons)
-        {
-            var postback = buttons[message];
-            buttonList.push(builder.CardAction.postBack(null, postback, message));
-        }
-
-        var card = new builder.HeroCard()
-						.title(title)
-						.subtitle(subtitle)
-						.text(text)		
-						.buttons(buttonList);	
-        return card;
-    }
-
-     /** Make hero card with buttons */
-    public static MakeEditableHero(session: builder.Session, title : string, subtitle : string, text : string, buttons : {}) : EditableResponse
-    {
-        let buttonList : builder.CardAction[] = [];
-        let postBackList : string[] = [];
-        for (let message in buttons)
-        {
-            let postback = buttons[message];
-            postBackList.push(postback);
-            buttonList.push(builder.CardAction.postBack(null, postback, message));
-        }
-
-        let original = new builder.HeroCard()
-						.title(title)
-						.subtitle(subtitle)
-						.text(text)		
-						.buttons(buttonList);
-                        
-        let replacement = new builder.HeroCard()
-						.title(title)
-						.subtitle(subtitle)
-						.text(text);
-
-        return new EditableResponse(session, original, replacement, postBackList);
-    }
-
-    /** Make hero card with a keyboard */  // NOT CURRENTLY USED
-    public static MakeKeyboard(buttons : {}) : builder.SuggestedActions
-    {
-        let buttonList : builder.CardAction[] = [];
-        for (var message in buttons)
-        {
-            var postback = buttons[message];
-            buttonList.push(builder.CardAction.postBack(null, postback, message));
-        }
-
-        return builder.SuggestedActions.create(null, buttonList);
-    }
 
     public static SendTyping(bot : builder.UniversalBot, address : any)
     {
@@ -89,42 +24,6 @@ export class Utils  {
             .text(content);
        
         session.send(message);
-    }
-
-    /** Send an out of band message */
-    public static SendMessage(context : BlisContext, content : string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)
-    { 
-        let message = new builder.Message()
-			.address(context.Address());
-
-        if (content instanceof builder.SuggestedActions)
-        {
-            let msg = new builder.Message(context.session).suggestedActions(content);
-            context.session.send(msg);
-            return;
-        }
-        else if (typeof content == 'string')
-        {
-            message.text(content);
-        }
-        else if (content instanceof EditableResponse)
-        {
-            content.Send(context.session);
-        }
-        else
-        {
-            message.addAttachment(content);
-        }
-        context.session.send(message);
-    }
-
-    /** Send a group of out of band message */
-    public static SendResponses(context : BlisContext, responses : (string | builder.IIsAttachment | builder.SuggestedActions | EditableResponse)[])
-    {
-        for (let response of responses)
-        {
-            Utils.SendMessage(context, response);
-        }
     }
 
     public static SendAsAttachment(context : BlisContext, content: string)
@@ -156,13 +55,6 @@ export class Utils  {
             return error.message + "\n\n" + error.stack;
         }
         return JSON.stringify(error);
-    }
-
-    /** Handle that catch clauses can be any type */
-    public static ErrorCard(message : string, subtext = null) : builder.HeroCard
-    {
-        let title = `**ERROR**\n\n`;
-        return Utils.MakeHero(title, message, subtext, null);
     }
 
     public static ReadFromFile(url : string) : Promise<string>

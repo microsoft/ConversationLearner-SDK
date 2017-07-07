@@ -1,1 +1,0 @@
-{"version":3,"file":"UserInput.js","sourceRoot":"","sources":["../../src/Model/UserInput.ts"],"names":[],"mappings":";;;AAAA,iEAAsD;AAEtD;IAKI,mBAAmB,IAAwB;QAEvC,IAAI,CAAC,IAAI,GAAG,SAAS,CAAC;QAChB,MAAO,CAAC,MAAM,CAAC,IAAI,EAAE,IAAI,CAAC,CAAC;IACrC,CAAC;IACL,gBAAC;AAAD,CAAC,AAVD,IAUC;AAPG;IADC,qCAAY,CAAC,MAAM,CAAC;;uCACA;AAHZ,8BAAS"}

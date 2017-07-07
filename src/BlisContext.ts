@@ -1,5 +1,4 @@
 import * as builder from 'botbuilder';
-import { BlisClient_v1 } from './BlisClient';
 import { BlisMemory } from './BlisMemory'
 
 export class BlisContext
