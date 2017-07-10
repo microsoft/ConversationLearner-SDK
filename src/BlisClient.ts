@@ -1,7 +1,7 @@
 const request = require('request');
 import { 
         ActionBase, ActionList, ActionIdList, 
-        BlisAppList, 
+        BlisAppList, BlisAppIdList, 
         EntityMetaData, EntityList, EntityIdList, 
         LogDialog, LogDialogList, LogDialogIdList, 
         TrainDialog, TrainResponse, TrainDialogList, TrainDialogIdList, 
@@ -145,7 +145,7 @@ export class BlisClient {
         /** Retrieves a list of action IDs for the latest package 
          * (or the specified package, if provided).  To retrieve 
          * the definitions of many actions, see the GetAction method */
-        public GetActionIds(appId : string, query : string) : Promise<ActionList>
+        public GetActionIds(appId : string, query : string) : Promise<ActionIdList>
         {
             let apiPath = `app/${appId}/action`;
 
@@ -480,7 +480,7 @@ export class BlisClient {
         }
 
         /** Retrieves details for a specific $appId*/
-        public GetAppStatus(appId : string) : Promise<string>
+        public GetAppStatus(appId : string) : Promise<BlisApp>
         {
             let apiPath = `archive/${appId}`;
 
@@ -502,7 +502,8 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            resolve(body);
+                            let app = deserialize(BlisApp, body);
+                            resolve(app);
                         }
                     });
                 }
@@ -510,9 +511,9 @@ export class BlisClient {
         }
 
         /** Moves an application from the archive to the set of active applications */
-        public RestoreApp(app : BlisApp) : Promise<string>
+        public RestoreApp(appId : string) : Promise<string>
         {
-            let apiPath = `archive/${app.appId}`;
+            let apiPath = `archive/${appId}`;
 
             return new Promise(
                 (resolve, reject) => {
@@ -541,10 +542,43 @@ export class BlisClient {
             )
         }
 
-        /** Retrieves a list of applications in the archive for the given user */
-        public GetArchivedApps(query : string) : Promise<BlisAppList>
+        /** Retrieves a list of application Ids in the archive for the given user */
+        public GetArchivedAppIds(query : string) : Promise<BlisAppIdList>
         {
             let apiPath = `archive`;
+
+            return new Promise(
+                (resolve, reject) => {
+                const requestData = {
+                        url: this.MakeURL(apiPath, query),
+                        headers: {
+                            'Cookie' : this.credentials.Cookiestring()
+                        },
+                        json: true
+                    }
+
+                    BlisDebug.LogRequest("GET",apiPath, requestData);
+                    request.get(requestData, (error, response, body) => {
+                        if (error) {
+                            reject(error);
+                        }
+                        else if (response.statusCode >= 300) {
+                            reject(response);
+                        }
+                        else {
+                            let apps = deserialize(BlisAppIdList, body);
+                            resolve(apps);
+                        }
+                    });
+                }
+            )
+        }
+
+        
+        /** Retrieves a list of full applications in the archive for the given user */
+        public GetArchivedApps(query : string) : Promise<BlisAppList>
+        {
+            let apiPath = `archives`;
 
             return new Promise(
                 (resolve, reject) => {
@@ -1316,7 +1350,7 @@ export class BlisClient {
 
         /** Retrieves a list of session IDs 
          * To retrieve the definitions, see the GetSessions method */
-        public GetSessionIds(appId : string, query : string) : Promise<SessionList>
+        public GetSessionIds(appId : string, query : string) : Promise<SessionIdList>
         {
             let apiPath = `app/${appId}/session`;
 
@@ -1629,7 +1663,7 @@ export class BlisClient {
 
         /** Retrieves a list of teach session IDs 
          * To retrieve the definitions, see the GetTeaches method */
-        public GetTeachIds(appId : string, query : string) : Promise<TeachList>
+        public GetTeachIds(appId : string, query : string) : Promise<TeachIdList>
         {
             let apiPath = `app/${appId}/teach`;
 

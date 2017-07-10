@@ -193,7 +193,7 @@ export class Server {
                 }
             );
 
-            /** Retrieves details for a specific $appId */
+            /** GET APP STATUS : Retrieves details for a specific $appId */
             this.server.get("/archive/:appId", async (req, res, next) =>
             {
                     this.InitClient();  // TEMP
@@ -203,8 +203,8 @@ export class Server {
                         let query = req.getQuery();
                         let key = req.params.key;
                         let appId = req.params.appId;
-                        await BlisClient.client.GetAppStatus(appId);
-                        res.send(200);
+                        let blisApp = await BlisClient.client.GetAppStatus(appId);
+                        res.send(blisApp);
                     }
                     catch (error)
                     {
@@ -232,8 +232,27 @@ export class Server {
                 }
             );
 
-            /** Retrieves a list of applications in the archive for the given user */
+            /** Retrieves a list of application Ids in the archive for the given user */
             this.server.get("/archive", async (req, res, next) =>
+                {
+                    this.InitClient();  // TEMP
+
+                    try
+                    {
+                        let query = req.getQuery();
+                        let key = req.params.key;
+                        let apps = await BlisClient.client.GetArchivedAppIds(query);
+                        res.send(serialize(apps));
+                    }
+                    catch (error)
+                    {
+                        res.send(error.statusCode, Server.ErrorMessage(error));
+                    }
+                }
+            );
+
+            /** Retrieves a list of full applications in the archive for the given user */
+            this.server.get("/archives", async (req, res, next) =>
                 {
                     this.InitClient();  // TEMP
 
@@ -769,7 +788,7 @@ export class Server {
         // Session
         //========================================================
 
-            /** Creates a new session and a corresponding logDialog */
+            /** START SESSION : Creates a new session and a corresponding logDialog */
             this.server.post("/app/:appId/session", async (req, res, next) =>
             {
                 try
@@ -793,7 +812,7 @@ export class Server {
             }
             );
 
-            /** Retrieves information about the specified session */
+            /** GET SESSION : Retrieves information about the specified session */
             this.server.get("/app/:appId/session/:sessionId", async (req, res, next) =>
             {
                 try
@@ -813,7 +832,7 @@ export class Server {
             }
             );
 
-            /** End a session. */
+            /** END SESSION : End a session. */
             this.server.del("/app/:appId/session/:sessionId", async (req, res, next) =>
             {
                 this.InitClient();  // TEMP
@@ -838,7 +857,7 @@ export class Server {
             }
             );
 
-            /** Retrieves definitions of ALL open sessions */
+            /** GET SESSIONS : Retrieves definitions of ALL open sessions */
             this.server.get("/app/:appId/sessions", async (req, res, next) =>
                 {
                     this.InitClient();  // TEMP
@@ -858,7 +877,7 @@ export class Server {
                 }
             );
  
-            /** Retrieves a list of session IDs */
+            /** GET SESSION IDS : Retrieves a list of session IDs */
             this.server.get("/app/:appId/session", async (req, res, next) =>
                 {
                     this.InitClient();  // TEMP
@@ -924,7 +943,6 @@ export class Server {
                     }
                 }
             );
-
 
             /** Runs entity extraction (prediction). 
              * If a more recent version of the package is available on 

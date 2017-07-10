@@ -4,9 +4,10 @@ import { TrainStep } from './TrainStep';
 import { Serializable } from './Serializable';
 import { SaveStep } from '../Model/Consts';
 import * as builder from 'botbuilder'
+import { deserialize, serialize } from 'json-typescript-mapper';
 import { JsonProperty } from 'json-typescript-mapper';
 
-export class TrainHistory extends Serializable 
+export class TrainHistory 
 {
     private static MEMKEY = "TRAINHISTORY";
     public static memory : BlisMemory;
@@ -22,7 +23,6 @@ export class TrainHistory extends Serializable
 
     public constructor(init?:Partial<TrainHistory>)
     {
-        super();
         this.curStep = null;
         this.lastStep = null;
         this.allSteps = [];
@@ -36,7 +36,9 @@ export class TrainHistory extends Serializable
 
     public static Deserialize(type : {new() : TrainHistory }, text : string) : TrainHistory
     {
-        let trainHistory = super.Deserialize(type, text);
+        if (!text) return null;
+        let json = JSON.parse(text);
+        let trainHistory = deserialize(TrainHistory, json);
         if (!trainHistory.allSteps)
         {
             trainHistory.allSteps = [];
