@@ -71,11 +71,10 @@ export class BotMemory
         let msg = "";
         let botmemory = await this.Get();
 
-        for (let entityId in botmemory.entityMap)
+        for (let entityName in botmemory.entityMap)
         {
             if (msg) msg += " ";
-            let entityName = await this.memory.EntityLookup().ToName(entityId);
-            let entityValue = botmemory.entityMap[entityId];
+            let entityValue = botmemory.entityMap[entityName];
             msg += `[${entityName} : ${entityValue}]`;
         }
         if (msg == "") {
@@ -91,15 +90,15 @@ export class BotMemory
         // Check if entity buckets values
         if (predictedEntity.metadata.isBucket)
         {
-            if (!botmemory.entityMap[predictedEntity.entityId])
+            if (!botmemory.entityMap[predictedEntity.entityName])
             {
-                botmemory.entityMap[predictedEntity.entityId] = [];
+                botmemory.entityMap[predictedEntity.entityName] = [];
             }
-            botmemory.entityMap[predictedEntity.entityId].push(predictedEntity.entityText);
+            botmemory.entityMap[predictedEntity.entityName].push(predictedEntity.entityText);
         }
         else
         {
-            botmemory.entityMap[predictedEntity.entityId] = predictedEntity.entityText;
+            botmemory.entityMap[predictedEntity.entityName] = predictedEntity.entityText;
         }
         await this.Set(botmemory);
     }
@@ -112,11 +111,11 @@ export class BotMemory
         // Check if entity buckets values
         if (entityName && entityName.startsWith(ActionCommand.BUCKET))
         {
-            if (!botmemory.entityMap[entityId])
+            if (!botmemory.entityMap[entityName])
             {
-                botmemory.entityMap[entityId] = [];
+                botmemory.entityMap[entityName] = [];
             }
-            botmemory.entityMap[entityId].push(entityValue);
+            botmemory.entityMap[entityName].push(entityValue);
         }
         else
         {
@@ -150,18 +149,13 @@ export class BotMemory
         }
     }  
 
-    // Returns true if entity was remembered
-    public static async WasRemembered(entityId : string) : Promise<boolean> {
-        let botmemory = await this.Get();
-        return (botmemory.entityMap[entityId] != null);
-    }
-
-    /** Return array of entityIds for which I've remembered something */
-    public static async RememberedIds() : Promise<string[]>
+    /** Return array of entity names for which I've remembered something */
+    public static async RememberedNames() : Promise<string[]>
     {
         let botmemory = await this.Get();
         return Object.keys(botmemory.entityMap);
     }
+
 
     /** Forget an entity by Id */
     private static async ForgetEntity(predictedEntity : PredictedEntity) : Promise<void> {
@@ -171,23 +165,23 @@ export class BotMemory
             if (predictedEntity.metadata.isBucket)
             {
                 // Find case insensitive index
-                let lowerCaseNames = botmemory.entityMap[predictedEntity.entityId].map(function(value) {
+                let lowerCaseNames = botmemory.entityMap[predictedEntity.entityName].map(function(value) {
                     return value.toLowerCase();
                 });
 
                 let index = lowerCaseNames.indexOf(predictedEntity.entityText.toLowerCase());
                 if (index > -1)
                 {
-                    botmemory.entityMap[predictedEntity.entityId].splice(index, 1);
-                    if (botmemory.entityMap[predictedEntity.entityId].length == 0)
+                    botmemory.entityMap[predictedEntity.entityName].splice(index, 1);
+                    if (botmemory.entityMap[predictedEntity.entityName].length == 0)
                     {
-                        delete botmemory.entityMap[predictedEntity.entityId];
+                        delete botmemory.entityMap[predictedEntity.entityName];
                     }
                 }    
             }
             else
             {
-                delete botmemory.entityMap[predictedEntity.entityId];
+                delete botmemory.entityMap[predictedEntity.entityName];
             }
             await this.Set(botmemory);
         }
@@ -204,23 +198,23 @@ export class BotMemory
             if (entityName.startsWith(ActionCommand.BUCKET))
             {
                 // Find case insensitive index
-                let lowerCaseNames = botmemory.entityMap[entityId].map(function(value) {
+                let lowerCaseNames = botmemory.entityMap[entityName].map(function(value) {
                     return value.toLowerCase();
                 });
 
                 let index = lowerCaseNames.indexOf(entityValue.toLowerCase());
                 if (index > -1)
                 {
-                    botmemory.entityMap[entityId].splice(index, 1);
-                    if (botmemory.entityMap[entityId].length == 0)
+                    botmemory.entityMap[entityName].splice(index, 1);
+                    if (botmemory.entityMap[entityName].length == 0)
                     {
-                        delete botmemory.entityMap[entityId];
+                        delete botmemory.entityMap[entityName];
                     }
                 }    
             }
             else
             {
-                delete botmemory.entityMap[entityId];
+                delete botmemory.entityMap[entityName];
             }
             await this.Set(botmemory);
         }
@@ -261,11 +255,9 @@ export class BotMemory
     //--------------------------------------------------------
     private static async EntityValue(entityName : string) : Promise<any>
     {
-        let entityId = <string> await this.memory.EntityLookup().ToId(entityName);
- 
         let botmemory = await this.Get();
 
-        let value = botmemory.entityMap[entityId];
+        let value = botmemory.entityMap[entityName];
         if (typeof value == 'string')
         {
             return <string>value;
