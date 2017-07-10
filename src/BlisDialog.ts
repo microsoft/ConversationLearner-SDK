@@ -336,11 +336,11 @@ export class BlisDialog extends builder.Dialog {
             // If negative entity will have a positive counter entity
             if (predictedEntity.metadata && predictedEntity.metadata.positiveId)
             {
-                await memory.BotMemory().ForgetByLabel(predictedEntity);
+                await memory.BotMemory().ForgetEntity(predictedEntity);
             }
             else
             {
-                await memory.BotMemory().RememberByLabel(predictedEntity);
+                await memory.BotMemory().RememberEntity(predictedEntity);
             }
 
             // If entity is associated with a task, make sure task is active

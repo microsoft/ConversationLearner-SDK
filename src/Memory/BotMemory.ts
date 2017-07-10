@@ -2,6 +2,7 @@ import { JsonProperty } from 'json-typescript-mapper';
 import { ActionCommand } from '../Model/Consts';
 import { BlisMemory } from '../BlisMemory';
 import { BlisDebug} from '../BlisDebug';
+import { PredictedEntity } from 'blis-models';
 import * as builder from 'botbuilder'
 
 export class BotMemory 
@@ -83,6 +84,27 @@ export class BotMemory
         return msg;
     }
 
+    private static async RememberEntity(predictedEntity : PredictedEntity) : Promise<void> {
+
+        let botmemory = await this.Get();
+
+        // Check if entity buckets values
+        if (predictedEntity.metadata.isBucket)
+        {
+            if (!botmemory.entityMap[predictedEntity.entityId])
+            {
+                botmemory.entityMap[predictedEntity.entityId] = [];
+            }
+            botmemory.entityMap[predictedEntity.entityId].push(predictedEntity.entityText);
+        }
+        else
+        {
+            botmemory.entityMap[predictedEntity.entityId] = predictedEntity.entityText;
+        }
+        await this.Set(botmemory);
+    }
+
+    // TODO - this old remember functions can likely go away
     private static async Remember(entityId: string, entityName: string, entityValue: string) : Promise<void> {
 
         let botmemory = await this.Get();
@@ -141,6 +163,39 @@ export class BotMemory
         return Object.keys(botmemory.entityMap);
     }
 
+    /** Forget an entity by Id */
+    private static async ForgetEntity(predictedEntity : PredictedEntity) : Promise<void> {
+        try {
+            // Check if entity buckets values
+            let botmemory = await this.Get();
+            if (predictedEntity.metadata.isBucket)
+            {
+                // Find case insensitive index
+                let lowerCaseNames = botmemory.entityMap[predictedEntity.entityId].map(function(value) {
+                    return value.toLowerCase();
+                });
+
+                let index = lowerCaseNames.indexOf(predictedEntity.entityText.toLowerCase());
+                if (index > -1)
+                {
+                    botmemory.entityMap[predictedEntity.entityId].splice(index, 1);
+                    if (botmemory.entityMap[predictedEntity.entityId].length == 0)
+                    {
+                        delete botmemory.entityMap[predictedEntity.entityId];
+                    }
+                }    
+            }
+            else
+            {
+                delete botmemory.entityMap[predictedEntity.entityId];
+            }
+            await this.Set(botmemory);
+        }
+        catch (error)
+        {
+             BlisDebug.Error(error);
+        }  
+    }
     /** Forget an entity by Id */
     private static async Forget(entityId: string, entityName: string, entityValue : string) : Promise<void> {
         try {
