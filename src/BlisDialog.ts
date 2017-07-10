@@ -152,17 +152,20 @@ export class BlisDialog extends builder.Dialog {
         let sessionId = await memory.BotState().SessionId();
         let userInput = new UserInput(session.message);
 
-        // Send utterance to server for entity extraction
-        if (inTeach) {
-            let extractResponse = await BlisClient.client.TeachExtract(appId, sessionId, userInput);
-        }
-        else
+        // Teach inputs are handled via API calls from the BLIS api
+        if (!inTeach)
         {
             // Call the entity extractor
             let extractResponse = await BlisClient.client.SessionExtract(appId, sessionId, userInput)
 
+            await this.ProcessExtraction(appId, sessionId, memory, extractResponse.text, extractResponse.predictedEntities);
+        }
+    }
+
+    private async ProcessExtraction(appId : string, sessionId : string, memory : BlisMemory, text : string, predictedEntities : PredictedEntity[] )
+    {
             // Call LUIS callback
-            let scoreInput = await this.CallLuisCallback(extractResponse.text, extractResponse.predictedEntities, memory);
+            let scoreInput = await this.CallLuisCallback(text, predictedEntities, memory);
             
             // Call the scorer
             let scoreResponse = await BlisClient.client.SessionScore(appId, sessionId, scoreInput);
@@ -174,8 +177,13 @@ export class BlisDialog extends builder.Dialog {
             if (bestAction)
             {
                 this.TakeAction(bestAction, memory);
+ 
+                // If action isn't terminal loop through another time
+                if (!bestAction.isTerminal)
+                {
+                    await this.ProcessExtraction(appId, sessionId, memory, "", []);
+                }
             }
-        }
     }
 
     public async TakeAction(scoredAction : ScoredAction, memory : BlisMemory) : Promise<void>

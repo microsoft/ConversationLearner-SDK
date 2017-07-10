@@ -83,28 +83,13 @@ export class BotMemory
         return msg;
     }
 
+    /** Remember a predicted entity */
     private static async RememberEntity(predictedEntity : PredictedEntity) : Promise<void> {
-
-        let botmemory = await this.Get();
-
-        // Check if entity buckets values
-        if (predictedEntity.metadata.isBucket)
-        {
-            if (!botmemory.entityMap[predictedEntity.entityName])
-            {
-                botmemory.entityMap[predictedEntity.entityName] = [];
-            }
-            botmemory.entityMap[predictedEntity.entityName].push(predictedEntity.entityText);
-        }
-        else
-        {
-            botmemory.entityMap[predictedEntity.entityName] = predictedEntity.entityText;
-        }
-        await this.Set(botmemory);
+        await this.Remember(predictedEntity.entityName, predictedEntity.entityText);
     }
 
-    // TODO - this old remember functions can likely go away
-    private static async Remember(entityId: string, entityName: string, entityValue: string) : Promise<void> {
+    // Remember value for an entity
+    public static async Remember(entityName: string, entityValue: string) : Promise<void> {
 
         let botmemory = await this.Get();
 
@@ -124,31 +109,6 @@ export class BotMemory
         await this.Set(botmemory);
     }
 
-    public static async RememberByName(entityName: string, entityValue: string) : Promise<void> {
-        let entityId = <string> await this.memory.EntityLookup().ToId(entityName);
-        if (entityId)
-        {
-            await this.Remember(entityId, entityName, entityValue);
-        } 
-        else
-        {
-            BlisDebug.Error(`Unknown Entity: ${entityId}`);
-        }
-    }
-
-    
-    public static async RememberById(entityId: string, entityValue: string) : Promise<void> {
-        let entityName = <string> await this.memory.EntityLookup().ToName(entityId);
-        if (entityName)
-        {
-            await this.Remember(entityId, entityName, entityValue);
-        } 
-        else
-        {
-            BlisDebug.Error(`Unknown Entity: ${entityName}`);
-        }
-    }  
-
     /** Return array of entity names for which I've remembered something */
     public static async RememberedNames() : Promise<string[]>
     {
@@ -157,41 +117,13 @@ export class BotMemory
     }
 
 
-    /** Forget an entity by Id */
+    /** Forget a predicted Entity */
     private static async ForgetEntity(predictedEntity : PredictedEntity) : Promise<void> {
-        try {
-            // Check if entity buckets values
-            let botmemory = await this.Get();
-            if (predictedEntity.metadata.isBucket)
-            {
-                // Find case insensitive index
-                let lowerCaseNames = botmemory.entityMap[predictedEntity.entityName].map(function(value) {
-                    return value.toLowerCase();
-                });
-
-                let index = lowerCaseNames.indexOf(predictedEntity.entityText.toLowerCase());
-                if (index > -1)
-                {
-                    botmemory.entityMap[predictedEntity.entityName].splice(index, 1);
-                    if (botmemory.entityMap[predictedEntity.entityName].length == 0)
-                    {
-                        delete botmemory.entityMap[predictedEntity.entityName];
-                    }
-                }    
-            }
-            else
-            {
-                delete botmemory.entityMap[predictedEntity.entityName];
-            }
-            await this.Set(botmemory);
-        }
-        catch (error)
-        {
-             BlisDebug.Error(error);
-        }  
+        await this.Forget(predictedEntity.entityName, predictedEntity.entityText);
     }
-    /** Forget an entity by Id */
-    private static async Forget(entityId: string, entityName: string, entityValue : string) : Promise<void> {
+    
+    /** Forget an entity value */
+    public static async Forget(entityName: string, entityValue : string) : Promise<void> {
         try {
             // Check if entity buckets values
             let botmemory = await this.Get();
@@ -222,32 +154,6 @@ export class BotMemory
         {
              BlisDebug.Error(error);
         }  
-    }
-
- /** Forget an entity */
-    public static async ForgetByName(entityName : string, entityValue : string) : Promise<void> {
-        let entityId = <string> await this.memory.EntityLookup().ToId(entityName);
-        if (entityId)
-        {
-            await this.Forget(entityId, entityName, entityValue);
-        } 
-        else
-        {
-            BlisDebug.Error(`Unknown Entity: ${entityId}`);
-        }
-    }
-
-    /** Forget an entity by Id */
-    public static async ForgetById(entityId: string, entityValue : string) : Promise<void> {
-        let entityName = <string> await this.memory.EntityLookup().ToName(entityId);
-        if (entityName)
-        {
-            await this.Forget(entityId, entityName, entityValue);
-        } 
-        else
-        {
-            BlisDebug.Error(`Unknown Entity: ${entityName}`);
-        }
     }
 
      //--------------------------------------------------------
