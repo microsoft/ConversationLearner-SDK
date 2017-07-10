@@ -188,6 +188,7 @@ export class BlisMemory {
         await this.BotState().SetInTeach(inTeach);
     }
 
+    // TODO: Eliminate this
     public EntityLookup() : any
     {
         EntityLookup.memory = this;

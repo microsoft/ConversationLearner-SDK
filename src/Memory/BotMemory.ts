@@ -71,11 +71,10 @@ export class BotMemory
         let msg = "";
         let botmemory = await this.Get();
 
-        for (let entityId in botmemory.entityMap)
+        for (let entityName in botmemory.entityMap)
         {
             if (msg) msg += " ";
-            let entityName = await this.memory.EntityLookup().ToName(entityId);
-            let entityValue = botmemory.entityMap[entityId];
+            let entityValue = botmemory.entityMap[entityName];
             msg += `[${entityName} : ${entityValue}]`;
         }
         if (msg == "") {
@@ -84,39 +83,24 @@ export class BotMemory
         return msg;
     }
 
+    /** Remember a predicted entity */
     private static async RememberEntity(predictedEntity : PredictedEntity) : Promise<void> {
-
-        let botmemory = await this.Get();
-
-        // Check if entity buckets values
-        if (predictedEntity.metadata.isBucket)
-        {
-            if (!botmemory.entityMap[predictedEntity.entityId])
-            {
-                botmemory.entityMap[predictedEntity.entityId] = [];
-            }
-            botmemory.entityMap[predictedEntity.entityId].push(predictedEntity.entityText);
-        }
-        else
-        {
-            botmemory.entityMap[predictedEntity.entityId] = predictedEntity.entityText;
-        }
-        await this.Set(botmemory);
+        await this.Remember(predictedEntity.entityName, predictedEntity.entityText);
     }
 
-    // TODO - this old remember functions can likely go away
-    private static async Remember(entityId: string, entityName: string, entityValue: string) : Promise<void> {
+    // Remember value for an entity
+    public static async Remember(entityName: string, entityValue: string) : Promise<void> {
 
         let botmemory = await this.Get();
 
         // Check if entity buckets values
         if (entityName && entityName.startsWith(ActionCommand.BUCKET))
         {
-            if (!botmemory.entityMap[entityId])
+            if (!botmemory.entityMap[entityName])
             {
-                botmemory.entityMap[entityId] = [];
+                botmemory.entityMap[entityName] = [];
             }
-            botmemory.entityMap[entityId].push(entityValue);
+            botmemory.entityMap[entityName].push(entityValue);
         }
         else
         {
@@ -125,102 +109,44 @@ export class BotMemory
         await this.Set(botmemory);
     }
 
-    public static async RememberByName(entityName: string, entityValue: string) : Promise<void> {
-        let entityId = <string> await this.memory.EntityLookup().ToId(entityName);
-        if (entityId)
-        {
-            await this.Remember(entityId, entityName, entityValue);
-        } 
-        else
-        {
-            BlisDebug.Error(`Unknown Entity: ${entityId}`);
-        }
-    }
-
-    
-    public static async RememberById(entityId: string, entityValue: string) : Promise<void> {
-        let entityName = <string> await this.memory.EntityLookup().ToName(entityId);
-        if (entityName)
-        {
-            await this.Remember(entityId, entityName, entityValue);
-        } 
-        else
-        {
-            BlisDebug.Error(`Unknown Entity: ${entityName}`);
-        }
-    }  
-
-    // Returns true if entity was remembered
-    public static async WasRemembered(entityId : string) : Promise<boolean> {
-        let botmemory = await this.Get();
-        return (botmemory.entityMap[entityId] != null);
-    }
-
-    /** Return array of entityIds for which I've remembered something */
-    public static async RememberedIds() : Promise<string[]>
+    /** Return array of entity names for which I've remembered something */
+    public static async RememberedNames() : Promise<string[]>
     {
         let botmemory = await this.Get();
         return Object.keys(botmemory.entityMap);
     }
 
-    /** Forget an entity by Id */
-    private static async ForgetEntity(predictedEntity : PredictedEntity) : Promise<void> {
-        try {
-            // Check if entity buckets values
-            let botmemory = await this.Get();
-            if (predictedEntity.metadata.isBucket)
-            {
-                // Find case insensitive index
-                let lowerCaseNames = botmemory.entityMap[predictedEntity.entityId].map(function(value) {
-                    return value.toLowerCase();
-                });
 
-                let index = lowerCaseNames.indexOf(predictedEntity.entityText.toLowerCase());
-                if (index > -1)
-                {
-                    botmemory.entityMap[predictedEntity.entityId].splice(index, 1);
-                    if (botmemory.entityMap[predictedEntity.entityId].length == 0)
-                    {
-                        delete botmemory.entityMap[predictedEntity.entityId];
-                    }
-                }    
-            }
-            else
-            {
-                delete botmemory.entityMap[predictedEntity.entityId];
-            }
-            await this.Set(botmemory);
-        }
-        catch (error)
-        {
-             BlisDebug.Error(error);
-        }  
+    /** Forget a predicted Entity */
+    private static async ForgetEntity(predictedEntity : PredictedEntity) : Promise<void> {
+        await this.Forget(predictedEntity.entityName, predictedEntity.entityText);
     }
-    /** Forget an entity by Id */
-    private static async Forget(entityId: string, entityName: string, entityValue : string) : Promise<void> {
+    
+    /** Forget an entity value */
+    public static async Forget(entityName: string, entityValue : string) : Promise<void> {
         try {
             // Check if entity buckets values
             let botmemory = await this.Get();
             if (entityName.startsWith(ActionCommand.BUCKET))
             {
                 // Find case insensitive index
-                let lowerCaseNames = botmemory.entityMap[entityId].map(function(value) {
+                let lowerCaseNames = botmemory.entityMap[entityName].map(function(value) {
                     return value.toLowerCase();
                 });
 
                 let index = lowerCaseNames.indexOf(entityValue.toLowerCase());
                 if (index > -1)
                 {
-                    botmemory.entityMap[entityId].splice(index, 1);
-                    if (botmemory.entityMap[entityId].length == 0)
+                    botmemory.entityMap[entityName].splice(index, 1);
+                    if (botmemory.entityMap[entityName].length == 0)
                     {
-                        delete botmemory.entityMap[entityId];
+                        delete botmemory.entityMap[entityName];
                     }
                 }    
             }
             else
             {
-                delete botmemory.entityMap[entityId];
+                delete botmemory.entityMap[entityName];
             }
             await this.Set(botmemory);
         }
@@ -228,32 +154,6 @@ export class BotMemory
         {
              BlisDebug.Error(error);
         }  
-    }
-
- /** Forget an entity */
-    public static async ForgetByName(entityName : string, entityValue : string) : Promise<void> {
-        let entityId = <string> await this.memory.EntityLookup().ToId(entityName);
-        if (entityId)
-        {
-            await this.Forget(entityId, entityName, entityValue);
-        } 
-        else
-        {
-            BlisDebug.Error(`Unknown Entity: ${entityId}`);
-        }
-    }
-
-    /** Forget an entity by Id */
-    public static async ForgetById(entityId: string, entityValue : string) : Promise<void> {
-        let entityName = <string> await this.memory.EntityLookup().ToName(entityId);
-        if (entityName)
-        {
-            await this.Forget(entityId, entityName, entityValue);
-        } 
-        else
-        {
-            BlisDebug.Error(`Unknown Entity: ${entityName}`);
-        }
     }
 
      //--------------------------------------------------------
@@ -261,11 +161,9 @@ export class BotMemory
     //--------------------------------------------------------
     private static async EntityValue(entityName : string) : Promise<any>
     {
-        let entityId = <string> await this.memory.EntityLookup().ToId(entityName);
- 
         let botmemory = await this.Get();
 
-        let value = botmemory.entityMap[entityId];
+        let value = botmemory.entityMap[entityName];
         if (typeof value == 'string')
         {
             return <string>value;
