@@ -1012,8 +1012,8 @@ export class Server {
                         // Call LUIS callback to get scoreInput
                         let memory = BlisMemory.GetMemory(key);
                         let scoreInput = await BlisDialog.dialog.CallLuisCallback(extractResponse.text, extractResponse.predictedEntities, memory);
-                        let response = await BlisClient.client.TeachScore(appId, teachId, scoreInput);
-                        res.send(response);
+                        let scoreResponse = await BlisClient.client.TeachScore(appId, teachId, scoreInput);
+                        res.send(scoreResponse);
                     }
                     catch (error)
                     {

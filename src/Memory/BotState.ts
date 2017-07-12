@@ -13,9 +13,6 @@ export class BotState extends Serializable
     @JsonProperty('sesionId') 
     public sessionId : string = null;
 
-    @JsonProperty('modelId') 
-    public modelId : string = null;
-
     @JsonProperty('inTeach') 
     public inTeach : boolean = false;
  
@@ -32,7 +29,6 @@ export class BotState extends Serializable
         super();
         this.appId = undefined;
         this.sessionId = undefined;
-        this.modelId = undefined;
         this.inTeach = false;
         this.inDebug = false;
         this.address = undefined;
@@ -91,7 +87,6 @@ export class BotState extends Serializable
         let botState = new BotState();  
         botState.appId = appId;
         botState.sessionId = null;
-        botState.modelId = null;
         botState.inTeach = false;
         botState.inDebug = false;
         await this.Set(botState);
@@ -113,19 +108,6 @@ export class BotState extends Serializable
     {
         let botState = await this.Get();    
         botState.appId = appId;
-        await this.Set(botState);
-    }
-
-    public static async ModelId() : Promise<string>
-    {
-        let botState = await this.Get();    
-        return botState.modelId;
-    }
-
-    public static async SetModelId(modelId : string) : Promise<void>
-    {
-        let botState = await this.Get();    
-        botState.modelId = modelId;
         await this.Set(botState);
     }
 
