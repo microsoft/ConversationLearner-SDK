@@ -1527,7 +1527,7 @@ export class BlisClient {
          * available on the server, the session will first migrate to that newer version.  
          * This doesn't affect the trainDialog maintained by the teaching session.
          */
-        public TeachScore(appId : string, teachId : string, scorerInput : ScoreInput) : Promise<TeachResponse>
+        public TeachScore(appId : string, teachId : string, scorerInput : ScoreInput) : Promise<ScoreResponse>
         {
             let apiPath = `app/${appId}/teach/${teachId}/scorer`;
 
@@ -1551,7 +1551,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            var scoreResponse = deserialize(TeachResponse, body);
+                            var scoreResponse = deserialize(ScoreResponse, body);
                             resolve(scoreResponse);
                         }
                     });

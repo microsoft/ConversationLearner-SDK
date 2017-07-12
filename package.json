@@ -1,6 +1,6 @@
 {
   "name": "blisdk",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Node SDK for Blis",
   "main": "lib/blisdk.js",
   "typings": "./src/botbuilder.d.ts",
