@@ -6,7 +6,7 @@ import { BlisMemory } from '../BlisMemory';
 import { BlisApp } from '../Model/BlisApp';
 import { Action } from '../Model/Action';
 import { Entity } from '../Model/Entity';
-import { TrainDialog, TrainExtractorStep, TrainScorerStep, ExtractResponse  } from 'blis-models'
+import { TrainDialog, TrainExtractorStep, TrainScorerStep, ExtractResponse, UIScoreResponse  } from 'blis-models'
 
 import { deserialize, serialize } from 'json-typescript-mapper';
 
@@ -1013,6 +1013,8 @@ export class Server {
                         let memory = BlisMemory.GetMemory(key);
                         let scoreInput = await BlisDialog.dialog.CallLuisCallback(extractResponse.text, extractResponse.predictedEntities, memory);
                         let scoreResponse = await BlisClient.client.TeachScore(appId, teachId, scoreInput);
+                        let memories = memory.BotMemory().DumpEntities();
+                        let uiScoreResponse = new UIScoreResponse({scoreResponse : scoreResponse, memories : memories});
                         res.send(scoreResponse);
                     }
                     catch (error)
