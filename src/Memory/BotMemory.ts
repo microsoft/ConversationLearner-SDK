@@ -2,7 +2,7 @@ import { JsonProperty } from 'json-typescript-mapper';
 import { ActionCommand } from '../Model/Consts';
 import { BlisMemory } from '../BlisMemory';
 import { BlisDebug} from '../BlisDebug';
-import { PredictedEntity } from 'blis-models';
+import { PredictedEntity, Memory } from 'blis-models';
 import * as builder from 'botbuilder'
 
 export class BotMemory 
@@ -154,6 +154,19 @@ export class BotMemory
         {
              BlisDebug.Error(error);
         }  
+    }
+
+    public static async DumpMemory() : Promise<Memory[]>
+    {
+        // Check if entity buckets values
+        let botmemory = await this.Get();
+
+        let memory : Memory[];
+        for (let entityName in botmemory.entityMap)
+        {
+            memory.push(new Memory({entityName:entityName, entityValue: botmemory.entityMap[entityName]}));
+        }
+        return memory;
     }
 
      //--------------------------------------------------------
