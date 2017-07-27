@@ -51,9 +51,10 @@ export class BlisDialog extends builder.Dialog {
     public static dialog : BlisDialog;
 
     // Create singleton
-    public static Init(bot : builder.UniversalBot, options: IBlisOptions)
+    public static Init(bot : builder.UniversalBot, options: IBlisOptions) : BlisDialog
     {
         this.dialog = new BlisDialog(bot, options);
+        return this.dialog;
     }
 
    // Optional callback than runs after LUIS but before BLIS.  Allows Bot to substitute entities
@@ -62,6 +63,7 @@ export class BlisDialog extends builder.Dialog {
     // Mapping between user defined API names and functions
     private apiCallbacks : { string : () => void };
 
+    private blisRecognizer : BlisRecognizer;
     private recognizers: builder.IntentRecognizerSet;
 
 
@@ -75,8 +77,8 @@ export class BlisDialog extends builder.Dialog {
         try {
             BlisDebug.InitLogger(bot)
 
-            var recognizer = new BlisRecognizer();
-            this.recognizers = new builder.IntentRecognizerSet({ recognizers: [recognizer]});
+            this.blisRecognizer = new BlisRecognizer();
+            this.recognizers = new builder.IntentRecognizerSet({ recognizers: [this.blisRecognizer]});
 
             BlisDebug.Log("Creating client....");
             BlisClient.Init(options.serviceUri, options.user, options.secret, options.azureFunctionsUrl, options.azureFunctionsKey);
@@ -156,9 +158,17 @@ export class BlisDialog extends builder.Dialog {
         if (!inTeach)
         {
             // Call the entity extractor
-            let extractResponse = await BlisClient.client.SessionExtract(appId, sessionId, userInput)
+            try
+            {
+                let extractResponse = await BlisClient.client.SessionExtract(appId, sessionId, userInput)
 
-            await this.ProcessExtraction(appId, sessionId, memory, extractResponse.text, extractResponse.predictedEntities);
+                await this.ProcessExtraction(appId, sessionId, memory, extractResponse.text, extractResponse.predictedEntities);
+            }
+            catch (error)
+            {
+                let msg = BlisDebug.Error(error);
+                await Utils.SendText(this.bot, memory, msg);
+            }  
         }
     }
 
@@ -188,7 +198,6 @@ export class BlisDialog extends builder.Dialog {
 
     public async TakeAction(scoredAction : ScoredAction, memory : BlisMemory) : Promise<void>
     {
-        let session = memory.BotState().Session();
         let actionType = scoredAction.metadata.actionType;
 
         switch (actionType)  {
@@ -213,7 +222,7 @@ export class BlisDialog extends builder.Dialog {
     private async TakeTextAction(scoredAction : ScoredAction, memory : BlisMemory) : Promise<void>
     {
         let outText = await this.CallBlisCallback(scoredAction, memory);
-        Utils.SendText(memory, outText);
+        await Utils.SendText(this.bot, memory, outText);
     }
 
     private async TakeCardAction(scoredAction : ScoredAction, memory : BlisMemory) : Promise<void>
@@ -247,7 +256,7 @@ export class BlisDialog extends builder.Dialog {
         let output = await api(memory, args);
         if (output)
         {
-            Utils.SendText(memory, output);
+            await Utils.SendText(this.bot, memory, output);
         }  
     }
 
@@ -265,7 +274,7 @@ export class BlisDialog extends builder.Dialog {
         let output = await AzureFunctions.Call(BlisClient.client.azureFunctionsUrl, BlisClient.client.azureFunctionsKey, funcName, entities);
         if (output)
         {
-            Utils.SendText(memory, output);
+            await Utils.SendText(this.bot, memory, output);
         }          
     }
 
@@ -278,7 +287,7 @@ export class BlisDialog extends builder.Dialog {
 
         // Make any entity substitutions
         let entities = await memory.BotMemory().GetEntities(args);
-        let session = memory.BotState().Session();
+        let session = memory.BotState().Session(this.bot);
 
         // If in teach mode wrap the intent so can give next input cue when intent dialog completes
         let inTeach = memory.BotState().InTeach();

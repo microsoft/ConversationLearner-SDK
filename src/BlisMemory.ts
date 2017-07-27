@@ -42,9 +42,11 @@ export class BlisMemory {
     // Generate memory key from session
     public static InitMemory(session : builder.Session) : BlisMemory 
     {
-        let key = KeyGen.MakeKey(JSON.stringify(session.message.address.user));
+        let user = session.message.address.user;
+        let userdata = { id: user.id, name: user.name };
+        let key = KeyGen.MakeKey(JSON.stringify(userdata));
         let memory = new BlisMemory(key);
-        memory.BotState().SetAddress(session.message.address.user);
+        memory.BotState().SetAddress(session.message.address);
         return memory;
     }
 

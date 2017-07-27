@@ -14,10 +14,10 @@ export class Utils  {
     }
 
     /** Send a text message */
-    public static SendText(memory : BlisMemory, content : string)
+    public static async SendText(bot : builder.UniversalBot, memory : BlisMemory, content : string)
     { 
-        let address = memory.BotState().Address();
-        let session = memory.BotState().Session();
+        let address = await memory.BotState().Address();
+        let session = await memory.BotState().Session(bot);
 
         let message = new builder.Message()
 			.address(address)
