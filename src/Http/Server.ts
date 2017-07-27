@@ -64,6 +64,73 @@ export class Server {
         });
 
         //========================================================
+        // State
+        //========================================================
+            /** Sets the current active application */
+            this.server.put("state/app/:appId", async (req, res, next) =>
+                {
+                    try
+                    {
+                        this.InitClient();  // TEMP
+                        let query = req.getQuery();
+                        let key = req.params.key;
+                        let appId = req.params.appId
+
+                        let memory = BlisMemory.GetMemory(key);
+                        await memory.BotState().SetAppId(appId);
+                        res.send(200);
+                    }
+                    catch (error)
+                    {
+                        res.send(error.statusCode, Server.ErrorMessage(error));
+                    }
+                }
+            );
+
+            /** Sets the current active session */
+            this.server.put("state/session/:sessionId", async (req, res, next) =>
+                {
+                    try
+                    {
+                        this.InitClient();  // TEMP
+                        let query = req.getQuery();
+                        let key = req.params.key;
+                        let sessionId = req.params.sessionId;
+                        
+                        let memory = BlisMemory.GetMemory(key);
+                        await memory.BotState().SetSessionId(sessionId);
+                        res.send(200);
+                    }
+                    catch (error)
+                    {
+                        res.send(error.statusCode, Server.ErrorMessage(error));
+                    }
+                }
+            );
+
+            /** Sets the current active teach session */
+            this.server.put("state/teach/:teachId", async (req, res, next) =>
+                {
+                    try
+                    {
+                        this.InitClient();  // TEMP
+                        let query = req.getQuery();
+                        let key = req.params.key;
+                        let teachId = req.params.teachId
+
+                        let memory = BlisMemory.GetMemory(key);
+                        await memory.BotState().SetSessionId(teachId);
+                        await memory.BotState().SetInTeach(true);
+                        res.send(200);
+                    }
+                    catch (error)
+                    {
+                        res.send(error.statusCode, Server.ErrorMessage(error));
+                    }
+                }
+            );
+
+        //========================================================
         // App
         //========================================================
            
@@ -901,7 +968,7 @@ export class Server {
         // Teach
         //========================================================
             
-            /** Creates a new teaching session and a corresponding trainDialog */
+            /** START TEACH SESSION: Creates a new teaching session and a corresponding trainDialog */
             this.server.post("/app/:appId/teach", async (req, res, next) =>
                 {
                     try
@@ -924,7 +991,7 @@ export class Server {
                 }
             );
 
-            /** Retrieves information about the specified teach */
+            /** GET TEACH: Retrieves information about the specified teach */
             this.server.get("/app/:appId/teach/:teachId", async (req, res, next) =>
                 {
                     try
@@ -944,7 +1011,7 @@ export class Server {
                 }
             );
 
-            /** Runs entity extraction (prediction). 
+            /** RUN EXTRACTOR: Runs entity extraction (prediction). 
              * If a more recent version of the package is available on 
              * the server, the session will first migrate to that newer version.  This 
              * doesn't affect the trainDialog maintained.
@@ -969,7 +1036,7 @@ export class Server {
                 }
             );
 
-            /** Uploads a labeled entity extraction instance
+            /** EXTRACTION FEEDBACK: Uploads a labeled entity extraction instance
              * ie "commits" an entity extraction label, appending it to the teach session's
              * trainDialog, and advancing the dialog. This may yield produce a new package.
              */
@@ -993,7 +1060,7 @@ export class Server {
                 }
             );
 
-            /** Takes a turn and return distribution over actions.
+            /** RUN SCORER: Takes a turn and return distribution over actions.
              * If a more recent version of the package is 
              * available on the server, the session will first migrate to that newer version.  
              * This doesn't affect the trainDialog maintained by the teaching session.
@@ -1024,7 +1091,7 @@ export class Server {
                 }
             );
 
-            /** Uploads a labeled scorer step instance 
+            /** SCORE FEEDBACK: Uploads a labeled scorer step instance 
              * – ie "commits" a scorer label, appending it to the teach session's 
              * trainDialog, and advancing the dialog. This may yield produce a new package.
              */
@@ -1052,7 +1119,7 @@ export class Server {
                 }
             );
 
-            /** Ends a teach.   
+            /** END TEACH: Ends a teach.   
              * For Teach sessions, does NOT delete the associated trainDialog.
              * To delete the associated trainDialog, call DELETE on the trainDialog.
              */
@@ -1080,7 +1147,7 @@ export class Server {
                 }
             );
 
-            /** Retrieves definitions of ALL open teach sessions */
+            /** GET TEACH SESSOINS: Retrieves definitions of ALL open teach sessions */
             this.server.get("/app/:appId/teaches", async (req, res, next) =>
                 {
                     this.InitClient();  // TEMP
@@ -1100,7 +1167,7 @@ export class Server {
                 }
             );
  
-            /** Retrieves a list of teach session IDs */
+            /** GET TEACH SESSION IDS: Retrieves a list of teach session IDs */
             this.server.get("/app/:appId/teach", async (req, res, next) =>
                 {
                     this.InitClient();  // TEMP
