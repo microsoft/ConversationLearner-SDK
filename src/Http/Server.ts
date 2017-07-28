@@ -6,7 +6,7 @@ import { BlisMemory } from '../BlisMemory';
 import { BlisApp } from '../Model/BlisApp';
 import { Action } from '../Model/Action';
 import { Entity } from '../Model/Entity';
-import { TrainDialog, TrainExtractorStep, TrainScorerStep, ExtractResponse, UIScoreResponse  } from 'blis-models'
+import { TrainDialog, TrainExtractorStep, TrainScorerStep, ExtractResponse, UIExtractResponse, UIScoreResponse  } from 'blis-models'
 
 import { deserialize, serialize } from 'json-typescript-mapper';
 
@@ -65,7 +65,7 @@ export class Server {
 
         //========================================================
         // State
-        //========================================================
+        //=======================================================
             /** Sets the current active application */
             this.server.put("state/app/:appId", async (req, res, next) =>
                 {
@@ -78,49 +78,6 @@ export class Server {
 
                         let memory = BlisMemory.GetMemory(key);
                         await memory.BotState().SetAppId(appId);
-                        res.send(200);
-                    }
-                    catch (error)
-                    {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
-                    }
-                }
-            );
-
-            /** Sets the current active session */
-            this.server.put("state/session/:sessionId", async (req, res, next) =>
-                {
-                    try
-                    {
-                        this.InitClient();  // TEMP
-                        let query = req.getQuery();
-                        let key = req.params.key;
-                        let sessionId = req.params.sessionId;
-                        
-                        let memory = BlisMemory.GetMemory(key);
-                        await memory.BotState().SetSessionId(sessionId);
-                        res.send(200);
-                    }
-                    catch (error)
-                    {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
-                    }
-                }
-            );
-
-            /** Sets the current active teach session */
-            this.server.put("state/teach/:teachId", async (req, res, next) =>
-                {
-                    try
-                    {
-                        this.InitClient();  // TEMP
-                        let query = req.getQuery();
-                        let key = req.params.key;
-                        let teachId = req.params.teachId
-
-                        let memory = BlisMemory.GetMemory(key);
-                        await memory.BotState().SetSessionId(teachId);
-                        await memory.BotState().SetInTeach(true);
                         res.send(200);
                     }
                     catch (error)
@@ -1027,7 +984,11 @@ export class Server {
                         let teachId = req.params.teachId;
                         let userInput = req.body;
                         let extractResponse = await BlisClient.client.TeachExtract(appId, teachId, userInput);
-                        res.send(extractResponse);
+
+                        let memory = BlisMemory.GetMemory(key);
+                        let memories = memory.BotMemory().DumpEntities();
+                        let uiExtractResponse = new UIExtractResponse({extractResponse : extractResponse, memories : memories});
+                        res.send(uiExtractResponse);
                     }
                     catch (error)
                     {
@@ -1082,7 +1043,7 @@ export class Server {
                         let scoreResponse = await BlisClient.client.TeachScore(appId, teachId, scoreInput);
                         let memories = memory.BotMemory().DumpEntities();
                         let uiScoreResponse = new UIScoreResponse({scoreResponse : scoreResponse, memories : memories});
-                        res.send(scoreResponse);
+                        res.send(uiScoreResponse);
                     }
                     catch (error)
                     {
