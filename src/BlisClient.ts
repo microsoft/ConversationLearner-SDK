@@ -1465,7 +1465,7 @@ export class BlisClient {
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
                         },
-                        body: serialize(userInput),
+                        body: { text : userInput.text },
                         json: true
                     }
 

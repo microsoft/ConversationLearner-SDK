@@ -152,7 +152,7 @@ export class BlisDialog extends builder.Dialog {
         let inTeach = await memory.BotState().InTeach();
         let appId = await  memory.BotState().AppId();
         let sessionId = await memory.BotState().SessionId();
-        let userInput = new UserInput(session.message);
+        let userInput = new UserInput({text: session.message.text});
 
         // Teach inputs are handled via API calls from the BLIS api
         if (!inTeach)
