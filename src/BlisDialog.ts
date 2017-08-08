@@ -53,7 +53,12 @@ export class BlisDialog extends builder.Dialog {
     // Create singleton
     public static Init(bot : builder.UniversalBot, options: IBlisOptions) : BlisDialog
     {
-        this.dialog = new BlisDialog(bot, options);
+        BlisDialog.dialog = new BlisDialog(bot, options);
+        return BlisDialog.dialog;
+    }
+
+    public static Instance() : BlisDialog
+    {
         return this.dialog;
     }
 
@@ -379,7 +384,7 @@ export class BlisDialog extends builder.Dialog {
 
         let scoreInput = new ScoreInput({   
             filledEntities: filledEntities,
-            context: null,
+            context: {},
             maskedActions: []
         });
         return scoreInput;
