@@ -71,24 +71,6 @@ export class BotMemory
         await this.Set(botMemory);
     }
 
-    // TODO:  obsolete?
-    private static async ToString() : Promise<string>
-    {
-        let msg = "";
-        let botmemory = await this.Get();
-
-        for (let entityName in botmemory.entityMap)
-        {
-            if (msg) msg += " ";
-            let entityValue = botmemory.entityMap[entityName];
-            msg += `[${entityName} : ${entityValue}]`;
-        }
-        if (msg == "") {
-            msg = '[ - none - ]';
-        }
-        return msg;
-    }
-
     /** Remember a predicted entity */
     private static async RememberEntity(predictedEntity : PredictedEntity) : Promise<void> {
         await this.Remember(predictedEntity.entityName, predictedEntity.entityId, predictedEntity.entityText);
