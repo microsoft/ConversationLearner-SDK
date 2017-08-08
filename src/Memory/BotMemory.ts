@@ -161,7 +161,7 @@ export class BotMemory
         // Check if entity buckets values
         let botmemory = await this.Get();
 
-        let memory : Memory[];
+        let memory : Memory[] = [];
         for (let entityName in botmemory.entityMap)
         {
             memory.push(new Memory({entityName:entityName, entityValue: botmemory.entityMap[entityName]}));
