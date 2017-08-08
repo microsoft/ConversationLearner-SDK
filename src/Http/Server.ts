@@ -986,7 +986,7 @@ export class Server {
                         let extractResponse = await BlisClient.client.TeachExtract(appId, teachId, userInput);
 
                         let memory = BlisMemory.GetMemory(key);
-                        let memories = memory.BotMemory().DumpEntities();
+                        let memories = await memory.BotMemory().DumpMemory();
                         let uiExtractResponse = new UIExtractResponse({extractResponse : extractResponse, memories : memories});
                         res.send(uiExtractResponse);
                     }
@@ -1041,7 +1041,7 @@ export class Server {
                         let memory = BlisMemory.GetMemory(key);
                         let scoreInput = await BlisDialog.dialog.CallLuisCallback(extractResponse.text, extractResponse.predictedEntities, memory);
                         let scoreResponse = await BlisClient.client.TeachScore(appId, teachId, scoreInput);
-                        let memories = memory.BotMemory().DumpEntities();
+                        let memories = await memory.BotMemory().DumpMemory();
                         let uiScoreResponse = new UIScoreResponse({scoreResponse : scoreResponse, memories : memories});
                         res.send(uiScoreResponse);
                     }
