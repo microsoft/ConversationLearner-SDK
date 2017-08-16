@@ -1042,7 +1042,7 @@ export class Server {
                         let scoreInput = await BlisDialog.Instance().CallLuisCallback(extractResponse.text, extractResponse.predictedEntities, memory);
                         let scoreResponse = await BlisClient.client.TeachScore(appId, teachId, scoreInput);
                         let memories = await memory.BotMemory().DumpMemory();
-                        let uiScoreResponse = new UIScoreResponse({scoreResponse : scoreResponse, memories : memories});
+                        let uiScoreResponse = new UIScoreResponse({scoreInput : scoreInput, scoreResponse : scoreResponse, memories : memories});
                         res.send(uiScoreResponse);
                     }
                     catch (error)
@@ -1066,12 +1066,17 @@ export class Server {
                         let appId = req.params.appId;
                         let teachId = req.params.teachId;
                         let trainScorerStep = deserialize(TrainScorerStep, req.body);
+
+                        // Save scored action and remove from service call
+                        let scoredAction = trainScorerStep.scoredAction;
+                        delete trainScorerStep.scoredAction;
+
                         let teachResponse = await BlisClient.client.TeachScoreFeedback(appId, teachId, trainScorerStep);
                         res.send(teachResponse);
 
                         // Now take the trained action
                         let memory = BlisMemory.GetMemory(key);
-                        BlisDialog.Instance().TakeAction(trainScorerStep.scoredAction, memory);
+                        BlisDialog.Instance().TakeAction(scoredAction, memory);
                     }
                     catch (error)
                     {
