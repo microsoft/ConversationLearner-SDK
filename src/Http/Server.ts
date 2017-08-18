@@ -16,12 +16,11 @@ export class Server {
     // TEMP until we have an actual user
     private static InitClient() : void
     {
-        let serviceUrl = "http://blis-service.azurewebsites.net/api/v1/";
         let user = "testuser";
         let secret = "none";
         let azureFunctionsUrl = "";
         let azureFunctionsKey = "";
-        BlisClient.Init(serviceUrl, user, secret, azureFunctionsUrl, azureFunctionsKey);
+        BlisClient.Init(user, secret, azureFunctionsUrl, azureFunctionsKey);
     }
 
     // Parse error to return appropriate error message

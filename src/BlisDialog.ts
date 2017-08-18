@@ -20,9 +20,6 @@ export interface IBlisOptions extends builder.IIntentRecognizerSetOptions {
     // BLIS Secret
     secret: string;
 
-    // BLIS application to employ
-    appId?: string; 
-
     redisServer: string;
 
     redisKey: string;
@@ -74,7 +71,6 @@ export class BlisDialog extends builder.Dialog {
 
     protected blisCallback : (test : string, memory : BlisMemory) => string;
     protected connector : builder.ChatConnector;
-    protected defaultApp : string;
 
     private constructor(private bot : builder.UniversalBot, private options: IBlisOptions) {
         super();
@@ -86,7 +82,8 @@ export class BlisDialog extends builder.Dialog {
             this.recognizers = new builder.IntentRecognizerSet({ recognizers: [this.blisRecognizer]});
 
             BlisDebug.Log("Creating client....");
-            BlisClient.Init(options.serviceUri, options.user, options.secret, options.azureFunctionsUrl, options.azureFunctionsKey);
+            BlisClient.SetServiceURI(options.serviceUri);
+            BlisClient.Init(options.user, options.secret, options.azureFunctionsUrl, options.azureFunctionsKey);
             BlisMemory.Init(options.redisServer, options.redisKey);
 
             this.luisCallback = options.luisCallback;
@@ -95,8 +92,6 @@ export class BlisDialog extends builder.Dialog {
 
             // Optional connector, required for downloading train dialogs
             this.connector = options.connector;  
-            this.defaultApp = options.appId;
-            
 
             Server.Init();
         }
