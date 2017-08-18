@@ -24,11 +24,17 @@ import * as NodeCache from 'node-cache';
 export class BlisClient {
 
     public static client : BlisClient;
-
+    private static serviceURI : string;
+    
     // Create singleton
-    public static Init(serviceUri : string, user : string, secret : string, azureFunctionsUrl : string, azureFunctionsKey : string)
+    public static Init(user : string, secret : string, azureFunctionsUrl : string, azureFunctionsKey : string)
     {
-        this.client = new BlisClient(serviceUri, user, secret, azureFunctionsUrl, azureFunctionsKey);
+        this.client = new BlisClient(this.serviceURI, user, secret, azureFunctionsUrl, azureFunctionsKey);
+    }
+
+    public static SetServiceURI(serviceURI : string) : void
+    {
+        this.serviceURI = serviceURI;
     }
 
     private serviceUri : string;
