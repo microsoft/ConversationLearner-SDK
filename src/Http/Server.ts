@@ -6,7 +6,8 @@ import { BlisMemory } from '../BlisMemory';
 import { BlisApp } from '../Model/BlisApp';
 import { Action } from '../Model/Action';
 import { Entity } from '../Model/Entity';
-import { TrainDialog, TrainExtractorStep, TrainScorerStep, ExtractResponse, UIExtractResponse, UIScoreResponse  } from 'blis-models'
+import { TrainDialog, TrainExtractorStep, TrainScorerStep, ExtractResponse  } from 'blis-models'
+import { UIScoreInput, UIExtractResponse, UIScoreResponse  } from 'blis-models'
 
 import { deserialize, serialize } from 'json-typescript-mapper';
 
@@ -996,31 +997,11 @@ export class Server {
                 }
             );
 
-            /** EXTRACTION FEEDBACK: Uploads a labeled entity extraction instance
+            /** EXTRACT FEEDBACK & RUN SCORER: 
+             * 1) Uploads a labeled entity extraction instance
              * ie "commits" an entity extraction label, appending it to the teach session's
              * trainDialog, and advancing the dialog. This may yield produce a new package.
-             */
-            this.server.post("/app/:appId/teach/:teachId/extractor", async (req, res, next) =>
-                {
-                    try
-                    {
-                        this.InitClient();  // TEMP
-                        let query = req.getQuery();
-                        let key = req.params.key;
-                        let appId = req.params.appId;
-                        let teachId = req.params.teachId;
-                        let extractorStep = deserialize(TrainExtractorStep, req.body);
-                        let teachResponse = await BlisClient.client.TeachExtractFeedback(appId, teachId, extractorStep);
-                        res.send(teachResponse);
-                    }
-                    catch (error)
-                    {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
-                    }
-                }
-            );
-
-            /** RUN SCORER: Takes a turn and return distribution over actions.
+             * 2) Takes a turn and return distribution over actions.
              * If a more recent version of the package is 
              * available on the server, the session will first migrate to that newer version.  
              * This doesn't affect the trainDialog maintained by the teaching session.
@@ -1034,9 +1015,13 @@ export class Server {
                         let key = req.params.key;
                         let appId = req.params.appId;
                         let teachId = req.params.teachId;
-                        let extractResponse = deserialize(ExtractResponse, req.body);
+                        let uiScoreInput = deserialize(UIScoreInput, req.body);
 
+                        // Send teach feedback
+                        let teachResponse = await BlisClient.client.TeachExtractFeedback(appId, teachId, uiScoreInput.trainExtractorStep);
+                        
                         // Call LUIS callback to get scoreInput
+                        let extractResponse = uiScoreInput.extractResponse;
                         let memory = BlisMemory.GetMemory(key);
                         let scoreInput = await BlisDialog.Instance().CallLuisCallback(extractResponse.text, extractResponse.predictedEntities, memory);
                         let scoreResponse = await BlisClient.client.TeachScore(appId, teachId, scoreInput);
