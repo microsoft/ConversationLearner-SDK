@@ -1083,7 +1083,8 @@ export class Server {
                         let key = req.params.key;
                         let appId = req.params.appId;
                         let teachId = req.params.teachId;
-                        let response = await BlisClient.client.EndTeach(appId, teachId);
+                        let save = req.params.save ? `saveDialog=${req.params.save}` : null;
+                        let response = await BlisClient.client.EndTeach(appId, teachId, save);
                         res.send(response);
 
                         // Update Memory

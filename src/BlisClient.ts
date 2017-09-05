@@ -1605,13 +1605,13 @@ export class BlisClient {
          * For Teach sessions, does NOT delete the associated trainDialog.
          * To delete the associated trainDialog, call DELETE on the trainDialog.
          */
-        public EndTeach(appId : string, teachId : string) : Promise<TrainResponse>
+        public EndTeach(appId : string, teachId : string, query : string) : Promise<TrainResponse>
         {
             let apiPath = `app/${appId}/teach/${teachId}`;
 
             return new Promise(
                 (resolve, reject) => {
-                    let url = this.MakeURL(apiPath);
+                    let url = this.MakeURL(apiPath, query);
                     const requestData = {
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
