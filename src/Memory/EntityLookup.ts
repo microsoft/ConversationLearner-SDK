@@ -1,7 +1,7 @@
 import { BlisMemory } from '../BlisMemory';
 import { deserialize, serialize } from 'json-typescript-mapper';
 
-// TODO - eliminate need for this
+// TODO - eliminate need for this.  Check, but should no longer be used
 export class EntityLookup  
 {
     private static MEMKEY = "ENTITYLOOKUP";

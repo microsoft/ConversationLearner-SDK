@@ -9,6 +9,7 @@ import { JsonProperty } from 'json-typescript-mapper';
 
 export class TrainHistory 
 {
+    // TODO: Obsolete with new UI?
     private static MEMKEY = "TRAINHISTORY";
     public static memory : BlisMemory;
 

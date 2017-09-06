@@ -6,6 +6,7 @@ import { JsonProperty } from 'json-typescript-mapper';
 
 export class TrainStep extends Serializable {
 
+    // TODO: Obsolete with new UI?
     @JsonProperty('input')  
     public input : string = null;
 

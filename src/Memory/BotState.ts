@@ -2,6 +2,7 @@ import * as builder from 'botbuilder';
 import { Serializable } from './Serializable';
 import { JsonProperty } from 'json-typescript-mapper';
 import { BlisMemory, MemoryType } from '../BlisMemory';
+import { EntitySuggestion } from 'blis-models';
 
 export class BotState extends Serializable 
 {
@@ -22,6 +23,12 @@ export class BotState extends Serializable
     @JsonProperty('address') 
     public address : string = null;
 
+    @JsonProperty('suggestedEntityId') 
+    public suggestedEntityId : string = null;
+
+    @JsonProperty('suggestedEntityName') 
+    public suggestedEntityName : string = null;
+
     public static memory : BlisMemory;
 
     public constructor(init?:Partial<BotState>)
@@ -32,6 +39,8 @@ export class BotState extends Serializable
         this.inTeach = false;
         this.inDebug = false;
         this.address = undefined;
+        this.suggestedEntityId = undefined;
+        this.suggestedEntityName = undefined;
         (<any>Object).assign(this, init);
     }
 
@@ -168,6 +177,33 @@ export class BotState extends Serializable
         return JSON.parse(addressString);
     }
 
+    //------------------------------------------------------------------
+    public static async SuggestedEntity(userInput : string) : Promise<EntitySuggestion> {
+        let botState = await this.Get();   
+        if (!botState.suggestedEntityId || !botState.suggestedEntityName) {
+            return null;
+        } 
+        return new EntitySuggestion({
+            entityId: botState.suggestedEntityId,
+            entityName: botState.suggestedEntityName
+        });
+    }
+
+     public static async SetSuggestedEntity(suggestedEntity : EntitySuggestion) : Promise<void> {
+        let botState = await this.Get();    
+        botState.suggestedEntityId = suggestedEntity.entityId;
+        botState.suggestedEntityName = suggestedEntity.entityName;
+        await this.Set(botState);
+    }
+
+    public static async ClearSuggestedEntity() : Promise<void> {
+        let botState = await this.Get();    
+        botState.suggestedEntityId = null;
+        botState.suggestedEntityName = null;
+        await this.Set(botState);
+    }
+
+    //------------------------------------------------------------------
     public static async Session(bot : builder.UniversalBot) {
         let address = await this.Address();
         return new Promise(function(resolve,reject) {
