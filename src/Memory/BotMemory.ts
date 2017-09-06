@@ -269,8 +269,6 @@ export class BotMemory
     }
 
     public static async Substitute(text: string) : Promise<string> {
-        // Clear suggestions
-        text = text.replace(` ${ActionCommand.SUGGEST}`," ");
 
         // First replace all entities
         text = <string> await this.SubstituteEntities(text);

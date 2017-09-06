@@ -6,6 +6,7 @@ import { BlisMemory } from '../BlisMemory';
 import { BlisApp } from '../Model/BlisApp';
 import { Action } from '../Model/Action';
 import { Entity } from '../Model/Entity';
+import { Utils } from '../Utils';
 import { TrainDialog, TrainExtractorStep, TrainScorerStep, ExtractResponse  } from 'blis-models'
 import { UIScoreInput, UIExtractResponse, UIScoreResponse  } from 'blis-models'
 
@@ -984,8 +985,16 @@ export class Server {
                         let teachId = req.params.teachId;
                         let userInput = req.body;
                         let extractResponse = await BlisClient.client.TeachExtract(appId, teachId, userInput);
-
                         let memory = BlisMemory.GetMemory(key);
+
+                        // If no entities extracted, check for suggested entity
+                        if (extractResponse.predictedEntities.length == 0) {
+                            let suggestedEntity = await Utils.GetSuggestedEntity(userInput, memory);
+                            if (suggestedEntity) {
+                                extractResponse.predictedEntities = [suggestedEntity];
+                            }
+                        }
+
                         let memories = await memory.BotMemory().DumpMemory();
                         let uiExtractResponse = new UIExtractResponse({extractResponse : extractResponse, memories : memories});
                         res.send(uiExtractResponse);

@@ -18,7 +18,6 @@ export const SaveStep =
 
 export const ActionCommand =
 {
-    SUGGEST : "*",
     REQUIRE : "+",
     BLOCK : "-",
     SUBSTITUTE: "$",

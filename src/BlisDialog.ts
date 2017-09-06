@@ -162,6 +162,14 @@ export class BlisDialog extends builder.Dialog {
             {
                 let extractResponse = await BlisClient.client.SessionExtract(appId, sessionId, userInput)
 
+                // If no entities extracted, check for suggested entity
+                if (extractResponse.predictedEntities.length == 0) {
+                    let suggestedEntity = await Utils.GetSuggestedEntity(userInput, memory);
+                    if (suggestedEntity) {
+                        extractResponse.predictedEntities = [suggestedEntity];
+                    }
+                }
+
                 await this.ProcessExtraction(appId, sessionId, memory, extractResponse.text, extractResponse.predictedEntities);
             }
             catch (error)
@@ -199,6 +207,9 @@ export class BlisDialog extends builder.Dialog {
     public async TakeAction(scoredAction : ScoredAction, memory : BlisMemory) : Promise<void>
     {
         let actionType = scoredAction.metadata.actionType;
+
+        // Store any suggested entity
+        await memory.BotState().SetSuggestedEntity(scoredAction.metadata.entitySuggestion);
 
         switch (actionType)  {
             case ActionTypes.TEXT:
