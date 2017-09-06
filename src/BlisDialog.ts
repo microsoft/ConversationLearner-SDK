@@ -209,7 +209,9 @@ export class BlisDialog extends builder.Dialog {
         let actionType = scoredAction.metadata.actionType;
 
         // Store any suggested entity
-        await memory.BotState().SetSuggestedEntity(scoredAction.metadata.entitySuggestion);
+        if (scoredAction.metadata.entitySuggestion) {
+            await memory.BotState().SetSuggestedEntity(scoredAction.metadata.entitySuggestion);
+        }
 
         switch (actionType)  {
             case ActionTypes.TEXT:

@@ -1026,6 +1026,13 @@ export class Server {
                         let teachId = req.params.teachId;
                         let uiScoreInput = deserialize(UIScoreInput, req.body);
 
+                        // TEMP:  Remove entityName as server rejects it
+                        for (let textVariation of uiScoreInput.trainExtractorStep.textVariations) {
+                            for (let predictedEntity of textVariation.labelEntities) {
+                                delete predictedEntity.entityName;
+                            }
+                        }
+
                         // Send teach feedback
                         let teachResponse = await BlisClient.client.TeachExtractFeedback(appId, teachId, uiScoreInput.trainExtractorStep);
                         

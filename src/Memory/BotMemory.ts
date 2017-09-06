@@ -73,11 +73,11 @@ export class BotMemory
 
     /** Remember a predicted entity */
     private static async RememberEntity(predictedEntity : PredictedEntity) : Promise<void> {
-        await this.Remember(predictedEntity.entityName, predictedEntity.entityId, predictedEntity.entityText);
+        await this.Remember(predictedEntity.entityName, predictedEntity.entityId, predictedEntity.entityText, predictedEntity.metadata.isBucket);
     }
 
     // Remember value for an entity
-    public static async Remember(entityName: string, entityId: string, entityValue: string) : Promise<void> {
+    public static async Remember(entityName: string, entityId: string, entityValue: string, isBucket: boolean) : Promise<void> {
 
         let botmemory = await this.Get();
 
@@ -87,7 +87,7 @@ export class BotMemory
         }
 
         // Check if entity buckets values
-        if (entityName && entityName.startsWith(ActionCommand.BUCKET))
+        if (isBucket)
         {
             botmemory.entityMap[entityName].bucket.push(entityValue);
         }
