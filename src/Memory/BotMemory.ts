@@ -189,6 +189,10 @@ export class BotMemory
     //--------------------------------------------------------
     private static EntityValue(botmemory : BotMemory, entityName : string) : string
     {
+        if (!botmemory.entityMap[entityName]) {
+            return null;
+        }
+        
         if (botmemory.entityMap[entityName].value)
         {
             return botmemory.entityMap[entityName].value;
