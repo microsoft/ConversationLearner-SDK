@@ -18,11 +18,6 @@ export const SaveStep =
 
 export const ActionCommand =
 {
-    REQUIRE : "+",
-    BLOCK : "-",
     SUBSTITUTE: "$",
-    BUCKET: "#",
-    NEGATIVE: "~",       // Remove the entity
-    TERMINAL: "WAIT",
-    DEBUG: "/d"
+    NEGATIVE: "~"
 }

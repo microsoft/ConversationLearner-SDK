@@ -73,7 +73,8 @@ export class BotMemory
 
     /** Remember a predicted entity */
     private static async RememberEntity(predictedEntity : PredictedEntity) : Promise<void> {
-        await this.Remember(predictedEntity.entityName, predictedEntity.entityId, predictedEntity.entityText, predictedEntity.metadata.isBucket);
+        let isBucket = predictedEntity.metadata ? predictedEntity.metadata.isBucket : false;
+        await this.Remember(predictedEntity.entityName, predictedEntity.entityId, predictedEntity.entityText, isBucket);
     }
 
     // Remember value for an entity
@@ -112,18 +113,36 @@ export class BotMemory
         return Object.keys(botmemory.entityMap).map(function(val) { return botmemory.entityMap[val].id });
     }
 
+    /** Given negative entity name, return positive version **/
+    private static PositiveName(negativeName: string) : string
+    {
+        if (negativeName.startsWith(ActionCommand.NEGATIVE)) {
+            return negativeName.slice(1);
+        }
+        return null;
+    }
+
     /** Forget a predicted Entity */
     private static async ForgetEntity(predictedEntity : PredictedEntity) : Promise<void> {
-        await this.Forget(predictedEntity.entityName, predictedEntity.entityText);
+        let isBucket = predictedEntity.metadata ? predictedEntity.metadata.isBucket : false;
+        let posName = this.PositiveName(predictedEntity.entityName);
+        if (posName) {
+            await this.Forget(posName, predictedEntity.entityText, isBucket);
+        }
     }
-    
+
     /** Forget an entity value */
-    public static async Forget(entityName: string, entityValue : string) : Promise<void> {
+    public static async Forget(entityName: string, entityValue : string, isBucket : boolean) : Promise<void> {
         try {
             // Check if entity buckets values
             let botmemory = await this.Get();
-            if (entityName.startsWith(ActionCommand.BUCKET))
+            if (isBucket)
             {
+                // Entity might not be in memory
+                if (!botmemory.entityMap[entityName]) {
+                    return;
+                }
+
                 // Find case insensitive index
                 let lowerCaseNames = botmemory.entityMap[entityName].bucket.map(function(value) {
                     return value.toLowerCase();
