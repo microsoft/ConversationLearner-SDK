@@ -620,7 +620,7 @@ export class Server {
                 }
             );
 
-            this.server.del("/app/:appId/logdialogs/:logDialogId", async (req, res, next) =>
+            this.server.del("/app/:appId/logdialog/:logDialogId", async (req, res, next) =>
                 {
                     this.InitClient();  // TEMP
 
@@ -751,7 +751,7 @@ export class Server {
                 }
             );
 
-            this.server.del("/app/:appId/traindialogs/:trainDialogId", async (req, res, next) =>
+            this.server.del("/app/:appId/traindialog/:trainDialogId", async (req, res, next) =>
                 {
                     this.InitClient();  // TEMP
 
