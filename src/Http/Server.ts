@@ -1026,20 +1026,19 @@ export class Server {
                         let teachId = req.params.teachId;
                         let uiScoreInput = deserialize(UIScoreInput, req.body);
 
-                        // TEMP:  Remove entityName as server rejects it
-                        for (let textVariation of uiScoreInput.trainExtractorStep.textVariations) {
-                            for (let predictedEntity of textVariation.labelEntities) {
-                                delete predictedEntity.entityName;
-                            }
+                        let memory = BlisMemory.GetMemory(key);
+
+                        // There will be no extraction step if performing a 2nd scorer round after a non-termial action
+                        if (uiScoreInput.trainExtractorStep) {
+                            // Send teach feedback
+                            let teachResponse = await BlisClient.client.TeachExtractFeedback(appId, teachId, uiScoreInput.trainExtractorStep);
                         }
 
-                        // Send teach feedback
-                        let teachResponse = await BlisClient.client.TeachExtractFeedback(appId, teachId, uiScoreInput.trainExtractorStep);
-                        
                         // Call LUIS callback to get scoreInput
-                        let extractResponse = uiScoreInput.extractResponse;
-                        let memory = BlisMemory.GetMemory(key);
+                        let extractResponse = uiScoreInput.extractResponse;      
                         let scoreInput = await BlisDialog.Instance().CallLuisCallback(extractResponse.text, extractResponse.predictedEntities, memory);
+
+                        // Get score response
                         let scoreResponse = await BlisClient.client.TeachScore(appId, teachId, scoreInput);
                         let memories = await memory.BotMemory().DumpMemory();
                         let uiScoreResponse = new UIScoreResponse({scoreInput : scoreInput, scoreResponse : scoreResponse, memories : memories});
