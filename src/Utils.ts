@@ -15,16 +15,21 @@ export class Utils  {
     }
 
     /** Send a text message */
-    public static async SendText(bot : builder.UniversalBot, memory : BlisMemory, content : string)
+    public static async SendMessage(bot : builder.UniversalBot, memory : BlisMemory, content : string | builder.Message)
     { 
         let address = await memory.BotState().Address();
         let session = await memory.BotState().Session(bot);
 
-        let message = new builder.Message()
-			.address(address)
-            .text(content);
-       
-        session.send(message);
+        if (content instanceof builder.Message) {
+            session.send(content);
+        }
+        else { 
+            let message = new builder.Message()
+                .address(address)
+                .text(content);
+        
+            session.send(message);
+        }
     }
 
     public static SendAsAttachment(context : BlisContext, content: string)
