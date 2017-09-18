@@ -31,7 +31,7 @@ export interface IBlisOptions extends builder.IIntentRecognizerSetOptions {
     blisCallback? : (text : string, memory : BlisMemory) => string;
 
     // Mapping between API names and functions
-    apiCallbacks? : { string : () => void };
+    apiCallbacks? : { string : () => string | builder.Message };
 
     // End point for Azure function calls
     azureFunctionsUrl? : string;
@@ -175,7 +175,7 @@ export class BlisDialog extends builder.Dialog {
             catch (error)
             {
                 let msg = BlisDebug.Error(error);
-                await Utils.SendText(this.bot, memory, msg);
+                await Utils.SendMessage(this.bot, memory, msg);
             }  
         }
     }
@@ -235,7 +235,7 @@ export class BlisDialog extends builder.Dialog {
     private async TakeTextAction(scoredAction : ScoredAction, memory : BlisMemory) : Promise<void>
     {
         let outText = await this.CallBlisCallback(scoredAction, memory);
-        await Utils.SendText(this.bot, memory, outText);
+        await Utils.SendMessage(this.bot, memory, outText);
     }
 
     private async TakeCardAction(scoredAction : ScoredAction, memory : BlisMemory) : Promise<void>
@@ -254,10 +254,15 @@ export class BlisDialog extends builder.Dialog {
         // Extract API name and entities
         let apiString = scoredAction.payload;
         let [apiName] = apiString.split(' ');
-        let args = Utils.RemoveWords(apiString, 1);
+        let argString = Utils.RemoveWords(apiString, 1);
 
         // Make any entity substitutions
-        let entities = await memory.BotMemory().SubstituteEntities(args);
+        let argArray = [];
+        for (let word of argString.split(','))
+        {
+            word = word.trim();
+            argArray.push(await memory.BotMemory().SubstituteEntities(word));
+        }
 
         let api = this.apiCallbacks[apiName];
         if (!api)
@@ -266,10 +271,10 @@ export class BlisDialog extends builder.Dialog {
             return;
         }
 
-        let output = await api(memory, args);
+        let output = await api(argArray);
         if (output)
         {
-            await Utils.SendText(this.bot, memory, output);
+            await Utils.SendMessage(this.bot, memory, output);
         }  
     }
 
@@ -287,7 +292,7 @@ export class BlisDialog extends builder.Dialog {
         let output = await AzureFunctions.Call(BlisClient.client.azureFunctionsUrl, BlisClient.client.azureFunctionsKey, funcName, entities);
         if (output)
         {
-            await Utils.SendText(this.bot, memory, output);
+            await Utils.SendMessage(this.bot, memory, output);
         }          
     }
 
