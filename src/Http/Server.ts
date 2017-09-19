@@ -1036,7 +1036,7 @@ export class Server {
 
                         // Call LUIS callback to get scoreInput
                         let extractResponse = uiScoreInput.extractResponse;      
-                        let scoreInput = await BlisDialog.Instance().CallLuisCallback(extractResponse.text, extractResponse.predictedEntities, memory);
+                        let scoreInput = await BlisDialog.Instance().CallLuisCallback(extractResponse.text, extractResponse.predictedEntities, extractResponse.definitions.entities, memory);
 
                         // Get score response
                         let scoreResponse = await BlisClient.client.TeachScore(appId, teachId, scoreInput);

@@ -1464,10 +1464,12 @@ export class BlisClient {
         {
             let apiPath = `app/${appId}/teach/${teachId}/extractor`;
 
+            // Always retrieve entity list
+            let query = "includeDefinitions=true";
             return new Promise(
                 (resolve, reject) => {
                 const requestData = {
-                        url: this.MakeURL(apiPath),
+                        url: this.MakeURL(apiPath, query),
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
                         },
