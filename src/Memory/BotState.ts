@@ -172,9 +172,15 @@ export class BotState extends Serializable
     }
 
     public static async Address() : Promise<builder.IAddress> {
-        let botState = await this.Get();    
-        let addressString = botState.address;
-        return JSON.parse(addressString);
+        try {
+            let botState = await this.Get();    
+            let addressString = botState.address;
+            return JSON.parse(addressString);
+        }
+        catch (err)
+        {
+            return null;
+        }
     }
 
     //------------------------------------------------------------------

@@ -78,7 +78,7 @@ export class BotMemory
     }
 
     // Remember value for an entity
-    public static async Remember(entityName: string, entityId: string, entityValue: string, isBucket: boolean) : Promise<void> {
+    public static async Remember(entityName: string, entityId: string, entityValue: string, isBucket: boolean = false) : Promise<void> {
 
         let botmemory = await this.Get();
 
@@ -132,7 +132,7 @@ export class BotMemory
     }
 
     /** Forget an entity value */
-    public static async Forget(entityName: string, entityValue : string, isBucket : boolean) : Promise<void> {
+    public static async Forget(entityName: string, entityValue : string = null, isBucket : boolean = false) : Promise<void> {
         try {
             // Check if entity buckets values
             let botmemory = await this.Get();
@@ -183,7 +183,10 @@ export class BotMemory
         return memory;
     }
 
-    
+    public static async Value(entityName: string) : Promise<string> {
+        let botMemory = await this.Get()
+        return this.EntityValue(botMemory, entityName);
+    }
     //--------------------------------------------------------
     // SUBSTITUTIONS
     //--------------------------------------------------------

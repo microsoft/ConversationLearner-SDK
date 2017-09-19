@@ -1,11 +1,12 @@
 import * as builder from 'botbuilder';
-import { ActionTypes, UserInput, PredictedEntity, ExtractResponse, ScoreInput, ScoredAction } from 'blis-models'
+import { ActionTypes, UserInput, PredictedEntity, ExtractResponse, ScoreInput, ScoredAction, EntityBase } from 'blis-models'
 import { BlisRecognizer, IBlisResult } from './BlisRecognizer';
 import { BlisDebug } from './BlisDebug';
 import { Utils } from './Utils';
 import { BlisMemory } from './BlisMemory';
 import { BlisClient } from './BlisClient';
 import { BlisContext} from './BlisContext';
+import { ClientMemoryManager} from './Memory/ClientMemoryManager';
 import { BLIS_INTENT_WRAPPER } from './Model/Consts';
 import { Server } from './Http/Server';
 import { AzureFunctions } from './AzureFunctions'
@@ -25,7 +26,7 @@ export interface IBlisOptions extends builder.IIntentRecognizerSetOptions {
     redisKey: string;
 
     // Optional callback than runs after LUIS but before BLIS.  Allows Bot to substitute entities
-    luisCallback? : (text: string, predictedEntities : PredictedEntity[], memory : BlisMemory) => ScoreInput;
+    luisCallback? : (text: string, predictedEntities : PredictedEntity[], memoryManager : ClientMemoryManager) => ScoreInput;
 
     // Optional callback that runs after BLIS is called but before the Action is rendered
     blisCallback? : (text : string, memory : BlisMemory) => string;
@@ -60,7 +61,7 @@ export class BlisDialog extends builder.Dialog {
     }
 
    // Optional callback than runs after LUIS but before BLIS.  Allows Bot to substitute entities
-    private luisCallback? : (text: string, predictedEntities : PredictedEntity[], memory : BlisMemory) => ScoreInput;
+    private luisCallback? : (text: string, predictedEntities : PredictedEntity[], memoryManager : ClientMemoryManager) => ScoreInput;
 
     // Mapping between user defined API names and functions
     private apiCallbacks : { string : () => void };
@@ -170,7 +171,7 @@ export class BlisDialog extends builder.Dialog {
                     }
                 }
 
-                await this.ProcessExtraction(appId, sessionId, memory, extractResponse.text, extractResponse.predictedEntities);
+                await this.ProcessExtraction(appId, sessionId, memory, extractResponse.text, extractResponse.predictedEntities, extractResponse.definitions.entities);
             }
             catch (error)
             {
@@ -180,10 +181,10 @@ export class BlisDialog extends builder.Dialog {
         }
     }
 
-    private async ProcessExtraction(appId : string, sessionId : string, memory : BlisMemory, text : string, predictedEntities : PredictedEntity[] )
+    private async ProcessExtraction(appId : string, sessionId : string, memory : BlisMemory, text : string, predictedEntities : PredictedEntity[], allEntities : EntityBase[] )
     {
             // Call LUIS callback
-            let scoreInput = await this.CallLuisCallback(text, predictedEntities, memory);
+            let scoreInput = await this.CallLuisCallback(text, predictedEntities, allEntities, memory);
             
             // Call the scorer
             let scoreResponse = await BlisClient.client.SessionScore(appId, sessionId, scoreInput);
@@ -199,7 +200,7 @@ export class BlisDialog extends builder.Dialog {
                 // If action isn't terminal loop through another time
                 if (!bestAction.isTerminal)
                 {
-                    await this.ProcessExtraction(appId, sessionId, memory, "", []);
+                    await this.ProcessExtraction(appId, sessionId, memory, "", [], allEntities);
                 }
             }
     }
@@ -319,26 +320,18 @@ export class BlisDialog extends builder.Dialog {
         }                
     }
 
-    public async CallLuisCallback(text: string, predictedEntities : PredictedEntity[], memory : BlisMemory) : Promise<ScoreInput> {
-        let scoreInput = await this.DefaultLuisCallback(text, predictedEntities, memory);
+    public async CallLuisCallback(text: string, predictedEntities : PredictedEntity[], allEntities : EntityBase[], memory : BlisMemory) : Promise<ScoreInput> {
+
+        let memoryManager = new ClientMemoryManager(memory, allEntities);
+
+        let scoreInput = null;
+        if (this.luisCallback) {
+            scoreInput = await this.luisCallback(text, predictedEntities, memoryManager);
+        }
+        else {
+            scoreInput = await this.DefaultLuisCallback(text, predictedEntities, memoryManager);
+        }
         return scoreInput;
-        /* TODO handle passed in JS func
-        return new Promise(function(resolve,reject) {
-            if (this.luisCallback)
-            {
-                this.luisCallback(text, predictedEntities, memory, (scoreInput : ScoreInput) =>
-                {
-                    resolve(scoreInput);
-                });
-            }
-            else
-            {
-                this.DefaultLuisCallback(text, predictedEntities, memory, (scoreInput : ScoreInput) =>
-                {
-                    resolve(scoreInput);
-                });           
-            }
-        });*/
     }
 
     private async CallBlisCallback(scoredAction : ScoredAction, memory : BlisMemory) : Promise<string> {
@@ -363,7 +356,7 @@ export class BlisDialog extends builder.Dialog {
         });*/
     }
 
-    public async DefaultLuisCallback(text: string, predictedEntities : PredictedEntity[], memory : BlisMemory) : Promise<ScoreInput>
+    public async DefaultLuisCallback(text: string, predictedEntities : PredictedEntity[], memoryManager : ClientMemoryManager) : Promise<ScoreInput>
     {
         for (var predictedEntity of predictedEntities)
         // Update entities in my memory
@@ -371,11 +364,11 @@ export class BlisDialog extends builder.Dialog {
             // If negative entity will have a positive counter entity
             if (predictedEntity.metadata && predictedEntity.metadata.positiveId)
             {
-                await memory.BotMemory().ForgetEntity(predictedEntity);
+                await memoryManager.blisMemory.BotMemory().ForgetEntity(predictedEntity);
             }
             else
             {
-                await memory.BotMemory().RememberEntity(predictedEntity);
+                await memoryManager.blisMemory.BotMemory().RememberEntity(predictedEntity);
             }
 
             // If entity is associated with a task, make sure task is active
@@ -393,7 +386,7 @@ export class BlisDialog extends builder.Dialog {
         }
 
         // Get entities from my memory
-        var filledEntities = await memory.BotMemory().RememberedIds();
+        var filledEntities = await memoryManager.blisMemory.BotMemory().RememberedIds();
 
         let scoreInput = new ScoreInput({   
             filledEntities: filledEntities,

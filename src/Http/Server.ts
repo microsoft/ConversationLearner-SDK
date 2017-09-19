@@ -178,7 +178,6 @@ export class Server {
                         let key = req.params.key;
                         let appId = req.params.appId;
                         await BlisClient.client.ArchiveApp(appId);
-                        res.send(200);
 
                         // Did I delete my loaded app, if so clear my state
                         let memory = BlisMemory.GetMemory(key);
@@ -186,9 +185,9 @@ export class Server {
                         if (appId == curAppId)
                         {
                             await memory.BotState().SetAppId(null);
-                            await memory.BotState().SetModelId(null);
                             await memory.BotState().SetSessionId(null);
                         }
+                        res.send(200);
                     }
                     catch (error)
                     {
@@ -1036,7 +1035,7 @@ export class Server {
 
                         // Call LUIS callback to get scoreInput
                         let extractResponse = uiScoreInput.extractResponse;      
-                        let scoreInput = await BlisDialog.Instance().CallLuisCallback(extractResponse.text, extractResponse.predictedEntities, memory);
+                        let scoreInput = await BlisDialog.Instance().CallLuisCallback(extractResponse.text, extractResponse.predictedEntities, extractResponse.definitions.entities, memory);
 
                         // Get score response
                         let scoreResponse = await BlisClient.client.TeachScore(appId, teachId, scoreInput);

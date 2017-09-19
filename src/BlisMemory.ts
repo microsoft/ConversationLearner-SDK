@@ -2,7 +2,6 @@ import * as builder from 'botbuilder'
 import { BlisDebug} from './BlisDebug';
 import { Pager } from './Memory/Pager';
 import { TrainHistory } from './Memory/TrainHistory';
-import { EntityLookup } from './Memory/EntityLookup';
 import { BotMemory } from './Memory/BotMemory';
 import { BotState } from './Memory/BotState';
 import { KeyGen } from 'blis-models'
@@ -168,7 +167,6 @@ export class BlisMemory {
     {
         await this.BotState().Clear(appId);
         await this.BotMemory().Clear();
-        await this.EntityLookup().Clear();
         await this.TrainHistory().Clear();
         await this.Pager().Clear();
     }
@@ -189,13 +187,6 @@ export class BlisMemory {
         await this.EndSession();
         await this.BotState().SetSessionId(sessionId);
         await this.BotState().SetInTeach(inTeach);
-    }
-
-    // TODO: Eliminate this
-    public EntityLookup() : any
-    {
-        EntityLookup.memory = this;
-        return EntityLookup;
     }
 
     public BotMemory() : any
@@ -231,7 +222,6 @@ export class BlisMemory {
         text += `BotState: ${await this.BotState().ToString()}\n\n`;
         text += `Steps: ${await this.TrainHistory().ToString()}\n\n`;
         text += `Memory: {${await this.BotMemory().ToString()}}\n\n`;
-        text += `EntityLookup: ${await this.EntityLookup().ToString()}\n\n`;
         return text;
     }
 }
