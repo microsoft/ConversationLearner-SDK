@@ -27,6 +27,9 @@ export class BlisMemory {
     public static Init(redisServer : string, redisKey : string) : void
     {
         this.redisClient = redis.createClient(6380, redisServer, { auth_pass: redisKey, tls: { servername: redisServer } });
+        this.redisClient.on('error', err => {
+            BlisDebug.Error(err);
+        });
     }
 
     private constructor(private userkey : string)
@@ -65,13 +68,19 @@ export class BlisMemory {
             });
         };
         return new Promise(function(resolve,reject) {
-            BlisMemory.redisClient.get(key, function(err, data)
-            {
-                if(err !== null) return reject(err);
-                that.memCache[key] = data;
-                BlisDebug.Log(`R< ${key} : ${data}`, 'memory');
-                resolve(data);
-            });
+            try {
+                BlisMemory.redisClient.get(key, function(err, data)
+                {
+                    if(err !== null) return reject(err);
+                    that.memCache[key] = data;
+                    BlisDebug.Log(`R< ${key} : ${data}`, 'memory');
+                    resolve(data);
+                });
+            }
+            catch (err) {
+                BlisDebug.Error(err);
+                reject(err);
+            }
         });
     }
 
@@ -85,23 +94,30 @@ export class BlisMemory {
         let key = this.Key(datakey);
 
         return new Promise(function(resolve,reject){
-            // First check mem cache to see if anything has changed, if not, can skip write
-            let cacheData = that.memCache[key];
-            if (cacheData == value)
-            {
-                BlisDebug.Log(`-> ${key} : ${value}`, 'memverbose');
-                resolve("Cache");
-            }
-            else
-            {
-                // Write to redis cache
-                BlisMemory.redisClient.set(key, value, function(err, data)
+
+            try {            
+                // First check mem cache to see if anything has changed, if not, can skip write
+                let cacheData = that.memCache[key];
+                if (cacheData == value)
                 {
-                    if(err !== null) return reject(err);
-                    that.memCache[key] = value;
-                    BlisDebug.Log(`W> ${key} : ${value}`, 'memory');
-                    resolve(data);
-                });
+                    BlisDebug.Log(`-> ${key} : ${value}`, 'memverbose');
+                    resolve("Cache");
+                }
+                else
+                {
+                    // Write to redis cache
+                    BlisMemory.redisClient.set(key, value, function(err, data)
+                    {
+                        if(err !== null) return reject(err);
+                        that.memCache[key] = value;
+                        BlisDebug.Log(`W> ${key} : ${value}`, 'memory');
+                        resolve(data);
+                    });
+                }
+            }
+            catch (err) {
+                BlisDebug.Error(err);
+                reject(err);
             }
         });
     }
@@ -109,58 +125,57 @@ export class BlisMemory {
     public async DeleteAsync(datakey : string) {
         let that = this;
         let key = this.Key(datakey);
-        return new Promise(function(resolve,reject){
-            // First check mem cache to see if already null, if not, can skip write
-            let cacheData = that.memCache[key];
-            if (!cacheData)
-            {
-                BlisDebug.Log(`-> ${key} : -----`, 'memverbose');
-                resolve("Cache");
-            }
-            else
-            {
-                BlisMemory.redisClient.del(key, function(err, data)
+        return new Promise(function(resolve,reject) {
+            try {
+                // First check mem cache to see if already null, if not, can skip write
+                let cacheData = that.memCache[key];
+                if (!cacheData)
                 {
-                    if(err !== null) return reject(err);
-                    that.memCache[key] = null;
-                    BlisDebug.Log(`D> ${key} : -----`, 'memory');
-                    resolve(data);
-                });
+                    BlisDebug.Log(`-> ${key} : -----`, 'memverbose');
+                    resolve("Cache");
+                }
+                else
+                {
+                    BlisMemory.redisClient.del(key, function(err, data)
+                    {
+                        if(err !== null) return reject(err);
+                        that.memCache[key] = null;
+                        BlisDebug.Log(`D> ${key} : -----`, 'memory');
+                        resolve(data);
+                    });
+                }
+            }
+            catch (err) {
+                BlisDebug.Error(err);
+                reject(err);
             }
         });
     }
 
     public Get(datakey : string, cb : (err, data) => void) {
-        let key = this.Key(datakey);
 
-        let cacheData = this.memCache[key];
-        if (cacheData)
-        {
-            BlisDebug.Log(`-] ${key} : ${cacheData}`, 'memverbose');
-            cb(null, cacheData);
-        }
-        BlisMemory.redisClient.get(key, (err, data)=> {
-            if (!err)
+        try {
+            let key = this.Key(datakey);
+
+            let cacheData = this.memCache[key];
+            if (cacheData)
             {
-                this.memCache[key] = data;
+                BlisDebug.Log(`-] ${key} : ${cacheData}`, 'memverbose');
+                cb(null, cacheData);
             }
-            BlisDebug.Log(`R] ${key} : ${data}`, 'memory');
-            cb(err, data);
-        });
-    }
-
-    private Set(datakey : string, value : any, cb : (err, data) => void) {
-        let key = this.Key(datakey);
-        this.memCache[key] = value;
-        BlisDebug.Log(`W] ${key} : ${value}`, 'memory');
-        BlisMemory.redisClient.set(key, value, cb);
-    }
-
-    private Delete(datakey : string, cb : (err, data) => void) {
-        let key = this.Key(datakey);
-        this.memCache[key] = null;
-        BlisDebug.Log(`D] ${key} : -----`, 'memory');
-        BlisMemory.redisClient.del(key,cb);
+            BlisMemory.redisClient.get(key, (err, data)=> {
+                if (!err)
+                {
+                    this.memCache[key] = data;
+                }
+                BlisDebug.Log(`R] ${key} : ${data}`, 'memory');
+                cb(err, data);
+            });
+        }
+        catch (err) {
+            BlisDebug.Error(err);
+            cb(err, null);
+        }
     }
 
     public async Init(appId : string) : Promise<void>
