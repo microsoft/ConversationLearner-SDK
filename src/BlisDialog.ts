@@ -1,5 +1,5 @@
 import * as builder from 'botbuilder';
-import { ActionTypes, UserInput, PredictedEntity, ExtractResponse, ScoreInput, ScoredAction, EntityBase } from 'blis-models'
+import { ActionTypes, UserInput, PredictedEntity, ExtractResponse, ScoreInput, ScoredAction, EntityBase, ModelUtils } from 'blis-models'
 import { BlisRecognizer, IBlisResult } from './BlisRecognizer';
 import { BlisDebug } from './BlisDebug';
 import { Utils } from './Utils';
@@ -252,17 +252,15 @@ export class BlisDialog extends builder.Dialog {
             return;
         }
 
-        // Extract API name and entities
-        let apiString = scoredAction.payload;
-        let [apiName] = apiString.split(' ');
-        let argString = Utils.RemoveWords(apiString, 1);
+        // Extract API name and args
+        let apiName = ModelUtils.GetPrimaryPayload(scoredAction);
+        let args = ModelUtils.GetArguments(scoredAction);
 
         // Make any entity substitutions
         let argArray = [];
-        for (let word of argString.split(','))
+        for (let arg of args)
         {
-            word = word.trim();
-            argArray.push(await memory.BotMemory().SubstituteEntities(word));
+            argArray.push(await memory.BotMemory().SubstituteEntities(arg));
         }
 
         let api = this.apiCallbacks[apiName];
@@ -284,7 +282,7 @@ export class BlisDialog extends builder.Dialog {
         // Extract API name and entities
         let apiString = scoredAction.payload;
         let [funcName] = apiString.split(' ');
-        let args = Utils.RemoveWords(apiString, 1);
+        let args = ModelUtils.RemoveWords(apiString, 1);
 
         // Make any entity substitutions
         let entities = await memory.BotMemory().SubstituteEntities(args);
@@ -302,7 +300,7 @@ export class BlisDialog extends builder.Dialog {
         // Extract intent name and entities
         let apiString = scoredAction.payload;
         let [intentName] = apiString.split(' ');
-        let args = Utils.RemoveWords(apiString, 1);
+        let args = ModelUtils.RemoveWords(apiString, 1);
 
         // Make any entity substitutions
         let entities = await memory.BotMemory().GetEntities(args);
