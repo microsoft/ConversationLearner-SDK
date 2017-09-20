@@ -32,7 +32,7 @@ export interface IBlisOptions extends builder.IIntentRecognizerSetOptions {
     blisCallback? : (text : string, memory : BlisMemory) => string;
 
     // Mapping between API names and functions
-    apiCallbacks? : { string : () => string | builder.Message };
+    apiCallbacks? : { string : (args : any[]) => string | builder.Message };
 
     // End point for Azure function calls
     azureFunctionsUrl? : string;
@@ -64,7 +64,7 @@ export class BlisDialog extends builder.Dialog {
     private luisCallback? : (text: string, predictedEntities : PredictedEntity[], memoryManager : ClientMemoryManager) => ScoreInput;
 
     // Mapping between user defined API names and functions
-    private apiCallbacks : { string : () => void };
+    public apiCallbacks : { string : (args : any[]) => void };
 
     private blisRecognizer : BlisRecognizer;
     private recognizers: builder.IntentRecognizerSet;
