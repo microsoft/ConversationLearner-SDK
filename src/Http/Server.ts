@@ -7,8 +7,8 @@ import { BlisApp } from '../Model/BlisApp';
 import { Action } from '../Model/Action';
 import { Entity } from '../Model/Entity';
 import { Utils } from '../Utils';
-import { TrainDialog, TrainExtractorStep, TrainScorerStep, ExtractResponse  } from 'blis-models'
-import { UIScoreInput, UIExtractResponse, UIScoreResponse  } from 'blis-models'
+import { TrainDialog, TrainExtractorStep, TrainScorerStep, ExtractResponse, BotInfo } from 'blis-models'
+import { UIScoreInput, UIExtractResponse, UIScoreResponse } from 'blis-models'
 
 import { deserialize, serialize } from 'json-typescript-mapper';
 
@@ -89,6 +89,28 @@ export class Server {
             );
 
         //========================================================
+        // Bot
+        //========================================================
+
+            /** Retrieves information about the running bot */
+            this.server.get("/bot", async (req, res, next) =>
+            {
+                this.InitClient();  // TEMP
+
+                try
+                {
+                    let callbacks = Object.keys(BlisDialog.Instance().apiCallbacks);
+                    let botInfo = new BotInfo({callbacks: callbacks});
+                    res.send(serialize(botInfo));
+                }
+                catch (error)
+                {
+                    res.send(error.statusCode, Server.ErrorMessage(error));
+                }
+            }
+        );
+
+        //========================================================
         // App
         //========================================================
            
@@ -103,7 +125,6 @@ export class Server {
 
                     try
                     {
-
                         let app = await BlisClient.client.GetApp(appId, query);
                         res.send(serialize(app));
                     }
@@ -124,6 +145,7 @@ export class Server {
                         let query = req.getQuery();
                         let key = req.params.key;
                         let app = deserialize(BlisApp, req.body);
+
                         let appId = await BlisClient.client.AddApp(app, query);
                         res.send(appId);
 
