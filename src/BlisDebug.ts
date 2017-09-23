@@ -8,7 +8,7 @@ export class BlisDebug {
     public static cache : string = "";
     public static enabled : boolean;
     public static verbose : boolean = true;
-    public static logging : string = "flow memory";
+    public static logging : string = "client"; // "flow memory";
 
     public static InitLogger(bot : builder.UniversalBot)
     {
