@@ -178,19 +178,39 @@ export class BotMemory
         let memory : Memory[] = [];
         for (let entityName in botmemory.entityMap)
         {
-            memory.push(new Memory({entityName:entityName, entityValue: this.EntityValue(botmemory, entityName)}));
+            memory.push(new Memory({entityName:entityName, entityValue: this.EntityValueAsString(botmemory, entityName)}));
         }
         return memory;
     }
 
     public static async Value(entityName: string) : Promise<string> {
         let botMemory = await this.Get()
-        return this.EntityValue(botMemory, entityName);
+        return this.EntityValueAsString(botMemory, entityName);
     }
+
+    public static async ValueAsList(entityName: string) : Promise<string[]> {
+        let botMemory = await this.Get()
+        return this.EntityValueAsList(botMemory, entityName);
+    } 
+
     //--------------------------------------------------------
     // SUBSTITUTIONS
     //--------------------------------------------------------
-    private static EntityValue(botmemory : BotMemory, entityName : string) : string
+    private static EntityValueAsList(botmemory : BotMemory, entityName : string) : string[]
+    {
+        if (!botmemory.entityMap[entityName]) {
+            return [];
+        }
+        
+        if (botmemory.entityMap[entityName].value)
+        {
+            return [botmemory.entityMap[entityName].value];
+        }
+
+        return botmemory.entityMap[entityName].bucket;  
+    }
+
+    private static EntityValueAsString(botmemory : BotMemory, entityName : string) : string
     {
         if (!botmemory.entityMap[entityName]) {
             return null;
@@ -231,7 +251,7 @@ export class BotMemory
                 // Key is in form of $entityName
                 let entityName = word.substr(1, word.length-1);
 
-                let entityValue = this.EntityValue(botmemory, entityName);
+                let entityValue = this.EntityValueAsString(botmemory, entityName);
                 if (entityValue) {
                     entities.push({ 
                         type: entityName,
@@ -254,7 +274,7 @@ export class BotMemory
                 // Key is in form of $entityName
                 let entityName = word.substr(1, word.length-1);
 
-                let entityValue = this.EntityValue(botmemory, entityName);
+                let entityValue = this.EntityValueAsString(botmemory, entityName);
                 if (entityValue) {
                     text = text.replace(word, entityValue);
                 }

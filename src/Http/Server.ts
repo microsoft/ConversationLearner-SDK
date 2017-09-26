@@ -26,17 +26,20 @@ export class Server {
     }
 
     // Parse error to return appropriate error message
-    private static ErrorMessage(response) : Error
+    private static HandleError(response, err) : void
     {
-        let msg : string;
-        if (response.body)
+        // Generate error message
+        let error = null;
+        if (err.body)
         {
-            return response.body;
+            error = err.body;
         }
-        else
-        {
-            return Error(response.statusMessage);  
-        }  
+        else {
+            let msg = ` ${err.statusMessage ? err.statusMessage + "\n\n" : ""}${err.message ? err.message + "\n\n" : ""}${err.stack ? err.stack : ""}`;           
+            error = new Error(msg) ;
+        }
+        let statusCode = (error.statusCode ? error.statusCode : 500);
+        response.send(statusCode, error);
     }
 
     public static Init() : void{
@@ -83,7 +86,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -105,7 +108,7 @@ export class Server {
                 }
                 catch (error)
                 {
-                    res.send(error.statusCode, Server.ErrorMessage(error));
+                    Server.HandleError(res, error);
                 }
             }
         );
@@ -130,7 +133,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -154,7 +157,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -184,7 +187,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -213,7 +216,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -234,7 +237,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -254,7 +257,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -273,7 +276,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -292,7 +295,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -311,7 +314,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -331,7 +334,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -354,7 +357,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -374,7 +377,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -403,7 +406,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -423,7 +426,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -442,7 +445,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -461,7 +464,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -487,7 +490,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -507,7 +510,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -526,7 +529,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -555,7 +558,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -575,7 +578,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -594,7 +597,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -613,7 +616,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -636,7 +639,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -656,7 +659,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -675,7 +678,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -694,7 +697,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -718,7 +721,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -747,7 +750,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -767,7 +770,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -787,7 +790,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -806,7 +809,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -825,7 +828,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -853,7 +856,7 @@ export class Server {
                 }
                 catch (error)
                 {
-                    res.send(error.statusCode, Server.ErrorMessage(error));
+                    Server.HandleError(res, error);
                 }
             }
             );
@@ -873,7 +876,7 @@ export class Server {
                 }
                 catch (error)
                 {
-                    res.send(error.statusCode, Server.ErrorMessage(error));
+                    Server.HandleError(res, error);
                 }
             }
             );
@@ -898,7 +901,7 @@ export class Server {
                 }
                 catch (error)
                 {
-                    res.send(error.statusCode, Server.ErrorMessage(error));
+                    Server.HandleError(res, error);
                 }
             }
             );
@@ -918,7 +921,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -938,7 +941,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -965,7 +968,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -985,7 +988,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -1022,7 +1025,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -1067,7 +1070,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -1100,7 +1103,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -1129,7 +1132,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -1149,7 +1152,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
@@ -1169,7 +1172,7 @@ export class Server {
                     }
                     catch (error)
                     {
-                        res.send(error.statusCode, Server.ErrorMessage(error));
+                        Server.HandleError(res, error);
                     }
                 }
             );
