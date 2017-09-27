@@ -1,7 +1,6 @@
 import * as builder from 'botbuilder'
 import { BlisDebug} from './BlisDebug';
 import { Pager } from './Memory/Pager';
-import { TrainHistory } from './Memory/TrainHistory';
 import { BotMemory } from './Memory/BotMemory';
 import { BotState } from './Memory/BotState';
 import { KeyGen } from 'blis-models'
@@ -182,7 +181,6 @@ export class BlisMemory {
     {
         await this.BotState().Clear(appId);
         await this.BotMemory().Clear();
-        await this.TrainHistory().Clear();
         await this.Pager().Clear();
     }
 
@@ -192,7 +190,6 @@ export class BlisMemory {
         await this.BotState().SetSessionId(null);
         await this.BotState().SetInTeach(false);
         await this.BotState().ClearSuggestedEntity();
-        await this.TrainHistory().ClearLastStep();
         await this.BotMemory().Clear();
     }
 
@@ -208,12 +205,6 @@ export class BlisMemory {
     {
         BotMemory.memory = this;
         return BotMemory;
-    }
-
-    public TrainHistory() : any
-    {
-        TrainHistory.memory = this;
-        return TrainHistory;
     }
 
     public BotState() : any
@@ -235,7 +226,6 @@ export class BlisMemory {
     public async Dump() : Promise<string> {
         let text = "";
         text += `BotState: ${await this.BotState().ToString()}\n\n`;
-        text += `Steps: ${await this.TrainHistory().ToString()}\n\n`;
         text += `Memory: {${await this.BotMemory().ToString()}}\n\n`;
         return text;
     }

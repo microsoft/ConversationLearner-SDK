@@ -1,6 +1,7 @@
 {
     "compileOnSave": true,
     "compilerOptions": {
+        "noUnusedLocals": true,
         "experimentalDecorators": true,
         "emitDecoratorMetadata": true,
         "importHelpers": true,
