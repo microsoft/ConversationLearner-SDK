@@ -79,7 +79,7 @@ export class Server {
                         let appId = req.params.appId
 
                         let memory = BlisMemory.GetMemory(key);
-                        await memory.BotState().SetAppId(appId);
+                        await memory.BotState.SetAppId(appId);
                         res.send(200);
                     }
                     catch (error)
@@ -204,11 +204,11 @@ export class Server {
 
                         // Did I delete my loaded app, if so clear my state
                         let memory = BlisMemory.GetMemory(key);
-                        let curAppId = await memory.BotState().AppId();
+                        let curAppId = await memory.BotState.AppId();
                         if (appId == curAppId)
                         {
-                            await memory.BotState().SetAppId(null);
-                            await memory.BotState().SetSessionId(null);
+                            await memory.BotState.SetAppId(null);
+                            await memory.BotState.SetSessionId(null);
                         }
                         res.send(200);
                     }
@@ -1017,7 +1017,7 @@ export class Server {
                             }
                         }
 
-                        let memories = await memory.BotMemory().DumpMemory();
+                        let memories = await memory.BotMemory.DumpMemory();
                         let uiExtractResponse = new UIExtractResponse({extractResponse : extractResponse, memories : memories});
                         res.send(uiExtractResponse);
                     }
@@ -1062,7 +1062,7 @@ export class Server {
 
                         // Get score response
                         let scoreResponse = await BlisClient.client.TeachScore(appId, teachId, scoreInput);
-                        let memories = await memory.BotMemory().DumpMemory();
+                        let memories = await memory.BotMemory.DumpMemory();
                         let uiScoreResponse = new UIScoreResponse({scoreInput : scoreInput, scoreResponse : scoreResponse, memories : memories});
                         res.send(uiScoreResponse);
                     }

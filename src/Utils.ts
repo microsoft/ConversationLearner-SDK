@@ -17,8 +17,8 @@ export class Utils  {
     /** Send a text message */
     public static async SendMessage(bot : builder.UniversalBot, memory : BlisMemory, content : string | builder.Message)
     { 
-        let address = await memory.BotState().Address();
-        let session = await memory.BotState().Session(bot);
+        let address = await memory.BotState.Address();
+        let session = await memory.BotState.Session(bot);
 
         if (content instanceof builder.Message) {
             session.send(content);
@@ -91,12 +91,12 @@ export class Utils  {
 
     public static async GetSuggestedEntity(userInput: UserInput, memory : BlisMemory) : Promise<PredictedEntity>
     {
-        let suggestedEntity = await memory.BotState().SuggestedEntity() as EntitySuggestion;
+        let suggestedEntity = await memory.BotState.SuggestedEntity() as EntitySuggestion;
         if (!suggestedEntity || !userInput || !userInput.text) {
             return null;
         }
         // Clear suggested entity (only use once)
-        await memory.BotState().ClearSuggestedEntity();
+        await memory.BotState.ClearSuggestedEntity();
 
         // Generate Predicated Entity
         let predictedEntity = new PredictedEntity({

@@ -28,7 +28,7 @@ export class ClientMemoryManager {
         }
         
         let isBucket = entity.metadata ? entity.metadata.isBucket : false;
-        await this.blisMemory.BotMemory().Remember(entity.entityName, entity.entityId, value, isBucket);
+        await this.blisMemory.BotMemory.Remember(entity.entityName, entity.entityId, value, isBucket);
     }
 
     public async ForgetEntity(entityName : string, value : string = null) : Promise<void> {
@@ -41,20 +41,20 @@ export class ClientMemoryManager {
         }
         
         let isBucket = entity.metadata ? entity.metadata.isBucket : false;
-        await this.blisMemory.BotMemory().Forget(entity.entityName, value, isBucket);
+        await this.blisMemory.BotMemory.Forget(entity.entityName, value, isBucket);
     }
 
     public async EntityValue(entityName : string) : Promise<string> 
     {
-        return await this.blisMemory.BotMemory().Value(entityName);
+        return await this.blisMemory.BotMemory.Value(entityName);
     }
 
     public async EntityValueAsList(entityName : string) : Promise<string[]> 
     {
-        return await this.blisMemory.BotMemory().ValueAsList(entityName);
+        return await this.blisMemory.BotMemory.ValueAsList(entityName);
     }
 
     public async GetFilledEntities() : Promise<string[]> {
-        return await this.blisMemory.BotMemory().RememberedIds();
+        return await this.blisMemory.BotMemory.RememberedIds();
     }
 }    

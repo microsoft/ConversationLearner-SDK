@@ -150,9 +150,9 @@ export class BlisDialog extends builder.Dialog {
         let context = new BlisContext(this.bot, session);
 
         let memory = context.Memory();
-        let inTeach = await memory.BotState().InTeach();
-        let appId = await  memory.BotState().AppId();
-        let sessionId = await memory.BotState().SessionId();
+        let inTeach = await memory.BotState.InTeach();
+        let appId = await  memory.BotState.AppId();
+        let sessionId = await memory.BotState.SessionId();
         let userInput = new UserInput({text: session.message.text});
 
         // Teach inputs are handled via API calls from the BLIS api
@@ -211,7 +211,7 @@ export class BlisDialog extends builder.Dialog {
 
         // Store any suggested entity
         if (scoredAction.metadata.entitySuggestion) {
-            await memory.BotState().SetSuggestedEntity(scoredAction.metadata.entitySuggestion);
+            await memory.BotState.SetSuggestedEntity(scoredAction.metadata.entitySuggestion);
         }
 
         switch (actionType)  {
@@ -260,7 +260,7 @@ export class BlisDialog extends builder.Dialog {
         let argArray = [];
         for (let arg of args)
         {
-            argArray.push(await memory.BotMemory().SubstituteEntities(arg));
+            argArray.push(await memory.BotMemory.SubstituteEntities(arg));
         }
 
         let api = this.apiCallbacks[apiName];
@@ -285,7 +285,7 @@ export class BlisDialog extends builder.Dialog {
         let args = ModelUtils.RemoveWords(apiString, 1);
 
         // Make any entity substitutions
-        let entities = await memory.BotMemory().SubstituteEntities(args);
+        let entities = await memory.BotMemory.SubstituteEntities(args);
 
         // Call Azure function and send output (if any)
         let output = await AzureFunctions.Call(BlisClient.client.azureFunctionsUrl, BlisClient.client.azureFunctionsKey, funcName, entities);
@@ -303,11 +303,11 @@ export class BlisDialog extends builder.Dialog {
         let args = ModelUtils.RemoveWords(apiString, 1);
 
         // Make any entity substitutions
-        let entities = await memory.BotMemory().GetEntities(args);
-        let session = memory.BotState().Session(this.bot);
+        let entities = await memory.BotMemory.GetEntities(args);
+        let session = memory.BotState.Session(this.bot);
 
         // If in teach mode wrap the intent so can give next input cue when intent dialog completes
-        let inTeach = memory.BotState().InTeach();
+        let inTeach = memory.BotState.InTeach();
         if (inTeach == "true")
         {
             session.beginDialog(BLIS_INTENT_WRAPPER, {intent: intentName, entities: entities});
@@ -362,11 +362,11 @@ export class BlisDialog extends builder.Dialog {
             // If negative entity will have a positive counter entity
             if (predictedEntity.metadata && predictedEntity.metadata.positiveId)
             {
-                await memoryManager.blisMemory.BotMemory().ForgetEntity(predictedEntity);
+                await memoryManager.blisMemory.BotMemory.ForgetEntity(predictedEntity);
             }
             else
             {
-                await memoryManager.blisMemory.BotMemory().RememberEntity(predictedEntity);
+                await memoryManager.blisMemory.BotMemory.RememberEntity(predictedEntity);
             }
 
             // If entity is associated with a task, make sure task is active
@@ -374,17 +374,17 @@ export class BlisDialog extends builder.Dialog {
             if (predictedEntity.metadata && predictedEntity.metadata.task)
             {
                 // If task is no longer active, clear the memory
-                let remembered = await memory.BotMemory().WasRemembered(predictedEntity.metadata.task);
+                let remembered = await memory.BotMemory.WasRemembered(predictedEntity.metadata.task);
                 if (!remembered)
                 {
-                    await memory.BotMemory().ForgetByLabel(predictedEntity);
+                    await memory.BotMemory.ForgetByLabel(predictedEntity);
                 }
             }
             */
         }
 
         // Get entities from my memory
-        var filledEntities = await memoryManager.blisMemory.BotMemory().RememberedIds();
+        var filledEntities = await memoryManager.blisMemory.BotMemory.RememberedIds();
 
         let scoreInput = new ScoreInput({   
             filledEntities: filledEntities,
@@ -396,7 +396,7 @@ export class BlisDialog extends builder.Dialog {
 
     private async DefaultBlisCallback(text: string, memory : BlisMemory) : Promise<string>
     {
-        let outText = await memory.BotMemory().Substitute(text);
+        let outText = await memory.BotMemory.Substitute(text);
         return outText;
     }
 
