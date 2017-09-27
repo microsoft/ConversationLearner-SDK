@@ -1,5 +1,5 @@
 import * as builder from 'botbuilder';
-import { ActionTypes, UserInput, PredictedEntity, ExtractResponse, ScoreInput, ScoredAction, EntityBase, ModelUtils } from 'blis-models'
+import { ActionTypes, UserInput, PredictedEntity, ScoreInput, ScoredAction, EntityBase, ModelUtils } from 'blis-models'
 import { BlisRecognizer, IBlisResult } from './BlisRecognizer';
 import { BlisDebug } from './BlisDebug';
 import { Utils } from './Utils';
@@ -7,9 +7,10 @@ import { BlisMemory } from './BlisMemory';
 import { BlisClient } from './BlisClient';
 import { BlisContext} from './BlisContext';
 import { ClientMemoryManager} from './Memory/ClientMemoryManager';
-import { BLIS_INTENT_WRAPPER } from './Model/Consts';
 import { Server } from './Http/Server';
 import { AzureFunctions } from './AzureFunctions'
+
+export const BLIS_INTENT_WRAPPER = "BLIS_INTENT_WRAPPER";
 
 export interface IBlisOptions extends builder.IIntentRecognizerSetOptions {
     // URL for BLIS service
@@ -73,7 +74,7 @@ export class BlisDialog extends builder.Dialog {
     protected blisCallback : (test : string, memory : BlisMemory) => string;
     protected connector : builder.ChatConnector;
 
-    private constructor(private bot : builder.UniversalBot, private options: IBlisOptions) {
+    private constructor(private bot : builder.UniversalBot, options: IBlisOptions) {
         super();
 
         try {
@@ -105,7 +106,6 @@ export class BlisDialog extends builder.Dialog {
     public async replyReceived(session: builder.Session, recognizeResult?: builder.IIntentRecognizerResult): Promise<void> 
     {
         if (!recognizeResult) {
-            var locale = session.preferredLocale();
             var context = <builder.IRecognizeDialogContext>session.toRecognizeContext();
             context.dialogData = session.dialogData;
             context.activeDialog = true;

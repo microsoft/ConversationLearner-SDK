@@ -1,9 +1,13 @@
-import { JsonProperty } from 'json-typescript-mapper';
-import { ActionCommand } from '../Model/Consts';
 import { BlisMemory } from '../BlisMemory';
 import { BlisDebug} from '../BlisDebug';
-import { PredictedEntity, Memory, EntityBase } from 'blis-models';
+import { Memory } from 'blis-models';
 import * as builder from 'botbuilder'
+
+export const ActionCommand =
+{
+    SUBSTITUTE: "$",
+    NEGATIVE: "~"
+}
 
 export class EntityMemory
 {
@@ -65,18 +69,6 @@ export class BotMemory
         await this.memory.SetAsync(this.MEMKEY, entityLookup.Serialize());
     }
 
-    private static async Clear() : Promise<void>
-    {
-        let botMemory = new BotMemory();  
-        await this.Set(botMemory);
-    }
-
-    /** Remember a predicted entity */
-    private static async RememberEntity(predictedEntity : PredictedEntity) : Promise<void> {
-        let isBucket = predictedEntity.metadata ? predictedEntity.metadata.isBucket : false;
-        await this.Remember(predictedEntity.entityName, predictedEntity.entityId, predictedEntity.entityText, isBucket);
-    }
-
     // Remember value for an entity
     public static async Remember(entityName: string, entityId: string, entityValue: string, isBucket: boolean = false) : Promise<void> {
 
@@ -90,7 +82,10 @@ export class BotMemory
         // Check if entity buckets values
         if (isBucket)
         {
-            botmemory.entityMap[entityName].bucket.push(entityValue);
+            // Add if not a duplicate
+            if (botmemory.entityMap[entityName].bucket.indexOf(entityValue) < 0) {
+                botmemory.entityMap[entityName].bucket.push(entityValue);
+            }
         }
         else
         {
@@ -113,24 +108,6 @@ export class BotMemory
         return Object.keys(botmemory.entityMap).map(function(val) { return botmemory.entityMap[val].id });
     }
 
-    /** Given negative entity name, return positive version **/
-    private static PositiveName(negativeName: string) : string
-    {
-        if (negativeName.startsWith(ActionCommand.NEGATIVE)) {
-            return negativeName.slice(1);
-        }
-        return null;
-    }
-
-    /** Forget a predicted Entity */
-    private static async ForgetEntity(predictedEntity : PredictedEntity) : Promise<void> {
-        let isBucket = predictedEntity.metadata ? predictedEntity.metadata.isBucket : false;
-        let posName = this.PositiveName(predictedEntity.entityName);
-        if (posName) {
-            await this.Forget(posName, predictedEntity.entityText, isBucket);
-        }
-    }
-
     /** Forget an entity value */
     public static async Forget(entityName: string, entityValue : string = null, isBucket : boolean = false) : Promise<void> {
         try {
@@ -143,20 +120,26 @@ export class BotMemory
                     return;
                 }
 
-                // Find case insensitive index
-                let lowerCaseNames = botmemory.entityMap[entityName].bucket.map(function(value) {
-                    return value.toLowerCase();
-                });
+                // If no entity Value provide, clear the entity
+                if (!entityValue) {
+                    delete botmemory.entityMap[entityName];
+                }
+                else {
+                    // Find case insensitive index
+                    let lowerCaseNames = botmemory.entityMap[entityName].bucket.map(function(value) {
+                        return value.toLowerCase();
+                    });
 
-                let index = lowerCaseNames.indexOf(entityValue.toLowerCase());
-                if (index > -1)
-                {
-                    botmemory.entityMap[entityName].bucket.splice(index, 1);
-                    if (botmemory.entityMap[entityName].bucket.length == 0)
+                    let index = lowerCaseNames.indexOf(entityValue.toLowerCase());
+                    if (index > -1)
                     {
-                        delete botmemory.entityMap[entityName];
-                    }
-                }    
+                        botmemory.entityMap[entityName].bucket.splice(index, 1);
+                        if (botmemory.entityMap[entityName].bucket.length == 0)
+                        {
+                            delete botmemory.entityMap[entityName];
+                        }
+                    }    
+                }
             }
             else
             {

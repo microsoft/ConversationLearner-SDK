@@ -1,6 +1,6 @@
 const request = require('request');
 import { 
-        ActionBase, ActionList, ActionIdList, 
+        ActionList, ActionIdList, 
         BlisAppList, BlisAppIdList, 
         EntityMetaData, EntityList, EntityIdList, 
         LogDialog, LogDialogList, LogDialogIdList, 
@@ -10,14 +10,11 @@ import {
         ExtractResponse, 
         ScoreInput, ScoreResponse, 
         Teach, TeachResponse, TeachList, TeachIdList,
-        TrainExtractorStep, TrainScorerStep 
+        TrainExtractorStep, TrainScorerStep,
+        ActionBase, BlisAppBase, EntityBase 
     } from 'blis-models';
 import { deserialize, serialize } from 'json-typescript-mapper';
 import { Credentials } from './Http/Credentials';
-import { Action } from './Model/Action';
-import { BlisApp} from './Model/BlisApp'
-import { Entity } from './Model/Entity'
-import { BlisMemory } from './BlisMemory';
 import { BlisDebug } from './BlisDebug';
 import * as NodeCache from 'node-cache';
 
@@ -76,7 +73,7 @@ export class BlisClient {
 
         /** Retrieves information about a specific action for the current package
          *  (or the specified package if provided) */
-        public GetAction(appId : string, actionId : string, query : string) : Promise<Action>
+        public GetAction(appId : string, actionId : string, query : string) : Promise<ActionBase>
         {
             return new Promise(
                 (resolve, reject) => {
@@ -105,7 +102,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            var action = deserialize(Action, body);
+                            var action = deserialize(ActionBase, body);
                             action.actionId = actionId;
                             this.actionCache.set(actionId, action);
                             resolve(action);
@@ -182,7 +179,7 @@ export class BlisClient {
         }
 
         /** Updates payload and/or metadata on an existing action */
-        public EditAction(appId : string, action : Action) : Promise<string>
+        public EditAction(appId : string, action : ActionBase) : Promise<string>
         {
             let apiPath = `app/${appId}/action/${action.actionId}`;
 
@@ -248,7 +245,7 @@ export class BlisClient {
         }
 
         /** Create a new action */
-        public AddAction(appId : string, action : Action) : Promise<string>
+        public AddAction(appId : string, action : ActionBase) : Promise<string>
         {
             let apiPath = `app/${appId}/action`;
 
@@ -286,7 +283,7 @@ export class BlisClient {
          * If the app ID isn't found in the set of (non-archived) apps, 
          * returns 404 error ("not found") 
          */
-        public GetApp(appId : string, query : string) : Promise<BlisApp> 
+        public GetApp(appId : string, query : string) : Promise<BlisAppBase> 
         {
             let apiPath = `app/${appId}?userId=${this.user}`;
 
@@ -308,7 +305,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            var blisApp = deserialize(BlisApp, body);
+                            var blisApp = deserialize(BlisAppBase, body);
                             blisApp.appId = appId;
                             resolve(blisApp);
                         }
@@ -352,7 +349,7 @@ export class BlisClient {
         /** Rename an existing application or changes its LUIS key
          * Note: Renaming an application does not affect packages
          */
-        public EditApp(app : BlisApp, query : string) : Promise<string>
+        public EditApp(app : BlisAppBase, query : string) : Promise<string>
         {
             let apiPath = `app/${app.appId}`;
 
@@ -421,7 +418,7 @@ export class BlisClient {
     
         /** Create a new application
          */
-        public AddApp(blisApp : BlisApp, query : string) : Promise<string>
+        public AddApp(blisApp : BlisAppBase, query : string) : Promise<string>
         {
             var apiPath = `app`;
 
@@ -486,7 +483,7 @@ export class BlisClient {
         }
 
         /** Retrieves details for a specific $appId*/
-        public GetAppStatus(appId : string) : Promise<BlisApp>
+        public GetAppStatus(appId : string) : Promise<BlisAppBase>
         {
             let apiPath = `archive/${appId}`;
 
@@ -508,7 +505,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let app = deserialize(BlisApp, body);
+                            let app = deserialize(BlisAppBase, body);
                             resolve(app);
                         }
                     });
@@ -619,7 +616,7 @@ export class BlisClient {
 
         /** Retrieves information about a specific entity in the latest package
          * (or the specified package, if provided) */
-        public GetEntity(appId : string, entityId : string, query : string) : Promise<Entity>
+        public GetEntity(appId : string, entityId : string, query : string) : Promise<EntityBase>
         {
                 return new Promise(
                 (resolve, reject) => {
@@ -647,7 +644,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let entity = deserialize(Entity, body);
+                            let entity = deserialize(EntityBase, body);
                             entity.entityId = entityId;
                             if (!entity.metadata)
                             {
@@ -728,7 +725,7 @@ export class BlisClient {
         }
 
         /** Updates name and/or metadata on an existing entity */
-        public EditEntity(appId : string, entity : Entity) : Promise<string>
+        public EditEntity(appId : string, entity : EntityBase) : Promise<string>
         { 
             let apiPath = `app/${appId}/entity/${entity.entityId}`;
 
@@ -793,7 +790,7 @@ export class BlisClient {
         }
 
         /** Create a new entity */
-        public AddEntity(appId : string, entity : Entity) : Promise<string>
+        public AddEntity(appId : string, entity : EntityBase) : Promise<string>
         {
             let apiPath = `app/${appId}/entity`;
 

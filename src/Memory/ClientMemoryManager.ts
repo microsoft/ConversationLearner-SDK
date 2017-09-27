@@ -1,5 +1,5 @@
 import { BlisMemory } from '../BlisMemory';
-import { BotMemory } from './BotMemory';
+import { BlisDebug } from '../BlisDebug';
 import { EntityBase } from 'blis-models'
 
 export class ClientMemoryManager {
@@ -23,7 +23,7 @@ export class ClientMemoryManager {
         let entity = this.FindEntity(entityName);
 
         if (!entity) {
-            // TODO Log error to console
+            BlisDebug.Error(`Can't find Entity named: ${entityName}`);
             return null;
         }
         
@@ -36,7 +36,7 @@ export class ClientMemoryManager {
         let entity = this.FindEntity(entityName);
 
         if (!entity) {
-            // TODO Log error to console
+            BlisDebug.Error(`Can't find Entity named: ${entityName}`);
             return null;
         }
         

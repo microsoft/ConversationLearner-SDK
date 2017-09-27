@@ -3,11 +3,9 @@ import { BlisDebug } from '../BlisDebug';
 import { BlisClient } from '../BlisClient';
 import { BlisDialog } from '../BlisDialog'
 import { BlisMemory } from '../BlisMemory';
-import { BlisApp } from '../Model/BlisApp';
-import { Action } from '../Model/Action';
-import { Entity } from '../Model/Entity';
 import { Utils } from '../Utils';
-import { TrainDialog, TrainExtractorStep, TrainScorerStep, ExtractResponse, BotInfo } from 'blis-models'
+import { TrainDialog, TrainScorerStep, BotInfo, 
+        BlisAppBase, ActionBase, EntityBase } from 'blis-models'
 import { UIScoreInput, UIExtractResponse, UIScoreResponse } from 'blis-models'
 
 import { deserialize, serialize } from 'json-typescript-mapper';
@@ -76,7 +74,7 @@ export class Server {
                     try
                     {
                         this.InitClient();  // TEMP
-                        let query = req.getQuery();
+                        //let query = req.getQuery();
                         let key = req.params.key;
                         let appId = req.params.appId
 
@@ -121,7 +119,7 @@ export class Server {
             this.server.get("/app/:appId", async (req, res, next) =>
                 {
                     let query = req.getQuery();
-                    let key = req.params.key;
+                    //let key = req.params.key;
                     let appId = req.params.appId;                   
 
                     this.InitClient();  // TEMP
@@ -147,7 +145,7 @@ export class Server {
 
                         let query = req.getQuery();
                         let key = req.params.key;
-                        let app = deserialize(BlisApp, req.body);
+                        let app = deserialize(BlisAppBase, req.body);
 
                         let appId = await BlisClient.client.AddApp(app, query);
                         res.send(appId);
@@ -170,8 +168,8 @@ export class Server {
                     {
                         this.InitClient();  // TEMP
                         let query = req.getQuery();
-                        let key = req.params.key;
-                        let app = deserialize(BlisApp, req.body);
+                        //let key = req.params.key;
+                        let app = deserialize(BlisAppBase, req.body);
                         
                         if (!app.appId)
                         {
@@ -199,7 +197,7 @@ export class Server {
 
                     try
                     {
-                        let query = req.getQuery();
+                        //let query = req.getQuery();
                         let key = req.params.key;
                         let appId = req.params.appId;
                         await BlisClient.client.ArchiveApp(appId);
@@ -229,8 +227,8 @@ export class Server {
 
                     try
                     {
-                        let query = req.getQuery();
-                        let key = req.params.key;
+                        //let query = req.getQuery();
+                        //let key = req.params.key;
                         let appId = req.params.appId;
                         await BlisClient.client.DeleteApp(appId);
                         res.send(200);
@@ -249,8 +247,8 @@ export class Server {
 
                     try
                     {
-                        let query = req.getQuery();
-                        let key = req.params.key;
+                        //let query = req.getQuery();
+                        //let key = req.params.key;
                         let appId = req.params.appId;
                         let blisApp = await BlisClient.client.GetAppStatus(appId);
                         res.send(blisApp);
@@ -270,7 +268,7 @@ export class Server {
                     try
                     {
                         let query = req.getQuery();
-                        let key = req.params.key;
+                        //let key = req.params.key;
                         let apps = await BlisClient.client.GetApps(query);
                         res.send(serialize(apps));
                     }
@@ -289,7 +287,7 @@ export class Server {
                     try
                     {
                         let query = req.getQuery();
-                        let key = req.params.key;
+                        //let key = req.params.key;
                         let apps = await BlisClient.client.GetArchivedAppIds(query);
                         res.send(serialize(apps));
                     }
@@ -308,7 +306,7 @@ export class Server {
                     try
                     {
                         let query = req.getQuery();
-                        let key = req.params.key;
+                        //let key = req.params.key;
                         let apps = await BlisClient.client.GetArchivedApps(query);
                         res.send(serialize(apps));
                     }
@@ -326,8 +324,8 @@ export class Server {
 
                     try
                     {
-                        let query = req.getQuery();
-                        let key = req.params.key;
+                        //let query = req.getQuery();
+                        //let key = req.params.key;
                         let appId = req.params.appId; 
                         let app = await BlisClient.client.RestoreApp(appId);
                         res.send(serialize(app));
@@ -349,7 +347,7 @@ export class Server {
                     try
                     {
                         let query = req.getQuery();
-                        let key = req.params.key;
+                        //let key = req.params.key;
                         let appId = req.params.appId;
                         let actionId = req.params.actionId;
                         let action = await BlisClient.client.GetAction(appId, actionId, query);
@@ -368,10 +366,10 @@ export class Server {
                     {
                         this.InitClient();  // TEMP
 
-                        let query = req.getQuery();
-                        let key = req.params.key;
+                        //let query = req.getQuery();
+                        //let key = req.params.key;
                         let appId = req.params.appId;
-                        let action = deserialize(Action, req.body);
+                        let action = deserialize(ActionBase, req.body);
                         let actionId = await BlisClient.client.AddAction(appId, action);
                         res.send(actionId);
                     }
@@ -388,10 +386,10 @@ export class Server {
                     {
                         this.InitClient();  // TEMP
 
-                        let query = req.getQuery();
-                        let key = req.params.key;
+                        //let query = req.getQuery();
+                        //let key = req.params.key;
                         let appId = req.params.appId;
-                        let action = deserialize(Action, req.body);
+                        let action = deserialize(ActionBase, req.body);
 
                         if (!action.actionId)
                         {
@@ -417,8 +415,8 @@ export class Server {
 
                     try
                     {
-                        let query = req.getQuery();
-                        let key = req.params.key;
+                        //let query = req.getQuery();
+                        //let key = req.params.key;
                         let appId = req.params.appId;
                         let actionId = req.params.actionId;
                         await BlisClient.client.DeleteAction(appId, actionId);
@@ -438,7 +436,7 @@ export class Server {
                     try
                     {
                         let query = req.getQuery();
-                        let key = req.params.key;
+                        //let key = req.params.key;
                         let appId = req.params.appId;
                         let actions = await BlisClient.client.GetActions(appId, query);
                         res.send(serialize(actions));
@@ -457,7 +455,7 @@ export class Server {
                     try
                     {
                         let query = req.getQuery();
-                        let key = req.params.key;
+                        //let key = req.params.key;
                         let appId = req.params.appId;
                         let actions = await BlisClient.client.GetActionIds(appId, query);
                         res.send(serialize(actions));
@@ -483,7 +481,7 @@ export class Server {
                     try
                     {
                         let query = req.getQuery();
-                        let key = req.params.key;
+                        //let key = req.params.key;
                         let appId = req.params.appId;
                         let actions = await BlisClient.client.GetEntityIds(appId, query);
                         res.send(serialize(actions));
@@ -502,7 +500,7 @@ export class Server {
                     try
                     {
                         let query = req.getQuery();
-                        let key = req.params.key;
+                        //let key = req.params.key;
                         let appId = req.params.appId;
                         let entityId = req.params.entityId;
                         let entity = await BlisClient.client.GetEntity(appId, entityId, query);
@@ -520,10 +518,10 @@ export class Server {
                     try
                     {
                         this.InitClient();  // TEMP
-                        let query = req.getQuery();
-                        let key = req.params.key;
+                        //let query = req.getQuery();
+                        //let key = req.params.key;
                         let appId = req.params.appId;
-                        let entity = deserialize(Entity, req.body);
+                        let entity = deserialize(EntityBase, req.body);
                         let entityId = await BlisClient.client.AddEntity(appId, entity);
                         res.send(entityId);
                     }
@@ -539,10 +537,10 @@ export class Server {
                     try
                     {
                         this.InitClient();  // TEMP
-                        let query = req.getQuery();
-                        let key = req.params.key;
+                        //let query = req.getQuery();
+                        //let key = req.params.key;
                         let appId = req.params.appId;
-                        let entity = deserialize(Entity, req.body);    
+                        let entity = deserialize(EntityBase, req.body);    
 
                         if (!entity.entityId)
                         {
@@ -569,8 +567,8 @@ export class Server {
 
                     try
                     {
-                        let query = req.getQuery();
-                        let key = req.params.key;
+                        //let query = req.getQuery();
+                        //let key = req.params.key;
                         let appId = req.params.appId;
                         let entityId = req.params.entityId;
                         await BlisClient.client.DeleteEntity(appId, entityId);
@@ -590,7 +588,7 @@ export class Server {
                     try
                     {
                         let query = req.getQuery();
-                        let key = req.params.key;
+                        //let key = req.params.key;
                         let appId = req.params.appId;
                         let entities = await BlisClient.client.GetEntities(appId, query);
                         res.send(serialize(entities));
@@ -609,7 +607,7 @@ export class Server {
                     try
                     {
                         let query = req.getQuery();
-                        let key = req.params.key;
+                        //let key = req.params.key;
                         let appId = req.params.appId;
                         let entityIds = await BlisClient.client.GetEntityIds(appId, query);
                         res.send(serialize(entityIds));
@@ -630,8 +628,8 @@ export class Server {
 
                     try
                     {
-                        let query = req.getQuery();
-                        let key = req.params.key;
+                        //let query = req.getQuery();
+                        //let key = req.params.key;
                         let appId = req.params.appId;
                         let logDialogId = req.params.logDialogId;
                         let logDialog = await BlisClient.client.GetLogDialog(appId, logDialogId);
@@ -650,8 +648,8 @@ export class Server {
 
                     try
                     {
-                        let query = req.getQuery();
-                        let key = req.params.key;
+                        //let query = req.getQuery();
+                        //let key = req.params.key;
                         let appId = req.params.appId;
                         let logDialogId = req.params.logDialogId;
                         await BlisClient.client.DeleteLogDialog(appId, logDialogId);
@@ -671,7 +669,7 @@ export class Server {
                     try
                     {
                         let query = req.getQuery();
-                        let key = req.params.key;
+                        //let key = req.params.key;
                         let appId = req.params.appId;
                         let logDialogs = await BlisClient.client.GetLogDialogs(appId, query);
                         res.send(serialize(logDialogs));
@@ -690,7 +688,7 @@ export class Server {
                     try
                     {
                         let query = req.getQuery();
-                        let key = req.params.key;
+                        //let key = req.params.key;
                         let appId = req.params.appId;
                         let logDialogIds = await BlisClient.client.GetLogDialogIds(appId, query);
                         res.send(serialize(logDialogIds));
@@ -712,8 +710,8 @@ export class Server {
                     {
                         this.InitClient();  // TEMP
 
-                        let query = req.getQuery();
-                        let key = req.params.key;
+                        //let query = req.getQuery();
+                        //let key = req.params.key;
                         let appId = req.params.appId;
                         let trainDialog = deserialize(TrainDialog, req.body);
                         let trainDialogId = await BlisClient.client.AddTrainDialog(appId, trainDialog);
@@ -732,8 +730,8 @@ export class Server {
                     {
                         this.InitClient();  // TEMP
 
-                        let query = req.getQuery();
-                        let key = req.params.key;
+                        //let query = req.getQuery();
+                        //let key = req.params.key;
                         let appId = req.params.appId;
                         let trainDialog = deserialize(TrainDialog, req.body);
 
@@ -761,8 +759,8 @@ export class Server {
 
                     try
                     {
-                        let query = req.getQuery();
-                        let key = req.params.key;
+                        //let query = req.getQuery();
+                        //let key = req.params.key;
                         let appId = req.params.appId;
                         let trainDialogId = req.params.trainDialogId;
                         let trainDialog = await BlisClient.client.GetTrainDialog(appId, trainDialogId);
@@ -781,8 +779,8 @@ export class Server {
 
                     try
                     {
-                        let query = req.getQuery();
-                        let key = req.params.key;
+                        //let query = req.getQuery();
+                        //let key = req.params.key;
                         let appId = req.params.appId;
                         let trainDialogId = req.params.trainDialogId;
                         await BlisClient.client.DeleteTrainDialog(appId, trainDialogId);
@@ -802,7 +800,7 @@ export class Server {
                     try
                     {
                         let query = req.getQuery();
-                        let key = req.params.key;
+                        //let key = req.params.key;
                         let appId = req.params.appId;
                         let trainDialogs = await BlisClient.client.GetTrainDialogs(appId, query);
                         res.send(serialize(trainDialogs));
@@ -821,7 +819,7 @@ export class Server {
                     try
                     {
                         let query = req.getQuery();
-                        let key = req.params.key;
+                        //let key = req.params.key;
                         let appId = req.params.appId;
                         let trainDialogIds = await BlisClient.client.GetTrainDialogIds(appId, query);
                         res.send(serialize(trainDialogIds));
@@ -844,7 +842,7 @@ export class Server {
                 {
                     this.InitClient();  // TEMP
 
-                    let query = req.getQuery();
+                    //let query = req.getQuery();
                     let key = req.params.key;
                     let appId = req.params.appId;
                     let sessionResponse = await BlisClient.client.StartSession(appId);
@@ -867,8 +865,8 @@ export class Server {
                 try
                 {
                     this.InitClient();  // TEMP
-                    let query = req.getQuery();
-                    let key = req.params.key;
+                    //let query = req.getQuery();
+                    //let key = req.params.key;
                     let appId = req.params.appId;
                     let sessionId = req.params.sessionId;
                     let response = await BlisClient.client.GetSession(appId, sessionId);
@@ -914,7 +912,7 @@ export class Server {
                     try
                     {
                         let query = req.getQuery();
-                        let key = req.params.key;
+                        //let key = req.params.key;
                         let appId = req.params.appId;
                         let sessions = await BlisClient.client.GetSessions(appId, query);
                         res.send(serialize(sessions));
@@ -934,7 +932,7 @@ export class Server {
                     try
                     {
                         let query = req.getQuery();
-                        let key = req.params.key;
+                        //let key = req.params.key;
                         let appId = req.params.appId;
                         let sessionIds = await BlisClient.client.GetSessionIds(appId, query);
                         res.send(serialize(sessionIds));
@@ -956,7 +954,7 @@ export class Server {
                     try
                     {
                         this.InitClient();  // TEMP
-                        let query = req.getQuery();
+                        //let query = req.getQuery();
                         let key = req.params.key;
                         let appId = req.params.appId;
                         let teachResponse = await BlisClient.client.StartTeach(appId);
@@ -979,8 +977,8 @@ export class Server {
                     try
                     {
                         this.InitClient();  // TEMP
-                        let query = req.getQuery();
-                        let key = req.params.key;
+                        //let query = req.getQuery();
+                        //let key = req.params.key;
                         let appId = req.params.appId;
                         let teachId = req.params.teachId;
                         let response = await BlisClient.client.GetTeach(appId, teachId);
@@ -1003,7 +1001,7 @@ export class Server {
                     try
                     {
                         this.InitClient();  // TEMP
-                        let query = req.getQuery();
+                        //let query = req.getQuery();
                         let key = req.params.key;
                         let appId = req.params.appId;
                         let teachId = req.params.teachId;
@@ -1044,7 +1042,7 @@ export class Server {
                     try
                     {
                         this.InitClient();  // TEMP
-                        let query = req.getQuery();
+                        //let query = req.getQuery();
                         let key = req.params.key;
                         let appId = req.params.appId;
                         let teachId = req.params.teachId;
@@ -1055,7 +1053,7 @@ export class Server {
                         // There will be no extraction step if performing a 2nd scorer round after a non-termial action
                         if (uiScoreInput.trainExtractorStep) {
                             // Send teach feedback
-                            let teachResponse = await BlisClient.client.TeachExtractFeedback(appId, teachId, uiScoreInput.trainExtractorStep);
+                            await BlisClient.client.TeachExtractFeedback(appId, teachId, uiScoreInput.trainExtractorStep);
                         }
 
                         // Call LUIS callback to get scoreInput
@@ -1084,7 +1082,7 @@ export class Server {
                     try
                     {
                         this.InitClient();  // TEMP
-                        let query = req.getQuery();
+                        //let query = req.getQuery();
                         let key = req.params.key;
                         let appId = req.params.appId;
                         let teachId = req.params.teachId;
@@ -1118,7 +1116,7 @@ export class Server {
 
                     try
                     {
-                        let query = req.getQuery();
+                        ///let query = req.getQuery();
                         let key = req.params.key;
                         let appId = req.params.appId;
                         let teachId = req.params.teachId;
@@ -1145,7 +1143,7 @@ export class Server {
                     try
                     {
                         let query = req.getQuery();
-                        let key = req.params.key;
+                        //let key = req.params.key;
                         let appId = req.params.appId;
                         let teaches = await BlisClient.client.GetTeaches(appId, query);
                         res.send(serialize(teaches));
@@ -1165,7 +1163,7 @@ export class Server {
                     try
                     {
                         let query = req.getQuery();
-                        let key = req.params.key;
+                        //let key = req.params.key;
                         let appId = req.params.appId;
                         let teachIds = await BlisClient.client.GetTeachIds(appId, query);
                         res.send(serialize(teachIds));
