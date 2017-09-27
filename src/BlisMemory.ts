@@ -1,6 +1,5 @@
 import * as builder from 'botbuilder'
 import { BlisDebug} from './BlisDebug';
-import { Pager } from './Memory/Pager';
 import { BotMemory } from './Memory/BotMemory';
 import { BotState } from './Memory/BotState';
 import { KeyGen } from 'blis-models'
@@ -47,7 +46,7 @@ export class BlisMemory {
         let userdata = { id: user.id, name: user.name };
         let key = KeyGen.MakeKey(JSON.stringify(userdata));
         let memory = new BlisMemory(key);
-        memory.BotState().SetAddress(session.message.address);
+        memory.BotState.SetAddress(session.message.address);
         return memory;
     }
 
@@ -179,54 +178,34 @@ export class BlisMemory {
 
     public async Init(appId : string) : Promise<void>
     {
-        await this.BotState().Clear(appId);
-        await this.BotMemory().Clear();
-        await this.Pager().Clear();
+        await this.BotState.Clear(appId);
+        await this.BotMemory.Clear();
     }
 
     /** Clear memory associated with a session */
     public async EndSession() : Promise<void>
     {
-        await this.BotState().SetSessionId(null);
-        await this.BotState().SetInTeach(false);
-        await this.BotState().ClearSuggestedEntity();
-        await this.BotMemory().Clear();
+        await this.BotState.SetSessionId(null);
+        await this.BotState.SetInTeach(false);
+        await this.BotState.ClearSuggestedEntity();
+        await this.BotMemory.Clear();
     }
 
     /** Init memory for a session */
     public async StartSession(sessionId : string, inTeach : boolean) : Promise<void>
     {
         await this.EndSession();
-        await this.BotState().SetSessionId(sessionId);
-        await this.BotState().SetInTeach(inTeach);
+        await this.BotState.SetSessionId(sessionId);
+        await this.BotState.SetInTeach(inTeach);
     }
 
-    public BotMemory() : any
+    public get BotMemory() : BotMemory
     {
-        BotMemory.memory = this;
-        return BotMemory;
+        return BotMemory.Get(this);
     }
 
-    public BotState() : any
+    public get BotState() : any
     {
-        BotState.memory = this;
-        return BotState;
-    }
-
-    public Pager() : any
-    {
-        Pager.memory = this;
-        return Pager;
-    }
-
-    //--------------------------------------------------------
-    // Debug Tools
-    //--------------------------------------------------------
-
-    public async Dump() : Promise<string> {
-        let text = "";
-        text += `BotState: ${await this.BotState().ToString()}\n\n`;
-        text += `Memory: {${await this.BotMemory().ToString()}}\n\n`;
-        return text;
+        return BotState.Get(this);
     }
 }
