@@ -114,7 +114,7 @@ export class BotState extends Serializable
         await this.memory.SetAsync(BotState.MEMKEY, this.Serialize());
     }
 
-    private async Clear(appId : string) : Promise<void>
+    public async Clear(appId : string) : Promise<void>
     {  
         this.appId = appId;
         this.sessionId = null;
@@ -206,7 +206,7 @@ export class BotState extends Serializable
     }
 
     //------------------------------------------------------------------
-    public async SuggestedEntity(userInput : string) : Promise<EntitySuggestion> {
+    public async SuggestedEntity() : Promise<EntitySuggestion> {
         await this.Init();   
         if (!this.suggestedEntityId || !this.suggestedEntityName) {
             return null;
@@ -232,15 +232,15 @@ export class BotState extends Serializable
     }
 
     //------------------------------------------------------------------
-    public async Session(bot : builder.UniversalBot) {
+    public async Session(bot : builder.UniversalBot) : Promise<any> {
         let address = await this.Address();
         return new Promise(function(resolve,reject) {
             bot.loadSession(address, (err, session) => {
-                if(err !== null)
-                {
-                 return reject(err);
+                if(err !== null) {
+                    reject(err);
+                } else {
+                    resolve(session);
                 }
-                resolve(session);
             });
         });
     }
