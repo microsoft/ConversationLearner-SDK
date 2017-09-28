@@ -2,7 +2,7 @@ import * as builder from 'botbuilder';
 import { Serializable } from './Serializable';
 import { JsonProperty } from 'json-typescript-mapper';
 import { BlisMemory } from '../BlisMemory';
-import { EntitySuggestion } from 'blis-models';
+import { EntitySuggestion, BlisAppBase } from 'blis-models';
 
 export class BotState extends Serializable 
 {
@@ -11,7 +11,7 @@ export class BotState extends Serializable
     public memory : BlisMemory;
 
     @JsonProperty('appId') 
-    public appId : string = null;
+    public app : string = null;
 
     @JsonProperty('sesionId') 
     public sessionId : string = null;
@@ -34,7 +34,7 @@ export class BotState extends Serializable
     private constructor(init?:Partial<BotState>)
     {
         super();
-        this.appId = undefined;
+        this.app = undefined;
         this.sessionId = undefined;
         this.inTeach = false;
         this.inDebug = false;
@@ -96,7 +96,7 @@ export class BotState extends Serializable
     {
         if (!text) return null;
         let json = JSON.parse(text);
-        this.appId = json.appId;
+        this.app = json.appId;
         this.sessionId = json.sesionId;
         this.inTeach = json.inTeach ? json.inTeach : false;
         this.inDebug = json.inDebug ? json.inDebug : false;
@@ -116,29 +116,29 @@ export class BotState extends Serializable
 
     public async Clear(appId : string) : Promise<void>
     {  
-        this.appId = appId;
+        this.app = appId;
         this.sessionId = null;
         this.inTeach = false;
         this.inDebug = false;
         await this.Set();
     }
-/*
-    private async ToString() : Promise<string>
+
+    public async App() : Promise<BlisAppBase>  
     {
-        await this.Init();
-        return JSON.stringify(this);
-    }
-*/
-    public async AppId() : Promise<string>  
-    {
-        await this.Init();    
-        return this.appId;
+        try {
+            await this.Init();    
+            return JSON.parse(this.app);
+        }
+        catch (err)
+        {
+            return null;
+        }
     }
 
-    public async SetAppId(appId : string) : Promise<void>
+    public async SetApp(blisApp : BlisAppBase) : Promise<void>
     {
         await this.Init();    
-        this.appId = appId;
+        this.app = JSON.stringify(blisApp);
         await this.Set();
     }
 

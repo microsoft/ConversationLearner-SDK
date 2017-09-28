@@ -4,9 +4,9 @@ import { BlisClient } from '../BlisClient';
 import { BlisDialog } from '../BlisDialog'
 import { BlisMemory } from '../BlisMemory';
 import { Utils } from '../Utils';
-import { TrainDialog, TrainScorerStep, BotInfo, 
+import { TrainDialog, BotInfo, 
         BlisAppBase, ActionBase, EntityBase } from 'blis-models'
-import { UIScoreInput, UIExtractResponse, UIScoreResponse } from 'blis-models'
+import { UIScoreInput, UIExtractResponse, UIScoreResponse, UITrainScorerStep  } from 'blis-models'
 
 import { deserialize, serialize } from 'json-typescript-mapper';
 
@@ -69,17 +69,17 @@ export class Server {
         // State
         //=======================================================
             /** Sets the current active application */
-            this.server.put("state/app/:appId", async (req, res, next) =>
+            this.server.put("state/app", async (req, res, next) =>
                 {
                     try
                     {
                         this.InitClient();  // TEMP
                         //let query = req.getQuery();
                         let key = req.params.key;
-                        let appId = req.params.appId
+                        let app = deserialize(BlisAppBase, req.body);
 
                         let memory = BlisMemory.GetMemory(key);
-                        await memory.BotState.SetAppId(appId);
+                        await memory.BotState.SetApp(app);
                         res.send(200);
                     }
                     catch (error)
@@ -100,7 +100,7 @@ export class Server {
 
                 try
                 {
-                    let callbacks = Object.keys(BlisDialog.Instance().apiCallbacks);
+                    let callbacks = Object.keys(BlisDialog.Instance.apiCallbacks);
                     let botInfo = new BotInfo({callbacks: callbacks});
                     res.send(serialize(botInfo));
                 }
@@ -204,10 +204,10 @@ export class Server {
 
                         // Did I delete my loaded app, if so clear my state
                         let memory = BlisMemory.GetMemory(key);
-                        let curAppId = await memory.BotState.AppId();
-                        if (appId == curAppId)
+                        let app = await memory.BotState.App();
+                        if (appId == app.appId)
                         {
-                            await memory.BotState.SetAppId(null);
+                            await memory.BotState.SetApp(null);
                             await memory.BotState.SetSessionId(null);
                         }
                         res.send(200);
@@ -1058,7 +1058,7 @@ export class Server {
 
                         // Call LUIS callback to get scoreInput
                         let extractResponse = uiScoreInput.extractResponse;      
-                        let scoreInput = await BlisDialog.Instance().CallLuisCallback(extractResponse.text, extractResponse.predictedEntities, extractResponse.definitions.entities, memory);
+                        let scoreInput = await BlisDialog.Instance.CallLuisCallback(extractResponse.text, extractResponse.predictedEntities, memory, extractResponse.definitions.entities);
 
                         // Get score response
                         let scoreResponse = await BlisClient.client.TeachScore(appId, teachId, scoreInput);
@@ -1086,18 +1086,18 @@ export class Server {
                         let key = req.params.key;
                         let appId = req.params.appId;
                         let teachId = req.params.teachId;
-                        let trainScorerStep = deserialize(TrainScorerStep, req.body);
+                        let uiTrainScorerStep = deserialize(UITrainScorerStep, req.body);
 
                         // Save scored action and remove from service call
-                        let scoredAction = trainScorerStep.scoredAction;
-                        delete trainScorerStep.scoredAction;
+                        let scoredAction = uiTrainScorerStep.trainScorerStep.scoredAction;
+                        delete uiTrainScorerStep.trainScorerStep.scoredAction;
 
-                        let teachResponse = await BlisClient.client.TeachScoreFeedback(appId, teachId, trainScorerStep);
+                        let teachResponse = await BlisClient.client.TeachScoreFeedback(appId, teachId, uiTrainScorerStep.trainScorerStep);
                         res.send(teachResponse);
 
                         // Now take the trained action
                         let memory = BlisMemory.GetMemory(key);
-                        BlisDialog.Instance().TakeAction(scoredAction, memory);
+                        BlisDialog.Instance.TakeAction(scoredAction, memory, uiTrainScorerStep.entities);
                     }
                     catch (error)
                     {
