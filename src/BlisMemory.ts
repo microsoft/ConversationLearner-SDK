@@ -204,7 +204,7 @@ export class BlisMemory {
         return BotMemory.Get(this);
     }
 
-    public get BotState() : any
+    public get BotState() : BotState
     {
         return BotState.Get(this);
     }

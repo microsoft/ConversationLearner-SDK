@@ -196,7 +196,7 @@ export class BotMemory
         let memory : Memory[] = [];
         for (let entityName in this.entityMap)
         {
-            memory.push(new Memory({entityName:entityName, entityValue: this.EntityValueAsString(entityName)}));
+            memory.push(new Memory({entityName:entityName, entityValues: this.EntityValueAsList(entityName)}));
         }
         return memory;
     }

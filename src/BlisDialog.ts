@@ -304,11 +304,11 @@ export class BlisDialog extends builder.Dialog {
 
         // Make any entity substitutions
         let entities = await memory.BotMemory.GetEntities(args);
-        let session = memory.BotState.Session(this.bot);
+        let session = await memory.BotState.Session(this.bot);
 
         // If in teach mode wrap the intent so can give next input cue when intent dialog completes
-        let inTeach = memory.BotState.InTeach();
-        if (inTeach == "true")
+        let inTeach = await memory.BotState.InTeach();
+        if (inTeach)
         {
             session.beginDialog(BLIS_INTENT_WRAPPER, {intent: intentName, entities: entities});
         }
