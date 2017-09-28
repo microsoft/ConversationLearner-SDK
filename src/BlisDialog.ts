@@ -30,7 +30,7 @@ export interface IBlisOptions extends builder.IIntentRecognizerSetOptions {
     luisCallback? : (text: string, predictedEntities : PredictedEntity[], memoryManager : ClientMemoryManager) => ScoreInput;
 
     // Optional callback that runs after BLIS is called but before the Action is rendered
-    blisCallback? : (text : string, memory : BlisMemory) => string;
+    blisCallback? : (text : string, memoryManager : ClientMemoryManager) => string | builder.Message;
 
     // Mapping between API names and functions
     apiCallbacks? : { string : (args : any[]) => string | builder.Message };
@@ -56,7 +56,7 @@ export class BlisDialog extends builder.Dialog {
         return BlisDialog.dialog;
     }
 
-    public static Instance() : BlisDialog
+    public static get Instance() : BlisDialog
     {
         return this.dialog;
     }
@@ -71,7 +71,7 @@ export class BlisDialog extends builder.Dialog {
     private recognizers: builder.IntentRecognizerSet;
 
 
-    protected blisCallback : (test : string, memory : BlisMemory) => string;
+    protected blisCallback : (test : string, memoryManager : ClientMemoryManager) => string | builder.Message;
     protected connector : builder.ChatConnector;
 
     private constructor(private bot : builder.UniversalBot, options: IBlisOptions) {
@@ -151,7 +151,7 @@ export class BlisDialog extends builder.Dialog {
 
         let memory = context.Memory();
         let inTeach = await memory.BotState.InTeach();
-        let appId = await  memory.BotState.AppId();
+        let app = await  memory.BotState.App();
         let sessionId = await memory.BotState.SessionId();
         let userInput = new UserInput({text: session.message.text});
 
@@ -161,7 +161,7 @@ export class BlisDialog extends builder.Dialog {
             // Call the entity extractor
             try
             {
-                let extractResponse = await BlisClient.client.SessionExtract(appId, sessionId, userInput)
+                let extractResponse = await BlisClient.client.SessionExtract(app.appId, sessionId, userInput)
 
                 // If no entities extracted, check for suggested entity
                 if (extractResponse.predictedEntities.length == 0) {
@@ -171,7 +171,7 @@ export class BlisDialog extends builder.Dialog {
                     }
                 }
 
-                await this.ProcessExtraction(appId, sessionId, memory, extractResponse.text, extractResponse.predictedEntities, extractResponse.definitions.entities);
+                await this.ProcessExtraction(app.appId, sessionId, memory, extractResponse.text, extractResponse.predictedEntities, extractResponse.definitions.entities);
             }
             catch (error)
             {
@@ -181,10 +181,10 @@ export class BlisDialog extends builder.Dialog {
         }
     }
 
-    private async ProcessExtraction(appId : string, sessionId : string, memory : BlisMemory, text : string, predictedEntities : PredictedEntity[], allEntities : EntityBase[] )
+    private async ProcessExtraction(appId : string, sessionId : string, memory : BlisMemory, text : string, predictedEntities : PredictedEntity[], allEntities : EntityBase[])
     {
             // Call LUIS callback
-            let scoreInput = await this.CallLuisCallback(text, predictedEntities, allEntities, memory);
+            let scoreInput = await this.CallLuisCallback(text, predictedEntities, memory, allEntities);
             
             // Call the scorer
             let scoreResponse = await BlisClient.client.SessionScore(appId, sessionId, scoreInput);
@@ -195,7 +195,7 @@ export class BlisDialog extends builder.Dialog {
             // Take the action
             if (bestAction)
             {
-                this.TakeAction(bestAction, memory);
+                this.TakeAction(bestAction, memory, allEntities);
  
                 // If action isn't terminal loop through another time
                 if (!bestAction.isTerminal)
@@ -205,7 +205,7 @@ export class BlisDialog extends builder.Dialog {
             }
     }
 
-    public async TakeAction(scoredAction : ScoredAction, memory : BlisMemory) : Promise<void>
+    public async TakeAction(scoredAction : ScoredAction, memory : BlisMemory, allEntities : EntityBase[]) : Promise<void>
     {
         let actionType = scoredAction.metadata.actionType;
 
@@ -216,35 +216,35 @@ export class BlisDialog extends builder.Dialog {
 
         switch (actionType)  {
             case ActionTypes.TEXT:
-                await this.TakeTextAction(scoredAction, memory);
+                await this.TakeTextAction(scoredAction, memory, allEntities);
                 break;
             case ActionTypes.CARD:
-                await this.TakeCardAction(scoredAction, memory);
+                await this.TakeCardAction(scoredAction, memory, allEntities);
                 break;
             case ActionTypes.INTENT:
-                await this.TakeIntentAction(scoredAction, memory);
+                await this.TakeIntentAction(scoredAction, memory, allEntities);
                 break;
             case ActionTypes.API_AZURE:
-                await this.TakeAzureAPIAction(scoredAction, memory);
+                await this.TakeAzureAPIAction(scoredAction, memory, allEntities);
                 break;
             case ActionTypes.API_LOCAL:
-                await this.TakeLocalAPIAction(scoredAction, memory);
+                await this.TakeLocalAPIAction(scoredAction, memory, allEntities);
                 break;
         }
     }
 
-    private async TakeTextAction(scoredAction : ScoredAction, memory : BlisMemory) : Promise<void>
+    private async TakeTextAction(scoredAction : ScoredAction, memory : BlisMemory, allEntities : EntityBase[]) : Promise<void>
     {
-        let outText = await this.CallBlisCallback(scoredAction, memory);
+        let outText = await this.CallBlisCallback(scoredAction, memory, allEntities);
         await Utils.SendMessage(this.bot, memory, outText);
     }
 
-    private async TakeCardAction(scoredAction : ScoredAction, memory : BlisMemory) : Promise<void>
+    private async TakeCardAction(scoredAction : ScoredAction, memory : BlisMemory, allEntities : EntityBase[]) : Promise<void>
     {
         //TODO
     }
 
-    private async TakeLocalAPIAction(scoredAction : ScoredAction, memory : BlisMemory) : Promise<void>
+    private async TakeLocalAPIAction(scoredAction : ScoredAction, memory : BlisMemory, allEntities : EntityBase[]) : Promise<void>
     {
         if (!this.apiCallbacks)
         {
@@ -277,7 +277,7 @@ export class BlisDialog extends builder.Dialog {
         }  
     }
 
-    private async TakeAzureAPIAction(scoredAction : ScoredAction, memory : BlisMemory) : Promise<void>
+    private async TakeAzureAPIAction(scoredAction : ScoredAction, memory : BlisMemory, allEntities : EntityBase[]) : Promise<void>
     {
         // Extract API name and entities
         let apiString = scoredAction.payload;
@@ -295,7 +295,7 @@ export class BlisDialog extends builder.Dialog {
         }          
     }
 
-    private async TakeIntentAction(scoredAction : ScoredAction, memory : BlisMemory) : Promise<void>
+    private async TakeIntentAction(scoredAction : ScoredAction, memory : BlisMemory, allEntities : EntityBase[]) : Promise<void>
     {
         // Extract intent name and entities
         let apiString = scoredAction.payload;
@@ -318,7 +318,7 @@ export class BlisDialog extends builder.Dialog {
         }                
     }
 
-    public async CallLuisCallback(text: string, predictedEntities : PredictedEntity[], allEntities : EntityBase[], memory : BlisMemory) : Promise<ScoreInput> {
+    public async CallLuisCallback(text: string, predictedEntities : PredictedEntity[], memory : BlisMemory, allEntities : EntityBase[]) : Promise<ScoreInput> {
 
         let memoryManager = new ClientMemoryManager(memory, allEntities);
 
@@ -332,26 +332,18 @@ export class BlisDialog extends builder.Dialog {
         return scoreInput;
     }
 
-    private async CallBlisCallback(scoredAction : ScoredAction, memory : BlisMemory) : Promise<string> {
-        let outText = await this.DefaultBlisCallback(scoredAction.payload, memory);
+    private async CallBlisCallback(scoredAction : ScoredAction, memory : BlisMemory, allEntities : EntityBase[]) : Promise<string | builder.Message> {
+
+        let memoryManager = new ClientMemoryManager(memory, allEntities);
+
+        let outText = null;
+        if (this.luisCallback) {
+            outText = await this.blisCallback(scoredAction.payload, memoryManager);
+        }
+        else {
+            outText = await this.DefaultBlisCallback(scoredAction.payload, memoryManager);
+        }
         return outText;
-        /* TODO handle passed in JS func
-        return new Promise(function(resolve,reject) {
-            if (this.luisCallback)
-            {
-                this.blisCallback(text, predictedEntities, memory, (scoreInput : ScoreInput) =>
-                {
-                    resolve(scoreInput);
-                });
-            }
-            else
-            {
-                this.DefaultLuisBlisCallback(text, predictedEntities, memory, (scoreInput : ScoreInput) =>
-                {
-                    resolve(scoreInput);
-                });           
-            }
-        });*/
     }
 
     public async DefaultLuisCallback(text: string, predictedEntities : PredictedEntity[], memoryManager : ClientMemoryManager) : Promise<ScoreInput>
@@ -394,9 +386,9 @@ export class BlisDialog extends builder.Dialog {
         return scoreInput;
     }
 
-    private async DefaultBlisCallback(text: string, memory : BlisMemory) : Promise<string>
+    private async DefaultBlisCallback(text: string, memoryManager : ClientMemoryManager) : Promise<string>
     {
-        let outText = await memory.BotMemory.Substitute(text);
+        let outText = await memoryManager.blisMemory.BotMemory.Substitute(text);
         return outText;
     }
 

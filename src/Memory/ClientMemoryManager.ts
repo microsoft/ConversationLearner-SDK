@@ -57,4 +57,9 @@ export class ClientMemoryManager {
     public async GetFilledEntities() : Promise<string[]> {
         return await this.blisMemory.BotMemory.RememberedIds();
     }
+
+    public async AppName() : Promise<string> {
+        let app = await this.blisMemory.BotState.App();
+        return app.appName;
+    }
 }    
