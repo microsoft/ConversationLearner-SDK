@@ -4,7 +4,7 @@ import { BotMemory } from './Memory/BotMemory';
 import { BotState } from './Memory/BotState';
 import { KeyGen } from 'blis-models'
 
-var redis = require("redis");
+import * as Redis from "redis";
 
 export const MemoryType =
 {
@@ -18,13 +18,13 @@ export const MemoryType =
 
 export class BlisMemory {
 
-    private static redisClient = null;
+    private static redisClient: Redis.RedisClient = null;
 
     private memCache = {};
 
     public static Init(redisServer : string, redisKey : string) : void
     {
-        this.redisClient = redis.createClient(6380, redisServer, { auth_pass: redisKey, tls: { servername: redisServer } });
+        this.redisClient = Redis.createClient(6380, redisServer, { auth_pass: redisKey, tls: { servername: redisServer } });
         this.redisClient.on('error', err => {
             BlisDebug.Error(err);
         });
@@ -150,7 +150,7 @@ export class BlisMemory {
         });
     }
 
-    public Get(datakey : string, cb : (err, data) => void) {
+    public Get(datakey : string, cb : (err: any, data: {}) => void) {
 
         try {
             let key = this.Key(datakey);

@@ -1,4 +1,4 @@
-const request = require('request');
+import * as Request from 'request';
 import { BlisDebug } from './BlisDebug';
 
 export class AzureFunctions {
@@ -35,7 +35,7 @@ export class AzureFunctions {
                     json: true
                 }
                 BlisDebug.LogRequest("GET",apiPath, requestData);
-                request.get(requestData, (error, response, body) => {
+                Request.get(requestData, (error, response, body) => {
                     if (error) {
                         reject(error);
                     }

@@ -1,0 +1,38 @@
+import * as builder from 'botbuilder';
+import { Serializable } from './Serializable';
+import { BlisMemory } from '../BlisMemory';
+import { EntitySuggestion, BlisAppBase } from 'blis-models';
+export declare class BotState extends Serializable {
+    private static _instance;
+    private static MEMKEY;
+    memory: BlisMemory;
+    app: string;
+    sessionId: string;
+    inTeach: boolean;
+    inDebug: boolean;
+    address: string;
+    suggestedEntityId: string;
+    suggestedEntityName: string;
+    private constructor();
+    static Get(blisMemory: BlisMemory): BotState;
+    private Init();
+    private GetSync(cb);
+    private Deserialize(text);
+    private Set();
+    Clear(appId: string): Promise<void>;
+    App(): Promise<BlisAppBase>;
+    SetApp(blisApp: BlisAppBase): Promise<void>;
+    SessionId(): Promise<string>;
+    SetSessionId(sessionId: string): Promise<void>;
+    InTeach(): Promise<boolean>;
+    SetInTeach(isTrue: boolean): Promise<void>;
+    InTeachSync(cb: (err: any, inTeach: boolean) => void): void;
+    InDebug(): Promise<boolean>;
+    SetInDebug(isTrue: boolean): Promise<void>;
+    SetAddress(address: builder.IAddress): Promise<void>;
+    Address(): Promise<builder.IAddress>;
+    SuggestedEntity(): Promise<EntitySuggestion>;
+    SetSuggestedEntity(suggestedEntity: EntitySuggestion): Promise<void>;
+    ClearSuggestedEntity(): Promise<void>;
+    Session(bot: builder.UniversalBot): Promise<any>;
+}
