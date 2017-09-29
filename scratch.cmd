@@ -1,1 +1,0 @@
-npm pack && move /Y blisdk-0.0.2.tgz C:\Users\laliden\OneDrive\Microsoft\blisdk-scratch.tgz && START cmd.exe /k "cd C:\codebox\BLIS-REPO\BLIS-SDK-SAMPLE & npm install https://aka.ms/blisdk-scratch --force --save && exit"

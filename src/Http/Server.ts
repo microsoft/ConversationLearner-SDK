@@ -1,4 +1,4 @@
-var restify = require('restify');
+import * as Restify from 'restify';
 import { BlisDebug } from '../BlisDebug';
 import { BlisClient } from '../BlisClient';
 import { BlisDialog } from '../BlisDialog'
@@ -11,7 +11,7 @@ import { UIScoreInput, UIExtractResponse, UIScoreResponse, UITrainScorerStep  } 
 import { deserialize, serialize } from 'json-typescript-mapper';
 
 export class Server {
-    private static server;
+    private static server : Restify.Server = null;
 
     // TEMP until we have an actual user
     private static InitClient() : void
@@ -24,7 +24,7 @@ export class Server {
     }
 
     // Parse error to return appropriate error message
-    private static HandleError(response, err) : void
+    private static HandleError(response: Restify.Response, err: any) : void
     {
         // Generate error message
         let error = null;
@@ -41,19 +41,19 @@ export class Server {
     }
 
     public static Init() : void{
-        this.server = restify.createServer();
+        this.server = Restify.createServer();
 
-        this.server.use(restify.bodyParser());
-        this.server.use(restify.queryParser());
+        this.server.use(Restify.bodyParser());
+        this.server.use(Restify.queryParser());
 
         //CORS
-        this.server.use(restify.CORS({
+        this.server.use(Restify.CORS({
             origins: ['*'],
             credentials: true,
             headers: ['*']
         }));
 
-        this.server.listen(5000, (err) =>
+        this.server.listen(5000, (err : any) =>
         {
             if (err)
             {
@@ -177,7 +177,7 @@ export class Server {
                         }
                         else if (req.params.appId != app.appId)
                         {
-                            return next(new restify.InvalidArgumentError("AppId of object does not match URI"));
+                            return next(new Restify.InvalidArgumentError("AppId of object does not match URI"));
                         }
 
                         let appId = await BlisClient.client.EditApp(app, query);
@@ -397,7 +397,7 @@ export class Server {
                         }
                         else if (req.params.actionId != action.actionId)
                         {
-                            return next(new restify.InvalidArgumentError("ActionId of object does not match URI"));
+                            return next(new Restify.InvalidArgumentError("ActionId of object does not match URI"));
                         }
                         let actionId = await BlisClient.client.EditAction(appId, action);
                         res.send(actionId);
@@ -548,7 +548,7 @@ export class Server {
                         }
                         else if (req.params.entityId != entity.entityId)
                         {
-                            return next(new restify.InvalidArgumentError("EntityId of object does not match URI"));
+                            return next(new Restify.InvalidArgumentError("EntityId of object does not match URI"));
                         }
 
                         let entityId = await BlisClient.client.EditEntity(appId, entity);
@@ -741,7 +741,7 @@ export class Server {
                         }
                         else if (req.params.trainDialogId != trainDialog.trainDialogId)
                         {
-                            return next(new restify.InvalidArgumentError("ActionId of object does not match URI"));
+                            return next(new Restify.InvalidArgumentError("ActionId of object does not match URI"));
                         }
                         let trainDialogId = await BlisClient.client.EditTrainDialog(appId, trainDialog);
                         res.send(trainDialogId);

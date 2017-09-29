@@ -1,1 +1,0 @@
-START cmd.exe /k "cd C:\codebox\BLIS-REPO\BLIS-SDK-SAMPLE & npm install -save https://aka.ms/blisdk && exit"

@@ -122,7 +122,7 @@ export class BotMemory
     public async RememberedIds() : Promise<string[]>
     {
         await this.Init();
-        return Object.keys(this.entityMap).map(function(val) { return this.entityMap[val].id }, this);
+        return Object.keys(this.entityMap).map((val) => {return this.entityMap[val].id });
     }
 
     /** Given negative entity name, return positive version **/		

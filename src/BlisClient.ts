@@ -1,4 +1,3 @@
-const request = require('request');
 import { 
         ActionList, ActionIdList, 
         BlisAppList, BlisAppIdList, 
@@ -17,6 +16,7 @@ import { deserialize, serialize } from 'json-typescript-mapper';
 import { Credentials } from './Http/Credentials';
 import { BlisDebug } from './BlisDebug';
 import * as NodeCache from 'node-cache';
+import * as Request from 'request';
 
 export class BlisClient {
 
@@ -78,7 +78,7 @@ export class BlisClient {
             return new Promise(
                 (resolve, reject) => {
                     // Check cache first
-                    let action = this.actionCache.get(actionId);
+                    let action = this.actionCache.get(actionId) as ActionBase;
                     if (action) {
                         resolve(action);
                         return;
@@ -94,7 +94,7 @@ export class BlisClient {
                             json: true
                         }
                     BlisDebug.LogRequest("GET",apiPath, requestData);
-                    request.get(requestData, (error, response, body) => {
+                    Request.get(requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -129,7 +129,7 @@ export class BlisClient {
                         json: true
                     }
                     BlisDebug.LogRequest("GET",apiPath, requestData);
-                    request.get(requestData, (error, response, body) => {
+                    Request.get(requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -162,7 +162,7 @@ export class BlisClient {
                         json: true
                     }
                     BlisDebug.LogRequest("GET",apiPath, requestData);
-                    request.get(requestData, (error, response, body) => {
+                    Request.get(requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -198,7 +198,7 @@ export class BlisClient {
                     }
 
                     BlisDebug.LogRequest("PUT",apiPath, requestData);
-                    request.put(requestData, (error, response, body) => {
+                    Request.put(requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -229,7 +229,7 @@ export class BlisClient {
                         json: true
                     }
                     BlisDebug.LogRequest("DELETE",apiPath, requestData);
-                    request.delete(url, requestData, (error, response, body) => {
+                    Request.delete(url, requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -260,7 +260,7 @@ export class BlisClient {
                         json: true
                     }
                     BlisDebug.LogRequest("POST",apiPath, requestData);
-                    request.post(requestData, (error, response, body) => {
+                    Request.post(requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -297,7 +297,7 @@ export class BlisClient {
                         json: true
                     }
                     BlisDebug.LogRequest("GET",apiPath, requestData);
-                    request.get(url, requestData, (error, response, body) => {
+                    Request.get(url, requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -330,7 +330,7 @@ export class BlisClient {
                     }
 
                     BlisDebug.LogRequest("GET",apiPath, requestData);
-                    request.get(requestData, (error, response, body) => {
+                    Request.get(requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -365,7 +365,7 @@ export class BlisClient {
                     }
 
                     BlisDebug.LogRequest("PUT",apiPath, requestData);
-                    request.put(requestData, (error, response, body) => {
+                    Request.put(requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -401,7 +401,7 @@ export class BlisClient {
                         json: true
                     }
                     BlisDebug.LogRequest("DELETE",apiPath, requestData);
-                    request.delete(url, requestData, (error, response, body) => {
+                    Request.delete(url, requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -434,7 +434,7 @@ export class BlisClient {
                         json: true
                     }
                     BlisDebug.LogRequest("POST",apiPath, requestData);
-                    request.post(requestData, (error, response, body) => {
+                    Request.post(requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -467,7 +467,7 @@ export class BlisClient {
                         json: true
                     }
                     BlisDebug.LogRequest("DELETE",apiPath, requestData);
-                    request.delete(url, requestData, (error, response, body) => {
+                    Request.delete(url, requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -497,7 +497,7 @@ export class BlisClient {
                         json: true
                     }
                     BlisDebug.LogRequest("DELETE",apiPath, requestData);
-                    request.get(url, requestData, (error, response, body) => {
+                    Request.get(url, requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -529,7 +529,7 @@ export class BlisClient {
                     }
 
                     BlisDebug.LogRequest("PUT",apiPath, requestData);
-                    request.put(requestData, (error, response, body) => {
+                    Request.put(requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -561,7 +561,7 @@ export class BlisClient {
                     }
 
                     BlisDebug.LogRequest("GET",apiPath, requestData);
-                    request.get(requestData, (error, response, body) => {
+                    Request.get(requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -594,7 +594,7 @@ export class BlisClient {
                     }
 
                     BlisDebug.LogRequest("GET",apiPath, requestData);
-                    request.get(requestData, (error, response, body) => {
+                    Request.get(requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -621,7 +621,7 @@ export class BlisClient {
                 return new Promise(
                 (resolve, reject) => {
                     // Check cache first
-                    let entity = this.entityCache.get(entityId);
+                    let entity = this.entityCache.get(entityId) as EntityBase;
                     if (entity) {
                         resolve(entity);
                         return;
@@ -636,7 +636,7 @@ export class BlisClient {
                         json: true
                     }
                     BlisDebug.LogRequest("GET",apiPath, requestData);
-                    request.get(requestData, (error, response, body) => {
+                    Request.get(requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -675,7 +675,7 @@ export class BlisClient {
                         json: true
                     }
                     BlisDebug.LogRequest("GET",apiPath, requestData);
-                    request.get(requestData, (error, response, body) => {
+                    Request.get(requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -708,7 +708,7 @@ export class BlisClient {
                         json: true
                     }
                     BlisDebug.LogRequest("GET",apiPath, requestData);
-                    request.get(requestData, (error, response, body) => {
+                    Request.get(requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -744,7 +744,7 @@ export class BlisClient {
                     }
 
                     BlisDebug.LogRequest("PUT",apiPath, requestData);
-                    request.put(requestData, (error, response, body) => {
+                    Request.put(requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -774,7 +774,7 @@ export class BlisClient {
                         json: true
                     }
                     BlisDebug.LogRequest("DELETE",apiPath, requestData);
-                    request.delete(url, requestData, (error, response, body) => {
+                    Request.delete(url, requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -805,7 +805,7 @@ export class BlisClient {
                         json: true
                     }
                     BlisDebug.LogRequest("POST",apiPath, requestData);
-                    request.post(requestData, (error, response, body) => {
+                    Request.post(requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -839,7 +839,7 @@ export class BlisClient {
                         json: true
                     }
                     BlisDebug.LogRequest("GET",apiPath, requestData);
-                    request.get(requestData, (error, response, body) => {
+                    Request.get(requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -873,7 +873,7 @@ export class BlisClient {
                         json: true
                     }
                     BlisDebug.LogRequest("GET",apiPath, requestData);
-                    request.get(requestData, (error, response, body) => {
+                    Request.get(requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -905,7 +905,7 @@ export class BlisClient {
                         json: true
                     }
                     BlisDebug.LogRequest("GET",apiPath, requestData);
-                    request.get(requestData, (error, response, body) => {
+                    Request.get(requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -936,7 +936,7 @@ export class BlisClient {
                         json: true
                     }
                     BlisDebug.LogRequest("DELETE",apiPath, requestData);
-                    request.delete(url, requestData, (error, response, body) => {
+                    Request.delete(url, requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -972,7 +972,7 @@ export class BlisClient {
                         json: true
                     }
                     BlisDebug.LogRequest("POST",apiPath, requestData);
-                    request.post(requestData, (error, response, body) => {
+                    Request.post(requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -1008,7 +1008,7 @@ export class BlisClient {
                     }
 
                     BlisDebug.LogRequest("PUT",apiPath, requestData);
-                    request.put(requestData, (error, response, body) => {
+                    Request.put(requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -1040,7 +1040,7 @@ export class BlisClient {
                         json: true
                     }
                     BlisDebug.LogRequest("GET",apiPath, requestData);
-                    request.get(requestData, (error, response, body) => {
+                    Request.get(requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -1074,7 +1074,7 @@ export class BlisClient {
                         json: true
                     }
                     BlisDebug.LogRequest("GET",apiPath, requestData);
-                    request.get(requestData, (error, response, body) => {
+                    Request.get(requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -1107,7 +1107,7 @@ export class BlisClient {
                         json: true
                     }
                     BlisDebug.LogRequest("GET",apiPath, requestData);
-                    request.get(requestData, (error, response, body) => {
+                    Request.get(requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -1138,7 +1138,7 @@ export class BlisClient {
                         json: true
                     }
                     BlisDebug.LogRequest("DELETE",apiPath, requestData);
-                    request.delete(url, requestData, (error, response, body) => {
+                    Request.delete(url, requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -1175,7 +1175,7 @@ export class BlisClient {
                     }
 
                     BlisDebug.LogRequest("POST",apiPath, requestData);
-                    request.post(requestData, (error, response, body) => {
+                    Request.post(requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -1206,7 +1206,7 @@ export class BlisClient {
                         json: true
                     }
                     BlisDebug.LogRequest("GET",apiPath, requestData);
-                    request.get(requestData, (error, response, body) => {
+                    Request.get(requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -1242,7 +1242,7 @@ export class BlisClient {
                     }
 
                     BlisDebug.LogRequest("PUT",apiPath, requestData);
-                    request.put(requestData, (error, response, body) => {
+                    Request.put(requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -1275,7 +1275,7 @@ export class BlisClient {
                     }
 
                     BlisDebug.LogRequest("PUT",apiPath, requestData);
-                    request.put(requestData, (error, response, body) => {
+                    Request.put(requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -1306,7 +1306,7 @@ export class BlisClient {
                         json: true
                     }
                     BlisDebug.LogRequest("DELETE",apiPath, requestData);
-                    request.delete(url, requestData, (error, response, body) => {
+                    Request.delete(url, requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -1337,7 +1337,7 @@ export class BlisClient {
                         json: true
                     }
                     BlisDebug.LogRequest("GET",apiPath, requestData);
-                    request.get(requestData, (error, response, body) => {
+                    Request.get(requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -1369,7 +1369,7 @@ export class BlisClient {
                         json: true
                     }
                     BlisDebug.LogRequest("GET",apiPath, requestData);
-                    request.get(requestData, (error, response, body) => {
+                    Request.get(requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -1406,7 +1406,7 @@ export class BlisClient {
                     }
 
                     BlisDebug.LogRequest("POST",apiPath, requestData);
-                    request.post(requestData, (error, response, body) => {
+                    Request.post(requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -1437,7 +1437,7 @@ export class BlisClient {
                         json: true
                     }
                     BlisDebug.LogRequest("GET",apiPath, requestData);
-                    request.get(requestData, (error, response, body) => {
+                    Request.get(requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -1477,7 +1477,7 @@ export class BlisClient {
                     }
 
                     BlisDebug.LogRequest("PUT",apiPath, requestData);
-                    request.put(requestData, (error, response, body) => {
+                    Request.put(requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -1513,7 +1513,7 @@ export class BlisClient {
                     }
 
                     BlisDebug.LogRequest("POST",apiPath, requestData);
-                    request.post(requestData, (error, response, body) => {
+                    Request.post(requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -1550,7 +1550,7 @@ export class BlisClient {
                     }
 
                     BlisDebug.LogRequest("PUT",apiPath, requestData);
-                    request.put(requestData, (error, response, body) => {
+                    Request.put(requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -1586,7 +1586,7 @@ export class BlisClient {
                     }
 
                     BlisDebug.LogRequest("POST",apiPath, requestData);
-                    request.post(requestData, (error, response, body) => {
+                    Request.post(requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -1620,7 +1620,7 @@ export class BlisClient {
                         json: true
                     }
                     BlisDebug.LogRequest("DELETE",apiPath, requestData);
-                    request.delete(url, requestData, (error, response, body) => {
+                    Request.delete(url, requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -1652,7 +1652,7 @@ export class BlisClient {
                         json: true
                     }
                     BlisDebug.LogRequest("GET",apiPath, requestData);
-                    request.get(requestData, (error, response, body) => {
+                    Request.get(requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }
@@ -1684,7 +1684,7 @@ export class BlisClient {
                         json: true
                     }
                     BlisDebug.LogRequest("GET",apiPath, requestData);
-                    request.get(requestData, (error, response, body) => {
+                    Request.get(requestData, (error, response, body) => {
                         if (error) {
                             reject(error);
                         }

@@ -70,7 +70,7 @@ export class BotState extends Serializable
         }
     }
 
-    private GetSync(cb : (err, botState: BotState) => void) : void
+    private GetSync(cb : (err: any, botState: BotState) => void) : void
     {
         if (!this.memory)
         {
@@ -78,7 +78,7 @@ export class BotState extends Serializable
         }
         
         // Load bot state
-        this.memory.Get(BotState.MEMKEY, (err, data) =>
+        this.memory.Get(BotState.MEMKEY, (err, data: string) =>
         {
             if (!err && data)
             {
@@ -166,7 +166,7 @@ export class BotState extends Serializable
         await this.Set();
     }
 
-    public InTeachSync(cb : (err, inTeach) => void) : void {
+    public InTeachSync(cb : (err: any, inTeach: boolean) => void) : void {
         this.GetSync((err, botState) => {
             if (!err)
             {
