@@ -12,7 +12,6 @@ import {
         TrainExtractorStep, TrainScorerStep,
         ActionBase, BlisAppBase, EntityBase 
     } from 'blis-models';
-import { deserialize, serialize } from 'json-typescript-mapper';
 import { Credentials } from './Http/Credentials';
 import { BlisDebug } from './BlisDebug';
 import * as NodeCache from 'node-cache';
@@ -102,7 +101,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            var action = deserialize(ActionBase, body);
+                            var action = new ActionBase(body);
                             action.actionId = actionId;
                             this.actionCache.set(actionId, action);
                             resolve(action);
@@ -137,7 +136,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let actions = deserialize(ActionList, body);
+                            let actions = new ActionList(body);
                             resolve(actions);
                         }
                     });
@@ -170,7 +169,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let actions = deserialize(ActionIdList, body);
+                            let actions = new ActionIdList(body);
                             resolve(actions);
                         }
                     });
@@ -193,7 +192,7 @@ export class BlisClient {
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
                         },
-                        body: serialize(action),
+                        body: action,
                         json: true
                     }
 
@@ -256,7 +255,7 @@ export class BlisClient {
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
                         },
-                        body: serialize(action),
+                        body: action,
                         json: true
                     }
                     BlisDebug.LogRequest("POST",apiPath, requestData);
@@ -305,7 +304,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            var blisApp = deserialize(BlisAppBase, body);
+                            var blisApp = new BlisAppBase(body);
                             blisApp.appId = appId;
                             resolve(blisApp);
                         }
@@ -338,7 +337,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let apps = deserialize(BlisAppList, body);
+                            let apps = new BlisAppList(body);
                             resolve(apps);
                         }
                     });
@@ -360,7 +359,7 @@ export class BlisClient {
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
                         },
-                        body: serialize(app),
+                        body: app,
                         json: true
                     }
 
@@ -430,7 +429,7 @@ export class BlisClient {
                         headers: {
                             'Cookie' : this.credentials.Cookiestring(),
                         },
-                        body: serialize(blisApp),
+                        body: blisApp,
                         json: true
                     }
                     BlisDebug.LogRequest("POST",apiPath, requestData);
@@ -505,7 +504,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let app = deserialize(BlisAppBase, body);
+                            let app = new BlisAppBase(body);
                             resolve(app);
                         }
                     });
@@ -569,7 +568,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let apps = deserialize(BlisAppIdList, body);
+                            let apps = new BlisAppIdList(body);
                             resolve(apps);
                         }
                     });
@@ -602,7 +601,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let apps = deserialize(BlisAppList, body);
+                            let apps = new BlisAppList(body);
                             resolve(apps);
                         }
                     });
@@ -644,7 +643,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let entity = deserialize(EntityBase, body);
+                            let entity = new EntityBase(body);
                             entity.entityId = entityId;
                             if (!entity.metadata)
                             {
@@ -683,7 +682,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let entities = deserialize(EntityList, body);
+                            let entities = new EntityList(body);
                             resolve(entities);
                         }
                     });
@@ -716,7 +715,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let entityIds = deserialize(EntityIdList, body);
+                            let entityIds = new EntityIdList(body);
                             resolve(entityIds);
                         }
                     });
@@ -739,7 +738,7 @@ export class BlisClient {
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
                         },
-                        body: serialize(entity),
+                        body: entity,
                         json: true
                     }
 
@@ -801,7 +800,7 @@ export class BlisClient {
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
                         },
-                        body: serialize(entity),
+                        body: entity,
                         json: true
                     }
                     BlisDebug.LogRequest("POST",apiPath, requestData);
@@ -847,7 +846,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let logDialog = deserialize(LogDialog, body);
+                            let logDialog = new LogDialog(body);
                             logDialog.logDialogId = logDialogId;
                             resolve(logDialog);
                         }
@@ -881,7 +880,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let logDialogList = deserialize(LogDialogList, body);
+                            let logDialogList = new LogDialogList(body);
                             resolve(logDialogList);
                         }
                     });
@@ -913,7 +912,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let logDialogsIds = deserialize(LogDialogIdList, body);
+                            let logDialogsIds = new LogDialogIdList(body);
                             resolve(logDialogsIds);
                         }
                     });
@@ -968,7 +967,7 @@ export class BlisClient {
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
                         },
-                        body: serialize(trainDialog),
+                        body: trainDialog,
                         json: true
                     }
                     BlisDebug.LogRequest("POST",apiPath, requestData);
@@ -980,7 +979,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let editResponse = deserialize(TrainResponse, body);
+                            let editResponse = new TrainResponse(body);
                             resolve(editResponse);
                         }
                     });
@@ -1003,7 +1002,7 @@ export class BlisClient {
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
                         },
-                        body: serialize(trainDialog),
+                        body: trainDialog,
                         json: true
                     }
 
@@ -1016,7 +1015,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let editResponse = deserialize(TrainResponse, body);
+                            let editResponse = new TrainResponse(body);
                             resolve(editResponse);
                         }
                     });
@@ -1048,7 +1047,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let trainDialog = deserialize(TrainDialog, body);
+                            let trainDialog = new TrainDialog(body);
                             trainDialog.trainDialogId = trainDialogId;
                             resolve(trainDialog);
                         }
@@ -1082,7 +1081,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let trainDialogList = deserialize(TrainDialogList, body);
+                            let trainDialogList = new TrainDialogList(body);
                             resolve(trainDialogList);
                         }
                     });
@@ -1115,7 +1114,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let trainDialogsIds = deserialize(TrainDialogIdList, body);
+                            let trainDialogsIds = new TrainDialogIdList(body);
                             resolve(trainDialogsIds);
                         }
                     });
@@ -1146,7 +1145,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let deleteResponse = deserialize(TrainResponse, body);
+                            let deleteResponse = new TrainResponse(body);
                             resolve(deleteResponse);
                         }
                     });
@@ -1183,7 +1182,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let session = deserialize(Session, body);
+                            let session = new Session(body);
                             resolve(session);
                         }
                     });
@@ -1214,7 +1213,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let session = deserialize(Session, body);
+                            let session = new Session(body);
                             session.sessionId = sessionId;
                             resolve(session);
                         }
@@ -1237,7 +1236,7 @@ export class BlisClient {
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
                         },
-                        body: serialize(userInput),
+                        body: userInput,
                         json: true
                     }
 
@@ -1250,7 +1249,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            var extractResponse = deserialize(ExtractResponse, body);
+                            var extractResponse = new ExtractResponse(body);
                             resolve(extractResponse);
                         }
                     });
@@ -1270,7 +1269,7 @@ export class BlisClient {
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
                         },
-                        body: serialize(scorerInput),
+                        body: scorerInput,
                         json: true
                     }
 
@@ -1283,7 +1282,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            var score = deserialize(ScoreResponse, body);
+                            var score = new ScoreResponse(body);
                             resolve(score);
                         }
                     });
@@ -1345,7 +1344,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let sessions = deserialize(SessionList, body);
+                            let sessions = new SessionList(body);
                             resolve(sessions);
                         }
                     });
@@ -1377,7 +1376,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let sessionIds = deserialize(SessionIdList, body);
+                            let sessionIds = new SessionIdList(body);
                             resolve(sessionIds);
                         }
                     });
@@ -1414,7 +1413,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            var teachResponse = deserialize(TeachResponse, body);
+                            var teachResponse = new TeachResponse(body);
                             resolve(teachResponse);
                         }
                     });
@@ -1445,7 +1444,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let teach = deserialize(Teach, body);
+                            let teach = new Teach(body);
                             teach.teachId = teachId;
                             resolve(teach);
                         }
@@ -1485,7 +1484,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            var extractResponse = deserialize(ExtractResponse, body);
+                            var extractResponse = new ExtractResponse(body);
                             resolve(extractResponse);
                         }
                     });
@@ -1508,7 +1507,7 @@ export class BlisClient {
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
                         },
-                        body: serialize(extractorStep),
+                        body: extractorStep,
                         json: true
                     }
 
@@ -1521,7 +1520,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            var teachResponse = deserialize(TeachResponse, body);
+                            var teachResponse = new TeachResponse(body);
                             resolve(teachResponse);
                         }
                     });
@@ -1545,7 +1544,7 @@ export class BlisClient {
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
                         },
-                        body: serialize(scorerInput),
+                        body: scorerInput,
                         json: true
                     }
 
@@ -1558,7 +1557,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            var scoreResponse = deserialize(ScoreResponse, body);
+                            var scoreResponse = new ScoreResponse(body);
                             resolve(scoreResponse);
                         }
                     });
@@ -1581,7 +1580,7 @@ export class BlisClient {
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
                         },
-                        body: serialize(scorerResponse),
+                        body: scorerResponse,
                         json: true
                     }
 
@@ -1594,7 +1593,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            var teachResponse = deserialize(TeachResponse, body);
+                            var teachResponse = new TeachResponse(body);
                             resolve(teachResponse);
                         }
                     });
@@ -1628,7 +1627,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            var trainResponse = deserialize(TrainResponse, body);
+                            var trainResponse = new TrainResponse(body);
                             resolve(trainResponse);
                         }
                     });
@@ -1660,7 +1659,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let teaches = deserialize(TeachList, body);
+                            let teaches = new TeachList(body);
                             resolve(teaches);
                         }
                     });
@@ -1692,7 +1691,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let teachIds = deserialize(TeachIdList, body);
+                            let teachIds = new TeachIdList(body);
                             resolve(teachIds);
                         }
                     });

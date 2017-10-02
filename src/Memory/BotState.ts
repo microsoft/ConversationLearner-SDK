@@ -1,46 +1,29 @@
 import * as builder from 'botbuilder';
-import { Serializable } from './Serializable';
-import { JsonProperty } from 'json-typescript-mapper';
 import { BlisMemory } from '../BlisMemory';
 import { EntitySuggestion, BlisAppBase } from 'blis-models';
 
-export class BotState extends Serializable 
+export class BotState 
 {
     private static _instance : BotState = null;
     private static MEMKEY = "BOTSTATE";
     public memory : BlisMemory;
 
-    @JsonProperty('appId') 
-    public app : string = null;
+    public appId : string = null;
 
-    @JsonProperty('sesionId') 
     public sessionId : string = null;
 
-    @JsonProperty('inTeach') 
     public inTeach : boolean = false;
  
-    @JsonProperty('inDebug') 
     public inDebug : boolean = false;
 
-    @JsonProperty('address') 
     public address : string = null;
 
-    @JsonProperty('suggestedEntityId') 
     public suggestedEntityId : string = null;
 
-    @JsonProperty('suggestedEntityName') 
     public suggestedEntityName : string = null;
 
     private constructor(init?:Partial<BotState>)
     {
-        super();
-        this.app = undefined;
-        this.sessionId = undefined;
-        this.inTeach = false;
-        this.inDebug = false;
-        this.address = undefined;
-        this.suggestedEntityId = undefined;
-        this.suggestedEntityName = undefined;
         (<any>Object).assign(this, init);
     }
 
@@ -96,7 +79,7 @@ export class BotState extends Serializable
     {
         if (!text) return null;
         let json = JSON.parse(text);
-        this.app = json.appId;
+        this.appId = json.appId;
         this.sessionId = json.sesionId;
         this.inTeach = json.inTeach ? json.inTeach : false;
         this.inDebug = json.inDebug ? json.inDebug : false;
@@ -111,12 +94,12 @@ export class BotState extends Serializable
         {
             throw new Error("BotState called without initialzing memory");
         }
-        await this.memory.SetAsync(BotState.MEMKEY, this.Serialize());
+        await this.memory.SetAsync(BotState.MEMKEY, JSON.stringify(this));
     }
 
     public async Clear(appId : string) : Promise<void>
     {  
-        this.app = appId;
+        this.appId = appId;
         this.sessionId = null;
         this.inTeach = false;
         this.inDebug = false;
@@ -127,7 +110,7 @@ export class BotState extends Serializable
     {
         try {
             await this.Init();    
-            return JSON.parse(this.app);
+            return JSON.parse(this.appId);
         }
         catch (err)
         {
@@ -138,7 +121,7 @@ export class BotState extends Serializable
     public async SetApp(blisApp : BlisAppBase) : Promise<void>
     {
         await this.Init();    
-        this.app = JSON.stringify(blisApp);
+        this.appId = JSON.stringify(blisApp);
         await this.Set();
     }
 

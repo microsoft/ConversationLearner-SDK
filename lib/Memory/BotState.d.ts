@@ -1,12 +1,11 @@
 import * as builder from 'botbuilder';
-import { Serializable } from './Serializable';
 import { BlisMemory } from '../BlisMemory';
 import { EntitySuggestion, BlisAppBase } from 'blis-models';
-export declare class BotState extends Serializable {
+export declare class BotState {
     private static _instance;
     private static MEMKEY;
     memory: BlisMemory;
-    app: string;
+    appId: string;
     sessionId: string;
     inTeach: boolean;
     inDebug: boolean;

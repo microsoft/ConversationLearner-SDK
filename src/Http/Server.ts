@@ -8,8 +8,6 @@ import { TrainDialog, BotInfo,
         BlisAppBase, ActionBase, EntityBase } from 'blis-models'
 import { UIScoreInput, UIExtractResponse, UIScoreResponse, UITrainScorerStep  } from 'blis-models'
 
-import { deserialize, serialize } from 'json-typescript-mapper';
-
 export class Server {
     private static server : Restify.Server = null;
 
@@ -23,6 +21,19 @@ export class Server {
         BlisClient.Init(user, secret, azureFunctionsUrl, azureFunctionsKey);
     }
 
+    // Extract error text from HTML error
+    private static HTML2Error(htmlText: string) : string {
+        const startKey = '<div class="titleerror">';
+        const endKey = '</div>';
+        let start = htmlText.indexOf(startKey);
+        if (start < 0) {
+            return htmlText;
+        }
+        htmlText = htmlText.slice(start);
+        let end = htmlText.indexOf(endKey);
+        return htmlText.slice(startKey.length, end);
+    }
+
     // Parse error to return appropriate error message
     private static HandleError(response: Restify.Response, err: any) : void
     {
@@ -30,7 +41,12 @@ export class Server {
         let error = null;
         if (err.body)
         {
-            error = err.body;
+            // Handle HTML error
+            if (err.body.indexOf('!DOCTYPE html')) {
+                error = this.HTML2Error(err.body);
+            } else {
+                error = err.body;
+            }
         }
         else {
             let msg = ` ${err.statusMessage ? err.statusMessage + "\n\n" : ""}${err.message ? err.message + "\n\n" : ""}${err.stack ? err.stack : ""}`;           
@@ -76,7 +92,7 @@ export class Server {
                         this.InitClient();  // TEMP
                         //let query = req.getQuery();
                         let key = req.params.key;
-                        let app = deserialize(BlisAppBase, req.body);
+                        let app = new BlisAppBase(req.body);
 
                         let memory = BlisMemory.GetMemory(key);
                         await memory.BotState.SetApp(app);
@@ -102,7 +118,7 @@ export class Server {
                 {
                     let callbacks = Object.keys(BlisDialog.Instance.apiCallbacks);
                     let botInfo = new BotInfo({callbacks: callbacks});
-                    res.send(serialize(botInfo));
+                    res.send(botInfo);
                 }
                 catch (error)
                 {
@@ -127,7 +143,7 @@ export class Server {
                     try
                     {
                         let app = await BlisClient.client.GetApp(appId, query);
-                        res.send(serialize(app));
+                        res.send(app);
                     }
                     catch (error)
                     {
@@ -145,7 +161,7 @@ export class Server {
 
                         let query = req.getQuery();
                         let key = req.params.key;
-                        let app = deserialize(BlisAppBase, req.body);
+                        let app = new BlisAppBase(req.body);
 
                         let appId = await BlisClient.client.AddApp(app, query);
                         res.send(appId);
@@ -169,7 +185,7 @@ export class Server {
                         this.InitClient();  // TEMP
                         let query = req.getQuery();
                         //let key = req.params.key;
-                        let app = deserialize(BlisAppBase, req.body);
+                        let app = new BlisAppBase(req.body);
                         
                         if (!app.appId)
                         {
@@ -270,7 +286,7 @@ export class Server {
                         let query = req.getQuery();
                         //let key = req.params.key;
                         let apps = await BlisClient.client.GetApps(query);
-                        res.send(serialize(apps));
+                        res.send(apps);
                     }
                     catch (error)
                     {
@@ -289,7 +305,7 @@ export class Server {
                         let query = req.getQuery();
                         //let key = req.params.key;
                         let apps = await BlisClient.client.GetArchivedAppIds(query);
-                        res.send(serialize(apps));
+                        res.send(apps);
                     }
                     catch (error)
                     {
@@ -308,7 +324,7 @@ export class Server {
                         let query = req.getQuery();
                         //let key = req.params.key;
                         let apps = await BlisClient.client.GetArchivedApps(query);
-                        res.send(serialize(apps));
+                        res.send(apps);
                     }
                     catch (error)
                     {
@@ -328,7 +344,7 @@ export class Server {
                         //let key = req.params.key;
                         let appId = req.params.appId; 
                         let app = await BlisClient.client.RestoreApp(appId);
-                        res.send(serialize(app));
+                        res.send(app);
                     }
                     catch (error)
                     {
@@ -351,7 +367,7 @@ export class Server {
                         let appId = req.params.appId;
                         let actionId = req.params.actionId;
                         let action = await BlisClient.client.GetAction(appId, actionId, query);
-                        res.send(serialize(action));
+                        res.send(action);
                     }
                     catch (error)
                     {
@@ -369,7 +385,7 @@ export class Server {
                         //let query = req.getQuery();
                         //let key = req.params.key;
                         let appId = req.params.appId;
-                        let action = deserialize(ActionBase, req.body);
+                        let action = new ActionBase(req.body);
                         let actionId = await BlisClient.client.AddAction(appId, action);
                         res.send(actionId);
                     }
@@ -389,7 +405,7 @@ export class Server {
                         //let query = req.getQuery();
                         //let key = req.params.key;
                         let appId = req.params.appId;
-                        let action = deserialize(ActionBase, req.body);
+                        let action = new ActionBase(req.body);
 
                         if (!action.actionId)
                         {
@@ -439,7 +455,7 @@ export class Server {
                         //let key = req.params.key;
                         let appId = req.params.appId;
                         let actions = await BlisClient.client.GetActions(appId, query);
-                        res.send(serialize(actions));
+                        res.send(actions);
                     }
                     catch (error)
                     {
@@ -458,7 +474,7 @@ export class Server {
                         //let key = req.params.key;
                         let appId = req.params.appId;
                         let actions = await BlisClient.client.GetActionIds(appId, query);
-                        res.send(serialize(actions));
+                        res.send(actions);
                     }
                     catch (error)
                     {
@@ -484,7 +500,7 @@ export class Server {
                         //let key = req.params.key;
                         let appId = req.params.appId;
                         let actions = await BlisClient.client.GetEntityIds(appId, query);
-                        res.send(serialize(actions));
+                        res.send(actions);
                     }
                     catch (error)
                     {
@@ -504,7 +520,7 @@ export class Server {
                         let appId = req.params.appId;
                         let entityId = req.params.entityId;
                         let entity = await BlisClient.client.GetEntity(appId, entityId, query);
-                        res.send(serialize(entity));
+                        res.send(entity);
                     }
                     catch (error)
                     {
@@ -521,7 +537,7 @@ export class Server {
                         //let query = req.getQuery();
                         //let key = req.params.key;
                         let appId = req.params.appId;
-                        let entity = deserialize(EntityBase, req.body);
+                        let entity = new EntityBase(req.body);
                         let entityId = await BlisClient.client.AddEntity(appId, entity);
                         res.send(entityId);
                     }
@@ -540,7 +556,7 @@ export class Server {
                         //let query = req.getQuery();
                         //let key = req.params.key;
                         let appId = req.params.appId;
-                        let entity = deserialize(EntityBase, req.body);    
+                        let entity = new EntityBase(req.body);    
 
                         if (!entity.entityId)
                         {
@@ -591,7 +607,7 @@ export class Server {
                         //let key = req.params.key;
                         let appId = req.params.appId;
                         let entities = await BlisClient.client.GetEntities(appId, query);
-                        res.send(serialize(entities));
+                        res.send(entities);
                     }
                     catch (error)
                     {
@@ -610,7 +626,7 @@ export class Server {
                         //let key = req.params.key;
                         let appId = req.params.appId;
                         let entityIds = await BlisClient.client.GetEntityIds(appId, query);
-                        res.send(serialize(entityIds));
+                        res.send(entityIds);
                     }
                     catch (error)
                     {
@@ -633,7 +649,7 @@ export class Server {
                         let appId = req.params.appId;
                         let logDialogId = req.params.logDialogId;
                         let logDialog = await BlisClient.client.GetLogDialog(appId, logDialogId);
-                        res.send(serialize(logDialog));
+                        res.send(logDialog);
                     }
                     catch (error)
                     {
@@ -672,7 +688,7 @@ export class Server {
                         //let key = req.params.key;
                         let appId = req.params.appId;
                         let logDialogs = await BlisClient.client.GetLogDialogs(appId, query);
-                        res.send(serialize(logDialogs));
+                        res.send(logDialogs);
                     }
                     catch (error)
                     {
@@ -691,7 +707,7 @@ export class Server {
                         //let key = req.params.key;
                         let appId = req.params.appId;
                         let logDialogIds = await BlisClient.client.GetLogDialogIds(appId, query);
-                        res.send(serialize(logDialogIds));
+                        res.send(logDialogIds);
                     }
                     catch (error)
                     {
@@ -713,7 +729,7 @@ export class Server {
                         //let query = req.getQuery();
                         //let key = req.params.key;
                         let appId = req.params.appId;
-                        let trainDialog = deserialize(TrainDialog, req.body);
+                        let trainDialog = new TrainDialog(req.body);
                         let trainDialogId = await BlisClient.client.AddTrainDialog(appId, trainDialog);
                         res.send(trainDialogId);
                     }
@@ -733,7 +749,7 @@ export class Server {
                         //let query = req.getQuery();
                         //let key = req.params.key;
                         let appId = req.params.appId;
-                        let trainDialog = deserialize(TrainDialog, req.body);
+                        let trainDialog = new TrainDialog(req.body);
 
                         if (!trainDialog.trainDialogId)
                         {
@@ -764,7 +780,7 @@ export class Server {
                         let appId = req.params.appId;
                         let trainDialogId = req.params.trainDialogId;
                         let trainDialog = await BlisClient.client.GetTrainDialog(appId, trainDialogId);
-                        res.send(serialize(trainDialog));
+                        res.send(trainDialog);
                     }
                     catch (error)
                     {
@@ -803,7 +819,7 @@ export class Server {
                         //let key = req.params.key;
                         let appId = req.params.appId;
                         let trainDialogs = await BlisClient.client.GetTrainDialogs(appId, query);
-                        res.send(serialize(trainDialogs));
+                        res.send(trainDialogs);
                     }
                     catch (error)
                     {
@@ -822,7 +838,7 @@ export class Server {
                         //let key = req.params.key;
                         let appId = req.params.appId;
                         let trainDialogIds = await BlisClient.client.GetTrainDialogIds(appId, query);
-                        res.send(serialize(trainDialogIds));
+                        res.send(trainDialogIds);
                     }
                     catch (error)
                     {
@@ -915,7 +931,7 @@ export class Server {
                         //let key = req.params.key;
                         let appId = req.params.appId;
                         let sessions = await BlisClient.client.GetSessions(appId, query);
-                        res.send(serialize(sessions));
+                        res.send(sessions);
                     }
                     catch (error)
                     {
@@ -935,7 +951,7 @@ export class Server {
                         //let key = req.params.key;
                         let appId = req.params.appId;
                         let sessionIds = await BlisClient.client.GetSessionIds(appId, query);
-                        res.send(serialize(sessionIds));
+                        res.send(sessionIds);
                     }
                     catch (error)
                     {
@@ -1046,7 +1062,7 @@ export class Server {
                         let key = req.params.key;
                         let appId = req.params.appId;
                         let teachId = req.params.teachId;
-                        let uiScoreInput = deserialize(UIScoreInput, req.body);
+                        let uiScoreInput = new UIScoreInput(req.body);
 
                         let memory = BlisMemory.GetMemory(key);
 
@@ -1086,7 +1102,7 @@ export class Server {
                         let key = req.params.key;
                         let appId = req.params.appId;
                         let teachId = req.params.teachId;
-                        let uiTrainScorerStep = deserialize(UITrainScorerStep, req.body);
+                        let uiTrainScorerStep = new UITrainScorerStep(req.body);
 
                         // Save scored action and remove from service call
                         let scoredAction = uiTrainScorerStep.trainScorerStep.scoredAction;
@@ -1146,7 +1162,7 @@ export class Server {
                         //let key = req.params.key;
                         let appId = req.params.appId;
                         let teaches = await BlisClient.client.GetTeaches(appId, query);
-                        res.send(serialize(teaches));
+                        res.send(teaches);
                     }
                     catch (error)
                     {
@@ -1166,7 +1182,7 @@ export class Server {
                         //let key = req.params.key;
                         let appId = req.params.appId;
                         let teachIds = await BlisClient.client.GetTeachIds(appId, query);
-                        res.send(serialize(teachIds));
+                        res.send(teachIds);
                     }
                     catch (error)
                     {
