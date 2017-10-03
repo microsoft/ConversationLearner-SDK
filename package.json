@@ -1,6 +1,6 @@
 {
   "name": "blisdk",
-  "version": "0.53.5",
+  "version": "0.54.6",
   "description": "Node SDK for Blis",
   "main": "lib/blisdk.js",
   "typings": "./src/botbuilder.d.ts",
@@ -15,21 +15,23 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "blis-models": "^0.53.0",
+    "blis-models": "^0.54.0",
     "botbuilder": "^3.9.0",
     "node-cache": "^4.1.1",
     "redis": "^2.7.1",
     "request": "^2.79.0",
     "restify": "^4.3.0",
     "swagger-client": "^2.1.32",
-    "tslib": "^1.5.0"
+    "tslib": "^1.5.0",
+    "xmldom": "^0.1.27"
   },
   "devDependencies": {
-    "@types/redis": "^2.6.0",
     "@types/node": "^7.0.39",
     "@types/node-cache": "^4.1.0",
+    "@types/redis": "^2.6.0",
     "@types/request": "^2.0.3",
     "@types/restify": "^4.3.5",
+    "@types/xmldom": "^0.1.29",
     "fs-extra": "^1.0.0",
     "http-server": "^0.9.0",
     "nodemon": "^1.11.0",

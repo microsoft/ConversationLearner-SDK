@@ -1,6 +1,6 @@
 import * as builder from 'botbuilder';
 import { BlisMemory } from '../BlisMemory';
-import { EntitySuggestion, BlisAppBase } from 'blis-models';
+import { BlisAppBase } from 'blis-models';
 
 export class BotState 
 {
@@ -17,10 +17,6 @@ export class BotState
     public inDebug : boolean = false;
 
     public address : string = null;
-
-    public suggestedEntityId : string = null;
-
-    public suggestedEntityName : string = null;
 
     private constructor(init?:Partial<BotState>)
     {
@@ -84,8 +80,6 @@ export class BotState
         this.inTeach = json.inTeach ? json.inTeach : false;
         this.inDebug = json.inDebug ? json.inDebug : false;
         this.address = json.address;
-        this.suggestedEntityId = json.suggestedEntityId;
-        this.suggestedEntityName = json.suggestedEntityName;
     }
 
     private async Set() : Promise<void>
@@ -186,32 +180,6 @@ export class BotState
         {
             return null;
         }
-    }
-
-    //------------------------------------------------------------------
-    public async SuggestedEntity() : Promise<EntitySuggestion> {
-        await this.Init();   
-        if (!this.suggestedEntityId || !this.suggestedEntityName) {
-            return null;
-        } 
-        return new EntitySuggestion({
-            entityId: this.suggestedEntityId,
-            entityName: this.suggestedEntityName
-        });
-    }
-
-     public async SetSuggestedEntity(suggestedEntity : EntitySuggestion) : Promise<void> {
-        await this.Init();    
-        this.suggestedEntityId = suggestedEntity.entityId;
-        this.suggestedEntityName = suggestedEntity.entityName;
-        await this.Set();
-    }
-
-    public async ClearSuggestedEntity() : Promise<void> {
-        await this.Init();    
-        this.suggestedEntityId = null;
-        this.suggestedEntityName = null;
-        await this.Set();
     }
 
     //------------------------------------------------------------------
