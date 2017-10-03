@@ -1,6 +1,6 @@
 import * as builder from 'botbuilder';
 import { BlisMemory } from '../BlisMemory';
-import { EntitySuggestion, BlisAppBase } from 'blis-models';
+import { BlisAppBase } from 'blis-models';
 export declare class BotState {
     private static _instance;
     private static MEMKEY;
@@ -10,8 +10,6 @@ export declare class BotState {
     inTeach: boolean;
     inDebug: boolean;
     address: string;
-    suggestedEntityId: string;
-    suggestedEntityName: string;
     private constructor();
     static Get(blisMemory: BlisMemory): BotState;
     private Init();
@@ -30,8 +28,5 @@ export declare class BotState {
     SetInDebug(isTrue: boolean): Promise<void>;
     SetAddress(address: builder.IAddress): Promise<void>;
     Address(): Promise<builder.IAddress>;
-    SuggestedEntity(): Promise<EntitySuggestion>;
-    SetSuggestedEntity(suggestedEntity: EntitySuggestion): Promise<void>;
-    ClearSuggestedEntity(): Promise<void>;
     Session(bot: builder.UniversalBot): Promise<any>;
 }

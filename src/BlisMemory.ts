@@ -187,7 +187,6 @@ export class BlisMemory {
     {
         await this.BotState.SetSessionId(null);
         await this.BotState.SetInTeach(false);
-        await this.BotState.ClearSuggestedEntity();
         await this.BotMemory.Clear();
     }
 

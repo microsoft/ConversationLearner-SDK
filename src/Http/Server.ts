@@ -3,7 +3,7 @@ import { BlisDebug } from '../BlisDebug';
 import { BlisClient } from '../BlisClient';
 import { BlisDialog } from '../BlisDialog'
 import { BlisMemory } from '../BlisMemory';
-import { Utils } from '../Utils';
+import * as XMLDom from 'xmldom';
 import { TrainDialog, BotInfo, 
         BlisAppBase, ActionBase, EntityBase } from 'blis-models'
 import { UIScoreInput, UIExtractResponse, UIScoreResponse, UITrainScorerStep  } from 'blis-models'
@@ -23,15 +23,20 @@ export class Server {
 
     // Extract error text from HTML error
     private static HTML2Error(htmlText: string) : string {
-        const startKey = '<div class="titleerror">';
-        const endKey = '</div>';
-        let start = htmlText.indexOf(startKey);
-        if (start < 0) {
+        try {
+
+            // Parse html
+            let parser = new XMLDom.DOMParser();
+            let document = parser.parseFromString(htmlText);
+            let errorTitle = document.getElementById("stackpage");
+            if (errorTitle) {
+                return errorTitle.textContent.slice(0,1500);
+            }
             return htmlText;
         }
-        htmlText = htmlText.slice(start);
-        let end = htmlText.indexOf(endKey);
-        return htmlText.slice(startKey.length, end);
+        catch (err) {
+            return htmlText;
+        }
     }
 
     // Parse error to return appropriate error message
@@ -1023,16 +1028,8 @@ export class Server {
                         let teachId = req.params.teachId;
                         let userInput = req.body;
                         let extractResponse = await BlisClient.client.TeachExtract(appId, teachId, userInput);
+
                         let memory = BlisMemory.GetMemory(key);
-
-                        // If no entities extracted, check for suggested entity
-                        if (extractResponse.predictedEntities.length == 0) {
-                            let suggestedEntity = await Utils.GetSuggestedEntity(userInput, memory);
-                            if (suggestedEntity) {
-                                extractResponse.predictedEntities = [suggestedEntity];
-                            }
-                        }
-
                         let memories = await memory.BotMemory.DumpMemory();
                         let uiExtractResponse = new UIExtractResponse({extractResponse : extractResponse, memories : memories});
                         res.send(uiExtractResponse);
