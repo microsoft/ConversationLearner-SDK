@@ -76,10 +76,22 @@ export class BotState
         if (!text) return null;
         let json = JSON.parse(text);
         this.appId = json.appId;
-        this.sessionId = json.sesionId;
+        this.sessionId = json.sessionId;
         this.inTeach = json.inTeach ? json.inTeach : false;
         this.inDebug = json.inDebug ? json.inDebug : false;
         this.address = json.address;
+    }
+
+    private Serialize() : string
+    {
+        let jsonObj = {
+            appId : this.appId,
+            sessionId : this.sessionId,
+            inTeach : this.inTeach ? this.inTeach : false,
+            inDebug : this.inDebug ? this.inDebug : false,
+            address : this.address
+        }
+        return JSON.stringify(jsonObj);
     }
 
     private async Set() : Promise<void>
@@ -88,7 +100,7 @@ export class BotState
         {
             throw new Error("BotState called without initialzing memory");
         }
-        await this.memory.SetAsync(BotState.MEMKEY, JSON.stringify(this));
+        await this.memory.SetAsync(BotState.MEMKEY, this.Serialize());
     }
 
     public async Clear(appId : string) : Promise<void>

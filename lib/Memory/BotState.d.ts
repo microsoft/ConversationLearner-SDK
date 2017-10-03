@@ -15,6 +15,7 @@ export declare class BotState {
     private Init();
     private GetSync(cb);
     private Deserialize(text);
+    private Serialize();
     private Set();
     Clear(appId: string): Promise<void>;
     App(): Promise<BlisAppBase>;
