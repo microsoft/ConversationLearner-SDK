@@ -21,9 +21,8 @@ export declare class BotState {
     App(): Promise<BlisAppBase>;
     SetApp(blisApp: BlisAppBase): Promise<void>;
     SessionId(): Promise<string>;
-    SetSessionId(sessionId: string): Promise<void>;
+    SetSession(sessionId: string, inTeach: boolean): Promise<void>;
     InTeach(): Promise<boolean>;
-    SetInTeach(isTrue: boolean): Promise<void>;
     InTeachSync(cb: (err: any, inTeach: boolean) => void): void;
     InDebug(): Promise<boolean>;
     SetInDebug(isTrue: boolean): Promise<void>;
