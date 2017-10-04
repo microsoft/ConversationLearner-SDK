@@ -44,7 +44,7 @@ export class Server {
     {
         // Generate error message
         let error = null;
-        if (err.body)
+        if (typeof err.body == "string")
         {
             // Handle HTML error
             if (err.body.indexOf('!DOCTYPE html')) {
@@ -53,12 +53,18 @@ export class Server {
                 error = err.body;
             }
         }
+        else if (err.body.errorMessages && err.body.errorMessages.length > 0)
+        {
+            error = err.body.errorMessages.join();
+        }
         else {
-            let msg = ` ${err.statusMessage ? err.statusMessage + "\n\n" : ""}${err.message ? err.message + "\n\n" : ""}${err.stack ? err.stack : ""}`;           
-            error = new Error(msg) ;
+            error = `${err.statusMessage ? err.statusMessage + "\n\n" : ""}${err.message ? err.message + "\n\n" : ""}${err.stack ? err.stack : ""}`;           
         }
         let statusCode = (error.statusCode ? error.statusCode : 500);
         response.send(statusCode, error);
+
+        let log = `${error}\n${(err.request ? "BODY:" + err.request.body : null)}`;
+        BlisDebug.Error(log);
     }
 
     public static Init() : void{
@@ -229,7 +235,7 @@ export class Server {
                         if (appId == app.appId)
                         {
                             await memory.BotState.SetApp(null);
-                            await memory.BotState.SetSessionId(null);
+                            await memory.BotState.SetSession(null, false);
                         }
                         res.send(200);
                     }

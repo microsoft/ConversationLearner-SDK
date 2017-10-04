@@ -137,22 +137,17 @@ export class BotState
         return this.sessionId;
     }
 
-    public async SetSessionId(sessionId : string) : Promise<void>
+    public async SetSession(sessionId : string, inTeach: boolean) : Promise<void>
     {
         await this.Init();    
         this.sessionId = sessionId;
+        this.inTeach = inTeach;
         await this.Set();
     }
 
     public async InTeach() : Promise<boolean> {
         await this.Init();    
         return this.inTeach;
-    }
-
-    public async SetInTeach(isTrue : boolean) : Promise<void> {
-        await this.Init();    
-        this.inTeach = isTrue;
-        await this.Set();
     }
 
     public InTeachSync(cb : (err: any, inTeach: boolean) => void) : void {
