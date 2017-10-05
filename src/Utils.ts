@@ -19,7 +19,7 @@ export class Utils  {
         let address = await memory.BotState.Address();
         let session = await memory.BotState.Session(bot);
 
-        if (content instanceof builder.Message) {
+        if (typeof content !== 'string') {
             session.send(content);
         }
         else { 
