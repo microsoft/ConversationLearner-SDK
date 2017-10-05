@@ -950,6 +950,51 @@ export class BlisClient {
             )
         }
 
+        /** Runs entity extraction (prediction). */
+        public LogDialogExtract(appId : string, logDialogId : string, turnIndex: string, userInput : UserInput) : Promise<ExtractResponse>
+        {
+            // TEMP - until supported by server
+            return new Promise((resolve, reject) => {
+                let extractResponse = new ExtractResponse({
+                    text : userInput.text,
+                    predictedEntities : []
+                });
+                resolve(extractResponse);
+            });
+
+            /*
+            let apiPath = `app/${appId}/logdialog/${logDialogId}/extractor/${turnIndex}`;
+
+            // Always retrieve entity list
+            let query = "includeDefinitions=true";
+            return new Promise(
+                (resolve, reject) => {
+                const requestData = {
+                        url: this.MakeURL(apiPath, query),
+                        headers: {
+                            'Cookie' : this.credentials.Cookiestring()
+                        },
+                        body: userInput,
+                        json: true
+                    }
+
+                    BlisDebug.LogRequest("PUT",apiPath, requestData);
+                    Request.put(requestData, (error, response, body) => {
+                        if (error) {
+                            reject(error);
+                        }
+                        else if (response.statusCode >= 300) {
+                            reject(response);
+                        }
+                        else {
+                            var extractResponse = new ExtractResponse(body);
+                            resolve(extractResponse);
+                        }
+                    });
+                }
+            )*/
+        }
+
     
     //=============================================================================
     // Train Dialogs
@@ -1151,6 +1196,51 @@ export class BlisClient {
                     });
                 }
             )
+        }
+
+        /** Runs entity extraction (prediction). */
+        public TrainDialogExtract(appId : string, trainDialogId : string, turnIndex: string, userInput : UserInput) : Promise<ExtractResponse>
+        {
+            // TEMP - until supported by server
+            return new Promise((resolve, reject) => {
+                let extractResponse = new ExtractResponse({
+                    text : userInput.text,
+                    predictedEntities : []
+                });
+                resolve(extractResponse);
+            });
+
+            /*
+            let apiPath = `app/${appId}/traindialog/${trainDialogId}/extractor/${turnIndex}`;
+
+            // Always retrieve entity list
+            let query = "includeDefinitions=true";
+            return new Promise(
+                (resolve, reject) => {
+                const requestData = {
+                        url: this.MakeURL(apiPath, query),
+                        headers: {
+                            'Cookie' : this.credentials.Cookiestring()
+                        },
+                        body: userInput,
+                        json: true
+                    }
+
+                    BlisDebug.LogRequest("PUT",apiPath, requestData);
+                    Request.put(requestData, (error, response, body) => {
+                        if (error) {
+                            reject(error);
+                        }
+                        else if (response.statusCode >= 300) {
+                            reject(response);
+                        }
+                        else {
+                            var extractResponse = new ExtractResponse(body);
+                            resolve(extractResponse);
+                        }
+                    });
+                }
+            )*/
         }
 
     //=============================================================================

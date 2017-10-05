@@ -4,7 +4,7 @@ import { BlisClient } from '../BlisClient';
 import { BlisDialog } from '../BlisDialog'
 import { BlisMemory } from '../BlisMemory';
 import * as XMLDom from 'xmldom';
-import { TrainDialog, BotInfo, 
+import { TrainDialog, BotInfo,
         BlisAppBase, ActionBase, EntityBase } from 'blis-models'
 import { UIScoreInput, UIExtractResponse, UIScoreResponse, UITrainScorerStep  } from 'blis-models'
 
@@ -727,6 +727,34 @@ export class Server {
                 }
             );
 
+            /** RUN EXTRACTOR: Runs entity extraction on a log dialog 
+             */
+            this.server.put("/app/:appId/logdialog/:logDialogId/extractor/:turnIndex", async (req, res, next) =>
+            {
+                try
+                {
+                    this.InitClient();  // TEMP
+                    //let query = req.getQuery();
+                    let key = req.params.key;
+                    let appId = req.params.appId;
+                    let logDialogId = req.params.logDialogId;
+                    let turnIndex = req.params.turnIndex;
+                    let userInput = req.body;
+                    
+                    let extractResponse = await BlisClient.client.LogDialogExtract(appId, logDialogId, turnIndex, userInput);
+
+                    let memory = BlisMemory.GetMemory(key);
+                    let memories = await memory.BotMemory.DumpMemory();
+                    let uiExtractResponse = new UIExtractResponse({extractResponse : extractResponse, memories : memories});
+                    res.send(uiExtractResponse);
+                }
+                catch (error)
+                {
+                    Server.HandleError(res, error);
+                }
+            }
+        );
+
         //========================================================
         // TrainDialogs
         //========================================================
@@ -850,6 +878,33 @@ export class Server {
                         let appId = req.params.appId;
                         let trainDialogIds = await BlisClient.client.GetTrainDialogIds(appId, query);
                         res.send(trainDialogIds);
+                    }
+                    catch (error)
+                    {
+                        Server.HandleError(res, error);
+                    }
+                }
+            );
+
+            /** RUN EXTRACTOR: Runs entity extraction on a train dialog 
+             */
+            this.server.put("/app/:appId/traindialog/:trainDialogId/extractor/:turnIndex", async (req, res, next) =>
+                {
+                    try
+                    {
+                        this.InitClient();  // TEMP
+                        //let query = req.getQuery();
+                        let key = req.params.key;
+                        let appId = req.params.appId;
+                        let trainDialogId = req.params.trainDialogId;
+                        let turnIndex = req.params.turnIndex;
+                        let userInput = req.body;
+                        let extractResponse = await BlisClient.client.TrainDialogExtract(appId, trainDialogId, turnIndex, userInput);
+
+                        let memory = BlisMemory.GetMemory(key);
+                        let memories = await memory.BotMemory.DumpMemory();
+                        let uiExtractResponse = new UIExtractResponse({extractResponse : extractResponse, memories : memories});
+                        res.send(uiExtractResponse);
                     }
                     catch (error)
                     {
@@ -1046,6 +1101,7 @@ export class Server {
                     }
                 }
             );
+
 
             /** EXTRACT FEEDBACK & RUN SCORER: 
              * 1) Uploads a labeled entity extraction instance

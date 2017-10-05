@@ -93,6 +93,8 @@ export declare class BlisClient {
     GetLogDialogIds(appId: string, query: string): Promise<LogDialogIdList>;
     /** Deletes a LogDialog */
     DeleteLogDialog(appId: string, logDialogId: string): Promise<string>;
+    /** Runs entity extraction (prediction). */
+    LogDialogExtract(appId: string, logDialogId: string, turnIndex: string, userInput: UserInput): Promise<ExtractResponse>;
     /** Create a new TrainDialog */
     AddTrainDialog(appId: string, trainDialog: TrainDialog): Promise<TrainResponse>;
     /** Updates a trainDialog, overwriting the content of its dialog */
@@ -110,6 +112,8 @@ export declare class BlisClient {
     GetTrainDialogIds(appId: string, query: string): Promise<TrainDialogIdList>;
     /** Deletes a TrainDialog */
     DeleteTrainDialog(appId: string, trainDialogId: string): Promise<TrainResponse>;
+    /** Runs entity extraction (prediction). */
+    TrainDialogExtract(appId: string, trainDialogId: string, turnIndex: string, userInput: UserInput): Promise<ExtractResponse>;
     /** Creates a new session and a corresponding logDialog */
     StartSession(appId: string): Promise<Session>;
     /** Retrieves information about the specified session */
