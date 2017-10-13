@@ -2,8 +2,8 @@
   "name": "blisdk",
   "version": "0.61.0",
   "description": "Node SDK for Blis",
-  "main": "lib/blisdk.js",
-  "typings": "./src/botbuilder.d.ts",
+  "main": "lib/Blisdk.js",
+  "typings": "lib/Blisdk.d.ts",
   "scripts": {
     "build": "tsc",
     "watch": "npm-run-all -p -r -l tsc-watch",
@@ -12,8 +12,8 @@
     "publish": "tsc",
     "start": "http-server -p 5000"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "Microsoft BLIS Team",
+  "license": "MIT",
   "dependencies": {
     "blis-models": "^0.61.0",
     "botbuilder": "^3.9.0",
