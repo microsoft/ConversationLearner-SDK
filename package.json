@@ -7,8 +7,7 @@
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf lib",
-    "publish": "tsc",
-    "start": "http-server -p 5000"
+    "publish": "tsc"
   },
   "author": "Microsoft BLIS Team",
   "license": "MIT",
