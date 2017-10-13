@@ -43,24 +43,31 @@ export class Server {
     private static HandleError(response: Restify.Response, err: any) : void
     {
         // Generate error message
-        let error = null;
-        if (typeof err.body == "string")
+        let error = "";
+        if (typeof err == "string")
+        {
+            error = err;
+        }
+        if (err.message && typeof err.message == "string") {
+            error += `${err.message}\n`
+        }
+        if (err.stack && typeof err.stack == "string") {
+            error += `${err.stack}\n`
+        }
+        if (err.body && typeof err.body == "string")
         {
             // Handle HTML error
             if (err.body.indexOf('!DOCTYPE html')) {
-                error = this.HTML2Error(err.body);
+                error += this.HTML2Error(err.body);
             } else {
-                error = err.body;
+                error += `${err.body}\n`;
             }
         }
-        else if (err.body.errorMessages && err.body.errorMessages.length > 0)
+        if (err.body && err.body.errorMessages && err.body.errorMessages.length > 0)
         {
-            error = err.body.errorMessages.join();
+            error += err.body.errorMessages.join();
         }
-        else {
-            error = `${err.statusMessage ? err.statusMessage + "\n\n" : ""}${err.message ? err.message + "\n\n" : ""}${err.stack ? err.stack : ""}`;           
-        }
-        let statusCode = (error.statusCode ? error.statusCode : 500);
+        let statusCode = (err.statusCode ? err.statusCode : 500);
         response.send(statusCode, error);
 
         let log = `${error}\n${(err.request ? "BODY:" + err.request.body : null)}`;
@@ -136,7 +143,7 @@ export class Server {
                     Server.HandleError(res, error);
                 }
             }
-        );
+            );
 
         //========================================================
         // App
@@ -753,7 +760,7 @@ export class Server {
                     Server.HandleError(res, error);
                 }
             }
-        );
+            );
 
         //========================================================
         // TrainDialogs
@@ -779,7 +786,7 @@ export class Server {
                 }
             );
 
-            this.server.put("/app/:appId/traindialog/:traindialogId", async (req, res, next) =>
+            this.server.put("/app/:appId/traindialog/:trainDialogId", async (req, res, next) =>
                 {
                     try
                     {
