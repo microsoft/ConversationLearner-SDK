@@ -55,14 +55,14 @@ export class BotMemory
 
     public Serialize() : string
     {
-        return JSON.stringify(this);
+        return JSON.stringify(this.entityMap);
     }
 
     private Deserialize(text : string) : void
     {
         if (!text) return null;
         let json = JSON.parse(text);
-        this.entityMap = json.entityMap ? json.entityMap : {};
+        this.entityMap = json ? json : {};
     }
 
     private async Set() : Promise<void>
