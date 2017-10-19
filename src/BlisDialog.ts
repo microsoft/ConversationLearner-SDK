@@ -33,7 +33,7 @@ export interface IBlisOptions extends builder.IIntentRecognizerSetOptions {
     blisCallback? : (text : string, memoryManager : ClientMemoryManager) => string | builder.Message;
 
     // Mapping between API names and functions
-    apiCallbacks? : { string : (args : any[]) => string | builder.Message };
+    apiCallbacks? : { string : (memoryManager: ClientMemoryManager, args : any[]) => string | builder.Message };
 
     // End point for Azure function calls
     azureFunctionsUrl? : string;
@@ -65,7 +65,7 @@ export class BlisDialog extends builder.Dialog {
     private luisCallback? : (text: string, predictedEntities : PredictedEntity[], memoryManager : ClientMemoryManager) => ScoreInput;
 
     // Mapping between user defined API names and functions
-    public apiCallbacks : { string : (args : any[]) => void };
+    public apiCallbacks : { string : (memoryManager: ClientMemoryManager, args : any[]) => void };
 
     private blisRecognizer : BlisRecognizer;
     private recognizers: builder.IntentRecognizerSet;
@@ -256,7 +256,8 @@ export class BlisDialog extends builder.Dialog {
             return;
         }
 
-        let output = await api(argArray);
+        let memoryManager = new ClientMemoryManager(memory, allEntities);
+        let output = await api(memoryManager, argArray);
         if (output)
         {
             await Utils.SendMessage(this.bot, memory, output);
