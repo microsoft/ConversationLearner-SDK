@@ -1,6 +1,6 @@
 {
   "name": "blisdk",
-  "version": "0.65.0",
+  "version": "0.66.0",
   "description": "Node SDK for Blis",
   "main": "lib/Blisdk.js",
   "typings": "lib/Blisdk.d.ts",
@@ -12,7 +12,7 @@
   "author": "Microsoft BLIS Team",
   "license": "MIT",
   "dependencies": {
-    "blis-models": "^0.65.0",
+    "blis-models": "^0.66.0",
     "botbuilder": "^3.9.0",
     "node-cache": "^4.1.1",
     "redis": "^2.7.1",
