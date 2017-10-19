@@ -252,7 +252,7 @@ export class BlisDialog extends builder.Dialog {
         let api = this.apiCallbacks[apiName];
         if (!api)
         {
-            BlisDebug.Error(`${api} undefined`);
+            BlisDebug.Error(`API "${apiName}" is undefined`);
             return;
         }
 

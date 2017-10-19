@@ -40,8 +40,42 @@ export class ClientMemoryManager {
             return null;
         }
         
-        let isBucket = entity.metadata ? entity.metadata.isBucket : false;
+        // If no value given, wipe all entites from buckets
+        let isBucket = (entity.metadata && value) ? entity.metadata.isBucket : false;
         await this.blisMemory.BotMemory.Forget(entity.entityName, value, isBucket);
+    }
+
+    public async CopyEntity(entityNameFrom : string, entityNameTo: string) : Promise<void> {
+        
+        let entityFrom = this.FindEntity(entityNameFrom);
+        let entityTo = this.FindEntity(entityNameTo);
+        
+        if (!entityFrom) {
+            BlisDebug.Error(`Can't find Entity named: ${entityNameFrom}`);
+            return null;
+        }
+        if (!entityTo) {
+            BlisDebug.Error(`Can't find Entity named: ${entityNameTo}`);
+            return null;
+        }
+
+        let isBucketFrom = (entityFrom.metadata) ? entityFrom.metadata.isBucket : false;
+        let isBucketTo = (entityTo.metadata) ? entityTo.metadata.isBucket : false;
+        if (isBucketFrom != isBucketTo) {
+            BlisDebug.Error(`Can't copy between Bucket and Non-Bucket Entities`);
+            return null;
+        }
+
+        // Clear "To" entity
+        await this.blisMemory.BotMemory.Forget(entityNameTo);
+
+        // Get value of "From" entity
+        let values = await this.blisMemory.BotMemory.ValueAsList(entityNameFrom);
+
+        // Copy values from "From"
+        for (let value of values) {
+            await this.RememberEntity(entityNameTo, value);
+        }
     }
 
     public async EntityValue(entityName : string) : Promise<string> 
