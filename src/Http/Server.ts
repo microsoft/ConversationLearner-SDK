@@ -6,7 +6,7 @@ import { BlisMemory } from '../BlisMemory';
 import * as XMLDom from 'xmldom';
 import { TrainDialog, BotInfo,
         BlisAppBase, ActionBase, EntityBase } from 'blis-models'
-import { UIScoreInput, UIExtractResponse, UIScoreResponse, UITrainScorerStep  } from 'blis-models'
+import { UIScoreInput, UIExtractResponse, UIScoreResponse, UITeachResponse, UITrainScorerStep  } from 'blis-models'
 
 export class Server {
     private static server : Restify.Server = null;
@@ -1175,11 +1175,15 @@ export class Server {
                         delete uiTrainScorerStep.trainScorerStep.scoredAction;
 
                         let teachResponse = await BlisClient.client.TeachScoreFeedback(appId, teachId, uiTrainScorerStep.trainScorerStep);
-                        res.send(teachResponse);
+                        
+                        let memory = BlisMemory.GetMemory(key);
 
                         // Now take the trained action
-                        let memory = BlisMemory.GetMemory(key);
-                        BlisDialog.Instance.TakeAction(scoredAction, memory, uiTrainScorerStep.entities);
+                        await BlisDialog.Instance.TakeAction(scoredAction, memory, uiTrainScorerStep.entities);
+                                                
+                        let memories = await memory.BotMemory.DumpMemory();
+                        let uiTeachResponse = new UITeachResponse({teachResponse : teachResponse, memories : memories});
+                        res.send(uiTeachResponse);
                     }
                     catch (error)
                     {

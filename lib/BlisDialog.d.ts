@@ -13,7 +13,7 @@ export interface IBlisOptions extends builder.IIntentRecognizerSetOptions {
     luisCallback?: (text: string, predictedEntities: PredictedEntity[], memoryManager: ClientMemoryManager) => ScoreInput;
     blisCallback?: (text: string, memoryManager: ClientMemoryManager) => string | builder.Message;
     apiCallbacks?: {
-        string: (args: any[]) => string | builder.Message;
+        string: (memoryManager: ClientMemoryManager, args: any[]) => string | builder.Message;
     };
     azureFunctionsUrl?: string;
     azureFunctionsKey?: string;
@@ -26,7 +26,7 @@ export declare class BlisDialog extends builder.Dialog {
     static readonly Instance: BlisDialog;
     private luisCallback?;
     apiCallbacks: {
-        string: (args: any[]) => void;
+        string: (memoryManager: ClientMemoryManager, args: any[]) => void;
     };
     private blisRecognizer;
     private recognizers;
