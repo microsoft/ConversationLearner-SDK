@@ -239,7 +239,7 @@ export class Server {
                         // Did I delete my loaded app, if so clear my state
                         let memory = BlisMemory.GetMemory(key);
                         let app = await memory.BotState.App();
-                        if (appId == app.appId)
+                        if (app && app.appId === appId)
                         {
                             await memory.BotState.SetApp(null);
                             await memory.BotState.SetSession(null, false);
