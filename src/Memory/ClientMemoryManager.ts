@@ -18,7 +18,7 @@ export class ClientMemoryManager {
         return match;
     }
 
-    public async RememberEntity(entityName : string, value : string) : Promise<void> {
+    public async RememberEntityAsync(entityName : string, value : string) : Promise<void> {
 
         let entity = this.FindEntity(entityName);
 
@@ -31,7 +31,7 @@ export class ClientMemoryManager {
         await this.blisMemory.BotMemory.Remember(entity.entityName, entity.entityId, value, isBucket);
     }
 
-    public async ForgetEntity(entityName : string, value : string = null) : Promise<void> {
+    public async ForgetEntityAsync(entityName : string, value : string = null) : Promise<void> {
         
         let entity = this.FindEntity(entityName);
 
@@ -45,7 +45,7 @@ export class ClientMemoryManager {
         await this.blisMemory.BotMemory.Forget(entity.entityName, value, isBucket);
     }
 
-    public async CopyEntity(entityNameFrom : string, entityNameTo: string) : Promise<void> {
+    public async CopyEntityAsync(entityNameFrom : string, entityNameTo: string) : Promise<void> {
         
         let entityFrom = this.FindEntity(entityNameFrom);
         let entityTo = this.FindEntity(entityNameTo);
@@ -74,25 +74,25 @@ export class ClientMemoryManager {
 
         // Copy values from "From"
         for (let value of values) {
-            await this.RememberEntity(entityNameTo, value);
+            await this.RememberEntityAsync(entityNameTo, value);
         }
     }
 
-    public async EntityValue(entityName : string) : Promise<string> 
+    public async EntityValueAsync(entityName : string) : Promise<string> 
     {
         return await this.blisMemory.BotMemory.Value(entityName);
     }
 
-    public async EntityValueAsList(entityName : string) : Promise<string[]> 
+    public async EntityValueAsListAsync(entityName : string) : Promise<string[]> 
     {
         return await this.blisMemory.BotMemory.ValueAsList(entityName);
     }
 
-    public async GetFilledEntities() : Promise<string[]> {
+    public async GetFilledEntitiesAsync() : Promise<string[]> {
         return await this.blisMemory.BotMemory.RememberedIds();
     }
 
-    public async AppName() : Promise<string> {
+    public async AppNameAsync() : Promise<string> {
         let app = await this.blisMemory.BotState.App();
         return app.appName;
     }

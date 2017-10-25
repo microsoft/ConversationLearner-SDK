@@ -252,11 +252,12 @@ export class BlisDialog extends builder.Dialog {
         let api = this.apiCallbacks[apiName];
         if (!api)
         {
-            BlisDebug.Error(`API "${apiName}" is undefined`);
-            return;
+            let msg = BlisDebug.Error(`API "${apiName}" is undefined`);
+            throw new Error(msg);
         }
 
         let memoryManager = new ClientMemoryManager(memory, allEntities);
+        
         let output = await api(memoryManager, argArray);
         if (output)
         {
