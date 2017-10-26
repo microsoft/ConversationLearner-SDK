@@ -56,7 +56,7 @@ export class BlisClient {
 
     private MakeURL(apiPath : string, query? : string) 
     {
-        let uri = this.serviceUri + apiPath;
+        let uri = this.serviceUri + (!this.serviceUri.endsWith("/") ? "/" : "") + apiPath;
         if (query) uri +=  `?${query}`;
         return uri;
     }
