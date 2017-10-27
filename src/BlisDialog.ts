@@ -26,15 +26,6 @@ export interface IBlisOptions extends builder.IIntentRecognizerSetOptions {
 
     redisKey: string;
 
-    // Optional callback than runs after LUIS but before BLIS.  Allows Bot to substitute entities
-    luisCallback? : (text: string, predictedEntities : PredictedEntity[], memoryManager : ClientMemoryManager) => ScoreInput;
-
-    // Optional callback that runs after BLIS is called but before the Action is rendered
-    blisCallback? : (text : string, memoryManager : ClientMemoryManager) => string | builder.Message;
-
-    // Mapping between API names and functions
-    apiCallbacks? : { string : (memoryManager: ClientMemoryManager, args : any[]) => string | builder.Message };
-
     // End point for Azure function calls
     azureFunctionsUrl? : string;
 
@@ -49,6 +40,15 @@ export class BlisDialog extends builder.Dialog {
 
     public static dialog : BlisDialog;
 
+    // Mapping between user defined API names and functions
+    public static apiCallbacks : { string : (memoryManager: ClientMemoryManager, args : any[]) => void } | {} = {};
+
+    // Optional callback than runs after LUIS but before BLIS.  Allows Bot to substitute entities
+    public static luisCallback : (text: string, predictedEntities : PredictedEntity[], memoryManager : ClientMemoryManager) => ScoreInput;
+    
+    // Optional callback that runs after BLIS is called but before the Action is rendered
+    public static blisCallback : (text : string, memoryManager : ClientMemoryManager) => string | builder.Message;
+    
     // Create singleton
     public static Init(bot : builder.UniversalBot, options: IBlisOptions) : BlisDialog
     {
@@ -60,18 +60,10 @@ export class BlisDialog extends builder.Dialog {
     {
         return this.dialog;
     }
-
-   // Optional callback than runs after LUIS but before BLIS.  Allows Bot to substitute entities
-    private luisCallback? : (text: string, predictedEntities : PredictedEntity[], memoryManager : ClientMemoryManager) => ScoreInput;
-
-    // Mapping between user defined API names and functions
-    public apiCallbacks : { string : (memoryManager: ClientMemoryManager, args : any[]) => void };
-
+    
     private blisRecognizer : BlisRecognizer;
     private recognizers: builder.IntentRecognizerSet;
 
-
-    protected blisCallback : (test : string, memoryManager : ClientMemoryManager) => string | builder.Message;
     protected connector : builder.ChatConnector;
 
     private constructor(private bot : builder.UniversalBot, options: IBlisOptions) {
@@ -87,10 +79,6 @@ export class BlisDialog extends builder.Dialog {
             BlisClient.SetServiceURI(options.serviceUri);
             BlisClient.Init(options.user, options.secret, options.azureFunctionsUrl, options.azureFunctionsKey);
             BlisMemory.Init(options.redisServer, options.redisKey);
-
-            this.luisCallback = options.luisCallback;
-            this.apiCallbacks = options.apiCallbacks;
-            this.blisCallback = options.blisCallback;
 
             // Optional connector, required for downloading train dialogs
             this.connector = options.connector;  
@@ -232,7 +220,7 @@ export class BlisDialog extends builder.Dialog {
 
     private async TakeLocalAPIAction(scoredAction : ScoredAction, memory : BlisMemory, allEntities : EntityBase[]) : Promise<void>
     {
-        if (!this.apiCallbacks)
+        if (!BlisDialog.apiCallbacks)
         {
             BlisDebug.Error("No Local APIs defined.")
             return;
@@ -249,7 +237,7 @@ export class BlisDialog extends builder.Dialog {
             argArray.push(await memory.BotMemory.SubstituteEntities(arg));
         }
 
-        let api = this.apiCallbacks[apiName];
+        let api = BlisDialog.apiCallbacks[apiName];
         if (!api)
         {
             let msg = BlisDebug.Error(`API "${apiName}" is undefined`);
@@ -311,8 +299,8 @@ export class BlisDialog extends builder.Dialog {
         let memoryManager = new ClientMemoryManager(memory, allEntities);
 
         let scoreInput = null;
-        if (this.luisCallback) {
-            scoreInput = await this.luisCallback(text, predictedEntities, memoryManager);
+        if (BlisDialog.luisCallback) {
+            scoreInput = await BlisDialog.luisCallback(text, predictedEntities, memoryManager);
         }
         else {
             scoreInput = await this.DefaultLuisCallback(text, predictedEntities, memoryManager);
@@ -325,8 +313,8 @@ export class BlisDialog extends builder.Dialog {
         let memoryManager = new ClientMemoryManager(memory, allEntities);
 
         let outText = null;
-        if (this.luisCallback) {
-            outText = await this.blisCallback(scoredAction.payload, memoryManager);
+        if (BlisDialog.luisCallback) {
+            outText = await BlisDialog.blisCallback(scoredAction.payload, memoryManager);
         }
         else {
             outText = await this.DefaultBlisCallback(scoredAction.payload, memoryManager);
