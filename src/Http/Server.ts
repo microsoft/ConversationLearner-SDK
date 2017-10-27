@@ -134,7 +134,7 @@ export class Server {
 
                 try
                 {
-                    let callbacks = Object.keys(BlisDialog.Instance.apiCallbacks);
+                    let callbacks = Object.keys(BlisDialog.apiCallbacks);
                     let botInfo = new BotInfo({callbacks: callbacks});
                     res.send(botInfo);
                 }
