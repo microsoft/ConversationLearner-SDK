@@ -1,6 +1,6 @@
 import { BlisMemory } from '../BlisMemory';
 import { BlisDebug } from '../BlisDebug';
-import { EntityBase } from 'blis-models'
+import { EntityBase, MemoryValue } from 'blis-models'
 
 export class ClientMemoryManager {
 
@@ -81,6 +81,11 @@ export class ClientMemoryManager {
     public async EntityValueAsync(entityName : string) : Promise<string> 
     {
         return await this.blisMemory.BotMemory.Value(entityName);
+    }
+
+    public async EntityValueAsPrebuiltAsync(entityName : string) : Promise<MemoryValue[]> 
+    {
+        return await this.blisMemory.BotMemory.ValueAsPrebuilt(entityName);
     }
 
     public async EntityValueAsListAsync(entityName : string) : Promise<string[]> 

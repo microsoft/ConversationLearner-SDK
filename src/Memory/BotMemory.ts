@@ -212,6 +212,11 @@ export class BotMemory
         return this.EntityValueAsList(entityName);
     } 
 
+    public async ValueAsPrebuilt(entityName: string) : Promise<MemoryValue[]> {
+        await this.Init()
+        return this.MemoryValues(entityName);
+    }
+
     private MemoryValues(entityName : string) : MemoryValue[]
     {
         if (!this.entityMap[entityName]) {
