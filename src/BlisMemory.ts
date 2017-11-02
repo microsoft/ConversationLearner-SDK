@@ -3,18 +3,7 @@ import { BlisDebug} from './BlisDebug';
 import { BotMemory } from './Memory/BotMemory';
 import { BotState } from './Memory/BotState';
 import { KeyGen } from 'blis-models'
-
 import * as Redis from "redis";
-
-export const MemoryType =
-{
-    LASTSTEP: "LASTSTEP", 
-    CURSTEP: "CURSTEP", 
-    TRAINSTEPS: "TRAINSTEPS",
-    CUECOMMAND: "CUECOMMAND",       // Command to call after input prompt
-    PAGE: "PAGE",                   // Current page on paging UI
-    POSTS: "POSTS"                  // Array of last messages sent to user
-}
 
 export class BlisMemory {
 
