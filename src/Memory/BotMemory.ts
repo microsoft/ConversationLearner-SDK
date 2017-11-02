@@ -1,6 +1,6 @@
 import { BlisMemory } from '../BlisMemory';
 import { BlisDebug} from '../BlisDebug';
-import { Memory, PredictedEntity } from 'blis-models';
+import { Memory, MemoryValue, PredictedEntity } from 'blis-models';
 import * as builder from 'botbuilder'
 
 export const ActionCommand =
@@ -11,7 +11,7 @@ export const ActionCommand =
 
 export class EntityMemory
 {
-    public constructor(public id : string, public value : string = null, public bucket : string[] = []) {};
+    public constructor(public id : string, public oneoff : MemoryValue = null, public bucket : MemoryValue[] = []) {};
 }
 
 export class BotMemory 
@@ -83,11 +83,13 @@ export class BotMemory
     /** Remember a predicted entity */		
     public async RememberEntity(predictedEntity : PredictedEntity) : Promise<void> {		
         let isBucket = predictedEntity.metadata ? predictedEntity.metadata.isBucket : false;		
-        await this.Remember(predictedEntity.entityName, predictedEntity.entityId, predictedEntity.entityText, isBucket);		
+        await this.Remember(predictedEntity.entityName, predictedEntity.entityId, predictedEntity.entityText, 
+            isBucket, predictedEntity.builtinType, predictedEntity.resolution);		
     }
 
     // Remember value for an entity
-    public async Remember(entityName: string, entityId: string, entityValue: string, isBucket: boolean = false) : Promise<void> {
+    public async Remember(entityName: string, entityId: string, entityValue: string, 
+                            isBucket: boolean = false, prebuiltType: string = null, resolution: {} = null) : Promise<void> {
 
         await this.Init();
 
@@ -100,13 +102,14 @@ export class BotMemory
         if (isBucket)
         {
             // Add if not a duplicate
-            if (this.entityMap[entityName].bucket.indexOf(entityValue) < 0) {
-                this.entityMap[entityName].bucket.push(entityValue);
+            let value = this.entityMap[entityName].bucket.find(v => v.value == entityValue);
+            if (!value) {
+                this.entityMap[entityName].bucket.push(new MemoryValue({value: entityValue, type: prebuiltType, resolution: resolution}));
             }
         }
         else
         {
-            this.entityMap[entityName].value = entityValue;
+            this.entityMap[entityName].oneoff = new MemoryValue({value: entityValue, type: prebuiltType, resolution: resolution});
         }
         await this.Set();
     }
@@ -161,9 +164,7 @@ export class BotMemory
                 }
                 else {
                     // Find case insensitive index
-                    let lowerCaseNames = this.entityMap[entityName].bucket.map(function(value) {
-                        return value.toLowerCase();
-                    });
+                    let lowerCaseNames = this.entityMap[entityName].bucket.map((mv) => {return mv.value.toLowerCase();});
 
                     let index = lowerCaseNames.indexOf(entityValue.toLowerCase());
                     if (index > -1)
@@ -196,7 +197,7 @@ export class BotMemory
         let memory : Memory[] = [];
         for (let entityName in this.entityMap)
         {
-            memory.push(new Memory({entityName:entityName, entityValues: this.EntityValueAsList(entityName)}));
+            memory.push(new Memory({entityName:entityName, entityValues: this.MemoryValues(entityName)}));
         }
         return memory;
     }
@@ -211,21 +212,32 @@ export class BotMemory
         return this.EntityValueAsList(entityName);
     } 
 
-    //--------------------------------------------------------
-    // SUBSTITUTIONS
-    //--------------------------------------------------------
+    private MemoryValues(entityName : string) : MemoryValue[]
+    {
+        if (!this.entityMap[entityName]) {
+            return [];
+        }
+        
+        if (this.entityMap[entityName].oneoff)
+        {
+            return [this.entityMap[entityName].oneoff];
+        }
+
+        return this.entityMap[entityName].bucket;  
+    }
+
     private EntityValueAsList(entityName : string) : string[]
     {
         if (!this.entityMap[entityName]) {
             return [];
         }
         
-        if (this.entityMap[entityName].value)
+        if (this.entityMap[entityName].oneoff)
         {
-            return [this.entityMap[entityName].value];
+            return [this.entityMap[entityName].oneoff.value];
         }
 
-        return this.entityMap[entityName].bucket;  
+        return this.entityMap[entityName].bucket.map(v => v.value);  
     }
 
     private EntityValueAsString(entityName : string) : string
@@ -234,9 +246,9 @@ export class BotMemory
             return null;
         }
         
-        if (this.entityMap[entityName].value)
+        if (this.entityMap[entityName].oneoff)
         {
-            return this.entityMap[entityName].value;
+            return this.entityMap[entityName].oneoff.value;
         }
 
         // Print out list in friendly manner
@@ -253,7 +265,7 @@ export class BotMemory
             {
                 prefix = ", ";
             }
-            group += `${prefix}${this.entityMap[entityName].bucket[key]}`;
+            group += `${prefix}${this.entityMap[entityName].bucket[key].value}`;
         }
         return group;  
     }
