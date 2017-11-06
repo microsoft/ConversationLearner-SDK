@@ -8,7 +8,8 @@ import { BlisClient } from './BlisClient';
 import { BlisContext} from './BlisContext';
 import { ClientMemoryManager} from './Memory/ClientMemoryManager';
 import { Server } from './Http/Server';
-import { AzureFunctions } from './AzureFunctions'
+import { AzureFunctions } from './AzureFunctions';
+import { InitDOLRunner } from './DOLRunner';
 
 export const BLIS_INTENT_WRAPPER = "BLIS_INTENT_WRAPPER";
 
@@ -34,6 +35,9 @@ export interface IBlisOptions extends builder.IIntentRecognizerSetOptions {
 
     // Optional connector, required for downloading train dialogs
     connector? : builder.ChatConnector;
+
+    // Host
+    host? : number;
 }
 
 export class BlisDialog extends builder.Dialog {
@@ -82,6 +86,11 @@ export class BlisDialog extends builder.Dialog {
 
             // Optional connector, required for downloading train dialogs
             this.connector = options.connector;  
+
+            // If running on localhost init DOL Runner
+            if (!options.host) {
+                InitDOLRunner();
+            }
 
             Server.Init();
         }

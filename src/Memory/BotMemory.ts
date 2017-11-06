@@ -1,5 +1,6 @@
 import { BlisMemory } from '../BlisMemory';
 import { BlisDebug} from '../BlisDebug';
+import { Utils} from '../Utils';
 import { Memory, MemoryValue, PredictedEntity } from 'blis-models';
 import * as builder from 'botbuilder'
 
@@ -252,7 +253,11 @@ export class BotMemory
         }
         
         if (this.entityMap[entityName].oneoff)
-        {
+        { 
+            let prebuiltDisplay = Utils.PrebuiltDisplayText(this.entityMap[entityName].oneoff.type, this.entityMap[entityName].oneoff.resolution);
+            if (prebuiltDisplay) {
+                return prebuiltDisplay;
+            }
             return this.entityMap[entityName].oneoff.value;
         }
 

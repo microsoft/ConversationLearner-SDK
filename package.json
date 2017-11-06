@@ -1,6 +1,6 @@
 {
   "name": "blisdk",
-  "version": "0.70.0",
+  "version": "0.71.0",
   "description": "Node SDK for Blis",
   "main": "lib/Blisdk.js",
   "typings": "lib/Blisdk.d.ts",
@@ -14,7 +14,9 @@
   "dependencies": {
     "blis-models": "^0.68.0",
     "botbuilder": "^3.9.0",
+    "express": "^4.15.3",
     "node-cache": "^4.1.1",
+    "offline-directline": "^1.1.5",
     "redis": "^2.7.1",
     "request": "^2.79.0",
     "restify": "^4.3.0",
