@@ -87,15 +87,21 @@ export class Server {
             headers: ['*']
         }));
 
+        this.server.on('restifyError', (req: any, res: any, err: any, cb: any) => {
+            BlisDebug.Error(err, "ResiftyError");
+            req.log.error(err)
+            return cb();
+        });
+
         this.server.listen(5000, (err : any) =>
         {
             if (err)
             {
-                BlisDebug.Error(err);
+                BlisDebug.Error(err, "Server/Init");
             }
             else
             {
-                BlisDebug.Log(`${this.server.name} listening to ${this.server.url}`);
+                BlisDebug.Log(`SDK Service ${this.server.name} listening to ${this.server.url}`);
             }
         });
 

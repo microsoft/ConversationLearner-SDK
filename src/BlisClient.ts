@@ -46,9 +46,11 @@ export class BlisClient {
     { 
         if (!serviceUri) 
         {
-            BlisDebug.Log("service URI is required");
+            throw "ServiceUri is not set";
         } 
+        BlisDebug.Log("Creating BlisClient...");
         this.serviceUri = serviceUri;
+
         this.credentials = new Credentials(user, secret);
         this.azureFunctionsUrl = azureFunctionsUrl;
         this.azureFunctionsKey = azureFunctionsKey;

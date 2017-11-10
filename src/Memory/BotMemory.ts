@@ -41,7 +41,7 @@ export class BotMemory
     {
         if (!this.memory)
         {
-            throw new Error("BotMemory called without initialzing memory");
+            throw "BotMemory called without initialzing memory";
         }
  
         let data = await this.memory.GetAsync(BotMemory.MEMKEY);
@@ -70,7 +70,7 @@ export class BotMemory
     {
         if (!this.memory)
         {
-            throw new Error("BotMemory called without initialzing memory");
+            throw "BotMemory called without initialzing memory";
         }
         await this.memory.SetAsync(BotMemory.MEMKEY, this.Serialize());
     }

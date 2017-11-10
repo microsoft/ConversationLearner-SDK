@@ -8,7 +8,7 @@ export class BlisDebug {
     public static cache : string = "";
     public static enabled : boolean;
     public static verbose : boolean = true;
-    public static logging : string = "client"; // "flow memory";
+    public static logging : string = "client"; // "client flow memory";
 
     public static InitLogger(bot : builder.UniversalBot)
     {
@@ -32,15 +32,16 @@ export class BlisDebug {
     }
 
      public static Log(text : string, filter? : string) {
+
         if (!filter || this.logging.indexOf(filter) >=0)
         {
+            console.log(text);
+            
             if (this.enabled)
             {
                 this.cache += (this.cache ? "\n\n" : "") + text;
             }
             this.SendCache();
-
-            console.log(text);
         }
     }
 
@@ -48,20 +49,20 @@ export class BlisDebug {
         if (this.logging.indexOf("client") >=0)
         {
             let msg = `    ${method}: //${path}`;
+            console.log(msg);
+            
             if (this.enabled)
             {
                 let text = JSON.stringify(payload.body);
                 this.cache += (this.cache ? "\n\n" : "") + msg + "\n\n" + (text ? text : "");
             }
             this.SendCache();
-
-            console.log(msg);
         }
     }
 
-    public static Error(error : any) : string {
-        let text = error ? Utils.ErrorString(error) : "";
-        BlisDebug.Log(`ERROR: ${text}`);
+    public static Error(error: any, context: string = "") : string {
+        let text = `ERROR: ${error ? Utils.ErrorString(error, context) : "No details"}`;
+        BlisDebug.Log(text);
         return text;
     }
 
