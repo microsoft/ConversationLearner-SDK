@@ -23,6 +23,9 @@ export interface IBlisOptions extends builder.IIntentRecognizerSetOptions {
     // BLIS Secret
     secret: string;
 
+    // Application to start
+    appId: string;
+
     redisServer: string;
 
     redisKey: string;
@@ -36,8 +39,8 @@ export interface IBlisOptions extends builder.IIntentRecognizerSetOptions {
     // Optional connector, required for downloading train dialogs
     connector? : builder.ChatConnector;
 
-    // Host
-    host? : number;
+    // Running on localhost
+    localhost? : boolean;
 }
 
 export class BlisDialog extends builder.Dialog {
@@ -52,7 +55,7 @@ export class BlisDialog extends builder.Dialog {
     
     // Optional callback that runs after BLIS is called but before the Action is rendered
     public static blisCallback : (text : string, memoryManager : ClientMemoryManager) => string | builder.Message;
-    
+     
     // Create singleton
     public static Init(bot : builder.UniversalBot, options: IBlisOptions) : BlisDialog
     {
@@ -65,17 +68,17 @@ export class BlisDialog extends builder.Dialog {
         return this.dialog;
     }
     
+    private options: IBlisOptions;
     private blisRecognizer : BlisRecognizer;
     private recognizers: builder.IntentRecognizerSet;
-
-    protected connector : builder.ChatConnector;
 
     private constructor(private bot : builder.UniversalBot, options: IBlisOptions) {
         super();
 
         try {
             BlisDebug.InitLogger(bot)
-
+            
+            this.options = options;
             this.blisRecognizer = new BlisRecognizer();
             this.recognizers = new builder.IntentRecognizerSet({ recognizers: [this.blisRecognizer]});
 
@@ -84,18 +87,17 @@ export class BlisDialog extends builder.Dialog {
             BlisClient.Init(options.user, options.secret, options.azureFunctionsUrl, options.azureFunctionsKey);
             BlisMemory.Init(options.redisServer, options.redisKey);
 
-            // Optional connector, required for downloading train dialogs
-            this.connector = options.connector;  
-
-            // If running on localhost init DOL Runner
-            if (!options.host) {
+            // If app not set, assume running on localhost init DOL Runner
+            if (this.options.localhost) {
                 InitDOLRunner();
             }
 
             Server.Init();
+
+            BlisDebug.Log("Initialization complete....");
         }
-            catch (error) {
-            BlisDebug.Error(error);
+        catch (error) {
+            BlisDebug.Error(error, "Dialog Constructor");
         }
     }
     
@@ -141,31 +143,75 @@ export class BlisDialog extends builder.Dialog {
         
     }
 
+    private validationError() : string {
+        let errMsg = "";
+        if (!this.options.serviceUri) {
+            errMsg += "Options missing serviceUrl. Set BLIS_SERVICE_URI Env value.\n\n";
+        }
+        if (!this.options.redisKey) {
+            errMsg += "Options missing redisKey. Set BLIS_REDIS_KEY Env value.\n\n";
+        }
+        if (!this.options.redisServer) {
+            errMsg += "Options missing redisServer. Set BLIS_REDIS_SERVER Env value.\n\n";
+        }
+        if (!this.options.localhost && !this.options.appId) {
+            errMsg += "Options must specify appId when not running on localhost. Set BLIS_APP_ID Env value.\n\n";
+        }
+        return errMsg;
+    }
     private async ProcessInput(session: builder.Session, cb : () => void) : Promise<void>
     {
-        
-        let context = new BlisContext(this.bot, session);
+        let errComponent = "ProcessInput";
+        let memory = null;
+        try {
+            BlisDebug.Verbose(`Process Input...`);
+            let context = await BlisContext.CreateAsync(this.bot, session);
 
-        let memory = context.Memory();
-        let inTeach = await memory.BotState.InTeach();
-        let app = await  memory.BotState.App();
-        let sessionId = await memory.BotState.SessionId();
-        let userInput = new UserInput({text: session.message.text});
+            memory = context.Memory();
 
-        // Teach inputs are handled via API calls from the BLIS api
-        if (!inTeach)
-        {
-            // Call the entity extractor
-            try
-            {
-                let extractResponse = await BlisClient.client.SessionExtract(app.appId, sessionId, userInput)
-                await this.ProcessExtraction(app.appId, sessionId, memory, extractResponse.text, extractResponse.predictedEntities, extractResponse.definitions.entities);
+            // Validate setup
+            let validationError = this.validationError();
+            if (validationError) {
+                BlisDebug.Error(validationError);
+                await Utils.SendMessage(this.bot, memory, validationError);
+                return;
             }
-            catch (error)
+
+            let inTeach = await memory.BotState.InTeach();
+            let app = await  memory.BotState.App();
+
+            // If I don't have an app yet
+            if (!app) {
+                if (this.options.appId) {
+                    BlisDebug.Log(`Selecting app: ${this.options.appId}`);
+                    app = await BlisClient.client.GetApp(this.options.appId, null);
+                    await memory.BotState.SetApp(app);
+
+                    errComponent = "StartSession";
+                    let sessionResponse = await BlisClient.client.StartSession(this.options.appId);
+                    memory.StartSession(sessionResponse.sessionId, false);
+                    app = await  memory.BotState.App();
+                }
+            }
+
+            let sessionId = await memory.BotState.SessionId();
+            let userInput = new UserInput({text: session.message.text});
+
+            // Teach inputs are handled via API calls from the BLIS api
+            if (!inTeach)
             {
-                let msg = BlisDebug.Error(error);
-                await Utils.SendMessage(this.bot, memory, msg);
-            }  
+                BlisDebug.Verbose(`Calling entity extractor`);
+                // Call the entity extractor
+                errComponent = "SessionExtract";
+                let extractResponse = await BlisClient.client.SessionExtract(app.appId, sessionId, userInput);
+
+                errComponent = "ProcessExtraction";
+                await this.ProcessExtraction(app.appId, sessionId, memory, extractResponse.text, extractResponse.predictedEntities, extractResponse.definitions.entities); 
+            }
+        }
+        catch (error) {
+            let msg = BlisDebug.Error(error, errComponent);
+            await Utils.SendMessage(this.bot, memory, msg);
         }
     }
 
@@ -250,7 +296,7 @@ export class BlisDialog extends builder.Dialog {
         if (!api)
         {
             let msg = BlisDebug.Error(`API "${apiName}" is undefined`);
-            throw new Error(msg);
+            throw msg;
         }
 
         let memoryManager = new ClientMemoryManager(memory, allEntities);

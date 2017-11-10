@@ -5,11 +5,9 @@
 
         constructor(user : string, secret : string)
         {
-            if (!user) throw new Error("user is required");
-            if (!secret) throw new Error("secret is required");
-
-            this.User = user;
-            this.Secret = secret;
+            // TEMP: Credentials currently not used.  
+            this.User = "anything";
+            this.Secret = "anything";
         }
 
         public Cookiestring() : string 

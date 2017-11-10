@@ -13,10 +13,21 @@ export class BlisMemory {
 
     public static Init(redisServer : string, redisKey : string) : void
     {
+        BlisDebug.Log("Creating Redis client...");
+        if (!redisServer)
+        {
+            throw "Missing redis server name. Set BLIS_REDIS_SERVER Env value.";
+        }
+        if (!redisKey)
+        {
+            throw "Missing redis key. Set BLIS_REDIS_KEY Env value.";
+        }
+
         this.redisClient = Redis.createClient(6380, redisServer, { auth_pass: redisKey, tls: { servername: redisServer } });
         this.redisClient.on('error', err => {
-            BlisDebug.Error(err);
+            BlisDebug.Error(err, "Redis");
         });
+        BlisDebug.Log("Redis client created...");
     }
 
     private constructor(private userkey : string)
@@ -29,13 +40,13 @@ export class BlisMemory {
     }
 
     // Generate memory key from session
-    public static InitMemory(session : builder.Session) : BlisMemory 
+    public static async InitMemory(session : builder.Session) : Promise<BlisMemory> 
     {
         let user = session.message.address.user;
         let userdata = { id: user.id, name: user.name };
         let key = KeyGen.MakeKey(JSON.stringify(userdata));
         let memory = new BlisMemory(key);
-        memory.BotState.SetAddress(session.message.address);
+        await memory.BotState.SetAddress(session.message.address);
         return memory;
     }
 
@@ -44,6 +55,10 @@ export class BlisMemory {
     }
 
     public async GetAsync(datakey : string) : Promise<any> {
+
+        if (!BlisMemory.redisClient) {
+            throw "Redis client not found";
+        }
         let that = this;
         let key = this.Key(datakey);
         let cacheData = this.memCache[key];
@@ -55,23 +70,22 @@ export class BlisMemory {
             });
         };
         return new Promise(function(resolve,reject) {
-            try {
-                BlisMemory.redisClient.get(key, function(err, data)
-                {
-                    if(err !== null) return reject(err);
-                    that.memCache[key] = data;
-                    BlisDebug.Log(`R< ${key} : ${data}`, 'memory');
-                    resolve(data);
-                });
-            }
-            catch (err) {
-                BlisDebug.Error(err);
-                reject(err);
-            }
+            BlisMemory.redisClient.get(key, function(err, data)
+            {
+                if(err !== null) return reject(err);
+                that.memCache[key] = data;
+                BlisDebug.Log(`R< ${key} : ${data}`, 'memory');
+                resolve(data);
+            });
         });
     }
 
     public async SetAsync(datakey : string, value : any) {
+
+        if (!BlisMemory.redisClient) {
+            throw "Redis client not found";
+        }
+
         if (value == null)
         {
             return this.DeleteAsync(datakey);

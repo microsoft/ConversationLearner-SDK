@@ -36,7 +36,7 @@ export class BotState
     {
         if (!this.memory)
         {
-            throw new Error("BotState called without initializing memory");
+            throw "BotState called without initializing memory";
         }
          // Load bot state
         let data = await this.memory.GetAsync(BotState.MEMKEY);
@@ -53,7 +53,7 @@ export class BotState
     {
         if (!this.memory)
         {
-            throw new Error("BotState called without initialzing memory");
+            throw "BotState called without initialzing memory";
         }
         
         // Load bot state
@@ -98,7 +98,7 @@ export class BotState
     {
         if (!this.memory)
         {
-            throw new Error("BotState called without initialzing memory");
+            throw "BotState called without initialzing memory";
         }
         await this.memory.SetAsync(BotState.MEMKEY, this.Serialize());
     }

@@ -7,10 +7,15 @@ export class BlisContext
     public bot : builder.UniversalBot;
     private memory : BlisMemory;
 
-    constructor(bot : builder.UniversalBot, session : builder.Session) {
+    private constructor(bot : builder.UniversalBot, session : builder.Session) {
         this.bot = bot;
         this.session = session;
-        this.memory = BlisMemory.InitMemory(session);
+    }
+
+    public static async CreateAsync(bot : builder.UniversalBot, session : builder.Session) {
+        let context = new BlisContext(bot, session);
+        context.memory = await BlisMemory.InitMemory(context.session);
+        return context;
     }
 
     public Address() : builder.IAddress

@@ -16,18 +16,20 @@ export class Utils  {
     /** Send a text message */
     public static async SendMessage(bot : builder.UniversalBot, memory : BlisMemory, content : string | builder.Message)
     { 
-        let address = await memory.BotState.Address();
-        let session = await memory.BotState.Session(bot);
+        if (memory) {
+            let address = await memory.BotState.Address();
+            let session = await memory.BotState.Session(bot);
 
-        if (typeof content !== 'string') {
-            session.send(content);
-        }
-        else { 
-            let message = new builder.Message()
-                .address(address)
-                .text(content);
-        
-            session.send(message);
+            if (typeof content !== 'string') {
+                session.send(content);
+            }
+            else { 
+                let message = new builder.Message()
+                    .address(address)
+                    .text(content);
+            
+                session.send(message);
+            }
         }
     }
 
@@ -49,17 +51,38 @@ export class Utils  {
     }
 
     /** Handle that catch clauses can be any type */
-    public static ErrorString(error : any) : string
+    public static ErrorString(error : any, context: string = "") : string
     {
-        if (typeof error == 'string')
-        {
-            return error;
-        }
-        else if (error.message)
-        {
-            return error.message + "\n\n" + error.stack;
-        }
-        return JSON.stringify(error);
+        let prefix = context ? `${context}: ` : "";
+        try {
+            if (!error) {
+                return prefix + "Unknown";
+            }
+            else if (!error.body)
+            {
+                if (typeof error == 'string') {
+                    return prefix + error;
+                } 
+                else {
+                    return prefix + JSON.stringify(error);
+                }
+            }
+            else if (error.body.message) {
+              return prefix + error.body.message;
+            }
+            else if (error.body.errorMessages) {
+              return prefix + error.body.errorMessages.join();
+            }
+            else if (typeof error.body == 'string') {
+              return prefix + error.body;
+            }
+            else {
+              return prefix + JSON.stringify(error.body);
+            }
+          }
+          catch (e) {
+            return prefix + `Error Parsing Failed: ${Object.prototype.toString.call(e)} ${JSON.stringify(e)}`;
+          }
     }
 
     public static ReadFromFile(url : string) : Promise<string>
