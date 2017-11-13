@@ -1,5 +1,7 @@
 import * as builder from 'botbuilder';
-import { ActionTypes, UserInput, PredictedEntity, ScoreInput, ScoredAction, EntityBase, ModelUtils } from 'blis-models'
+import { ActionTypes, UserInput, PredictedEntity, 
+    ScoreInput, ScoredAction, EntityBase, 
+    ModelUtils, BlisAppBase } from 'blis-models'
 import { BlisRecognizer, IBlisResult } from './BlisRecognizer';
 import { BlisDebug } from './BlisDebug';
 import { Utils } from './Utils';
@@ -159,6 +161,14 @@ export class BlisDialog extends builder.Dialog {
         }
         return errMsg;
     }
+
+    private async StartApp(session: builder.Session, memory: BlisMemory, appId: string): Promise<BlisAppBase> {
+
+        let sessionResponse = await BlisClient.client.StartSession(appId);
+        memory.StartSession(sessionResponse.sessionId, session.message.address.conversation.id, false);
+        return await memory.BotState.App();
+    }
+
     private async ProcessInput(session: builder.Session, cb : () => void) : Promise<void>
     {
         let errComponent = "ProcessInput";
@@ -186,15 +196,18 @@ export class BlisDialog extends builder.Dialog {
                     BlisDebug.Log(`Selecting app: ${this.options.appId}`);
                     app = await BlisClient.client.GetApp(this.options.appId, null);
                     await memory.BotState.SetApp(app);
-
-                    errComponent = "StartSession";
-                    let sessionResponse = await BlisClient.client.StartSession(this.options.appId);
-                    memory.StartSession(sessionResponse.sessionId, false);
-                    app = await  memory.BotState.App();
+                    app = await this.StartApp(session, memory, app.appId);
                 }
+            } 
+
+            let sessionId = await memory.BotState.SessionId(session.message.address.conversation.id);
+
+            // If no session for this conversation (or it's expired), create a new one
+            if (!sessionId) {
+                app = await this.StartApp(session, memory, app.appId);
+                sessionId = await memory.BotState.SessionId(session.message.address.conversation.id);
             }
 
-            let sessionId = await memory.BotState.SessionId();
             let userInput = new UserInput({text: session.message.text});
 
             // Teach inputs are handled via API calls from the BLIS api
