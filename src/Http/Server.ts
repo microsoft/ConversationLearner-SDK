@@ -4,7 +4,7 @@ import { BlisClient } from '../BlisClient';
 import { BlisDialog } from '../BlisDialog'
 import { BlisMemory } from '../BlisMemory';
 import * as XMLDom from 'xmldom';
-import { TrainDialog, BotInfo,
+import { TrainDialog, BotInfo, 
         BlisAppBase, ActionBase, EntityBase } from 'blis-models'
 import { UIScoreInput, UIExtractResponse, UIScoreResponse, UITeachResponse, UITrainScorerStep  } from 'blis-models'
 
@@ -248,7 +248,7 @@ export class Server {
                         if (app && app.appId === appId)
                         {
                             await memory.BotState.SetApp(null);
-                            await memory.BotState.SetSession(null, false);
+                            await memory.BotState.SetSession(null, null, false);
                         }
                         res.send(200);
                     }
@@ -945,7 +945,7 @@ export class Server {
 
                     // Update Memory
                     let memory = BlisMemory.GetMemory(key);
-                    memory.StartSession(sessionResponse.sessionId, false);
+                    memory.StartSession(sessionResponse.sessionId, null, false);
                 }
                 catch (error)
                 {
@@ -1057,7 +1057,7 @@ export class Server {
 
                         // Update Memory
                         let memory = BlisMemory.GetMemory(key);
-                        memory.StartSession(teachResponse.teachId, true);
+                        memory.StartSession(teachResponse.teachId, null, true);
                     }
                     catch (error)
                     {

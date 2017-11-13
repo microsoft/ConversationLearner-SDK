@@ -2,6 +2,15 @@ import * as builder from 'botbuilder';
 import { BlisMemory } from '../BlisMemory';
 import { BlisAppBase } from 'blis-models';
 
+export class ConversationSession {
+    public sessionId: string = null;
+    public conversationId: string = null;
+
+    public constructor(init?:Partial<ConversationSession>)
+    {
+        (<any>Object).assign(this, init);
+    }
+}
 export class BotState 
 {
     private static _instance : BotState = null;
@@ -10,7 +19,7 @@ export class BotState
 
     public appId : string = null;
 
-    public sessionId : string = null;
+    public convSession : ConversationSession = null;
 
     public inTeach : boolean = false;
  
@@ -76,7 +85,7 @@ export class BotState
         if (!text) return null;
         let json = JSON.parse(text);
         this.appId = json.appId;
-        this.sessionId = json.sessionId;
+        this.convSession = json.convSession;
         this.inTeach = json.inTeach ? json.inTeach : false;
         this.inDebug = json.inDebug ? json.inDebug : false;
         this.address = json.address;
@@ -86,7 +95,7 @@ export class BotState
     {
         let jsonObj = {
             appId : this.appId,
-            sessionId : this.sessionId,
+            convSession : this.convSession,
             inTeach : this.inTeach ? this.inTeach : false,
             inDebug : this.inDebug ? this.inDebug : false,
             address : this.address
@@ -106,7 +115,7 @@ export class BotState
     public async Clear(appId : string) : Promise<void>
     {  
         this.appId = appId;
-        this.sessionId = null;
+        this.convSession = null;
         this.inTeach = false;
         this.inDebug = false;
         await this.Set();
@@ -131,16 +140,32 @@ export class BotState
         await this.Set();
     }
 
-    public async SessionId() : Promise<string>
+    public async SessionId(conversationId: string) : Promise<string>
     {
-        await this.Init();    
-        return this.sessionId;
+        await this.Init(); 
+
+        let convSession = this.convSession;
+        if (!convSession) {
+            return null;
+        }
+        // If convId not set yet, use the session and set it
+        else if (!convSession.conversationId) {
+            convSession.conversationId = conversationId;
+            await this.Set();
+            return convSession.sessionId;
+        }
+        else if (convSession.conversationId == conversationId) {
+            // If conversation Id matches return the sessionId   
+            return convSession.sessionId;
+        }
+        // Otherwise session if for another conversation
+        return null;
     }
 
-    public async SetSession(sessionId : string, inTeach: boolean) : Promise<void>
+    public async SetSession(sessionId: string, conversationId: string, inTeach: boolean) : Promise<void>
     {
         await this.Init();    
-        this.sessionId = sessionId;
+        this.convSession = new ConversationSession({sessionId: sessionId, conversationId: conversationId});
         this.inTeach = inTeach;
         await this.Set();
     }
