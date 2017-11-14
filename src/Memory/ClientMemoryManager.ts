@@ -1,6 +1,6 @@
 import { BlisMemory } from '../BlisMemory';
 import { BlisDebug } from '../BlisDebug';
-import { EntityBase, MemoryValue } from 'blis-models'
+import { EntityBase, MemoryValue, FilledEntity } from 'blis-models'
 
 export class ClientMemoryManager {
 
@@ -93,8 +93,8 @@ export class ClientMemoryManager {
         return await this.blisMemory.BotMemory.ValueAsList(entityName);
     }
 
-    public async GetFilledEntitiesAsync() : Promise<string[]> {
-        return await this.blisMemory.BotMemory.RememberedIds();
+    public async GetFilledEntitiesAsync() : Promise<FilledEntity[]> {
+        return await this.blisMemory.BotMemory.FilledEntities();
     }
 
     public async AppNameAsync() : Promise<string> {

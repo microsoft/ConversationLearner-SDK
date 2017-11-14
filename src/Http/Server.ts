@@ -3,6 +3,7 @@ import { BlisDebug } from '../BlisDebug';
 import { BlisClient } from '../BlisClient';
 import { BlisDialog } from '../BlisDialog'
 import { BlisMemory } from '../BlisMemory';
+import { Utils } from '../Utils';
 import * as XMLDom from 'xmldom';
 import { TrainDialog, BotInfo, 
         BlisAppBase, ActionBase, EntityBase } from 'blis-models'
@@ -1140,8 +1141,12 @@ export class Server {
 
                         // There will be no extraction step if performing a 2nd scorer round after a non-termial action
                         if (uiScoreInput.trainExtractorStep) {
-                            // Send teach feedback
-                            await BlisClient.client.TeachExtractFeedback(appId, teachId, uiScoreInput.trainExtractorStep);
+
+                            // TEMP: until object scheme is revised, need to strip for server
+                            let trainExtractorStep = Utils.StripPrebuiltInfo(uiScoreInput.trainExtractorStep)
+                            
+                            // Send teach feedback;
+                            await BlisClient.client.TeachExtractFeedback(appId, teachId, trainExtractorStep);
                         }
 
                         // Call LUIS callback to get scoreInput

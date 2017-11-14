@@ -3,6 +3,7 @@ import * as util from 'util';
 import * as request from 'request';
 import { BlisContext } from './BlisContext';
 import { BlisMemory } from './BlisMemory';
+import { TrainExtractorStep, TextVariation, LabeledEntity } from 'blis-models';
 
 export class Utils  {
 
@@ -13,6 +14,25 @@ export class Utils  {
         bot.send(msg);
     }
 
+    // TEMP: Until we re-jigger object types.  Need to be stripped
+    public static StripPrebuiltInfo(trainExtractorStep: TrainExtractorStep) : TrainExtractorStep {
+        return new TrainExtractorStep(
+            {
+                textVariations: trainExtractorStep.textVariations.map(tv => new TextVariation
+                    ({
+                    text: tv.text,
+                    labelEntities: tv.labelEntities.map(le => 
+                        { 
+                            let nle = new LabeledEntity({...le});
+                            delete nle.builtinType;
+                            delete nle.resolution
+                            return nle;
+                        })
+                    })
+                )
+            }
+        )
+    }
     /** Send a text message */
     public static async SendMessage(bot : builder.UniversalBot, memory : BlisMemory, content : string | builder.Message)
     { 
