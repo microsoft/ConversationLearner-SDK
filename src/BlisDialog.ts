@@ -429,7 +429,7 @@ export class BlisDialog extends builder.Dialog {
         }
 
         // Get entities from my memory
-        var filledEntities = await memoryManager.blisMemory.BotMemory.RememberedIds();
+        var filledEntities = await memoryManager.blisMemory.BotMemory.FilledEntities();
 
         let scoreInput = new ScoreInput({   
             filledEntities: filledEntities,

@@ -1,7 +1,7 @@
 import { BlisMemory } from '../BlisMemory';
 import { BlisDebug} from '../BlisDebug';
 import { Utils} from '../Utils';
-import { Memory, MemoryValue, PredictedEntity } from 'blis-models';
+import { Memory, FilledEntity, MemoryValue, PredictedEntity } from 'blis-models';
 import * as builder from 'botbuilder'
 
 export const ActionCommand =
@@ -10,17 +10,12 @@ export const ActionCommand =
     NEGATIVE: "~"
 }
 
-export class EntityMemory
-{
-    public constructor(public id : string, public oneoff : MemoryValue = null, public bucket : MemoryValue[] = []) {};
-}
-
 export class BotMemory 
 {
     private static _instance : BotMemory = null;
     private static MEMKEY = "BOTMEMORY";
     private memory : BlisMemory;
-    public entityMap : {[key: string] : EntityMemory };
+    public entityMap : {[key: string] : FilledEntity };
 
     private constructor(init?:Partial<BotMemory>)
     {
@@ -89,28 +84,30 @@ export class BotMemory
     }
 
     // Remember value for an entity
-    public async Remember(entityName: string, entityId: string, entityValue: string, 
-                            isBucket: boolean = false, prebuiltType: string = null, resolution: {} = null) : Promise<void> {
+    public async Remember(entityName: string, entityId: string, userText: string, 
+                            isBucket: boolean = false, builtinType: string = null, resolution: {} = null) : Promise<void> {
 
         await this.Init();
 
         if (!this.entityMap[entityName])
         {
-            this.entityMap[entityName] = new EntityMemory(entityId);
+            this.entityMap[entityName] = new FilledEntity({entityId: entityId});
         }
+
+        let displayText = builtinType ? Utils.PrebuiltDisplayText(builtinType, resolution) : null;
 
         // Check if entity buckets values
         if (isBucket)
         {
             // Add if not a duplicate
-            let value = this.entityMap[entityName].bucket.find(v => v.value == entityValue);
+            let value = this.entityMap[entityName].values.find(v => v.userText == userText);
             if (!value) {
-                this.entityMap[entityName].bucket.push(new MemoryValue({value: entityValue, type: prebuiltType, resolution: resolution}));
+                this.entityMap[entityName].values.push(new MemoryValue({userText: userText, displayText: displayText, builtinType: builtinType, resolution: resolution}));
             }
         }
         else
         {
-            this.entityMap[entityName].oneoff = new MemoryValue({value: entityValue, type: prebuiltType, resolution: resolution});
+            this.entityMap[entityName].values = [new MemoryValue({userText: userText, displayText: displayText, builtinType: builtinType, resolution: resolution})];
         }
         await this.Set();
     }
@@ -123,10 +120,10 @@ export class BotMemory
     }
 
     /** Return array of entity Ids for which I've remembered something */
-    public async RememberedIds() : Promise<string[]>
+    public async FilledEntities() : Promise<FilledEntity[]>
     {
         await this.Init();
-        return Object.keys(this.entityMap).map((val) => {return this.entityMap[val].id });
+        return Object.keys(this.entityMap).map((val) => {return this.entityMap[val]});
     }
 
     /** Given negative entity name, return positive version **/		
@@ -165,13 +162,13 @@ export class BotMemory
                 }
                 else {
                     // Find case insensitive index
-                    let lowerCaseNames = this.entityMap[entityName].bucket.map((mv) => {return mv.value.toLowerCase();});
+                    let lowerCaseNames = this.entityMap[entityName].values.map((mv) => {return mv.userText.toLowerCase();});
 
                     let index = lowerCaseNames.indexOf(entityValue.toLowerCase());
                     if (index > -1)
                     {
-                        this.entityMap[entityName].bucket.splice(index, 1);
-                        if (this.entityMap[entityName].bucket.length == 0)
+                        this.entityMap[entityName].values.splice(index, 1);
+                        if (this.entityMap[entityName].values.length == 0)
                         {
                             delete this.entityMap[entityName];
                         }
@@ -224,12 +221,7 @@ export class BotMemory
             return [];
         }
         
-        if (this.entityMap[entityName].oneoff)
-        {
-            return [this.entityMap[entityName].oneoff];
-        }
-
-        return this.entityMap[entityName].bucket;  
+        return this.entityMap[entityName].values;  
     }
 
     private EntityValueAsList(entityName : string) : string[]
@@ -237,13 +229,8 @@ export class BotMemory
         if (!this.entityMap[entityName]) {
             return [];
         }
-        
-        if (this.entityMap[entityName].oneoff)
-        {
-            return [this.entityMap[entityName].oneoff.value];
-        }
 
-        return this.entityMap[entityName].bucket.map(v => v.value);  
+        return this.entityMap[entityName].values.map(v => v.userText);  
     }
 
     private EntityValueAsString(entityName : string) : string
@@ -252,22 +239,13 @@ export class BotMemory
             return null;
         }
         
-        if (this.entityMap[entityName].oneoff)
-        { 
-            let prebuiltDisplay = Utils.PrebuiltDisplayText(this.entityMap[entityName].oneoff.type, this.entityMap[entityName].oneoff.resolution);
-            if (prebuiltDisplay) {
-                return prebuiltDisplay;
-            }
-            return this.entityMap[entityName].oneoff.value;
-        }
-
         // Print out list in friendly manner
         let group = "";
-        for (let key in this.entityMap[entityName].bucket)
+        for (let key in this.entityMap[entityName].values)
         {
             let index = +key;
             let prefix = "";
-            if (this.entityMap[entityName].bucket.length != 1 && index == this.entityMap[entityName].bucket.length-1)
+            if (this.entityMap[entityName].values.length != 1 && index == this.entityMap[entityName].values.length-1)
             {
                 prefix = " and ";
             }
@@ -275,7 +253,9 @@ export class BotMemory
             {
                 prefix = ", ";
             }
-            group += `${prefix}${this.entityMap[entityName].bucket[key].value}`;
+            let value = this.entityMap[entityName].values[key];
+            let text = value.displayText ? value.displayText : value.userText;
+            group += `${prefix}${text}`;
         }
         return group;  
     }
