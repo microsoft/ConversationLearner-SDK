@@ -119,7 +119,7 @@ export class Server {
                         let app = new BlisAppBase(req.body);
 
                         let memory = BlisMemory.GetMemory(key);
-                        await memory.BotState.SetApp(app);
+                        await memory.BotState.SetAppAsync(app);
                         res.send(200);
                     }
                     catch (error)
@@ -187,11 +187,11 @@ export class Server {
                         let key = req.params.key;
                         let app = new BlisAppBase(req.body);
 
-                        let appId = await BlisClient.client.AddApp(app, query);
-                        res.send(appId);
+                        app.appId = await BlisClient.client.AddApp(app, query);
+                        res.send(app.appId);
 
                         // Initialize memory
-                        await BlisMemory.GetMemory(key).Init(appId);
+                        await BlisMemory.GetMemory(key).Init(app);
                     }
                     catch (error)
                     {
@@ -244,11 +244,11 @@ export class Server {
 
                         // Did I delete my loaded app, if so clear my state
                         let memory = BlisMemory.GetMemory(key);
-                        let app = await memory.BotState.App();
+                        let app = await memory.BotState.AppAsync();
                         if (app && app.appId === appId)
                         {
-                            await memory.BotState.SetApp(null);
-                            await memory.BotState.SetSession(null, null, false);
+                            await memory.BotState.SetAppAsync(null);
+                            await memory.BotState.SetSessionAsync(null, null, false);
                         }
                         res.send(200);
                     }
@@ -945,7 +945,7 @@ export class Server {
 
                     // Update Memory
                     let memory = BlisMemory.GetMemory(key);
-                    memory.StartSession(sessionResponse.sessionId, null, false);
+                    memory.StartSessionAsync(sessionResponse.sessionId, null, false);
                 }
                 catch (error)
                 {
@@ -1057,7 +1057,7 @@ export class Server {
 
                         // Update Memory
                         let memory = BlisMemory.GetMemory(key);
-                        memory.StartSession(teachResponse.teachId, null, true);
+                        memory.StartSessionAsync(teachResponse.teachId, null, true);
                     }
                     catch (error)
                     {

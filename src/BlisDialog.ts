@@ -1,7 +1,7 @@
 import * as builder from 'botbuilder';
 import { ActionTypes, UserInput, PredictedEntity, 
     ScoreInput, ScoredAction, EntityBase, 
-    ModelUtils, BlisAppBase } from 'blis-models'
+    ModelUtils } from 'blis-models'
 import { BlisRecognizer, IBlisResult } from './BlisRecognizer';
 import { BlisDebug } from './BlisDebug';
 import { Utils } from './Utils';
@@ -162,17 +162,18 @@ export class BlisDialog extends builder.Dialog {
         return errMsg;
     }
 
-    private async StartApp(session: builder.Session, memory: BlisMemory, appId: string): Promise<BlisAppBase> {
+    private async StartSessionAsync(session: builder.Session, memory: BlisMemory, appId: string): Promise<string> {
 
         let sessionResponse = await BlisClient.client.StartSession(appId);
-        memory.StartSession(sessionResponse.sessionId, session.message.address.conversation.id, false);
-        return await memory.BotState.App();
+        await memory.StartSessionAsync(sessionResponse.sessionId, session.message.address.conversation.id, false);
+        BlisDebug.Verbose(`Started Session: ${sessionResponse.sessionId} - ${session.message.address.conversation.id}`);
+        return sessionResponse.sessionId;
     }
 
     private async ProcessInput(session: builder.Session, cb : () => void) : Promise<void>
     {
         let errComponent = "ProcessInput";
-        let memory = null;
+        let memory: BlisMemory = null;
         try {
             BlisDebug.Verbose(`Process Input...`);
             let context = await BlisContext.CreateAsync(this.bot, session);
@@ -187,25 +188,29 @@ export class BlisDialog extends builder.Dialog {
                 return;
             }
 
-            let inTeach = await memory.BotState.InTeach();
-            let app = await  memory.BotState.App();
+            let inTeach = await memory.BotState.InTeachAsync();
+            let app = await memory.BotState.AppAsync();
+            let sessionId = null;
 
-            // If I don't have an app yet
-            if (!app) {
+            // If I don't have an app yet, or app does not match
+            if (!app || (this.options.appId && app.appId !== this.options.appId)) {
                 if (this.options.appId) {
                     BlisDebug.Log(`Selecting app: ${this.options.appId}`);
                     app = await BlisClient.client.GetApp(this.options.appId, null);
-                    await memory.BotState.SetApp(app);
-                    app = await this.StartApp(session, memory, app.appId);
+                    await memory.BotState.SetAppAsync(app);
+                }
+                else {
+                    throw "BLIS AppID not specified"
                 }
             } 
-
-            let sessionId = await memory.BotState.SessionId(session.message.address.conversation.id);
+            else {
+                // Attempt to load the session
+                sessionId = await memory.BotState.SessionIdAsync(session.message.address.conversation.id);
+            }
 
             // If no session for this conversation (or it's expired), create a new one
             if (!sessionId) {
-                app = await this.StartApp(session, memory, app.appId);
-                sessionId = await memory.BotState.SessionId(session.message.address.conversation.id);
+                sessionId = await this.StartSessionAsync(session, memory, app.appId);
             }
 
             let userInput = new UserInput({text: session.message.text});
@@ -213,7 +218,6 @@ export class BlisDialog extends builder.Dialog {
             // Teach inputs are handled via API calls from the BLIS api
             if (!inTeach)
             {
-                BlisDebug.Verbose(`Calling entity extractor`);
                 // Call the entity extractor
                 errComponent = "SessionExtract";
                 let extractResponse = await BlisClient.client.SessionExtract(app.appId, sessionId, userInput);
@@ -223,6 +227,11 @@ export class BlisDialog extends builder.Dialog {
             }
         }
         catch (error) {
+            // Session is invalid
+            if (memory) {
+                BlisDebug.Verbose("ProcessInput Failure. Clearing Session");
+                memory.EndSession();
+            }
             let msg = BlisDebug.Error(error, errComponent);
             await Utils.SendMessage(this.bot, memory, msg);
         }
@@ -348,10 +357,10 @@ export class BlisDialog extends builder.Dialog {
 
         // Make any entity substitutions
         let entities = await memory.BotMemory.GetEntities(args);
-        let session = await memory.BotState.Session(this.bot);
+        let session = await memory.BotState.SessionAsync(this.bot);
 
         // If in teach mode wrap the intent so can give next input cue when intent dialog completes
-        let inTeach = await memory.BotState.InTeach();
+        let inTeach = await memory.BotState.InTeachAsync();
         if (inTeach)
         {
             session.beginDialog(BLIS_INTENT_WRAPPER, {intent: intentName, entities: entities});

@@ -17,8 +17,8 @@ export class Utils  {
     public static async SendMessage(bot : builder.UniversalBot, memory : BlisMemory, content : string | builder.Message)
     { 
         if (memory) {
-            let address = await memory.BotState.Address();
-            let session = await memory.BotState.Session(bot);
+            let address = await memory.BotState.AddressAsync();
+            let session = await memory.BotState.SessionAsync(bot);
 
             if (typeof content !== 'string') {
                 session.send(content);
@@ -50,6 +50,21 @@ export class Utils  {
         context.bot.send(msg);
     }
 
+    /** Trick to get errors to render on Azure */
+    private static ReplaceErrors(key: any, value: any) {
+        if (value instanceof Error) {
+            var error = {};
+    
+            Object.getOwnPropertyNames(value).forEach(function (key) {
+                error[key] = value[key];
+            });
+    
+            return error;
+        }
+    
+        return value;
+    }
+
     /** Handle that catch clauses can be any type */
     public static ErrorString(error : any, context: string = "") : string
     {
@@ -64,7 +79,7 @@ export class Utils  {
                     return prefix + error;
                 } 
                 else {
-                    return prefix + JSON.stringify(error);
+                    return prefix + JSON.stringify(error, this.ReplaceErrors);
                 }
             }
             else if (error.body.message) {
@@ -81,7 +96,7 @@ export class Utils  {
             }
           }
           catch (e) {
-            return prefix + `Error Parsing Failed: ${Object.prototype.toString.call(e)} ${JSON.stringify(e)}`;
+            return prefix + `Error Parsing Failed`;//: ${Object.prototype.toString.call(e)} ${JSON.stringify(e)}`;
           }
     }
 
