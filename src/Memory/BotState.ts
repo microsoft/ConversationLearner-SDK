@@ -17,7 +17,7 @@ export class BotState
     private static MEMKEY = "BOTSTATE";
     public memory : BlisMemory;
 
-    public appId : string = null;
+    public app : BlisAppBase = null;
 
     public convSession : ConversationSession = null;
 
@@ -54,7 +54,7 @@ export class BotState
             this.Deserialize(data); 
         }
         else {
-            this.Clear(null);
+            this.SetAppAsync(null);
         }
     }
 
@@ -74,7 +74,7 @@ export class BotState
             }
             else
             {
-                this.Clear(null);
+                this.SetAppAsync(null);
             }     
             cb(null, this);      
         }); 
@@ -84,7 +84,7 @@ export class BotState
     {
         if (!text) return null;
         let json = JSON.parse(text);
-        this.appId = json.appId;
+        this.app = json.app;
         this.convSession = json.convSession;
         this.inTeach = json.inTeach ? json.inTeach : false;
         this.inDebug = json.inDebug ? json.inDebug : false;
@@ -94,7 +94,7 @@ export class BotState
     private Serialize() : string
     {
         let jsonObj = {
-            appId : this.appId,
+            app : this.app,
             convSession : this.convSession,
             inTeach : this.inTeach ? this.inTeach : false,
             inDebug : this.inDebug ? this.inDebug : false,
@@ -103,7 +103,7 @@ export class BotState
         return JSON.stringify(jsonObj);
     }
 
-    private async Set() : Promise<void>
+    private async SetAsync() : Promise<void>
     {
         if (!this.memory)
         {
@@ -112,20 +112,20 @@ export class BotState
         await this.memory.SetAsync(BotState.MEMKEY, this.Serialize());
     }
 
-    public async Clear(appId : string) : Promise<void>
+    public async SetAppAsync(app : BlisAppBase) : Promise<void>
     {  
-        this.appId = appId;
+        this.app = app;
         this.convSession = null;
         this.inTeach = false;
         this.inDebug = false;
-        await this.Set();
+        await this.SetAsync();
     }
 
-    public async App() : Promise<BlisAppBase>  
+    public async AppAsync() : Promise<BlisAppBase>  
     {
         try {
             await this.Init();    
-            return JSON.parse(this.appId);
+            return this.app;
         }
         catch (err)
         {
@@ -133,14 +133,7 @@ export class BotState
         }
     }
 
-    public async SetApp(blisApp : BlisAppBase) : Promise<void>
-    {
-        await this.Init();    
-        this.appId = JSON.stringify(blisApp);
-        await this.Set();
-    }
-
-    public async SessionId(conversationId: string) : Promise<string>
+    public async SessionIdAsync(conversationId: string) : Promise<string>
     {
         await this.Init(); 
 
@@ -151,7 +144,7 @@ export class BotState
         // If convId not set yet, use the session and set it
         else if (!convSession.conversationId) {
             convSession.conversationId = conversationId;
-            await this.Set();
+            await this.SetAsync();
             return convSession.sessionId;
         }
         else if (convSession.conversationId == conversationId) {
@@ -162,15 +155,15 @@ export class BotState
         return null;
     }
 
-    public async SetSession(sessionId: string, conversationId: string, inTeach: boolean) : Promise<void>
+    public async SetSessionAsync(sessionId: string, conversationId: string, inTeach: boolean) : Promise<void>
     {
         await this.Init();    
         this.convSession = new ConversationSession({sessionId: sessionId, conversationId: conversationId});
         this.inTeach = inTeach;
-        await this.Set();
+        await this.SetAsync();
     }
 
-    public async InTeach() : Promise<boolean> {
+    public async InTeachAsync() : Promise<boolean> {
         await this.Init();    
         return this.inTeach;
     }
@@ -184,25 +177,25 @@ export class BotState
         });    
     }
 
-    public async InDebug() : Promise<boolean> {
+    public async InDebugAsync() : Promise<boolean> {
         await this.Init();    
         return this.inDebug;
     }
 
-    public async SetInDebug(isTrue : boolean) : Promise<void> {
+    public async SetInDebugAsync(isTrue : boolean) : Promise<void> {
         await this.Init();    
         this.inDebug = isTrue;
-        await this.Set();
+        await this.SetAsync();
     }
 
 
-    public async SetAddress(address : builder.IAddress) : Promise<void> {
+    public async SetAddressAsync(address : builder.IAddress) : Promise<void> {
         await this.Init();    
         this.address = JSON.stringify(address);
-        await this.Set();
+        await this.SetAsync();
     }
 
-    public async Address() : Promise<builder.IAddress> {
+    public async AddressAsync() : Promise<builder.IAddress> {
         try {
             await this.Init();    
             let addressString = this.address;
@@ -215,8 +208,8 @@ export class BotState
     }
 
     //------------------------------------------------------------------
-    public async Session(bot : builder.UniversalBot) : Promise<any> {
-        let address = await this.Address();
+    public async SessionAsync(bot : builder.UniversalBot) : Promise<any> {
+        let address = await this.AddressAsync();
         return new Promise(function(resolve,reject) {
             bot.loadSession(address, (err, session) => {
                 if(err !== null) {

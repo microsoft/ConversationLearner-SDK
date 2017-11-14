@@ -98,7 +98,7 @@ export class ClientMemoryManager {
     }
 
     public async AppNameAsync() : Promise<string> {
-        let app = await this.blisMemory.BotState.App();
+        let app = await this.blisMemory.BotState.AppAsync();
         return app.appName;
     }
 }    

@@ -2,7 +2,7 @@ import * as builder from 'botbuilder'
 import { BlisDebug} from './BlisDebug';
 import { BotMemory } from './Memory/BotMemory';
 import { BotState } from './Memory/BotState';
-import { KeyGen } from 'blis-models'
+import { KeyGen, BlisAppBase } from 'blis-models'
 import * as Redis from "redis";
 
 export class BlisMemory {
@@ -46,7 +46,7 @@ export class BlisMemory {
         let userdata = { id: user.id, name: user.name };
         let key = KeyGen.MakeKey(JSON.stringify(userdata));
         let memory = new BlisMemory(key);
-        await memory.BotState.SetAddress(session.message.address);
+        await memory.BotState.SetAddressAsync(session.message.address);
         return memory;
     }
 
@@ -179,23 +179,23 @@ export class BlisMemory {
         }
     }
 
-    public async Init(appId : string) : Promise<void>
+    public async Init(app: BlisAppBase) : Promise<void>
     {
-        await this.BotState.Clear(appId);
+        await this.BotState.SetAppAsync(app);
         await this.BotMemory.Clear();
     }
 
     /** Clear memory associated with a session */
     public async EndSession() : Promise<void>
     {
-        await this.BotState.SetSession(null, null, false);
+        await this.BotState.SetSessionAsync(null, null, false);
         await this.BotMemory.Clear();
     }
 
     /** Init memory for a session */
-    public async StartSession(sessionId : string, conversationId: string, inTeach : boolean) : Promise<void>
+    public async StartSessionAsync(sessionId : string, conversationId: string, inTeach : boolean) : Promise<void>
     {
-        await this.BotState.SetSession(sessionId, conversationId, inTeach);
+        await this.BotState.SetSessionAsync(sessionId, conversationId, inTeach);
         await this.BotMemory.Clear();
     }
 
