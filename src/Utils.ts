@@ -3,7 +3,7 @@ import * as util from 'util';
 import * as request from 'request';
 import { BlisContext } from './BlisContext';
 import { BlisMemory } from './BlisMemory';
-import { TrainExtractorStep, TextVariation, LabeledEntity } from 'blis-models';
+import { TrainExtractorStep, TextVariation, LabeledEntity, TrainDialog, TrainRound } from 'blis-models';
 
 export class Utils  {
 
@@ -14,6 +14,23 @@ export class Utils  {
         bot.send(msg);
     }
 
+    // TEMP: Until we re-jigger object types.  Need to be stripped
+    public static StripPrebuiltInfoFromTrain(trainDialog: TrainDialog) : TrainDialog {
+        return new TrainDialog(
+            {
+                trainDialogId: trainDialog.trainDialogId,
+                version: trainDialog.version,
+                packageCreationId: trainDialog.packageCreationId,
+                packageDeletionId: trainDialog.packageDeletionId,
+                rounds: trainDialog.rounds.map(r => 
+                    new TrainRound({
+                        scorerSteps: r.scorerSteps,
+                        extractorStep: this.StripPrebuiltInfo(r.extractorStep)
+                    }))
+            }
+        )
+    }
+    
     // TEMP: Until we re-jigger object types.  Need to be stripped
     public static StripPrebuiltInfo(trainExtractorStep: TrainExtractorStep) : TrainExtractorStep {
         return new TrainExtractorStep(
