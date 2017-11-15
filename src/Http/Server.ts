@@ -783,7 +783,11 @@ export class Server {
                         //let key = req.params.key;
                         let appId = req.params.appId;
                         let trainDialog = new TrainDialog(req.body);
-                        let trainDialogId = await BlisClient.client.AddTrainDialog(appId, trainDialog);
+
+                        // TEMP: until object refactor
+                        let strippedTrainDialog = Utils.StripPrebuiltInfoFromTrain(trainDialog);
+
+                        let trainDialogId = await BlisClient.client.AddTrainDialog(appId, strippedTrainDialog);
                         res.send(trainDialogId);
                     }
                     catch (error)
@@ -812,7 +816,11 @@ export class Server {
                         {
                             return next(new Restify.InvalidArgumentError("ActionId of object does not match URI"));
                         }
-                        let trainDialogId = await BlisClient.client.EditTrainDialog(appId, trainDialog);
+
+                        // TEMP: until object refactor
+                        let strippedTrainDialog = Utils.StripPrebuiltInfoFromTrain(trainDialog);
+
+                        let trainDialogId = await BlisClient.client.EditTrainDialog(appId, strippedTrainDialog);
                         res.send(trainDialogId);
                     }
                     catch (error)
