@@ -10,7 +10,8 @@ import {
         ScoreInput, ScoreResponse, 
         Teach, TeachResponse, TeachList, TeachIdList,
         TrainExtractorStep, TrainScorerStep,
-        ActionBase, BlisAppBase, EntityBase 
+        ActionBase, BlisAppBase, EntityBase,
+        TrainingStatus
     } from 'blis-models';
 import { Credentials } from './Http/Credentials';
 import { BlisDebug } from './BlisDebug';
@@ -309,6 +310,35 @@ export class BlisClient {
                             var blisApp = new BlisAppBase(body);
                             blisApp.appId = appId;
                             resolve(blisApp);
+                        }
+                    });
+                }
+            )
+        }
+
+        public GetAppTrainingStatus(appId: string, query: string): Promise<TrainingStatus>
+        {
+            let apiPath = `app/${appId}/trainingstatus`
+
+            return new Promise(
+                (resolve, reject) => {
+                    let url = this.MakeURL(apiPath, query)
+                    const requestData = {
+                        headers: {
+                            'Cookie' : this.credentials.Cookiestring()
+                        },
+                        json: true
+                    }
+                    BlisDebug.LogRequest("GET", apiPath, requestData);
+                    Request.get(url, requestData, (error, response, body) => {
+                        if (error) {
+                            reject(error)
+                        }
+                        else if (response.statusCode >= 300) {
+                            reject(response)
+                        }
+                        else {
+                            resolve(body)
                         }
                     });
                 }
