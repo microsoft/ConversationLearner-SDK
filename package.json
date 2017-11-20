@@ -12,7 +12,7 @@
   "author": "Microsoft BLIS Team",
   "license": "MIT",
   "dependencies": {
-    "blis-models": "^0.81.0",
+    "blis-models": "^0.82.0",
     "botbuilder": "^3.9.0",
     "express": "^4.15.3",
     "node-cache": "^4.1.1",
