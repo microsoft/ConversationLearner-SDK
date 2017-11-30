@@ -7,7 +7,7 @@ import { Utils } from '../Utils';
 import * as XMLDom from 'xmldom';
 import { TrainDialog, BotInfo, 
         BlisAppBase, ActionBase, EntityBase } from 'blis-models'
-import { UIScoreInput, UIExtractResponse, UIScoreResponse, UITeachResponse, UITrainScorerStep  } from 'blis-models'
+import { ScoreInput, UIScoreInput, UIExtractResponse, UIScoreResponse, UITeachResponse, UITrainScorerStep  } from 'blis-models'
 
 export class Server {
     private static server : Restify.Server = null;
@@ -1188,6 +1188,35 @@ export class Server {
                     }
                 }
             );
+
+            /**
+             * Get updated scores given previous score input
+             */
+            this.server.get("/app/:appId/teach/:teachId/scorer", async (req, res, next) =>
+            {
+                try
+                {
+                    this.InitClient();  // TEMP
+                    const { key, appId, teachId } = req.params
+                    const scoreInput = new ScoreInput(req.body)
+                    const memory = BlisMemory.GetMemory(key)
+
+                    // Get new score response re-using scoreInput from previous score request
+                    const scoreResponse = await BlisClient.client.TeachScore(appId, teachId, scoreInput)
+                    const memories = await memory.BotMemory.DumpMemory()
+                    const uiScoreResponse = new UIScoreResponse({
+                        scoreInput,
+                        scoreResponse,
+                        memories
+                    })
+
+                    res.send(uiScoreResponse)
+                }
+                catch (error)
+                {
+                    Server.HandleError(res, error);
+                }
+            })
 
             /** SCORE FEEDBACK: Uploads a labeled scorer step instance 
              * – ie "commits" a scorer label, appending it to the teach session's 
