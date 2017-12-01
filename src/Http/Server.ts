@@ -1190,9 +1190,9 @@ export class Server {
             );
 
             /**
-             * Get updated scores given previous score input
+             * Re-run scorer given previous score input
              */
-            this.server.get("/app/:appId/teach/:teachId/scorer", async (req, res, next) =>
+            this.server.put("/app/:appId/teach/:teachId/rescore", async (req, res, next) =>
             {
                 try
                 {
