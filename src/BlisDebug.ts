@@ -45,18 +45,23 @@ export class BlisDebug {
         }
     }
 
-    public static LogRequest(method : string, path : string, payload : any) {
-        if (this.logging.indexOf("client") >=0)
-        {
-            let msg = `    ${method}: //${path}`;
-            console.log(msg);
-            
-            if (this.enabled)
-            {
-                let text = JSON.stringify(payload.body);
-                this.cache += (this.cache ? "\n\n" : "") + msg + "\n\n" + (text ? text : "");
+    public static LogRequest(method: string, path: string, payload: any) {
+        if (this.logging.includes("client")) {
+            let message = `${method} //${path}`
+            const formattedBody = payload.body ? JSON.stringify(payload.body, null, '  ') : ''
+            if (formattedBody.length > 0) {
+                message = `${message}
+                    
+${formattedBody}
+                `
             }
-            this.SendCache();
+
+            console.log(message)
+
+            if (this.enabled) {
+                this.cache += (this.cache ? "\n\n" : "") + message
+            }
+            this.SendCache()
         }
     }
 
