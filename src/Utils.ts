@@ -1,5 +1,5 @@
-import * as builder from 'botbuilder';
-import * as util from 'util';
+import * as BB from 'botbuilder-core';
+//LARSOLD import * as util from 'util';
 import * as request from 'request';
 import { BlisContext } from './BlisContext';
 import { BlisMemory } from './BlisMemory';
@@ -7,11 +7,13 @@ import { TrainExtractorStep, TextVariation, LabeledEntity, TrainDialog, TrainRou
 
 export class Utils  {
 
-    public static SendTyping(bot : builder.UniversalBot, address : any)
+    public static SendTyping(bot : BB.Bot, address : any)
     {
+        /*LARSTODO
         let msg = <builder.IMessage>{ type: 'typing'};
         msg.address = address;
-        bot.send(msg);
+        bot.post(msg);
+        */
     }
 
     // TEMP: Until we re-jigger object types.  Need to be stripped
@@ -51,8 +53,9 @@ export class Utils  {
         )
     }
     /** Send a text message */
-    public static async SendMessage(bot : builder.UniversalBot, memory : BlisMemory, content : string | builder.Message)
+    public static async SendMessage(bot : BB.Bot, memory : BlisMemory, content : string /*LARSTODO | builder.Message*/)
     { 
+        /*LARSTODO
         if (memory) {
             let address = await memory.BotState.AddressAsync();
             let session = await memory.BotState.SessionAsync(bot);
@@ -68,10 +71,12 @@ export class Utils  {
                 session.send(message);
             }
         }
+        */
     }
 
     public static SendAsAttachment(context : BlisContext, content: string)
     {
+        /*LARSTODO
         var base64 = Buffer.from(content).toString('base64');
 
         let msg =  new builder.Message();
@@ -84,7 +89,8 @@ export class Utils  {
             content: content
         }
         msg.addAttachment(attachment);
-        context.bot.send(msg);
+        context.botContext.bot.post(msg);
+        */
     }
 
     /** Trick to get errors to render on Azure */

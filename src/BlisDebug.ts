@@ -1,16 +1,16 @@
-import * as builder from 'botbuilder';
+import * as BB from 'botbuilder-core';
 import { Utils } from './Utils';
 
 export class BlisDebug {
 
-    public static bot : any;
+    public static bot : BB.Bot;
     public static address : any;
     public static cache : string = "";
     public static enabled : boolean;
     public static verbose : boolean = true;
     public static logging : string = "client"; // "client flow memory";
 
-    public static InitLogger(bot : builder.UniversalBot)
+    public static InitLogger(bot : BB.Bot)
     {
         this.bot = bot;
     }
@@ -23,11 +23,11 @@ export class BlisDebug {
  
     private static SendCache() {
         if (this.bot && this.address && this.cache)
-        {
+        {/*LARSTODO
             var msg = new builder.Message().address(this.address);
             msg.text(this.cache);
             this.cache = "";
-            this.bot.send(msg);
+            this.bot.post(msg);*/
         }
     }
 

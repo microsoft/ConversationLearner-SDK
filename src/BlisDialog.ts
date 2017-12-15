@@ -1,8 +1,8 @@
-import * as builder from 'botbuilder';
+import * as BB from 'botbuilder-core';
 import { ActionTypes, UserInput, PredictedEntity, 
     ScoreInput, ScoredAction, EntityBase, 
     ModelUtils } from 'blis-models'
-import { BlisRecognizer, IBlisResult } from './BlisRecognizer';
+//LARSOLD import { BlisRecognizer, IBlisResult } from './BlisRecognizer';
 import { BlisDebug } from './BlisDebug';
 import { Utils } from './Utils';
 import { BlisMemory } from './BlisMemory';
@@ -15,7 +15,7 @@ import { InitDOLRunner } from './DOLRunner';
 
 export const BLIS_INTENT_WRAPPER = "BLIS_INTENT_WRAPPER";
 
-export interface IBlisOptions extends builder.IIntentRecognizerSetOptions {
+export interface IBlisOptions {
     // URL for BLIS service
     serviceUri: string;
 
@@ -39,29 +39,29 @@ export interface IBlisOptions extends builder.IIntentRecognizerSetOptions {
     azureFunctionsKey? : string;
 
     // Optional connector, required for downloading train dialogs
-    connector? : builder.ChatConnector;
+    //LARSTODO connector? : builder.ChatConnector;
 
     // Running on localhost
     localhost? : boolean;
 }
 
-export class BlisDialog extends builder.Dialog {
+export class BlisDialog extends BB.IntentRecognizer {
 
     public static dialog : BlisDialog;
 
     // Mapping between user defined API names and functions
-    public static apiCallbacks : { string : (memoryManager: ClientMemoryManager, args : any[]) => void } | {} = {};
+    public static apiCallbacks : { string : (memoryManager: ClientMemoryManager, args : any[]) => Promise<void> } | {} = {};
 
     // Optional callback than runs after LUIS but before BLIS.  Allows Bot to substitute entities
-    public static luisCallback : (text: string, predictedEntities : PredictedEntity[], memoryManager : ClientMemoryManager) => ScoreInput;
+    public static luisCallback : (text: string, predictedEntities : PredictedEntity[], memoryManager : ClientMemoryManager) => Promise<ScoreInput>;
     
     // Optional callback that runs after BLIS is called but before the Action is rendered
-    public static blisCallback : (text : string, memoryManager : ClientMemoryManager) => string | builder.Message;
+    public static blisCallback : (text : string, memoryManager : ClientMemoryManager) => Promise<string> /*LARSOLD | builder.Message;*/
      
     // Create singleton
-    public static Init(bot : builder.UniversalBot, options: IBlisOptions) : BlisDialog
+    public static Init(options: IBlisOptions) : BlisDialog
     {
-        BlisDialog.dialog = new BlisDialog(bot, options);
+        BlisDialog.dialog = new BlisDialog(options);
         return BlisDialog.dialog;
     }
 
@@ -71,18 +71,18 @@ export class BlisDialog extends builder.Dialog {
     }
     
     private options: IBlisOptions;
-    private blisRecognizer : BlisRecognizer;
-    private recognizers: builder.IntentRecognizerSet;
+    private bot: BB.Bot;
 
-    private constructor(private bot : builder.UniversalBot, options: IBlisOptions) {
+    //LARSOLD private blisRecognizer : BlisRecognizer;
+    //LARSOLD private recognizers: builder.IntentRecognizerSet;
+
+    constructor(options: IBlisOptions) {
         super();
 
         try {
-            BlisDebug.InitLogger(bot)
-            
             this.options = options;
-            this.blisRecognizer = new BlisRecognizer();
-            this.recognizers = new builder.IntentRecognizerSet({ recognizers: [this.blisRecognizer]});
+            //LARSOLDthis.blisRecognizer = new BlisRecognizer();
+            //LARSOLDthis.recognizers = new builder.IntentRecognizerSet({ recognizers: [this.blisRecognizer]});
 
             BlisDebug.Log("Creating client....");
             BlisClient.SetServiceURI(options.serviceUri);
@@ -101,10 +101,26 @@ export class BlisDialog extends builder.Dialog {
         catch (error) {
             BlisDebug.Error(error, "Dialog Constructor");
         }
+
+        this.onRecognize((botContext) => {
+            if (!this.bot) {
+                this.bot = botContext.bot;
+                BlisDebug.InitLogger(this.bot);
+            }
+            const intents: BB.Intent[] = [];
+            return this.ProcessInput(botContext)
+                .then((res) => {
+                    if (res) {
+                        intents.push(res);
+                    }
+                    return intents;
+                });
+        });
     }
-    
+   
     /** Called when a new reply message has been received from a user. */
-    public async replyReceived(session: builder.Session, recognizeResult?: builder.IIntentRecognizerResult): Promise<void> 
+    /* LARSOLD
+    public async replyReceived(context: BotContext, recognizeResult?: builder.IIntentRecognizerResult): Promise<void> 
     {
         if (!recognizeResult) {
             var context = <builder.IRecognizeDialogContext>session.toRecognizeContext();
@@ -124,27 +140,28 @@ export class BlisDialog extends builder.Dialog {
         } else {
             this.invokeAnswer(session, recognizeResult);
         }
-    }
+    }*/
 
     /** Parses the users utterance and assigns a score from 0.0 - 1.0 indicating
      * how confident the dialog is that it understood the users utterance.  */
-    public recognize(context: builder.IRecognizeContext, cb: (error: Error, result: IBlisResult) => void): void {
+ /*LARSOLD   public recognize(context: builder.IRecognizeContext, cb: (error: Error, result: IBlisResult) => void): void {
         this.recognizers.recognize(context, cb);
-    }
-
+    }*/
+/*LARSOLD
     public recognizer(plugin: builder.IIntentRecognizer): this {
         // Append recognizer
         this.recognizers.recognizer(plugin);
         return this;
     }
-
+*/
+/*LARSOLD
     private invokeAnswer(session: builder.Session, recognizeResult: builder.IIntentRecognizerResult): void {
 
          this.ProcessInput(session, async () => {
          });
         
     }
-
+*/
     private validationError() : string {
         let errMsg = "";
         if (!this.options.serviceUri) {
@@ -162,21 +179,21 @@ export class BlisDialog extends builder.Dialog {
         return errMsg;
     }
 
-    private async StartSessionAsync(session: builder.Session, memory: BlisMemory, appId: string): Promise<string> {
+    private async StartSessionAsync(botContext: BotContext, memory: BlisMemory, appId: string): Promise<string> {
 
         let sessionResponse = await BlisClient.client.StartSession(appId);
-        await memory.StartSessionAsync(sessionResponse.sessionId, session.message.address.conversation.id, false);
-        BlisDebug.Verbose(`Started Session: ${sessionResponse.sessionId} - ${session.message.address.conversation.id}`);
+        await memory.StartSessionAsync(sessionResponse.sessionId, botContext.request.from.id /*LARSOLD .message.address.conversation.id*/, false);
+        BlisDebug.Verbose(`Started Session: ${sessionResponse.sessionId} - ${botContext.request.from.id /*LARSOLD .message.address.conversation.id*/}`);
         return sessionResponse.sessionId;
     }
 
-    private async ProcessInput(session: builder.Session, cb : () => void) : Promise<void>
+    private async ProcessInput(botContext: BotContext) : Promise<BB.Intent>
     {
         let errComponent = "ProcessInput";
         let memory: BlisMemory = null;
         try {
             BlisDebug.Verbose(`Process Input...`);
-            let context = await BlisContext.CreateAsync(this.bot, session);
+            let context = await BlisContext.CreateAsync(this.bot, botContext);
 
             memory = context.Memory();
 
@@ -185,7 +202,7 @@ export class BlisDialog extends builder.Dialog {
             if (validationError) {
                 BlisDebug.Error(validationError);
                 await Utils.SendMessage(this.bot, memory, validationError);
-                return;
+                return null;
             }
 
             let inTeach = await memory.BotState.InTeachAsync();
@@ -205,15 +222,15 @@ export class BlisDialog extends builder.Dialog {
             } 
             else {
                 // Attempt to load the session
-                sessionId = await memory.BotState.SessionIdAsync(session.message.address.conversation.id);
+                sessionId = await memory.BotState.SessionIdAsync(botContext.request.from.id);//LARSOLD CHEKC .message.address.conversation.id);
             }
 
             // If no session for this conversation (or it's expired), create a new one
             if (!sessionId) {
-                sessionId = await this.StartSessionAsync(session, memory, app.appId);
+                sessionId = await this.StartSessionAsync(botContext, memory, app.appId);
             }
 
-            let userInput = new UserInput({text: session.message.text});
+            let userInput = new UserInput({text: botContext.request.text});//LARSOLD  .message.text});
 
             // Teach inputs are handled via API calls from the BLIS api
             if (!inTeach)
@@ -223,8 +240,10 @@ export class BlisDialog extends builder.Dialog {
                 let extractResponse = await BlisClient.client.SessionExtract(app.appId, sessionId, userInput);
 
                 errComponent = "ProcessExtraction";
-                await this.ProcessExtraction(app.appId, sessionId, memory, extractResponse.text, extractResponse.predictedEntities, extractResponse.definitions.entities); 
+                var actionId = await this.ProcessExtraction(app.appId, sessionId, memory, extractResponse.text, extractResponse.predictedEntities, extractResponse.definitions.entities); 
+                return { name: actionId } as BB.Intent;
             }
+            return null;
         }
         catch (error) {
             // Session is invalid
@@ -234,10 +253,11 @@ export class BlisDialog extends builder.Dialog {
             }
             let msg = BlisDebug.Error(error, errComponent);
             await Utils.SendMessage(this.bot, memory, msg);
+            return null;
         }
     }
 
-    private async ProcessExtraction(appId : string, sessionId : string, memory : BlisMemory, text : string, predictedEntities : PredictedEntity[], allEntities : EntityBase[])
+    private async ProcessExtraction(appId : string, sessionId : string, memory : BlisMemory, text : string, predictedEntities : PredictedEntity[], allEntities : EntityBase[]) : Promise<string>
     {
             // Call LUIS callback
             let scoreInput = await this.CallLuisCallback(text, predictedEntities, memory, allEntities);
@@ -251,14 +271,18 @@ export class BlisDialog extends builder.Dialog {
             // Take the action
             if (bestAction)
             {
-                this.TakeAction(bestAction, memory, allEntities);
+                return bestAction.actionId;
+                //LARSOLDthis.TakeAction(bestAction, memory, allEntities);
  
                 // If action isn't terminal loop through another time
+                /* LARSTODO
                 if (!bestAction.isTerminal)
                 {
                     await this.ProcessExtraction(appId, sessionId, memory, "", [], allEntities);
                 }
+                */
             }
+            return null;
     }
 
     public async TakeAction(scoredAction : ScoredAction, memory : BlisMemory, allEntities : EntityBase[]) : Promise<void>
@@ -350,6 +374,7 @@ export class BlisDialog extends builder.Dialog {
 
     private async TakeIntentAction(scoredAction : ScoredAction, memory : BlisMemory, allEntities : EntityBase[]) : Promise<void>
     {
+        /*LARSTODO
         // Extract intent name and entities
         let apiString = scoredAction.payload;
         let [intentName] = apiString.split(' ');
@@ -368,7 +393,8 @@ export class BlisDialog extends builder.Dialog {
         else
         {
             session.beginDialog(intentName, entities);
-        }                
+        }   
+        */             
     }
 
     public async CallLuisCallback(text: string, predictedEntities : PredictedEntity[], memory : BlisMemory, allEntities : EntityBase[]) : Promise<ScoreInput> {
@@ -385,7 +411,7 @@ export class BlisDialog extends builder.Dialog {
         return scoreInput;
     }
 
-    private async CallBlisCallback(scoredAction : ScoredAction, memory : BlisMemory, allEntities : EntityBase[]) : Promise<string | builder.Message> {
+    private async CallBlisCallback(scoredAction : ScoredAction, memory : BlisMemory, allEntities : EntityBase[]) : Promise<string/*LARSTODO | builder.Message*/> {
 
         let memoryManager = new ClientMemoryManager(memory, allEntities);
 
@@ -439,16 +465,17 @@ export class BlisDialog extends builder.Dialog {
         return scoreInput;
     }
 
-    private async DefaultBlisCallback(text: string, memoryManager : ClientMemoryManager) : Promise<string>
+    public async DefaultBlisCallback(text: string, memoryManager : ClientMemoryManager) : Promise<string>
     {
         let outText = await memoryManager.blisMemory.BotMemory.Substitute(text);
         return outText;
     }
 
-
-	private emitError(session: builder.Session, err: Error): void {
+/* LARSOLD- don't think this is used anywhere
+	private emitError(botContext: BotContext, err: Error): void {
 		var m = err.toString();
 		err = err instanceof Error ? err : new Error(m);
-		session.error(err);
-	}
+        botContext.error(err);
+    }
+    */
 }

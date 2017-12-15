@@ -2,7 +2,6 @@ import { BlisMemory } from '../BlisMemory';
 import { BlisDebug} from '../BlisDebug';
 import { Utils} from '../Utils';
 import { Memory, FilledEntity, MemoryValue, PredictedEntity } from 'blis-models';
-import * as builder from 'botbuilder'
 
 export const ActionCommand =
 {
@@ -259,8 +258,8 @@ export class BotMemory
         }
         return group;  
     }
-
-    public async GetEntities(text: string) : Promise<builder.IEntity[]> {
+/* LARSTODO - don't think used, but check
+    public async GetEntities(text: string) : Promise<Entity[]> {
         let entities = [];
         await this.Init();
         let words = this.Split(text);
@@ -283,7 +282,7 @@ export class BotMemory
         }
         return entities;
     }
-
+*/
     public async SubstituteEntities(text: string) : Promise<string> {
         let words = this.Split(text);
         await this.Init();

@@ -1,4 +1,4 @@
-import * as builder from 'botbuilder';
+import * as BB from 'botbuilder-core';
 import { BlisMemory } from '../BlisMemory';
 import { BlisAppBase } from 'blis-models';
 
@@ -189,13 +189,13 @@ export class BotState
     }
 
 
-    public async SetAddressAsync(address : builder.IAddress) : Promise<void> {
+    public async SetAddressAsync(address :BB.ChannelAccount) : Promise<void> {
         await this.Init();    
         this.address = JSON.stringify(address);
         await this.SetAsync();
     }
 
-    public async AddressAsync() : Promise<builder.IAddress> {
+    public async AddressAsync() : Promise<BB.ChannelAccount> {
         try {
             await this.Init();    
             let addressString = this.address;
@@ -208,7 +208,8 @@ export class BotState
     }
 
     //------------------------------------------------------------------
-    public async SessionAsync(bot : builder.UniversalBot) : Promise<any> {
+    /*LARSTODO - don't think this is actually used anyway
+    public async SessionAsync(bot : BB.Bot) : Promise<any> {
         let address = await this.AddressAsync();
         return new Promise(function(resolve,reject) {
             bot.loadSession(address, (err, session) => {
@@ -220,4 +221,5 @@ export class BotState
             });
         });
     }
+    */
 }

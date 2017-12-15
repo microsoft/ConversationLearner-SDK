@@ -1,26 +1,24 @@
-import * as builder from 'botbuilder';
+import * as BB from 'botbuilder-core';
 import { BlisMemory } from './BlisMemory'
 
 export class BlisContext
 { 
-    public session : builder.Session;
-    public bot : builder.UniversalBot;
+    public botContext : BotContext;
     private memory : BlisMemory;
 
-    private constructor(bot : builder.UniversalBot, session : builder.Session) {
-        this.bot = bot;
-        this.session = session;
+    private constructor(botContext : BotContext) {
+        this.botContext = botContext;
     }
 
-    public static async CreateAsync(bot : builder.UniversalBot, session : builder.Session) {
-        let context = new BlisContext(bot, session);
-        context.memory = await BlisMemory.InitMemory(context.session);
+    public static async CreateAsync(bot : BB.Bot, botContext : BotContext) {
+        let context = new BlisContext(botContext);
+        context.memory = await BlisMemory.InitMemory(botContext);
         return context;
     }
 
-    public Address() : builder.IAddress
+    public Address() : BB.ChannelAccount
     { 
-        return this.session.message.address;
+        return this.botContext.request.from;//TODOOLD.message.address;
     }
 
     public Memory() : BlisMemory

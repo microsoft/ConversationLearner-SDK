@@ -1,4 +1,3 @@
-import * as builder from 'botbuilder'
 import { BlisDebug} from './BlisDebug';
 import { BotMemory } from './Memory/BotMemory';
 import { BotState } from './Memory/BotState';
@@ -40,13 +39,13 @@ export class BlisMemory {
     }
 
     // Generate memory key from session
-    public static async InitMemory(session : builder.Session) : Promise<BlisMemory> 
+    public static async InitMemory(botContext : BotContext) : Promise<BlisMemory> 
     {
-        let user = session.message.address.user;
+        let user = botContext.request.from;//LARSOLD.message.address.user;
         let userdata = { id: user.id, name: user.name };
         let key = KeyGen.MakeKey(JSON.stringify(userdata));
         let memory = new BlisMemory(key);
-        await memory.BotState.SetAddressAsync(session.message.address);
+        await memory.BotState.SetAddressAsync(botContext.request.from);//LARSOLD.message.address);
         return memory;
     }
 

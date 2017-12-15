@@ -1,9 +1,9 @@
 {
-  "name": "blisdk",
-  "version": "0.86.0",
+  "name": "blis-sdk",
+  "version": "0.90.0",
   "description": "Node SDK for Blis",
-  "main": "lib/Blisdk.js",
-  "typings": "lib/Blisdk.d.ts",
+  "main": "lib/Blis-SDK.js",
+  "typings": "lib/Blis-SDK.d.ts",
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf lib",
@@ -12,8 +12,8 @@
   "author": "Microsoft BLIS Team",
   "license": "MIT",
   "dependencies": {
-    "blis-models": "^0.82.0",
-    "botbuilder": "^3.9.0",
+    "blis-models": "file:c:/codebox/BLIS/BLIS-MODELS",
+    "botbuilder-core": "^4.0.0-h4.2",
     "express": "^4.15.3",
     "node-cache": "^4.1.1",
     "offline-directline": "^1.1.5",

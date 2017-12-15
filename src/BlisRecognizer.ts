@@ -1,4 +1,5 @@
-import * as builder from 'botbuilder';
+//LARSTODO - goes away
+/*import * as builder from 'botbuilder';
 
 export interface IBlisResult extends builder.IIntentRecognizerResult {
    recognizer: BlisRecognizer;
@@ -6,7 +7,7 @@ export interface IBlisResult extends builder.IIntentRecognizerResult {
 
 export class BlisRecognizer implements builder.IIntentRecognizer {
 
-    /** Receive input from user and returns a score */
+    // Receive input from user and returns a score 
     public recognize(reginput: builder.IRecognizeContext, recCb: (error: Error, result: IBlisResult) => void): void 
     {  
         // Always recognize, but score is less than 1.0 so prompts can still win
@@ -15,4 +16,4 @@ export class BlisRecognizer implements builder.IIntentRecognizer {
         // Send callback
         recCb(null, result);
     }
-}
+}*/
