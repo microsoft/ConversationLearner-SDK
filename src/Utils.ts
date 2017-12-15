@@ -163,7 +163,11 @@ export class Utils  {
         )
     }
 
-    public static PrebuiltDisplayText(prebuiltType: string, resolution: any) : string {
+    public static PrebuiltDisplayText(prebuiltType: string, resolution: any, entityText: string) : string {
+        if (prebuiltType.startsWith('builtin.encyclopedia')) {
+            return entityText
+        }
+
         switch (prebuiltType) {
             case "builtin.datetimeV2.date":
                 let date = resolution.values[0].value;
@@ -207,7 +211,8 @@ export class Utils  {
                 return resolution.value;
             case "builtin.geography.pointOfInterest":
                 return resolution.value;
-            case "builtin.encyclopedia":	
+            case "builtin.encyclopedia":
+                return entityText
             default:
                 return null;
         }
