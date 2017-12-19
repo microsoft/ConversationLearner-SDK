@@ -55,23 +55,16 @@ export class Utils  {
     /** Send a text message */
     public static async SendMessage(bot : BB.Bot, memory : BlisMemory, content : string /*LARSTODO | builder.Message*/)
     { 
-        /*LARSTODO
         if (memory) {
-            let address = await memory.BotState.AddressAsync();
-            let session = await memory.BotState.SessionAsync(bot);
-
+            await memory.BotState.SendMessage(bot, content);
+/* LARSTODO
             if (typeof content !== 'string') {
-                session.send(content);
+                botContext.send(content);
             }
             else { 
-                let message = new builder.Message()
-                    .address(address)
-                    .text(content);
-            
-                session.send(message);
-            }
+                botContext.reply(content);
+            }*/
         }
-        */
     }
 
     public static SendAsAttachment(context : BlisContext, content: string)

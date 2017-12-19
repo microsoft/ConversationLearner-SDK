@@ -45,7 +45,7 @@ export class BlisMemory {
         let userdata = { id: user.id, name: user.name };
         let key = KeyGen.MakeKey(JSON.stringify(userdata));
         let memory = new BlisMemory(key);
-        await memory.BotState.SetAddressAsync(botContext.request.from);//LARSOLD.message.address);
+        await memory.BotState.SetConversationReferenceAsync(botContext.conversationReference);//LARSOLD.message.address);
         return memory;
     }
 

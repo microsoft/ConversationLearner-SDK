@@ -77,7 +77,7 @@ export class BlisDialog extends BB.IntentRecognizer {
     //LARSOLD private recognizers: builder.IntentRecognizerSet;
 
     constructor(options: IBlisOptions) {
-        super();
+       super();
 
         try {
             this.options = options;
@@ -241,7 +241,10 @@ export class BlisDialog extends BB.IntentRecognizer {
 
                 errComponent = "ProcessExtraction";
                 var actionId = await this.ProcessExtraction(app.appId, sessionId, memory, extractResponse.text, extractResponse.predictedEntities, extractResponse.definitions.entities); 
-                return { name: actionId } as BB.Intent;
+                return { 
+                    name: actionId,
+                    score: 1.0 
+                } as BB.Intent;
             }
             return null;
         }
@@ -284,6 +287,11 @@ export class BlisDialog extends BB.IntentRecognizer {
             }
             return null;
     }
+
+    public static async SendAction(memory : BlisMemory, actionId: string) : Promise<void>
+    {
+        await Utils.SendMessage(BlisDialog.Instance.bot, memory, actionId);
+    } 
 
     public async TakeAction(scoredAction : ScoredAction, memory : BlisMemory, allEntities : EntityBase[]) : Promise<void>
     {

@@ -25,7 +25,7 @@ export class BotState
  
     public inDebug : boolean = false;
 
-    public address : string = null;
+    public conversationReference : BB.ConversationReference = null;
 
     private constructor(init?:Partial<BotState>)
     {
@@ -88,7 +88,7 @@ export class BotState
         this.convSession = json.convSession;
         this.inTeach = json.inTeach ? json.inTeach : false;
         this.inDebug = json.inDebug ? json.inDebug : false;
-        this.address = json.address;
+        this.conversationReference = json.conversationReference;
     }
 
     private Serialize() : string
@@ -98,7 +98,7 @@ export class BotState
             convSession : this.convSession,
             inTeach : this.inTeach ? this.inTeach : false,
             inDebug : this.inDebug ? this.inDebug : false,
-            address : this.address
+            conversationReference : this.conversationReference
         }
         return JSON.stringify(jsonObj);
     }
@@ -189,17 +189,16 @@ export class BotState
     }
 
 
-    public async SetAddressAsync(address :BB.ChannelAccount) : Promise<void> {
+    public async SetConversationReferenceAsync(conversationReference :BB.ConversationReference) : Promise<void> {
         await this.Init();    
-        this.address = JSON.stringify(address);
+        this.conversationReference = conversationReference;
         await this.SetAsync();
     }
 
-    public async AddressAsync() : Promise<BB.ChannelAccount> {
+    public async ConversationReverenceAsync() : Promise<BB.ConversationReference> {
         try {
             await this.Init();    
-            let addressString = this.address;
-            return JSON.parse(addressString);
+            return this.conversationReference;
         }
         catch (err)
         {
@@ -208,18 +207,10 @@ export class BotState
     }
 
     //------------------------------------------------------------------
-    /*LARSTODO - don't think this is actually used anyway
-    public async SessionAsync(bot : BB.Bot) : Promise<any> {
-        let address = await this.AddressAsync();
-        return new Promise(function(resolve,reject) {
-            bot.loadSession(address, (err, session) => {
-                if(err !== null) {
-                    reject(err);
-                } else {
-                    resolve(session);
-                }
-            });
+    public async SendMessage(bot : BB.Bot, message: string) : Promise<any> {
+        let conversationReference = await this.ConversationReverenceAsync();
+        bot.createContext(conversationReference, (context) => {
+            context.reply(message);
         });
     }
-    */
 }

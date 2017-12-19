@@ -1242,7 +1242,8 @@ export class Server {
                         let memory = BlisMemory.GetMemory(key);
 
                         // Now take the trained action
-                        await BlisDialog.Instance.TakeAction(scoredAction, memory, uiTrainScorerStep.entities);
+                        //LARSOLD await BlisDialog.Instance.TakeAction(scoredAction, memory, uiTrainScorerStep.entities);
+                        await BlisDialog.SendAction(memory, scoredAction.actionId);
                                                 
                         let memories = await memory.BotMemory.DumpMemory();
                         let uiTeachResponse = new UITeachResponse({teachResponse : teachResponse, memories : memories});
