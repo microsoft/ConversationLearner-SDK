@@ -2,7 +2,7 @@ import * as builder from 'botbuilder'
 import { BlisDebug} from './BlisDebug';
 import { BotMemory } from './Memory/BotMemory';
 import { BotState } from './Memory/BotState';
-import { KeyGen, BlisAppBase } from 'blis-models'
+import { BlisAppBase } from 'blis-models'
 import * as Redis from "redis";
 
 export class BlisMemory {
@@ -42,10 +42,8 @@ export class BlisMemory {
     // Generate memory key from session
     public static async InitMemory(session : builder.Session) : Promise<BlisMemory> 
     {
-        let user = session.message.address.user;
-        let userdata = { id: user.id, name: user.name };
-        let key = KeyGen.MakeKey(JSON.stringify(userdata));
-        let memory = new BlisMemory(key);
+        const user = session.message.address.user;
+        const memory = new BlisMemory(user.id);
         await memory.BotState.SetAddressAsync(session.message.address);
         return memory;
     }
