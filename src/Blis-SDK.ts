@@ -1,11 +1,13 @@
-import { BlisDialog } from "./BlisDialog";
+import { Blis } from "./Blis";
+import { IBlisOptions } from "./BlisOptions";
+import { BlisRecognizer } from "./BlisRecognizer";
+import { BlisTemplateManager } from "./BlisTemplateManager";
 import { ClientMemoryManager } from "./Memory/ClientMemoryManager";
-import { APICallback, BlisCallback, LuisCallback } from "./Decorators";
 
 export {
-    BlisDialog,
-    ClientMemoryManager,
-    APICallback,
-    BlisCallback,
-    LuisCallback
+    Blis,
+    IBlisOptions,
+    BlisRecognizer,
+    BlisTemplateManager,
+    ClientMemoryManager
 }

@@ -1,19 +1,132 @@
-//LARSTODO - goes away
-/*import * as builder from 'botbuilder';
+import * as BB from 'botbuilder-core';
+import { UserInput, PredictedEntity,
+    EntityBase, ScoredAction } from 'blis-models'
+import { BlisDebug } from './BlisDebug';
+import { BlisMemory } from './BlisMemory';
+import { BlisClient } from './BlisClient';
+import { BlisContext} from './BlisContext';
+import { BlisIntent } from './BlisIntent';
+import { Blis } from './Blis';
+import { IBlisOptions } from './BlisOptions';
 
-export interface IBlisResult extends builder.IIntentRecognizerResult {
-   recognizer: BlisRecognizer;
-}
+export const BLIS_INTENT_WRAPPER = "BLIS_INTENT_WRAPPER";
 
-export class BlisRecognizer implements builder.IIntentRecognizer {
+export class BlisRecognizer extends BB.IntentRecognizer {
 
-    // Receive input from user and returns a score 
-    public recognize(reginput: builder.IRecognizeContext, recCb: (error: Error, result: IBlisResult) => void): void 
-    {  
-        // Always recognize, but score is less than 1.0 so prompts can still win
-        var result: IBlisResult = { recognizer: this, score: 0.4, intent: null, entities : null };
+    constructor(options: IBlisOptions) {
+       super();
 
-        // Send callback
-        recCb(null, result);
+        this.onRecognize((botContext) => {
+            Blis.SetBot(botContext.bot);
+
+            const intents: BB.Intent[] = [];
+            return this.ProcessInput(botContext)
+                .then((res) => {
+                    if (res) {
+                        intents.push(res);
+                    }
+                    return intents;
+                });
+        });
     }
-}*/
+
+    private async StartSessionAsync(botContext: BotContext, memory: BlisMemory, appId: string): Promise<string> {
+
+        let sessionResponse = await BlisClient.client.StartSession(appId);
+        await memory.StartSessionAsync(sessionResponse.sessionId, botContext.request.from.id /*LARSOLD .message.address.conversation.id*/, false);
+        BlisDebug.Verbose(`Started Session: ${sessionResponse.sessionId} - ${botContext.request.from.id /*LARSOLD .message.address.conversation.id*/}`);
+        return sessionResponse.sessionId;
+    }
+
+    private async ProcessInput(botContext: BotContext) : Promise<BB.Intent>
+    {
+        let errComponent = "ProcessInput";
+        let memory: BlisMemory = null;
+        try {
+            BlisDebug.Verbose(`Process Input...`);
+            let blisContext = await BlisContext.CreateAsync(Blis.bot, botContext);
+
+            memory = blisContext.Memory();
+
+            // Validate setup
+            let validationError = Blis.ValidationErrors();
+            if (validationError) {
+                BlisDebug.Error(validationError);
+                await Blis.SendMessage(memory, validationError);
+                return null;
+            }
+
+            let inTeach = await memory.BotState.InTeachAsync();
+            let app = await memory.BotState.AppAsync();
+            let sessionId = null;
+
+            // If I don't have an app yet, or app does not match
+            if (!app || (Blis.options.appId && app.appId !== Blis.options.appId)) {
+                if (Blis.options.appId) {
+                    BlisDebug.Log(`Selecting app: ${Blis.options.appId}`);
+                    app = await BlisClient.client.GetApp(Blis.options.appId, null);
+                    await memory.BotState.SetAppAsync(app);
+                }
+                else {
+                    throw "BLIS AppID not specified"
+                }
+            } 
+            else {
+                // Attempt to load the session
+                sessionId = await memory.BotState.SessionIdAsync(botContext.request.from.id);
+            }
+
+            // If no session for this conversation (or it's expired), create a new one
+            if (!sessionId) {
+                sessionId = await this.StartSessionAsync(botContext, memory, app.appId);
+            }
+
+            let userInput = new UserInput({text: botContext.request.text});
+
+            // Teach inputs are handled via API calls from the BLIS api
+            if (!inTeach)
+            {
+                // Call the entity extractor
+                errComponent = "SessionExtract";
+                let extractResponse = await BlisClient.client.SessionExtract(app.appId, sessionId, userInput);
+
+                errComponent = "ProcessExtraction";
+                var scoredAction = await this.Score(app.appId, sessionId, memory, extractResponse.text, extractResponse.predictedEntities, extractResponse.definitions.entities); 
+
+                return { 
+                    name: scoredAction.actionId,
+                    score: 1.0,
+                    scoredAction: scoredAction,
+                    blisEntities: extractResponse.definitions.entities,
+                    memory: memory
+                } as BlisIntent;
+            }
+            return null;
+        }
+        catch (error) {
+            // Session is invalid
+            if (memory) {
+                BlisDebug.Verbose("ProcessInput Failure. Clearing Session");
+                memory.EndSession();
+            }
+            let msg = BlisDebug.Error(error, errComponent);
+            await Blis.SendMessage(memory, msg);
+            return null;
+        }
+    }
+
+    public async Score(appId : string, sessionId : string, memory : BlisMemory, text : string, predictedEntities : PredictedEntity[], allEntities : EntityBase[]) : Promise<ScoredAction>
+    {
+            // Call LUIS callback
+            let scoreInput = await Blis.CallLuisCallback(text, predictedEntities, memory, allEntities);
+            
+            // Call the scorer
+            let scoreResponse = await BlisClient.client.SessionScore(appId, sessionId, scoreInput);
+
+            // Get best action
+            let bestAction = scoreResponse.scoredActions[0];
+
+            // Return the action
+            return bestAction;
+    }
+}

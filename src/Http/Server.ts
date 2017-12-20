@@ -1,8 +1,9 @@
 import * as Restify from 'restify';
 import { BlisDebug } from '../BlisDebug';
 import { BlisClient } from '../BlisClient';
-import { BlisDialog } from '../BlisDialog'
+import { Blis } from '../Blis'
 import { BlisMemory } from '../BlisMemory';
+import { BlisIntent } from '../BlisIntent';
 import { Utils } from '../Utils';
 import * as XMLDom from 'xmldom';
 import { TrainDialog, BotInfo, 
@@ -141,7 +142,7 @@ export class Server {
 
                 try
                 {
-                    let callbacks = Object.keys(BlisDialog.apiCallbacks);
+                    let callbacks = Object.keys(Blis.apiCallbacks);
                     let botInfo = new BotInfo({callbacks: callbacks});
                     res.send(botInfo);
                 }
@@ -1174,7 +1175,7 @@ export class Server {
 
                         // Call LUIS callback to get scoreInput
                         let extractResponse = uiScoreInput.extractResponse;      
-                        let scoreInput = await BlisDialog.Instance.CallLuisCallback(extractResponse.text, extractResponse.predictedEntities, memory, extractResponse.definitions.entities);
+                        let scoreInput = await Blis.CallLuisCallback(extractResponse.text, extractResponse.predictedEntities, memory, extractResponse.definitions.entities);
 
                         // Get score response
                         let scoreResponse = await BlisClient.client.TeachScore(appId, teachId, scoreInput);
@@ -1241,9 +1242,16 @@ export class Server {
                         
                         let memory = BlisMemory.GetMemory(key);
 
-                        // Now take the trained action
-                        //LARSOLD await BlisDialog.Instance.TakeAction(scoredAction, memory, uiTrainScorerStep.entities);
-                        await BlisDialog.SendAction(memory, scoredAction.actionId);
+                        // Now send the trained intent
+                        let intent = { 
+                            name: scoredAction.actionId,
+                            score: 1.0,
+                            scoredAction: scoredAction,
+                            blisEntities: uiTrainScorerStep.entities,
+                            memory: memory
+                        } as BlisIntent;
+
+                        await Blis.SendIntent(memory, intent);
                                                 
                         let memories = await memory.BotMemory.DumpMemory();
                         let uiTeachResponse = new UITeachResponse({teachResponse : teachResponse, memories : memories});

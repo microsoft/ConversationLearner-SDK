@@ -1,6 +1,7 @@
 import * as BB from 'botbuilder-core';
 import { BlisMemory } from '../BlisMemory';
 import { BlisAppBase } from 'blis-models';
+import { BlisIntent } from '../BlisIntent';
 
 export class ConversationSession {
     public sessionId: string = null;
@@ -211,6 +212,13 @@ export class BotState
         let conversationReference = await this.ConversationReverenceAsync();
         bot.createContext(conversationReference, (context) => {
             context.reply(message);
+        });
+    }
+
+    public async SendIntent(bot : BB.Bot, intent: BlisIntent) : Promise<any> {
+        let conversationReference = await this.ConversationReverenceAsync();
+        bot.createContext(conversationReference, (context) => {
+            context.replyWith(intent.scoredAction.actionId, intent);
         });
     }
 }

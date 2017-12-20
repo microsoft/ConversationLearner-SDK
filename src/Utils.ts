@@ -4,6 +4,7 @@ import * as request from 'request';
 import { BlisContext } from './BlisContext';
 import { BlisMemory } from './BlisMemory';
 import { TrainExtractorStep, TextVariation, LabeledEntity, TrainDialog, TrainRound } from 'blis-models';
+import { BlisIntent } from './BlisIntent';
 
 export class Utils  {
 
@@ -64,6 +65,14 @@ export class Utils  {
             else { 
                 botContext.reply(content);
             }*/
+        }
+    }
+
+    /** Send an intent */
+    public static async SendIntent(bot : BB.Bot, memory : BlisMemory, intent : BlisIntent)
+    { 
+        if (memory) {
+            await memory.BotState.SendIntent(bot, intent);
         }
     }
 

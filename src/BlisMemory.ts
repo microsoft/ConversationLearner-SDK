@@ -41,11 +41,11 @@ export class BlisMemory {
     // Generate memory key from session
     public static async InitMemory(botContext : BotContext) : Promise<BlisMemory> 
     {
-        let user = botContext.request.from;//LARSOLD.message.address.user;
+        let user = botContext.request.from;
         let userdata = { id: user.id, name: user.name };
         let key = KeyGen.MakeKey(JSON.stringify(userdata));
         let memory = new BlisMemory(key);
-        await memory.BotState.SetConversationReferenceAsync(botContext.conversationReference);//LARSOLD.message.address);
+        await memory.BotState.SetConversationReferenceAsync(botContext.conversationReference);
         return memory;
     }
 
