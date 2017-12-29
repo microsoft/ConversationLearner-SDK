@@ -4,6 +4,7 @@ import { BlisClient } from '../BlisClient';
 import { Blis } from '../Blis'
 import { BlisMemory } from '../BlisMemory';
 import { BlisIntent } from '../BlisIntent';
+import { TemplateProvider } from '../TemplateProvider';
 import { Utils } from '../Utils';
 import * as XMLDom from 'xmldom';
 import { TrainDialog, BotInfo, 
@@ -142,8 +143,11 @@ export class Server {
 
                 try
                 {
-                    let callbacks = Object.keys(Blis.apiCallbacks);
-                    let botInfo = new BotInfo({callbacks: callbacks});
+                    let botInfo = new BotInfo(
+                        {
+                            callbacks: Object.keys(Blis.apiCallbacks),
+                            templates: TemplateProvider.GetTemplates()
+                        });
                     res.send(botInfo);
                 }
                 catch (error)
@@ -1126,6 +1130,11 @@ export class Server {
                         let appId = req.params.appId;
                         let teachId = req.params.teachId;
                         let userInput = req.body;
+
+                        // If a form text could be null
+                        if (!userInput.text) {
+                            userInput.text = "  ";
+                        }
                         let extractResponse = await BlisClient.client.TeachExtract(appId, teachId, userInput);
 
                         let memory = BlisMemory.GetMemory(key);

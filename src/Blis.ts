@@ -7,10 +7,11 @@ import { BlisDebug } from './BlisDebug';
 import { BlisClient } from './BlisClient';
 import { Server } from './Http/Server';
 import { InitDOLRunner } from './DOLRunner';
+import { TemplateProvider } from './TemplateProvider';
 import { AzureFunctions } from './AzureFunctions';
 import { Utils } from './Utils';
 import { EntityBase, ScoredAction, PredictedEntity,
-        ScoreInput, ModelUtils } from 'blis-models'
+        ScoreInput, ModelUtils, ActionBase } from 'blis-models'
 import { ClientMemoryManager} from './Memory/ClientMemoryManager';
 import { BlisIntent } from './BlisIntent';
 
@@ -171,8 +172,8 @@ export class Blis  {
         }
 
         // Extract API name and args
-        let apiName = ModelUtils.GetPrimaryPayload(scoredAction);
-        let args = ModelUtils.GetArguments(scoredAction);
+        let apiName = ActionBase.GetPayload(scoredAction);
+        let args = ActionBase.GetArguments(scoredAction);
 
         // Make any entity substitutions
         let argArray = [];
@@ -191,6 +192,16 @@ export class Blis  {
         let memoryManager = new ClientMemoryManager(memory, allEntities);
         
         return await api(memoryManager, argArray); 
+    }
+
+    public static async TakeCardAction(scoredAction : ScoredAction, memory : BlisMemory, allEntities : EntityBase[]) : Promise<Partial<BB.Activity> | string | undefined>
+    {
+        /// LARSTODO - card should be registered and checked that it exists
+        let form = await TemplateProvider.RenderTemplate(scoredAction, memory);
+        const attachment = BB.CardStyler.adaptiveCard(form);
+        const message = BB.MessageStyler.attachment(attachment);
+        message.text = null;
+        return message;
     }
 
     public static async TakeAzureAPIAction(scoredAction : ScoredAction, memory : BlisMemory, allEntities : EntityBase[]) : Promise<Partial<BB.Activity> | string | undefined>

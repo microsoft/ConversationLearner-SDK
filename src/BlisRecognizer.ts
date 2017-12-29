@@ -81,23 +81,34 @@ export class BlisRecognizer extends BB.IntentRecognizer {
                 sessionId = await this.StartSessionAsync(botContext, memory, app.appId);
             }
 
-            let userInput = new UserInput({text: botContext.request.text});
+            // Process any form data
+            let buttonResponse = await this.ProcessFormData(botContext, memory, app.appId);
 
             // Teach inputs are handled via API calls from the BLIS api
             if (!inTeach)
             {
-                // Call the entity extractor
-                errComponent = "SessionExtract";
-                let extractResponse = await BlisClient.client.SessionExtract(app.appId, sessionId, userInput);
-
-                errComponent = "ProcessExtraction";
-                var scoredAction = await this.Score(app.appId, sessionId, memory, extractResponse.text, extractResponse.predictedEntities, extractResponse.definitions.entities); 
+                let scoredAction : ScoredAction = null;
+                let entities : EntityBase[] = null;
+      //          if (botContext.request.text) {
+                    // Call the entity extractor
+                    errComponent = "SessionExtract";
+                    let userInput = new UserInput({text: buttonResponse || botContext.request.text || "  "});
+                    let extractResponse = await BlisClient.client.SessionExtract(app.appId, sessionId, userInput);
+                    entities = extractResponse.definitions.entities;
+                    errComponent = "ProcessExtraction";
+                    scoredAction = await this.Score(app.appId, sessionId, memory, extractResponse.text, extractResponse.predictedEntities, entities); 
+     /*           }
+                else {
+                    // No text, so just get entities and score
+                    entities = (await BlisClient.client.GetEntities(app.appId, null)).entities;
+                    scoredAction = await Blis.recognizer.Score(app.appId, sessionId, memory, "", [], entities);
+                }*/
 
                 return { 
                     name: scoredAction.actionId,
                     score: 1.0,
                     scoredAction: scoredAction,
-                    blisEntities: extractResponse.definitions.entities,
+                    blisEntities: entities,
                     memory: memory
                 } as BlisIntent;
             }
@@ -113,6 +124,42 @@ export class BlisRecognizer extends BB.IntentRecognizer {
             await Blis.SendMessage(memory, msg);
             return null;
         }
+    }
+
+    private async ProcessFormData(context: BotContext, blisMemory: BlisMemory, appId: string) : Promise<string> {
+    
+        const data = context.request.value as FormData;
+        if (data) {
+
+            // If submit type return as a response
+            if (data['submit'] === "submit") {
+                return data['submit'];
+            }
+            // Get list of all entities
+            let entityList = await BlisClient.client.GetEntities(appId, null);
+
+            // For each form entry
+            for (let entityName of Object.keys(data)) {
+
+                // Reserved parameter
+                if (entityName == 'target') {
+                    continue;
+                }
+                                
+                // Find the entity
+                let entity = entityList.entities.find(e => e.entityName == entityName);
+                
+                if (!entity) {
+                    BlisDebug.Error(`Form - Can't find Entity named: ${entityName}`);
+                    return null;
+                }
+                // Set it
+                let isBucket = entity.metadata ? entity.metadata.isBucket : false;
+                await blisMemory.BotMemory.Remember(entity.entityName, entity.entityId, data[entityName], isBucket);
+                 
+            }
+        }
+        return null;
     }
 
     public async Score(appId : string, sessionId : string, memory : BlisMemory, text : string, predictedEntities : PredictedEntity[], allEntities : EntityBase[]) : Promise<ScoredAction>

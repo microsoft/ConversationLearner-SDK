@@ -14,7 +14,7 @@ export class BlisTemplateManager extends BB.TemplateManager {
 export class BlisTemplateRenderer implements BB.TemplateRenderer {
 
     public async renderTemplate(botContext: BotContext, language: string, templateId: string, blisIntent: BlisIntent): Promise<Partial<BB.Activity> | string | undefined> {
-        
+
         let message = null;
         switch (blisIntent.scoredAction.metadata.actionType)  {
             case ActionTypes.TEXT:
@@ -26,6 +26,9 @@ export class BlisTemplateRenderer implements BB.TemplateRenderer {
             case ActionTypes.API_LOCAL:
                 message = await Blis.TakeLocalAPIAction(blisIntent.scoredAction, blisIntent.memory, blisIntent.blisEntities);
                 break;
+            case ActionTypes.CARD:
+                message = await Blis.TakeCardAction(blisIntent.scoredAction, blisIntent.memory, blisIntent.blisEntities);
+            break;
         }
         
         // If action wasn't terminal loop through BLIS again after a short delay
