@@ -93,20 +93,21 @@ export class BotMemory
             this.entityMap[entityName] = new FilledEntity({entityId: entityId});
         }
 
-        let displayText = builtinType ? Utils.PrebuiltDisplayText(builtinType, resolution) : null;
+        let displayText = builtinType ? Utils.PrebuiltDisplayText(builtinType, resolution, userText) : null;
 
+        const filledEntity = this.entityMap[entityName]
         // Check if entity buckets values
         if (isBucket)
         {
             // Add if not a duplicate
-            let value = this.entityMap[entityName].values.find(v => v.userText == userText);
-            if (!value) {
-                this.entityMap[entityName].values.push(new MemoryValue({userText: userText, displayText: displayText, builtinType: builtinType, resolution: resolution}));
+            const containsDuplicateValue = filledEntity.values.some(memoryValue => memoryValue.userText === userText);
+            if (!containsDuplicateValue) {
+                filledEntity.values.push(new MemoryValue({userText: userText, displayText: displayText, builtinType: builtinType, resolution: resolution}));
             }
         }
         else
         {
-            this.entityMap[entityName].values = [new MemoryValue({userText: userText, displayText: displayText, builtinType: builtinType, resolution: resolution})];
+            filledEntity.values = [new MemoryValue({userText: userText, displayText: displayText, builtinType: builtinType, resolution: resolution})];
         }
         await this.Set();
     }

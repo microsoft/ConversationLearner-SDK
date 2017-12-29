@@ -10,6 +10,13 @@ import * as XMLDom from 'xmldom';
 import { TrainDialog, BotInfo, 
         BlisAppBase, ActionBase, EntityBase } from 'blis-models'
 import { ScoreInput, UIScoreInput, UIExtractResponse, UIScoreResponse, UITeachResponse, UITrainScorerStep  } from 'blis-models'
+import * as corsMiddleware from 'restify-cors-middleware'
+
+const cors = corsMiddleware({
+    origins: ['*'],
+    allowHeaders: ['authorization'],
+    exposeHeaders: []
+})
 
 export class Server {
     private static server : Restify.Server = null;
@@ -84,11 +91,8 @@ export class Server {
         this.server.use(Restify.queryParser());
 
         //CORS
-        this.server.use(Restify.CORS({
-            origins: ['*'],
-            credentials: true,
-            headers: ['*']
-        }));
+        this.server.pre(cors.preflight)
+        this.server.use(cors.actual)
 
         this.server.on('restifyError', (req: any, res: any, err: any, cb: any) => {
             BlisDebug.Error(err, "ResiftyError");
