@@ -1,25 +1,23 @@
 var fs = require('fs');
-import * as BB from 'botbuilder-core';
-import { Template, ActionPayload, ScoredAction, TemplateVariable } from 'blis-models'
+import { Template, ActionPayload, TemplateVariable } from 'blis-models'
 import { BlisMemory } from './BlisMemory';
 
 //TODO - make this configurable
 const templateDirectory = __dirname + "../../../../cards/";
 
 export class TemplateProvider {
-    
-        public static async RenderAttachment(scoredAction: ScoredAction, memory: BlisMemory) : Promise<Partial<BB.Activity>> {
+    /* LARS REMOVE
+        public static async RenderAttachment(actionPayload: ActionPayload, memory: BlisMemory) : Promise<Partial<BB.Activity>> {
 
-            let form = await TemplateProvider.RenderTemplate(scoredAction, memory);
+            let form = await TemplateProvider.RenderTemplate(actionPayload, memory);
             const attachment = BB.CardStyler.adaptiveCard(form);
             const message = BB.MessageStyler.attachment(attachment);
             message.text = null;
             return message;
         }
+*/
+        public static async RenderTemplate(actionPayload: ActionPayload, memory: BlisMemory) : Promise<any> {
 
-        public static async RenderTemplate(scoredAction: ScoredAction, memory: BlisMemory) : Promise<any> {
-
-            let actionPayload = JSON.parse(scoredAction.payload) as ActionPayload;
             let templateName = actionPayload.payload;
 
             let template = this.GetTemplate(templateName);

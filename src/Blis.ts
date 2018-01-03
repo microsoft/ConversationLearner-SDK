@@ -10,8 +10,9 @@ import { InitDOLRunner } from './DOLRunner';
 import { TemplateProvider } from './TemplateProvider';
 import { AzureFunctions } from './AzureFunctions';
 import { Utils } from './Utils';
-import { EntityBase, ScoredAction, PredictedEntity,
-        ScoreInput, ModelUtils, ActionBase } from 'blis-models'
+import { EntityBase, PredictedEntity, 
+        ActionPayload, SenderType, ActionTypes,
+        ScoreInput, ModelUtils, ActionBase, CallbackAPI } from 'blis-models'
 import { ClientMemoryManager} from './Memory/ClientMemoryManager';
 import { BlisIntent } from './BlisIntent';
 
@@ -20,7 +21,8 @@ export class Blis  {
     public static options: IBlisOptions;
 
     // Mapping between user defined API names and functions
-    public static apiCallbacks : { string : (memoryManager: ClientMemoryManager, args : any[]) => Promise<BB.Activity | string | undefined> } | {} = {};
+    public static apiCallbacks : { string : (memoryManager: ClientMemoryManager, ...args : string[]) => Promise<BB.Activity | string | undefined> } | {} = {};
+    public static apiParams : CallbackAPI[] = [];
       
     // Optional callback than runs after LUIS but before BLIS.  Allows Bot to substitute entities
     public static luisCallback : (text: string, predictedEntities : PredictedEntity[], memoryManager : ClientMemoryManager) => Promise<ScoreInput>;
@@ -66,9 +68,10 @@ export class Blis  {
         }
     }
 
-    public static AddAPICallback(name: string, target : (memoryManager: ClientMemoryManager, args : any[]) => Promise<BB.Activity | string | undefined>)
+    public static AddAPICallback(name: string, target : (memoryManager: ClientMemoryManager, ...args : string[]) => Promise<BB.Activity | string | undefined>)
     {
         Blis.apiCallbacks[name] = target;
+        Blis.apiParams.push(new CallbackAPI({name: name, arguments: this.GetArguments(target)}));
     }
     
     public static LuisCallback(target : (text: string, predictedEntities : PredictedEntity[], memoryManager : ClientMemoryManager) => Promise<ScoreInput>)
@@ -143,16 +146,16 @@ export class Blis  {
         return scoreInput;
     }
     
-    public static async CallBlisCallback(scoredAction : ScoredAction, memory : BlisMemory, allEntities : EntityBase[]) : Promise<string/*LARSTODO | builder.Message*/> {
+    public static async CallBlisCallback(payload : string, memory : BlisMemory, allEntities : EntityBase[]) : Promise<string/*LARSTODO | builder.Message*/> {
         
         let memoryManager = new ClientMemoryManager(memory, allEntities);
 
         let outText = null;
         if (Blis.luisCallback) {
-            outText = await Blis.blisCallback(scoredAction.payload, memoryManager);
+            outText = await Blis.blisCallback(payload, memoryManager);
         }
         else {
-            outText = await Blis.DefaultBlisCallback(scoredAction.payload, memoryManager);
+            outText = await Blis.DefaultBlisCallback(payload, memoryManager);
         }
         return outText;
     }
@@ -163,7 +166,7 @@ export class Blis  {
         return outText;
     }
 
-    public static async TakeLocalAPIAction(scoredAction : ScoredAction, memory : BlisMemory, allEntities : EntityBase[]) : Promise<Partial<BB.Activity> | string | undefined>
+    public static async TakeLocalAPIAction(actionPayload: ActionPayload, memory : BlisMemory, allEntities : EntityBase[]) : Promise<Partial<BB.Activity> | string | undefined>
     {
         if (!Blis.apiCallbacks)
         {
@@ -172,8 +175,8 @@ export class Blis  {
         }
 
         // Extract API name and args
-        let apiName = ActionBase.GetPayload(scoredAction);
-        let args = ActionBase.GetArguments(scoredAction);
+        let apiName = actionPayload.payload;
+        let args = ActionPayload.GetArguments(actionPayload);
 
         // Make any entity substitutions
         let argArray = [];
@@ -191,23 +194,23 @@ export class Blis  {
 
         let memoryManager = new ClientMemoryManager(memory, allEntities);
         
-        return await api(memoryManager, argArray); 
+        return await api(memoryManager, ...argArray.reverse()); 
     }
 
-    public static async TakeCardAction(scoredAction : ScoredAction, memory : BlisMemory, allEntities : EntityBase[]) : Promise<Partial<BB.Activity> | string | undefined>
+    public static async TakeCardAction(actionPayload: ActionPayload, memory : BlisMemory, allEntities : EntityBase[]) : Promise<Partial<BB.Activity> | string | undefined>
     {
         /// LARSTODO - card should be registered and checked that it exists
-        let form = await TemplateProvider.RenderTemplate(scoredAction, memory);
+        let form = await TemplateProvider.RenderTemplate(actionPayload, memory);
         const attachment = BB.CardStyler.adaptiveCard(form);
         const message = BB.MessageStyler.attachment(attachment);
         message.text = null;
         return message;
     }
 
-    public static async TakeAzureAPIAction(scoredAction : ScoredAction, memory : BlisMemory, allEntities : EntityBase[]) : Promise<Partial<BB.Activity> | string | undefined>
+    public static async TakeAzureAPIAction(actionPayload: ActionPayload, memory : BlisMemory, allEntities : EntityBase[]) : Promise<Partial<BB.Activity> | string | undefined>
     {
         // Extract API name and entities
-        let apiString = scoredAction.payload;
+        let apiString = actionPayload.payload;
         let [funcName] = apiString.split(' ');
         let args = ModelUtils.RemoveWords(apiString, 1);
 
@@ -216,6 +219,61 @@ export class Blis  {
 
         // Call Azure function and send output (if any)
         return await AzureFunctions.Call(BlisClient.client.azureFunctionsUrl, BlisClient.client.azureFunctionsKey, funcName, entities);        
+    }
+
+    public static async GetHistory(appId: string, trainDialogId: string, userName: string, userId: string, memory: BlisMemory) : Promise<(string | BB.Activity)[]> {
+
+        let trainDialog = await BlisClient.client.GetTrainDialog(appId, trainDialogId);
+        let entityList = await BlisClient.client.GetEntities(appId, null);
+        let actionList = await BlisClient.client.GetActions(appId, null);
+        
+        if (!trainDialog || !trainDialog.rounds) {
+            return [];
+        }
+
+        let activities = [];
+        let roundNum = 0;
+        for (let round of trainDialog.rounds) {
+            let userText = round.extractorStep.textVariations[0].text;
+            let id = `${SenderType.User}:${roundNum}:0`;
+            let userActivity = { id: id, from: { id: userId, name: userName }, type: 'message', text: userText } as BB.Activity;
+            activities.push(userActivity);
+
+            let scoreNum = 0;
+            for (let scorerStep of round.scorerSteps) {
+                let labelAction = scorerStep.labelAction;
+                let action = actionList.actions.filter((a: ActionBase) => a.actionId === labelAction)[0];
+
+                id = `${SenderType.Bot}:${roundNum}:${scoreNum}`
+                let botResponse = null;
+                if (action.metadata && action.metadata.actionType === ActionTypes.CARD) {
+                    let actionPayload = JSON.parse(action.payload) as ActionPayload;
+                    botResponse = await this.TakeCardAction(actionPayload, memory, entityList.entities);
+                } else if (action.metadata && action.metadata.actionType === ActionTypes.API_LOCAL) {
+                    let actionPayload = JSON.parse(action.payload) as ActionPayload;
+                    botResponse = await this.TakeLocalAPIAction(actionPayload, memory, entityList.entities);                    
+                }  else {
+                    botResponse = await Blis.CallBlisCallback(action.payload, memory, entityList.entities);
+                    
+                }
+                
+                let botActivity : BB.Activity = null;
+                if (typeof botResponse == 'string')
+                {
+                    botActivity = { id: id, from: { id: 'BlisTrainer', name: 'BlisTrainer' }, type: 'message', text: botResponse };
+                }
+                else {
+                    botActivity = botResponse as BB.Activity;
+                    botActivity.id = id;
+                    botActivity.from = { id: 'BlisTrainer', name: 'BlisTrainer' };
+                }
+
+                activities.push(botActivity);
+                scoreNum++;
+            }
+            roundNum++;
+        }
+        return activities;
     }
 
     public static ValidationErrors() : string {
@@ -234,4 +292,16 @@ export class Blis  {
         }
         return errMsg;
     }
+
+    private static GetArguments(func : any) : string[] {
+
+        const STRIP_COMMENTS = /(\/\/.*$)|(\/\*[\s\S]*?\*\/)|(\s*=[^,\)]*(('(?:\\'|[^'\r\n])*')|("(?:\\"|[^"\r\n])*"))|(\s*=[^,\)]*))/mg;
+        const ARGUMENT_NAMES = /([^\s,]+)/g;
+
+        var fnStr = func.toString().replace(STRIP_COMMENTS, '');
+        var result = fnStr.slice(fnStr.indexOf('(')+1, fnStr.indexOf(')')).match(ARGUMENT_NAMES);
+        if(result === null)
+           result = [];
+        return result.filter((f:string) => f !== "memoryManager");
+      }
 }    

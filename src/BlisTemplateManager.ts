@@ -1,7 +1,7 @@
 import * as BB from 'botbuilder-core';
 import { Blis } from './Blis';
 import { BlisIntent } from './BlisIntent';
-import { ActionTypes } from 'blis-models'
+import { ActionTypes, ActionPayload } from 'blis-models'
 
 export class BlisTemplateManager extends BB.TemplateManager {
     
@@ -18,16 +18,20 @@ export class BlisTemplateRenderer implements BB.TemplateRenderer {
         let message = null;
         switch (blisIntent.scoredAction.metadata.actionType)  {
             case ActionTypes.TEXT:
-                message = await Blis.CallBlisCallback(blisIntent.scoredAction, blisIntent.memory, blisIntent.blisEntities);
+                message = await Blis.CallBlisCallback(blisIntent.scoredAction.payload, blisIntent.memory, blisIntent.blisEntities);
                 break;
+            /* TODO
             case ActionTypes.API_AZURE:
                 message = await Blis.TakeAzureAPIAction(blisIntent.scoredAction, blisIntent.memory, blisIntent.blisEntities);
                 break;
+            */
             case ActionTypes.API_LOCAL:
-                message = await Blis.TakeLocalAPIAction(blisIntent.scoredAction, blisIntent.memory, blisIntent.blisEntities);
+                let apiPayload = JSON.parse(blisIntent.scoredAction.payload) as ActionPayload;
+                message = await Blis.TakeLocalAPIAction(apiPayload, blisIntent.memory, blisIntent.blisEntities);
                 break;
             case ActionTypes.CARD:
-                message = await Blis.TakeCardAction(blisIntent.scoredAction, blisIntent.memory, blisIntent.blisEntities);
+                let cardPayload = JSON.parse(blisIntent.scoredAction.payload) as ActionPayload;
+                message = await Blis.TakeCardAction(cardPayload, blisIntent.memory, blisIntent.blisEntities);
             break;
         }
         

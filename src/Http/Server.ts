@@ -149,7 +149,7 @@ export class Server {
                 {
                     let botInfo = new BotInfo(
                         {
-                            callbacks: Object.keys(Blis.apiCallbacks),
+                            callbacks: Blis.apiParams,
                             templates: TemplateProvider.GetTemplates()
                         });
                     res.send(botInfo);
@@ -846,6 +846,30 @@ export class Server {
 
                         let trainDialogId = await BlisClient.client.EditTrainDialog(appId, strippedTrainDialog);
                         res.send(trainDialogId);
+                    }
+                    catch (error)
+                    {
+                        Server.HandleError(res, error);
+                    }
+                }
+            );
+
+            this.server.get("/app/:appId/traindialog/:traindialogid/history", async (req, res, next) =>
+                {
+                    try
+                    {
+                        this.InitClient();  
+
+                        //let query = req.getQuery();
+                        let key = req.params.key;
+                        let appId = req.params.appId;
+                        let userName = req.params.username;
+                        let userId = req.params.userid;
+                        let trainDialogId = req.params.traindialogid;
+
+                        let memory = BlisMemory.GetMemory(key);
+                        let history = await Blis.GetHistory(appId, trainDialogId, userName, userId, memory);
+                        res.send(history);
                     }
                     catch (error)
                     {
