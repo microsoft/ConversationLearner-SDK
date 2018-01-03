@@ -5,17 +5,9 @@ import { BlisMemory } from './BlisMemory';
 //TODO - make this configurable
 const templateDirectory = __dirname + "../../../../cards/";
 
-export class TemplateProvider {
-    /* LARS REMOVE
-        public static async RenderAttachment(actionPayload: ActionPayload, memory: BlisMemory) : Promise<Partial<BB.Activity>> {
+export class TemplateProvider { 
+        private static hasSumbitItem = false;
 
-            let form = await TemplateProvider.RenderTemplate(actionPayload, memory);
-            const attachment = BB.CardStyler.adaptiveCard(form);
-            const message = BB.MessageStyler.attachment(attachment);
-            message.text = null;
-            return message;
-        }
-*/
         public static async RenderTemplate(actionPayload: ActionPayload, memory: BlisMemory) : Promise<any> {
 
             let templateName = actionPayload.payload;
@@ -41,14 +33,22 @@ export class TemplateProvider {
             let files = this.GetTemplatesNames();
             for (let file of files) {
                 let fileContent = this.GetTemplate(file);
+                
+                // Clear submit check (will the set by extracting template variables)
+                this.hasSumbitItem = false;
                 let tvs = this.UniqueTemplateVariables(fileContent);
+
+                // Make sure template has submit item
+                let validationError = this.hasSumbitItem ? null :
+                    `Template "${file}" does not have an action with a "submit" item in the data.  At least on action item must be of the form: "type": "Action.Submit", "data": { "submit": "{SUBMIT PAYLOAD"}`;
 
                 let templateBody = JSON.stringify(this.GetTemplate(file));
                 let template = new Template(
                     {
                         name : file,
                         variables: tvs,
-                        body: templateBody
+                        body: templateBody,
+                        validationError: validationError
                     }
                 )
                 templates.push(template);
@@ -118,6 +118,9 @@ export class TemplateProvider {
 
         private static GetTemplateVariables(template: any) : TemplateVariable[] {
             var tvs : TemplateVariable[] = [];
+            if (template.data && template.data.submit) {
+                this.hasSumbitItem = true;
+            }
 
             // Get variable names 
             let vars = this.GetVarNames(template);

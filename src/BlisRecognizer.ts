@@ -131,10 +131,6 @@ export class BlisRecognizer extends BB.IntentRecognizer {
         const data = context.request.value as FormData;
         if (data) {
 
-            // If submit type return as a response
-            if (data['submit'] === "submit") {
-                return data['submit'];
-            }
             // Get list of all entities
             let entityList = await BlisClient.client.GetEntities(appId, null);
 
@@ -142,7 +138,7 @@ export class BlisRecognizer extends BB.IntentRecognizer {
             for (let entityName of Object.keys(data)) {
 
                 // Reserved parameter
-                if (entityName == 'target') {
+                if (entityName == 'submit') {
                     continue;
                 }
                                 
@@ -157,6 +153,11 @@ export class BlisRecognizer extends BB.IntentRecognizer {
                 let isBucket = entity.metadata ? entity.metadata.isBucket : false;
                 await blisMemory.BotMemory.Remember(entity.entityName, entity.entityId, data[entityName], isBucket);
                  
+            }
+
+            // If submit type return as a response
+            if (data['submit'] === "submit") {
+                return data['submit'];
             }
         }
         return null;
