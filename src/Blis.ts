@@ -107,7 +107,7 @@ export class Blis  {
         return scoreInput;
     }
     
-    public static async ProcessPredictedEntities(text: string, predictedEntities : PredictedEntity[], memoryManager : ClientMemoryManager) : Promise<ScoreInput>
+    public static async ProcessPredictedEntities(text: string, predictedEntities : PredictedEntity[], memoryManager : ClientMemoryManager) : Promise<void>
     {
         for (var predictedEntity of predictedEntities)
         // Update entities in my memory
@@ -135,16 +135,6 @@ export class Blis  {
             }
             */
         }
-    
-        // Get entities from my memory
-        var filledEntities = await memoryManager.blisMemory.BotMemory.FilledEntities();
-
-        let scoreInput = new ScoreInput({   
-            filledEntities: filledEntities,
-            context: {},
-            maskedActions: []
-        });
-        return scoreInput;
     }
 
     public static async TakeLocalAPIAction(action: ActionBase | ScoredAction, memory : BlisMemory, allEntities : EntityBase[]) : Promise<Partial<BB.Activity> | string | undefined>
