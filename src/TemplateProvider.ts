@@ -1,6 +1,7 @@
 var fs = require('fs');
 import { Template, ActionPayload, TemplateVariable } from 'blis-models'
 import { BlisMemory } from './BlisMemory';
+import { BlisDebug } from './BlisDebug';
 
 //TODO - make this configurable
 const templateDirectory = __dirname + "../../../../cards/";
@@ -64,14 +65,17 @@ export class TemplateProvider {
             let templateVariables = this.GetTemplateVariables(template)
 
             // Make entries unique, and use verion with existing type
-
-            //TODO: throw error if variable used for different types
             let unique = [];
             for (let tv of templateVariables) {
                 let existing = unique.find(i => i.key == tv.key);
                 if (existing) 
                 {
-                    existing.type = existing.type || tv.type;
+                    if (existing.type != null && tv.type != null && existing.type != tv.type) {
+                        BlisDebug.Error(`Template variable "${tv.key}" used for two diffent types - "${tv.type}" and "${existing.type}".  Ignoring.`);
+                    }
+                    else {
+                        existing.type = existing.type || tv.type;
+                    }
                 }
                 else {
                     unique.push(tv);

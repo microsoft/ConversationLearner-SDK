@@ -61,10 +61,10 @@ export class Blis  {
         Blis.templateManager = new BlisTemplateManager();
     }
 
-    public static SetBot(bot : BB.Bot) {
+    public static SetBot(botContext : BotContext) {
         if (!Blis.bot) {  
-            Blis.bot = bot;
-            BlisDebug.InitLogger(Blis.bot);
+            Blis.bot = botContext.bot;
+            BlisDebug.InitLogger(botContext);
         }
     }
 
@@ -79,7 +79,8 @@ export class Blis  {
         Blis.luisCallback = target;
     }
     
-    public static BlisCallback(target : (text : string, memoryManager : ClientMemoryManager) => Promise<string> /*LARSOLD | builder.Message*/)
+    // TODO: bliscallback doesn't makes sense under new architecture
+    public static BlisCallback(target : (text : string, memoryManager : ClientMemoryManager) => Promise<string>)
     {
         Blis.blisCallback = target;
     }
@@ -146,7 +147,8 @@ export class Blis  {
         return scoreInput;
     }
     
-    public static async CallBlisCallback(payload : string, memory : BlisMemory, allEntities : EntityBase[]) : Promise<string/*LARSTODO | builder.Message*/> {
+    //TODO: work needed here.  BlisCallback doesn't make sense under V4 architecture as is just rendering
+    public static async CallBlisCallback(payload : string, memory : BlisMemory, allEntities : EntityBase[]) : Promise<string> {
         
         let memoryManager = new ClientMemoryManager(memory, allEntities);
 
@@ -199,12 +201,17 @@ export class Blis  {
 
     public static async TakeCardAction(actionPayload: ActionPayload, memory : BlisMemory, allEntities : EntityBase[]) : Promise<Partial<BB.Activity> | string | undefined>
     {
-        /// LARSTODO - card should be registered and checked that it exists
-        let form = await TemplateProvider.RenderTemplate(actionPayload, memory);
-        const attachment = BB.CardStyler.adaptiveCard(form);
-        const message = BB.MessageStyler.attachment(attachment);
-        message.text = null;
-        return message;
+        try {
+            let form = await TemplateProvider.RenderTemplate(actionPayload, memory);
+            const attachment = BB.CardStyler.adaptiveCard(form);
+            const message = BB.MessageStyler.attachment(attachment);
+            message.text = null;
+            return message;
+        }
+        catch (error) {
+            let msg = BlisDebug.Error(error, "Failed to Render Template");
+            return msg;
+        }
     }
 
     public static async TakeAzureAPIAction(actionPayload: ActionPayload, memory : BlisMemory, allEntities : EntityBase[]) : Promise<Partial<BB.Activity> | string | undefined>

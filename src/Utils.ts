@@ -1,7 +1,5 @@
 import * as BB from 'botbuilder-core';
-//LARSOLD import * as util from 'util';
 import * as request from 'request';
-import { BlisContext } from './BlisContext';
 import { BlisMemory } from './BlisMemory';
 import { TrainExtractorStep, TextVariation, LabeledEntity, TrainDialog, TrainRound } from 'blis-models';
 import { BlisIntent } from './BlisIntent';
@@ -10,7 +8,7 @@ export class Utils  {
 
     public static SendTyping(bot : BB.Bot, address : any)
     {
-        /*LARSTODO
+        /* TODO
         let msg = <builder.IMessage>{ type: 'typing'};
         msg.address = address;
         bot.post(msg);
@@ -54,17 +52,10 @@ export class Utils  {
         )
     }
     /** Send a text message */
-    public static async SendMessage(bot : BB.Bot, memory : BlisMemory, content : string /*LARSTODO | builder.Message*/)
+    public static async SendMessage(bot : BB.Bot, memory : BlisMemory, content : string)
     { 
         if (memory) {
             await memory.BotState.SendMessage(bot, content);
-/* LARSTODO
-            if (typeof content !== 'string') {
-                botContext.send(content);
-            }
-            else { 
-                botContext.reply(content);
-            }*/
         }
     }
 
@@ -74,25 +65,6 @@ export class Utils  {
         if (memory) {
             await memory.BotState.SendIntent(bot, intent);
         }
-    }
-
-    public static SendAsAttachment(context : BlisContext, content: string)
-    {
-        /*LARSTODO
-        var base64 = Buffer.from(content).toString('base64');
-
-        let msg =  new builder.Message();
-        (<any>msg).data.address = context.Address();
-        let contentType = "text/plain";
-        let attachment : builder.IAttachment =  
-        {
-            contentUrl: util.format('data:%s;base64,%s', contentType, base64),
-            contentType: contentType,
-            content: content
-        }
-        msg.addAttachment(attachment);
-        context.botContext.bot.post(msg);
-        */
     }
 
     /** Trick to get errors to render on Azure */

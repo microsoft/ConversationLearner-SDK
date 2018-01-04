@@ -259,31 +259,7 @@ export class BotMemory
         }
         return group;  
     }
-/* LARSTODO - don't think used, but check
-    public async GetEntities(text: string) : Promise<Entity[]> {
-        let entities = [];
-        await this.Init();
-        let words = this.Split(text);
-        for (let word of words) 
-        {
-            if (word.startsWith(ActionCommand.SUBSTITUTE))
-            {
-                // Key is in form of $entityName
-                let entityName = word.substr(1, word.length-1);
 
-                let entityValue = this.EntityValueAsString(entityName);
-                if (entityValue) {
-                    entities.push({ 
-                        type: entityName,
-                        entity: entityValue
-                    });
-                    text = text.replace(word, entityValue);
-                }
-            }
-        }
-        return entities;
-    }
-*/
     public async SubstituteEntities(text: string) : Promise<string> {
         let words = this.Split(text);
         await this.Init();

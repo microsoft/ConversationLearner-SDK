@@ -17,7 +17,7 @@ export class BlisRecognizer extends BB.IntentRecognizer {
        super();
 
         this.onRecognize((botContext) => {
-            Blis.SetBot(botContext.bot);
+            Blis.SetBot(botContext);
 
             const intents: BB.Intent[] = [];
             return this.ProcessInput(botContext)
@@ -33,8 +33,8 @@ export class BlisRecognizer extends BB.IntentRecognizer {
     private async StartSessionAsync(botContext: BotContext, memory: BlisMemory, appId: string): Promise<string> {
 
         let sessionResponse = await BlisClient.client.StartSession(appId);
-        await memory.StartSessionAsync(sessionResponse.sessionId, botContext.request.from.id /*LARSOLD .message.address.conversation.id*/, false);
-        BlisDebug.Verbose(`Started Session: ${sessionResponse.sessionId} - ${botContext.request.from.id /*LARSOLD .message.address.conversation.id*/}`);
+        await memory.StartSessionAsync(sessionResponse.sessionId, botContext.request.from.id, false);
+        BlisDebug.Verbose(`Started Session: ${sessionResponse.sessionId} - ${botContext.request.from.id}`);
         return sessionResponse.sessionId;
     }
 

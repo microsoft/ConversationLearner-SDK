@@ -1,33 +1,25 @@
-import * as BB from 'botbuilder-core';
 import { Utils } from './Utils';
 
 export class BlisDebug {
 
-    public static bot : BB.Bot;
-    public static address : any;
+    public static botContext : BotContext;
     public static cache : string = "";
     public static enabled : boolean;
     public static verbose : boolean = true;
     public static logging : string = "memory client"; // OPTIONS: "client flow memory memverbose";
 
-    public static InitLogger(bot : BB.Bot)
+    public static InitLogger(botContext: BotContext)
     {
-        this.bot = bot;
+        this.botContext = botContext;
     }
     
-    public static SetAddress(address : any)
-    {
-        this.address = address;
-        this.SendCache();
-    }  
- 
     private static SendCache() {
-        if (this.bot && this.address && this.cache)
-        {/*LARSTODO
-            var msg = new builder.Message().address(this.address);
-            msg.text(this.cache);
+        if (this.botContext && this.cache)
+        {
+            this.botContext.bot.createContext(this.botContext.conversationReference, (context) => {
+                context.reply(this.cache);
+            });
             this.cache = "";
-            this.bot.post(msg);*/
         }
     }
 

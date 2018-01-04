@@ -18,7 +18,7 @@ export class BlisContext
 
     public Address() : BB.ChannelAccount
     { 
-        return this.botContext.request.from;//TODOOLD.message.address;
+        return this.botContext.request.from;
     }
 
     public Memory() : BlisMemory
