@@ -89,20 +89,13 @@ export class BlisRecognizer extends BB.IntentRecognizer {
             {
                 let scoredAction : ScoredAction = null;
                 let entities : EntityBase[] = null;
-      //          if (botContext.request.text) {
-                    // Call the entity extractor
-                    errComponent = "SessionExtract";
-                    let userInput = new UserInput({text: buttonResponse || botContext.request.text || "  "});
-                    let extractResponse = await BlisClient.client.SessionExtract(app.appId, sessionId, userInput);
-                    entities = extractResponse.definitions.entities;
-                    errComponent = "ProcessExtraction";
-                    scoredAction = await this.Score(app.appId, sessionId, memory, extractResponse.text, extractResponse.predictedEntities, entities); 
-     /*           }
-                else {
-                    // No text, so just get entities and score
-                    entities = (await BlisClient.client.GetEntities(app.appId, null)).entities;
-                    scoredAction = await Blis.recognizer.Score(app.appId, sessionId, memory, "", [], entities);
-                }*/
+
+                errComponent = "SessionExtract";
+                let userInput = new UserInput({text: buttonResponse || botContext.request.text || "  "});
+                let extractResponse = await BlisClient.client.SessionExtract(app.appId, sessionId, userInput);
+                entities = extractResponse.definitions.entities;
+                errComponent = "ProcessExtraction";
+                scoredAction = await this.Score(app.appId, sessionId, memory, extractResponse.text, extractResponse.predictedEntities, entities); 
 
                 return { 
                     name: scoredAction.actionId,
