@@ -11,7 +11,7 @@ import { TemplateProvider } from './TemplateProvider';
 import { AzureFunctions } from './AzureFunctions';
 import { Utils } from './Utils';
 import { EntityBase, PredictedEntity, 
-        ActionPayload, SenderType, ActionTypes,
+        ActionPayload, SenderType, ActionTypes, ScoredAction,
         ScoreInput, ModelUtils, ActionBase, CallbackAPI } from 'blis-models'
 import { ClientMemoryManager} from './Memory/ClientMemoryManager';
 import { BlisIntent } from './BlisIntent';
@@ -25,11 +25,8 @@ export class Blis  {
     public static apiParams : CallbackAPI[] = [];
       
     // Optional callback than runs after LUIS but before BLIS.  Allows Bot to substitute entities
-    public static luisCallback : (text: string, predictedEntities : PredictedEntity[], memoryManager : ClientMemoryManager) => Promise<ScoreInput>;
+    public static entityDetectionCallback : (text: string, predictedEntities : PredictedEntity[], memoryManager : ClientMemoryManager) => Promise<void>;
     
-    // Optional callback that runs after BLIS is called but before the Action is rendered
-    public static blisCallback : (text : string, memoryManager : ClientMemoryManager) => Promise<string>
-       
     public static bot: BB.Bot;
     public static recognizer : BlisRecognizer;
     public static templateManager : BlisTemplateManager;
@@ -74,17 +71,11 @@ export class Blis  {
         Blis.apiParams.push(new CallbackAPI({name: name, arguments: this.GetArguments(target)}));
     }
     
-    public static LuisCallback(target : (text: string, predictedEntities : PredictedEntity[], memoryManager : ClientMemoryManager) => Promise<ScoreInput>)
+    public static EntityDetectionCallback(target : (text: string, predictedEntities : PredictedEntity[], memoryManager : ClientMemoryManager) => Promise<void>)
     {
-        Blis.luisCallback = target;
+        Blis.entityDetectionCallback = target;
     }
     
-    // TODO: bliscallback doesn't makes sense under new architecture
-    public static BlisCallback(target : (text : string, memoryManager : ClientMemoryManager) => Promise<string>)
-    {
-        Blis.blisCallback = target;
-    }
-
     public static async SendIntent(memory: BlisMemory, intent: BlisIntent) : Promise<void> {
         await Utils.SendIntent(Blis.bot, memory, intent);
     }
@@ -93,21 +84,30 @@ export class Blis  {
         await Utils.SendMessage(Blis.bot, memory, content);
     }
 
-    public static async CallLuisCallback(text: string, predictedEntities : PredictedEntity[], memory : BlisMemory, allEntities : EntityBase[]) : Promise<ScoreInput> {
+    public static async CallEntityDetectionCallback(text: string, predictedEntities : PredictedEntity[], memory : BlisMemory, allEntities : EntityBase[]) : Promise<ScoreInput> {
     
         let memoryManager = new ClientMemoryManager(memory, allEntities);
 
-        let scoreInput = null;
-        if (Blis.luisCallback) {
-            scoreInput = await Blis.luisCallback(text, predictedEntities, memoryManager);
+        // Update memory with predicted entities
+        await Blis.ProcessPredictedEntities(text, predictedEntities, memoryManager);
+
+        // If bot has callback, call it
+        if (Blis.entityDetectionCallback) {
+            await Blis.entityDetectionCallback(text, predictedEntities, memoryManager);
         }
-        else {
-            scoreInput = await Blis.DefaultLuisCallback(text, predictedEntities, memoryManager);
-        }
+
+        // Get entities from my memory
+        var filledEntities = await memoryManager.blisMemory.BotMemory.FilledEntities();
+        
+        let scoreInput = new ScoreInput({   
+            filledEntities: filledEntities,
+            context: {},
+            maskedActions: []
+        });
         return scoreInput;
     }
     
-    public static async DefaultLuisCallback(text: string, predictedEntities : PredictedEntity[], memoryManager : ClientMemoryManager) : Promise<ScoreInput>
+    public static async ProcessPredictedEntities(text: string, predictedEntities : PredictedEntity[], memoryManager : ClientMemoryManager) : Promise<void>
     {
         for (var predictedEntity of predictedEntities)
         // Update entities in my memory
@@ -135,41 +135,11 @@ export class Blis  {
             }
             */
         }
-    
-        // Get entities from my memory
-        var filledEntities = await memoryManager.blisMemory.BotMemory.FilledEntities();
-
-        let scoreInput = new ScoreInput({   
-            filledEntities: filledEntities,
-            context: {},
-            maskedActions: []
-        });
-        return scoreInput;
-    }
-    
-    //TODO: work needed here.  BlisCallback doesn't make sense under V4 architecture as is just rendering
-    public static async CallBlisCallback(payload : string, memory : BlisMemory, allEntities : EntityBase[]) : Promise<string> {
-        
-        let memoryManager = new ClientMemoryManager(memory, allEntities);
-
-        let outText = null;
-        if (Blis.luisCallback) {
-            outText = await Blis.blisCallback(payload, memoryManager);
-        }
-        else {
-            outText = await Blis.DefaultBlisCallback(payload, memoryManager);
-        }
-        return outText;
     }
 
-    public static async DefaultBlisCallback(text: string, memoryManager : ClientMemoryManager) : Promise<string>
+    public static async TakeLocalAPIAction(action: ActionBase | ScoredAction, memory : BlisMemory, allEntities : EntityBase[]) : Promise<Partial<BB.Activity> | string | undefined>
     {
-        let outText = await memoryManager.blisMemory.BotMemory.Substitute(text);
-        return outText;
-    }
-
-    public static async TakeLocalAPIAction(actionPayload: ActionPayload, memory : BlisMemory, allEntities : EntityBase[]) : Promise<Partial<BB.Activity> | string | undefined>
-    {
+        let actionPayload = JSON.parse(action.payload) as ActionPayload;
         if (!Blis.apiCallbacks)
         {
             BlisDebug.Error("No Local APIs defined.")
@@ -199,8 +169,17 @@ export class Blis  {
         return await api(memoryManager, ...argArray.reverse()); 
     }
 
-    public static async TakeCardAction(actionPayload: ActionPayload, memory : BlisMemory, allEntities : EntityBase[]) : Promise<Partial<BB.Activity> | string | undefined>
+    public static async TakeTextAction(action: ActionBase | ScoredAction, memory : BlisMemory, allEntities : EntityBase[]) : Promise<Partial<BB.Activity> | string | undefined>
     {
+        let memoryManager = new ClientMemoryManager(memory, allEntities);
+        let outText = await memoryManager.blisMemory.BotMemory.Substitute(action.payload);
+        return outText;
+    }
+     
+    public static async TakeCardAction(action: ActionBase | ScoredAction, memory : BlisMemory, allEntities : EntityBase[]) : Promise<Partial<BB.Activity> | string | undefined>
+    {
+        let actionPayload = JSON.parse(action.payload) as ActionPayload;
+        
         try {
             let form = await TemplateProvider.RenderTemplate(actionPayload, memory);
             const attachment = BB.CardStyler.adaptiveCard(form);
@@ -254,15 +233,14 @@ export class Blis  {
                 id = `${SenderType.Bot}:${roundNum}:${scoreNum}`
                 let botResponse = null;
                 if (action.metadata && action.metadata.actionType === ActionTypes.CARD) {
-                    let actionPayload = JSON.parse(action.payload) as ActionPayload;
-                    botResponse = await this.TakeCardAction(actionPayload, memory, entityList.entities);
+                    botResponse = await this.TakeCardAction(action, memory, entityList.entities);
                 } else if (action.metadata && action.metadata.actionType === ActionTypes.API_LOCAL) {
-                    let actionPayload = JSON.parse(action.payload) as ActionPayload;
-                    botResponse = await this.TakeLocalAPIAction(actionPayload, memory, entityList.entities);                    
+                    botResponse = await this.TakeLocalAPIAction(action, memory, entityList.entities);                    
                 }  else {
-                    botResponse = await Blis.CallBlisCallback(action.payload, memory, entityList.entities);
-                    
+                    botResponse = await Blis.TakeTextAction(action, memory, entityList.entities);  
                 }
+                // TODO 
+                //  TakeAzureAPIAction
                 
                 let botActivity : BB.Activity = null;
                 if (typeof botResponse == 'string')

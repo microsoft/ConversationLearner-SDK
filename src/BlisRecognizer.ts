@@ -159,7 +159,7 @@ export class BlisRecognizer extends BB.IntentRecognizer {
     public async Score(appId : string, sessionId : string, memory : BlisMemory, text : string, predictedEntities : PredictedEntity[], allEntities : EntityBase[]) : Promise<ScoredAction>
     {
             // Call LUIS callback
-            let scoreInput = await Blis.CallLuisCallback(text, predictedEntities, memory, allEntities);
+            let scoreInput = await Blis.CallEntityDetectionCallback(text, predictedEntities, memory, allEntities);
             
             // Call the scorer
             let scoreResponse = await BlisClient.client.SessionScore(appId, sessionId, scoreInput);

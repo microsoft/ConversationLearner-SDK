@@ -1212,7 +1212,7 @@ export class Server {
 
                         // Call LUIS callback to get scoreInput
                         let extractResponse = uiScoreInput.extractResponse;      
-                        let scoreInput = await Blis.CallLuisCallback(extractResponse.text, extractResponse.predictedEntities, memory, extractResponse.definitions.entities);
+                        let scoreInput = await Blis.CallEntityDetectionCallback(extractResponse.text, extractResponse.predictedEntities, memory, extractResponse.definitions.entities);
 
                         // Get score response
                         let scoreResponse = await BlisClient.client.TeachScore(appId, teachId, scoreInput);
