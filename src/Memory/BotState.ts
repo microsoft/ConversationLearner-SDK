@@ -1,6 +1,8 @@
-import * as builder from 'botbuilder';
+import * as BB from 'botbuilder-core';
 import { BlisMemory } from '../BlisMemory';
 import { BlisAppBase } from 'blis-models';
+import { BlisIntent } from '../BlisIntent';
+import { BlisDebug } from '../BlisDebug';
 
 export class ConversationSession {
     public sessionId: string = null;
@@ -25,7 +27,7 @@ export class BotState
  
     public inDebug : boolean = false;
 
-    public address : string = null;
+    public conversationReference : BB.ConversationReference = null;
 
     private constructor(init?:Partial<BotState>)
     {
@@ -88,7 +90,7 @@ export class BotState
         this.convSession = json.convSession;
         this.inTeach = json.inTeach ? json.inTeach : false;
         this.inDebug = json.inDebug ? json.inDebug : false;
-        this.address = json.address;
+        this.conversationReference = json.conversationReference;
     }
 
     private Serialize() : string
@@ -98,7 +100,7 @@ export class BotState
             convSession : this.convSession,
             inTeach : this.inTeach ? this.inTeach : false,
             inDebug : this.inDebug ? this.inDebug : false,
-            address : this.address
+            conversationReference : this.conversationReference
         }
         return JSON.stringify(jsonObj);
     }
@@ -189,17 +191,16 @@ export class BotState
     }
 
 
-    public async SetAddressAsync(address : builder.IAddress) : Promise<void> {
+    public async SetConversationReferenceAsync(conversationReference :BB.ConversationReference) : Promise<void> {
         await this.Init();    
-        this.address = JSON.stringify(address);
+        this.conversationReference = conversationReference;
         await this.SetAsync();
     }
 
-    public async AddressAsync() : Promise<builder.IAddress> {
+    public async ConversationReverenceAsync() : Promise<BB.ConversationReference> {
         try {
             await this.Init();    
-            let addressString = this.address;
-            return JSON.parse(addressString);
+            return this.conversationReference;
         }
         catch (err)
         {
@@ -208,16 +209,21 @@ export class BotState
     }
 
     //------------------------------------------------------------------
-    public async SessionAsync(bot : builder.UniversalBot) : Promise<any> {
-        let address = await this.AddressAsync();
-        return new Promise(function(resolve,reject) {
-            bot.loadSession(address, (err, session) => {
-                if(err !== null) {
-                    reject(err);
-                } else {
-                    resolve(session);
-                }
-            });
+    public async SendMessage(bot : BB.Bot, message: string) : Promise<any> {
+        let conversationReference = await this.ConversationReverenceAsync();
+        bot.createContext(conversationReference, (context) => {
+            context.reply(message);
+        });
+    }
+
+    public async SendIntent(bot : BB.Bot, intent: BlisIntent) : Promise<any> {
+        let conversationReference = await this.ConversationReverenceAsync();
+        if (!conversationReference) {
+            BlisDebug.Error("Missing ConversationReference");
+            return;
+        }
+        bot.createContext(conversationReference, (context) => {
+            context.replyWith(intent.scoredAction.actionId, intent);
         });
     }
 }

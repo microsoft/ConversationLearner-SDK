@@ -2,7 +2,7 @@
     "compileOnSave": true,
     "compilerOptions": {
         "noUnusedLocals": true,
-        "forceConsistentCasingInFileNames": true,
+        "forceConsistentCasingInFileNames": false,  
         "noImplicitReturns": true,
         "noImplicitThis": true,
         "noImplicitAny": true,
@@ -12,12 +12,11 @@
         "emitDecoratorMetadata": true,
         "importHelpers": true,
         "module": "commonjs",
-        "target": "es5",
+        "target": "ES2015",
         "sourceMap": true,
         "outDir": "lib",
         "rootDir" : "src",
-        "declaration": true,
-        "lib" : ["es2016", "dom"]
+        "declaration": true
     },
     "include": [
         "src"

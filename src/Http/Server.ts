@@ -1,8 +1,10 @@
 import * as Restify from 'restify';
 import { BlisDebug } from '../BlisDebug';
 import { BlisClient } from '../BlisClient';
-import { BlisDialog } from '../BlisDialog'
+import { Blis } from '../Blis'
 import { BlisMemory } from '../BlisMemory';
+import { BlisIntent } from '../BlisIntent';
+import { TemplateProvider } from '../TemplateProvider';
 import { Utils } from '../Utils';
 import * as XMLDom from 'xmldom';
 import { TrainDialog, BotInfo, 
@@ -145,8 +147,11 @@ export class Server {
 
                 try
                 {
-                    let callbacks = Object.keys(BlisDialog.apiCallbacks);
-                    let botInfo = new BotInfo({callbacks: callbacks});
+                    let botInfo = new BotInfo(
+                        {
+                            callbacks: Blis.apiParams,
+                            templates: TemplateProvider.GetTemplates()
+                        });
                     res.send(botInfo);
                 }
                 catch (error)
@@ -849,6 +854,30 @@ export class Server {
                 }
             );
 
+            this.server.get("/app/:appId/traindialog/:traindialogid/history", async (req, res, next) =>
+                {
+                    try
+                    {
+                        this.InitClient();  
+
+                        //let query = req.getQuery();
+                        let key = req.params.key;
+                        let appId = req.params.appId;
+                        let userName = req.params.username;
+                        let userId = req.params.userid;
+                        let trainDialogId = req.params.traindialogid;
+
+                        let memory = BlisMemory.GetMemory(key);
+                        let history = await Blis.GetHistory(appId, trainDialogId, userName, userId, memory);
+                        res.send(history);
+                    }
+                    catch (error)
+                    {
+                        Server.HandleError(res, error);
+                    }
+                }
+            );
+
             this.server.get("/app/:appId/traindialog/:trainDialogId", async (req, res, next) =>
                 {
                     this.InitClient();  // TEMP
@@ -1129,6 +1158,11 @@ export class Server {
                         let appId = req.params.appId;
                         let teachId = req.params.teachId;
                         let userInput = req.body;
+
+                        // If a form text could be null
+                        if (!userInput.text) {
+                            userInput.text = "  ";
+                        }
                         let extractResponse = await BlisClient.client.TeachExtract(appId, teachId, userInput);
 
                         let memory = BlisMemory.GetMemory(key);
@@ -1178,7 +1212,7 @@ export class Server {
 
                         // Call LUIS callback to get scoreInput
                         let extractResponse = uiScoreInput.extractResponse;      
-                        let scoreInput = await BlisDialog.Instance.CallLuisCallback(extractResponse.text, extractResponse.predictedEntities, memory, extractResponse.definitions.entities);
+                        let scoreInput = await Blis.CallLuisCallback(extractResponse.text, extractResponse.predictedEntities, memory, extractResponse.definitions.entities);
 
                         // Get score response
                         let scoreResponse = await BlisClient.client.TeachScore(appId, teachId, scoreInput);
@@ -1245,8 +1279,16 @@ export class Server {
                         
                         let memory = BlisMemory.GetMemory(key);
 
-                        // Now take the trained action
-                        await BlisDialog.Instance.TakeAction(scoredAction, memory, uiTrainScorerStep.entities);
+                        // Now send the trained intent
+                        let intent = { 
+                            name: scoredAction.actionId,
+                            score: 1.0,
+                            scoredAction: scoredAction,
+                            blisEntities: uiTrainScorerStep.entities,
+                            memory: memory
+                        } as BlisIntent;
+
+                        await Blis.SendIntent(memory, intent);
                                                 
                         let memories = await memory.BotMemory.DumpMemory();
                         let uiTeachResponse = new UITeachResponse({teachResponse : teachResponse, memories : memories});

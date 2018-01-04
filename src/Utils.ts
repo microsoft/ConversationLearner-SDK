@@ -1,17 +1,18 @@
-import * as builder from 'botbuilder';
-import * as util from 'util';
+import * as BB from 'botbuilder-core';
 import * as request from 'request';
-import { BlisContext } from './BlisContext';
 import { BlisMemory } from './BlisMemory';
 import { TrainExtractorStep, TextVariation, LabeledEntity, TrainDialog, TrainRound } from 'blis-models';
+import { BlisIntent } from './BlisIntent';
 
 export class Utils  {
 
-    public static SendTyping(bot : builder.UniversalBot, address : any)
+    public static SendTyping(bot : BB.Bot, address : any)
     {
+        /* TODO
         let msg = <builder.IMessage>{ type: 'typing'};
         msg.address = address;
-        bot.send(msg);
+        bot.post(msg);
+        */
     }
 
     // TEMP: Until we re-jigger object types.  Need to be stripped
@@ -51,40 +52,19 @@ export class Utils  {
         )
     }
     /** Send a text message */
-    public static async SendMessage(bot : builder.UniversalBot, memory : BlisMemory, content : string | builder.Message)
+    public static async SendMessage(bot : BB.Bot, memory : BlisMemory, content : string)
     { 
         if (memory) {
-            let address = await memory.BotState.AddressAsync();
-            let session = await memory.BotState.SessionAsync(bot);
-
-            if (typeof content !== 'string') {
-                session.send(content);
-            }
-            else { 
-                let message = new builder.Message()
-                    .address(address)
-                    .text(content);
-            
-                session.send(message);
-            }
+            await memory.BotState.SendMessage(bot, content);
         }
     }
 
-    public static SendAsAttachment(context : BlisContext, content: string)
-    {
-        var base64 = Buffer.from(content).toString('base64');
-
-        let msg =  new builder.Message();
-        (<any>msg).data.address = context.Address();
-        let contentType = "text/plain";
-        let attachment : builder.IAttachment =  
-        {
-            contentUrl: util.format('data:%s;base64,%s', contentType, base64),
-            contentType: contentType,
-            content: content
+    /** Send an intent */
+    public static async SendIntent(bot : BB.Bot, memory : BlisMemory, intent : BlisIntent)
+    { 
+        if (memory) {
+            await memory.BotState.SendIntent(bot, intent);
         }
-        msg.addAttachment(attachment);
-        context.bot.send(msg);
     }
 
     /** Trick to get errors to render on Azure */

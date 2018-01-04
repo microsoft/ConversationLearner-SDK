@@ -2,7 +2,6 @@ import { BlisMemory } from '../BlisMemory';
 import { BlisDebug} from '../BlisDebug';
 import { Utils} from '../Utils';
 import { Memory, FilledEntity, MemoryValue, PredictedEntity } from 'blis-models';
-import * as builder from 'botbuilder'
 
 export const ActionCommand =
 {
@@ -259,30 +258,6 @@ export class BotMemory
             group += `${prefix}${text}`;
         }
         return group;  
-    }
-
-    public async GetEntities(text: string) : Promise<builder.IEntity[]> {
-        let entities = [];
-        await this.Init();
-        let words = this.Split(text);
-        for (let word of words) 
-        {
-            if (word.startsWith(ActionCommand.SUBSTITUTE))
-            {
-                // Key is in form of $entityName
-                let entityName = word.substr(1, word.length-1);
-
-                let entityValue = this.EntityValueAsString(entityName);
-                if (entityValue) {
-                    entities.push({ 
-                        type: entityName,
-                        entity: entityValue
-                    });
-                    text = text.replace(word, entityValue);
-                }
-            }
-        }
-        return entities;
     }
 
     public async SubstituteEntities(text: string) : Promise<string> {
