@@ -95,14 +95,14 @@ export class BlisRecognizer extends BB.IntentRecognizer {
                 let extractResponse = await BlisClient.client.SessionExtract(app.appId, sessionId, userInput);
                 entities = extractResponse.definitions.entities;
                 errComponent = "ProcessExtraction";
-                scoredAction = await this.Score(app.appId, sessionId, memory, extractResponse.text, extractResponse.predictedEntities, entities); 
-
+                scoredAction = await this.Score(app.appId, sessionId, memory, extractResponse.text, extractResponse.predictedEntities, entities, inTeach); 
                 return { 
                     name: scoredAction.actionId,
                     score: 1.0,
                     scoredAction: scoredAction,
                     blisEntities: entities,
-                    memory: memory
+                    memory: memory,
+                    inTeach: false
                 } as BlisIntent;
             }
             return null;
@@ -156,13 +156,20 @@ export class BlisRecognizer extends BB.IntentRecognizer {
         return null;
     }
 
-    public async Score(appId : string, sessionId : string, memory : BlisMemory, text : string, predictedEntities : PredictedEntity[], allEntities : EntityBase[]) : Promise<ScoredAction>
+    public async Score(appId : string, sessionId : string, memory : BlisMemory, text : string, predictedEntities : PredictedEntity[], allEntities : EntityBase[], inTeach: boolean) : Promise<ScoredAction>
     {
             // Call LUIS callback
             let scoreInput = await Blis.CallEntityDetectionCallback(text, predictedEntities, memory, allEntities);
             
             // Call the scorer
-            let scoreResponse = await BlisClient.client.SessionScore(appId, sessionId, scoreInput);
+            let scoreResponse = null;
+            if (inTeach) {
+                scoreResponse = await BlisClient.client.TeachScore(appId, sessionId, scoreInput);
+            }
+            else
+            {
+                scoreResponse = await BlisClient.client.SessionScore(appId, sessionId, scoreInput);
+            }
 
             // Get best action
             let bestAction = scoreResponse.scoredActions[0];
