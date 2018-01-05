@@ -40,7 +40,7 @@ export class BlisTemplateRenderer implements BB.TemplateRenderer {
                 let app = await blisIntent.memory.BotState.AppAsync();
                 let sessionId = await blisIntent.memory.BotState.SessionIdAsync(botContext.conversationReference.user.id);
                 
-                Blis.recognizer.Score(app.appId, sessionId, blisIntent.memory, "", [], blisIntent.blisEntities);
+                Blis.recognizer.Score(app.appId, sessionId, blisIntent.memory, "", [], blisIntent.blisEntities, blisIntent.inTeach);
             },100)
         }
         return message;
