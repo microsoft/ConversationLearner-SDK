@@ -6,4 +6,5 @@ export interface BlisIntent extends BB.Intent {
     scoredAction: ScoredAction;
     blisEntities: EntityBase[];
     memory: BlisMemory;
+    inTeach: boolean;
 }

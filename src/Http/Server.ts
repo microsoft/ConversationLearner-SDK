@@ -1285,7 +1285,8 @@ export class Server {
                             score: 1.0,
                             scoredAction: scoredAction,
                             blisEntities: uiTrainScorerStep.entities,
-                            memory: memory
+                            memory: memory,
+                            inTeach: true
                         } as BlisIntent;
 
                         await Blis.SendIntent(memory, intent);
