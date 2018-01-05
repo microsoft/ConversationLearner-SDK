@@ -1,4 +1,4 @@
-var fs = require('fs');
+import * as fs from 'fs'
 import { Template, ActionPayload, TemplateVariable } from 'blis-models'
 import { BlisMemory } from './BlisMemory';
 import { BlisDebug } from './BlisDebug';
