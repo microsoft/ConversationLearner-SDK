@@ -1,5 +1,5 @@
 import * as directline from "offline-directline";
-const express = require("express");
+import * as express from 'express';
  
 export function InitDOLRunner() {
     console.log('Starting DOL...'); 

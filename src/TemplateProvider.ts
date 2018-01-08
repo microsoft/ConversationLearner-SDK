@@ -1,9 +1,10 @@
-var fs = require('fs');
+import * as fs from 'fs'
+import * as path from 'path'
 import { Template, ActionPayload, TemplateVariable, FilledEntityMap } from 'blis-models'
 import { BlisDebug } from './BlisDebug';
 
 //TODO - make this configurable
-const templateDirectory = __dirname + "../../../../cards/";
+const templateDirectory = path.join(process.cwd(), "./cards")
 
 export class TemplateProvider { 
         private static hasSumbitItem = false;
@@ -95,7 +96,9 @@ export class TemplateProvider {
         }
 
         public static GetTemplate(templateName: string) : any {
-            return require(`${templateDirectory}${templateName}.json`);
+            const templateString = fs.readFileSync(path.join(templateDirectory, `${templateName}.json`), 'utf-8');
+            const template = JSON.parse(templateString)
+            return template;
         }
 
         public static GetTemplatesNames() : string[] {
