@@ -261,13 +261,15 @@ export class Blis  {
                 {
                     botActivity = { id: id, from: { id: 'BlisTrainer', name: 'BlisTrainer' }, type: 'message', text: botResponse };
                 }
-                else {
+                else if (botResponse) {
                     botActivity = botResponse as BB.Activity;
                     botActivity.id = id;
                     botActivity.from = { id: 'BlisTrainer', name: 'BlisTrainer' };
                 }
-
-                activities.push(botActivity);
+ 
+                if (botActivity) {
+                    activities.push(botActivity);
+                }
                 scoreNum++;
             }
             roundNum++;
