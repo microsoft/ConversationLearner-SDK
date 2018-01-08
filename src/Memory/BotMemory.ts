@@ -1,24 +1,20 @@
 import { BlisMemory } from '../BlisMemory';
 import { BlisDebug} from '../BlisDebug';
 import { Utils} from '../Utils';
-import { Memory, FilledEntity, MemoryValue, PredictedEntity } from 'blis-models';
+import { Memory, FilledEntity, MemoryValue, PredictedEntity, FilledEntityMap } from 'blis-models';
 
-export const ActionCommand =
-{
-    SUBSTITUTE: "$",
-    NEGATIVE: "~"
-}
+const NEGATIVE_PREFIX = "~";
 
 export class BotMemory 
 {
     private static _instance : BotMemory = null;
     private static MEMKEY = "BOTMEMORY";
     private memory : BlisMemory;
-    public entityMap : {[key: string] : FilledEntity };
+    public filledEntities : FilledEntityMap;
 
     private constructor(init?:Partial<BotMemory>)
     {
-        this.entityMap = {};
+        this.filledEntities = new FilledEntityMap();
         (<any>Object).assign(this, init);
     }
 
@@ -29,6 +25,11 @@ export class BotMemory
         }
         BotMemory._instance.memory = blisMemory;
         return BotMemory._instance;
+    }
+
+    public async FilledEntityMap() : Promise<FilledEntityMap> {
+        await this.Init();
+        return this.filledEntities;
     }
 
     private async Init() : Promise<void>
@@ -50,14 +51,14 @@ export class BotMemory
 
     public Serialize() : string
     {
-        return JSON.stringify(this.entityMap);
+        return JSON.stringify(this.filledEntities.map);
     }
 
     private Deserialize(text : string) : void
     {
         if (!text) return null;
         let json = JSON.parse(text);
-        this.entityMap = json ? json : {};
+        this.filledEntities.map = json ? json : {};
     }
 
     private async Set() : Promise<void>
@@ -71,7 +72,7 @@ export class BotMemory
 
     public async Clear() : Promise<void>		
     {		
-        this.entityMap = {};
+        this.filledEntities = new FilledEntityMap();
         await this.Set();		
     }
 
@@ -88,14 +89,14 @@ export class BotMemory
 
         await this.Init();
 
-        if (!this.entityMap[entityName])
+        if (!this.filledEntities.map[entityName])
         {
-            this.entityMap[entityName] = new FilledEntity({entityId: entityId});
+            this.filledEntities.map[entityName] = new FilledEntity({entityId: entityId});
         }
 
         let displayText = builtinType ? Utils.PrebuiltDisplayText(builtinType, resolution, userText) : null;
 
-        const filledEntity = this.entityMap[entityName]
+        const filledEntity = this.filledEntities.map[entityName]
         // Check if entity buckets values
         if (isBucket)
         {
@@ -116,20 +117,20 @@ export class BotMemory
     public async RememberedNames() : Promise<string[]>
     {
         await this.Init();
-        return Object.keys(this.entityMap);
+        return Object.keys(this.filledEntities);
     }
 
     /** Return array of entity Ids for which I've remembered something */
     public async FilledEntities() : Promise<FilledEntity[]>
     {
         await this.Init();
-        return Object.keys(this.entityMap).map((val) => {return this.entityMap[val]});
+        return Object.keys(this.filledEntities.map).map((val) => {return this.filledEntities.map[val]});
     }
 
     /** Given negative entity name, return positive version **/		
     private PositiveName(negativeName: string) : string		
     {		
-        if (negativeName.startsWith(ActionCommand.NEGATIVE)) {		
+        if (negativeName.startsWith(NEGATIVE_PREFIX)) {		
             return negativeName.slice(1);		
         }		
         return null;		
@@ -152,32 +153,32 @@ export class BotMemory
             if (isBucket)
             {
                 // Entity might not be in memory
-                if (!this.entityMap[entityName]) {
+                if (!this.filledEntities.map[entityName]) {
                     return;
                 }
 
                 // If no entity Value provide, clear the entity
                 if (!entityValue) {
-                    delete this.entityMap[entityName];
+                    delete this.filledEntities.map[entityName];
                 }
                 else {
                     // Find case insensitive index
-                    let lowerCaseNames = this.entityMap[entityName].values.map((mv) => {return mv.userText.toLowerCase();});
+                    let lowerCaseNames = this.filledEntities.map[entityName].values.map((mv) => {return mv.userText.toLowerCase();});
 
                     let index = lowerCaseNames.indexOf(entityValue.toLowerCase());
                     if (index > -1)
                     {
-                        this.entityMap[entityName].values.splice(index, 1);
-                        if (this.entityMap[entityName].values.length == 0)
+                        this.filledEntities.map[entityName].values.splice(index, 1);
+                        if (this.filledEntities.map[entityName].values.length == 0)
                         {
-                            delete this.entityMap[entityName];
+                            delete this.filledEntities.map[entityName];
                         }
                     }    
                 }
             }
             else
             {
-                delete this.entityMap[entityName];
+                delete this.filledEntities.map[entityName];
             }
             await this.Set();
         }
@@ -193,7 +194,7 @@ export class BotMemory
         await this.Init();
 
         let memory : Memory[] = [];
-        for (let entityName in this.entityMap)
+        for (let entityName in this.filledEntities.map)
         {
             memory.push(new Memory({entityName:entityName, entityValues: this.MemoryValues(entityName)}));
         }
@@ -202,12 +203,12 @@ export class BotMemory
 
     public async Value(entityName: string) : Promise<string> {
         await this.Init()
-        return this.EntityValueAsString(entityName);
+        return this.filledEntities.EntityValueAsString(entityName);
     }
 
     public async ValueAsList(entityName: string) : Promise<string[]> {
         await this.Init()
-        return this.EntityValueAsList(entityName);
+        return this.filledEntities.EntityValueAsList(entityName);
     } 
 
     public async ValueAsPrebuilt(entityName: string) : Promise<MemoryValue[]> {
@@ -217,106 +218,10 @@ export class BotMemory
 
     private MemoryValues(entityName : string) : MemoryValue[]
     {
-        if (!this.entityMap[entityName]) {
+        if (!this.filledEntities.map[entityName]) {
             return [];
         }
         
-        return this.entityMap[entityName].values;  
-    }
-
-    private EntityValueAsList(entityName : string) : string[]
-    {
-        if (!this.entityMap[entityName]) {
-            return [];
-        }
-
-        return this.entityMap[entityName].values.map(v => v.userText);  
-    }
-
-    private EntityValueAsString(entityName : string) : string
-    {
-        if (!this.entityMap[entityName]) {
-            return null;
-        }
-        
-        // Print out list in friendly manner
-        let group = "";
-        for (let key in this.entityMap[entityName].values)
-        {
-            let index = +key;
-            let prefix = "";
-            if (this.entityMap[entityName].values.length != 1 && index == this.entityMap[entityName].values.length-1)
-            {
-                prefix = " and ";
-            }
-            else if (index != 0)
-            {
-                prefix = ", ";
-            }
-            let value = this.entityMap[entityName].values[key];
-            let text = value.displayText ? value.displayText : value.userText;
-            group += `${prefix}${text}`;
-        }
-        return group;  
-    }
-
-    public async SubstituteEntities(text: string) : Promise<string> {
-        let words = this.Split(text);
-        await this.Init();
-        for (let word of words) 
-        {
-            if (word.startsWith(ActionCommand.SUBSTITUTE))
-            {
-                // Key is in form of $entityName
-                let entityName = word.substr(1, word.length-1);
-
-                let entityValue = this.EntityValueAsString(entityName);
-                if (entityValue) {
-                    text = text.replace(word, entityValue);
-                }
-            }
-        }
-        return text;
-    }
-
-    /** Extract contigent phrases (i.e. [,$name]) */
-    private SubstituteBrackets(text : string) : string {
-        
-        let start = text.indexOf('[');
-        let end = text.indexOf(']');
-
-        // If no legal contingency found
-        if (start < 0 || end < 0 || end < start) 
-        {
-            return text;
-        }
-
-        let phrase = text.substring(start+1, end);
-
-        // If phrase still contains unmatched entities, cut phrase
-        if (phrase.indexOf(ActionCommand.SUBSTITUTE) > 0)
-        {
-            text = text.replace(`[${phrase}]`, "");
-        }
-        // Otherwise just remove brackets
-        else
-        {
-            text = text.replace(`[${phrase}]`, phrase);
-        }
-        return this.SubstituteBrackets(text);
-    }
-
-    public Split(action : string) : string[] {
-        return action.split(/[\s,:.?!\[\]]+/);
-    }
-
-    public async Substitute(text: string) : Promise<string> {
-
-        // First replace all entities
-        text = <string> await this.SubstituteEntities(text);
-
-        // Remove contingent entities
-        text = this.SubstituteBrackets(text);
-        return text;
+        return this.filledEntities.map[entityName].values;  
     }
 }

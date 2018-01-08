@@ -10,9 +10,9 @@ import { InitDOLRunner } from './DOLRunner';
 import { TemplateProvider } from './TemplateProvider';
 import { AzureFunctions } from './AzureFunctions';
 import { Utils } from './Utils';
-import { EntityBase, PredictedEntity, 
+import { EntityBase, PredictedEntity, EntityList,
         ActionPayload, SenderType, ActionTypes, ScoredAction,
-        ScoreInput, ModelUtils, ActionBase, CallbackAPI } from 'blis-models'
+        ScoreInput, ModelUtils, ActionBase, CallbackAPI, FilledEntity, FilledEntityMap } from 'blis-models'
 import { ClientMemoryManager} from './Memory/ClientMemoryManager';
 import { BlisIntent } from './BlisIntent';
 
@@ -137,7 +137,7 @@ export class Blis  {
         }
     }
 
-    public static async TakeLocalAPIAction(action: ActionBase | ScoredAction, memory : BlisMemory, allEntities : EntityBase[]) : Promise<Partial<BB.Activity> | string | undefined>
+    public static async TakeLocalAPIAction(action: ActionBase | ScoredAction, filledEntityMap : FilledEntityMap, memory : BlisMemory, allEntities : EntityBase[]) : Promise<Partial<BB.Activity> | string | undefined>
     {
         let actionPayload = JSON.parse(action.payload) as ActionPayload;
         if (!Blis.apiCallbacks)
@@ -154,7 +154,7 @@ export class Blis  {
         let argArray = [];
         for (let arg of args)
         {
-            argArray.push(await memory.BotMemory.SubstituteEntities(arg));
+            argArray.push(filledEntityMap.SubstituteEntities(arg));
         }
 
         let api = Blis.apiCallbacks[apiName];
@@ -169,19 +169,18 @@ export class Blis  {
         return await api(memoryManager, ...argArray.reverse()); 
     }
 
-    public static async TakeTextAction(action: ActionBase | ScoredAction, memory : BlisMemory, allEntities : EntityBase[]) : Promise<Partial<BB.Activity> | string | undefined>
+    public static async TakeTextAction(action: ActionBase | ScoredAction, filledEntityMap : FilledEntityMap) : Promise<Partial<BB.Activity> | string | undefined>
     {
-        let memoryManager = new ClientMemoryManager(memory, allEntities);
-        let outText = await memoryManager.blisMemory.BotMemory.Substitute(action.payload);
+        let outText = await filledEntityMap.Substitute(action.payload);
         return outText;
     }
      
-    public static async TakeCardAction(action: ActionBase | ScoredAction, memory : BlisMemory, allEntities : EntityBase[]) : Promise<Partial<BB.Activity> | string | undefined>
+    public static async TakeCardAction(action: ActionBase | ScoredAction, filledEntityMap : FilledEntityMap) : Promise<Partial<BB.Activity> | string | undefined>
     {
         let actionPayload = JSON.parse(action.payload) as ActionPayload;
         
         try {
-            let form = await TemplateProvider.RenderTemplate(actionPayload, memory);
+            let form = await TemplateProvider.RenderTemplate(actionPayload, filledEntityMap);
             const attachment = BB.CardStyler.adaptiveCard(form);
             const message = BB.MessageStyler.attachment(attachment);
             message.text = null;
@@ -193,7 +192,7 @@ export class Blis  {
         }
     }
 
-    public static async TakeAzureAPIAction(actionPayload: ActionPayload, memory : BlisMemory, allEntities : EntityBase[]) : Promise<Partial<BB.Activity> | string | undefined>
+    public static async TakeAzureAPIAction(actionPayload: ActionPayload, filledEntityMap : FilledEntityMap) : Promise<Partial<BB.Activity> | string | undefined>
     {
         // Extract API name and entities
         let apiString = actionPayload.payload;
@@ -201,10 +200,23 @@ export class Blis  {
         let args = ModelUtils.RemoveWords(apiString, 1);
 
         // Make any entity substitutions
-        let entities = await memory.BotMemory.SubstituteEntities(args);
+        let entities = filledEntityMap.SubstituteEntities(args);
 
         // Call Azure function and send output (if any)
         return await AzureFunctions.Call(BlisClient.client.azureFunctionsUrl, BlisClient.client.azureFunctionsKey, funcName, entities);        
+    }
+
+    /** Convert list of filled entities into a filled entity map lookup table */
+    private static CreateFilledEntityMap(filledEntities: FilledEntity[], entityList: EntityList) : FilledEntityMap {
+
+        let filledEntityMap = new FilledEntityMap();
+        for (var filledEntity of filledEntities) {
+            let entity = entityList.entities.find(e => e.entityId == filledEntity.entityId);
+            if (entity) {
+                filledEntityMap.map[entity.entityName] = filledEntity;
+            }
+        }
+        return filledEntityMap;
     }
 
     public static async GetHistory(appId: string, trainDialogId: string, userName: string, userId: string, memory: BlisMemory) : Promise<(string | BB.Activity)[]> {
@@ -230,14 +242,16 @@ export class Blis  {
                 let labelAction = scorerStep.labelAction;
                 let action = actionList.actions.filter((a: ActionBase) => a.actionId === labelAction)[0];
 
+                let filledEntityMap = this.CreateFilledEntityMap(scorerStep.input.filledEntities, entityList);
+
                 id = `${SenderType.Bot}:${roundNum}:${scoreNum}`
                 let botResponse = null;
                 if (action.metadata && action.metadata.actionType === ActionTypes.CARD) {
-                    botResponse = await this.TakeCardAction(action, memory, entityList.entities);
+                    botResponse = await this.TakeCardAction(action, filledEntityMap);
                 } else if (action.metadata && action.metadata.actionType === ActionTypes.API_LOCAL) {
-                    botResponse = await this.TakeLocalAPIAction(action, memory, entityList.entities);                    
+                    botResponse = await this.TakeLocalAPIAction(action, filledEntityMap, memory, entityList.entities);                    
                 }  else {
-                    botResponse = await Blis.TakeTextAction(action, memory, entityList.entities);  
+                    botResponse = await Blis.TakeTextAction(action, filledEntityMap);  
                 }
                 // TODO 
                 //  TakeAzureAPIAction

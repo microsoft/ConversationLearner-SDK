@@ -15,10 +15,13 @@ export class BlisTemplateRenderer implements BB.TemplateRenderer {
 
     public async renderTemplate(botContext: BotContext, language: string, templateId: string, blisIntent: BlisIntent): Promise<Partial<BB.Activity> | string | undefined> {
 
+        // Get filled entities from memory
+        let filledEntityMap = await blisIntent.memory.BotMemory.FilledEntityMap();
+
         let message = null;
         switch (blisIntent.scoredAction.metadata.actionType)  {
             case ActionTypes.TEXT:
-                message = await Blis.TakeTextAction(blisIntent.scoredAction, blisIntent.memory, blisIntent.blisEntities);
+                message = await Blis.TakeTextAction(blisIntent.scoredAction, filledEntityMap);
                 break;
             /* TODO
             case ActionTypes.API_AZURE:
@@ -26,10 +29,10 @@ export class BlisTemplateRenderer implements BB.TemplateRenderer {
                 break;
             */
             case ActionTypes.API_LOCAL:
-                message = await Blis.TakeLocalAPIAction(blisIntent.scoredAction, blisIntent.memory, blisIntent.blisEntities);
+                message = await Blis.TakeLocalAPIAction(blisIntent.scoredAction, filledEntityMap, blisIntent.memory, blisIntent.blisEntities);
                 break;
             case ActionTypes.CARD:
-                message = await Blis.TakeCardAction(blisIntent.scoredAction, blisIntent.memory, blisIntent.blisEntities);
+                message = await Blis.TakeCardAction(blisIntent.scoredAction, filledEntityMap);
             break;
         }
         

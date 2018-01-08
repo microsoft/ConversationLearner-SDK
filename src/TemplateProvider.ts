@@ -1,6 +1,5 @@
 var fs = require('fs');
-import { Template, ActionPayload, TemplateVariable } from 'blis-models'
-import { BlisMemory } from './BlisMemory';
+import { Template, ActionPayload, TemplateVariable, FilledEntityMap } from 'blis-models'
 import { BlisDebug } from './BlisDebug';
 
 //TODO - make this configurable
@@ -9,7 +8,7 @@ const templateDirectory = __dirname + "../../../../cards/";
 export class TemplateProvider { 
         private static hasSumbitItem = false;
 
-        public static async RenderTemplate(actionPayload: ActionPayload, memory: BlisMemory) : Promise<any> {
+        public static async RenderTemplate(actionPayload: ActionPayload, filledEntityMap : FilledEntityMap) : Promise<any> {
 
             let templateName = actionPayload.payload;
 
@@ -22,7 +21,7 @@ export class TemplateProvider {
                 let actionArgument = actionPayload.arguments.find(a => a.parameter == argumentName);
                 if (actionArgument) {
                     // Substitue any entities
-                    let value = await memory.BotMemory.SubstituteEntities(actionArgument.value);
+                    let value = filledEntityMap.SubstituteEntities(actionArgument.value);
                     templateString = templateString.replace(new RegExp(`{{${argumentName}}}`, 'g'), value);
                 }
             }
