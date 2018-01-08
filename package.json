@@ -1,6 +1,6 @@
 {
   "name": "blis-sdk",
-  "version": "0.103.1",
+  "version": "0.105.0",
   "description": "Node SDK for Blis",
   "main": "lib/Blis-SDK.js",
   "typings": "lib/Blis-SDK.d.ts",
@@ -12,11 +12,11 @@
   "author": "Microsoft BLIS Team",
   "license": "MIT",
   "dependencies": {
-    "blis-models": "^0.100.1",
+    "blis-models": "0.105.1",
     "botbuilder-core": "^4.0.0-h4.2",
     "express": "^4.15.3",
     "node-cache": "^4.1.1",
-    "offline-directline": "^1.1.6",
+    "offline-directline": "^1.1.7",
     "redis": "^2.7.1",
     "request": "^2.79.0",
     "restify": "^4.3.0",
