@@ -33,7 +33,7 @@ export class BlisRecognizer extends BB.IntentRecognizer {
     private async StartSessionAsync(botContext: BotContext, memory: BlisMemory, appId: string): Promise<string> {
 
         let sessionResponse = await BlisClient.client.StartSession(appId);
-        await memory.StartSessionAsync(sessionResponse.sessionId, botContext.request.from.id, false);
+        await memory.StartSessionAsync(sessionResponse.sessionId, botContext.request.from.id, null);
         BlisDebug.Verbose(`Started Session: ${sessionResponse.sessionId} - ${botContext.request.from.id}`);
         return sessionResponse.sessionId;
     }
