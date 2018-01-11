@@ -89,7 +89,7 @@ export class BotState
         let json = JSON.parse(text);
         this.app = json.app;
         this.convSession = json.convSession;
-        this.teachId = json.teachId ? json.teachId : false;
+        this.teachId = json.teachId;
         this.inDebug = json.inDebug ? json.inDebug : false;
         this.conversationReference = json.conversationReference;
     }
@@ -99,7 +99,7 @@ export class BotState
         let jsonObj = {
             app : this.app,
             convSession : this.convSession,
-            teachId : this.teachId ? this.teachId : false,
+            teachId : this.teachId,
             inDebug : this.inDebug ? this.inDebug : false,
             conversationReference : this.conversationReference
         }
