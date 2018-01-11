@@ -149,7 +149,7 @@ export class BlisRecognizer extends BB.IntentRecognizer {
             }
 
             // If submit type return as a response
-            if (data['submit'] === "submit") {
+            if (data['submit']) {
                 return data['submit'];
             }
         }
