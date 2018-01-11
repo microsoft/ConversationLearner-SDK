@@ -185,14 +185,14 @@ export class BlisMemory {
     /** Clear memory associated with a session */
     public async EndSession() : Promise<void>
     {
-        await this.BotState.SetSessionAsync(null, null, false);
+        await this.BotState.SetSessionAsync(null, null, null);
         await this.BotMemory.Clear();
     }
 
     /** Init memory for a session */
-    public async StartSessionAsync(sessionId : string, conversationId: string, inTeach : boolean) : Promise<void>
+    public async StartSessionAsync(sessionId : string, conversationId: string, teachId : string) : Promise<void>
     {
-        await this.BotState.SetSessionAsync(sessionId, conversationId, inTeach);
+        await this.BotState.SetSessionAsync(sessionId, conversationId, teachId);
         await this.BotMemory.Clear();
     }
 

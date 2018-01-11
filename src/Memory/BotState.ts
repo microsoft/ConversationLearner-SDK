@@ -23,7 +23,8 @@ export class BotState
 
     public convSession : ConversationSession = null;
 
-    public inTeach : boolean = false;
+    // Set if in a teach session
+    public teachId : string = null;
  
     public inDebug : boolean = false;
 
@@ -88,7 +89,7 @@ export class BotState
         let json = JSON.parse(text);
         this.app = json.app;
         this.convSession = json.convSession;
-        this.inTeach = json.inTeach ? json.inTeach : false;
+        this.teachId = json.teachId;
         this.inDebug = json.inDebug ? json.inDebug : false;
         this.conversationReference = json.conversationReference;
     }
@@ -98,7 +99,7 @@ export class BotState
         let jsonObj = {
             app : this.app,
             convSession : this.convSession,
-            inTeach : this.inTeach ? this.inTeach : false,
+            teachId : this.teachId,
             inDebug : this.inDebug ? this.inDebug : false,
             conversationReference : this.conversationReference
         }
@@ -118,7 +119,7 @@ export class BotState
     {  
         this.app = app;
         this.convSession = null;
-        this.inTeach = false;
+        this.teachId = null;
         this.inDebug = false;
         await this.SetAsync();
     }
@@ -157,24 +158,24 @@ export class BotState
         return null;
     }
 
-    public async SetSessionAsync(sessionId: string, conversationId: string, inTeach: boolean) : Promise<void>
+    public async SetSessionAsync(sessionId: string, conversationId: string, teachId: string) : Promise<void>
     {
         await this.Init();    
         this.convSession = new ConversationSession({sessionId: sessionId, conversationId: conversationId});
-        this.inTeach = inTeach;
+        this.teachId = teachId;
         await this.SetAsync();
     }
 
     public async InTeachAsync() : Promise<boolean> {
         await this.Init();    
-        return this.inTeach;
+        return this.teachId != null;
     }
 
     public InTeachSync(cb : (err: any, inTeach: boolean) => void) : void {
         this.GetSync((err, botState) => {
             if (!err)
             {
-                cb(null, botState.inTeach);
+                cb(null, botState.teachId != null);
             }
         });    
     }

@@ -7,8 +7,8 @@ import { BlisIntent } from '../BlisIntent';
 import { TemplateProvider } from '../TemplateProvider';
 import { Utils } from '../Utils';
 import * as XMLDom from 'xmldom';
-import { TrainDialog, BotInfo, 
-        BlisAppBase, ActionBase, EntityBase } from 'blis-models'
+import { TrainDialog, BotInfo, Teach,
+        BlisAppBase, ActionBase, EntityBase, ModelUtils, TeachWithHistory } from 'blis-models'
 import { ScoreInput, UIScoreInput, UIExtractResponse, UIScoreResponse, UITeachResponse, UITrainScorerStep  } from 'blis-models'
 import * as corsMiddleware from 'restify-cors-middleware'
 
@@ -273,7 +273,7 @@ export class Server {
                         if (app && app.appId === appId)
                         {
                             await memory.BotState.SetAppAsync(null);
-                            await memory.BotState.SetSessionAsync(null, null, false);
+                            await memory.BotState.SetSessionAsync(null, null, null);
                         }
                         res.send(200);
                     }
@@ -854,30 +854,6 @@ export class Server {
                 }
             );
 
-            this.server.get("/app/:appId/traindialog/:traindialogid/history", async (req, res, next) =>
-                {
-                    try
-                    {
-                        this.InitClient();  
-
-                        //let query = req.getQuery();
-                        let key = req.params.key;
-                        let appId = req.params.appId;
-                        let userName = req.params.username;
-                        let userId = req.params.userid;
-                        let trainDialogId = req.params.traindialogid;
-
-                        let memory = BlisMemory.GetMemory(key);
-                        let history = await Blis.GetHistory(appId, trainDialogId, userName, userId, memory);
-                        res.send(history);
-                    }
-                    catch (error)
-                    {
-                        Server.HandleError(res, error);
-                    }
-                }
-            );
-
             this.server.get("/app/:appId/traindialog/:trainDialogId", async (req, res, next) =>
                 {
                     this.InitClient();  // TEMP
@@ -983,6 +959,54 @@ export class Server {
                 }
             );
 
+            /** Create a new teach session based on the current train dialog starting at round turnIndex */
+            this.server.post("/app/:appId/traindialog/:trainDialogId/branch/:turnIndex", async (req, res, next) =>
+            {
+                try
+                {
+                    this.InitClient();  
+
+                    //let query = req.getQuery();
+                    let key = req.params.key;
+                    let appId = req.params.appId;
+                    let userName = req.params.username;
+                    let userId = req.params.userid;
+                    let trainDialogId = req.params.trainDialogId;
+                    let turnIndex = req.params.turnIndex;
+
+                    // Retreive current train dialog
+                    let trainDialog = await BlisClient.client.GetTrainDialog(appId, trainDialogId);
+                    
+                    // Slice to length requested by user
+                    trainDialog.rounds = trainDialog.rounds.slice(0,turnIndex)
+                    let contextDialog = ModelUtils.ToContextDialog(trainDialog);
+
+                    // Start new teach session
+                    let teachResponse = await BlisClient.client.StartTeach(appId, contextDialog);
+
+                    // Update Memory
+                    let memory = BlisMemory.GetMemory(key);
+                    await memory.StartSessionAsync(teachResponse.teachId, null, teachResponse.teachId);
+
+                    // Get history and replay to put bot into last round
+                    let history = await Blis.GetHistory(appId, trainDialog, userName, userId, memory, true);
+                     
+                    let memories = await memory.BotMemory.DumpMemory();
+
+                    let teachWithHistory = new TeachWithHistory({
+                        teach: ModelUtils.ToTeach(teachResponse),
+                        history: history,
+                        memories: memories
+                    })
+                    res.send(teachWithHistory);
+                }
+                catch (error)
+                {
+                    Server.HandleError(res, error);
+                }
+            }
+        );
+
         //========================================================
         // Session
         //========================================================
@@ -1002,7 +1026,7 @@ export class Server {
 
                     // Update Memory
                     let memory = BlisMemory.GetMemory(key);
-                    memory.StartSessionAsync(sessionResponse.sessionId, null, false);
+                    memory.StartSessionAsync(sessionResponse.sessionId, null, null);
                 }
                 catch (error)
                 {
@@ -1109,12 +1133,12 @@ export class Server {
                         //let query = req.getQuery();
                         let key = req.params.key;
                         let appId = req.params.appId;
-                        let teachResponse = await BlisClient.client.StartTeach(appId);
+                        let teachResponse = await BlisClient.client.StartTeach(appId, null);
                         res.send(teachResponse);
 
                         // Update Memory
                         let memory = BlisMemory.GetMemory(key);
-                        memory.StartSessionAsync(teachResponse.teachId, null, true);
+                        memory.StartSessionAsync(teachResponse.teachId, null, teachResponse.teachId);
                     }
                     catch (error)
                     {
@@ -1133,8 +1157,8 @@ export class Server {
                         //let key = req.params.key;
                         let appId = req.params.appId;
                         let teachId = req.params.teachId;
-                        let response = await BlisClient.client.GetTeach(appId, teachId);
-                        res.send(response); 
+                        let teach = await BlisClient.client.GetTeach(appId, teachId);
+                        res.send(teach); 
                     }
                     catch (error)
                     {
@@ -1370,5 +1394,82 @@ export class Server {
                     }
                 }
             );
+
+        //========================================================
+        // Replay
+        //========================================================
+            
+            this.server.post("/app/:appId/history", async (req, res, next) =>
+            {
+                try
+                {
+                    this.InitClient();  
+
+                    //let query = req.getQuery();
+                    let key = req.params.key;
+                    let appId = req.params.appId;
+                    let userName = req.params.username;
+                    let userId = req.params.userid;
+                    let trainDialog = new TrainDialog(req.body);
+
+                    let memory = BlisMemory.GetMemory(key);
+                    let history = await Blis.GetHistory(appId, trainDialog, userName, userId, memory);
+                    res.send(history);
+                }
+                catch (error)
+                {
+                    Server.HandleError(res, error);
+                }
+            }
+            );
+
+            this.server.post("/app/:appId/teach/:teachId/undo", async (req, res, next) =>
+            {
+                try
+                {
+                    this.InitClient();  
+
+                    //let query = req.getQuery();
+                    let key = req.params.key;
+                    let appId = req.params.appId;
+                    let userName = req.params.username;
+                    let userId = req.params.userid;
+                    let teach = new Teach(req.body);
+
+                    // Retreive current train dialog
+                    let trainDialog = await BlisClient.client.GetTrainDialog(appId, teach.trainDialogId);
+                    
+                    // Remove last round
+                    trainDialog.rounds.pop();
+                    let contextDialog = ModelUtils.ToContextDialog(trainDialog);
+
+                    // Delete existing train dialog
+                    await BlisClient.client.EndTeach(appId, teach.teachId, `saveDialog=false`);
+
+                    // Start new teach session
+                    let teachResponse = await BlisClient.client.StartTeach(appId, contextDialog);
+
+                    // Update Memory
+                    let memory = BlisMemory.GetMemory(key);
+                    await memory.StartSessionAsync(teachResponse.teachId, null, teachResponse.teachId);
+
+                    // Get history and replay to put bot into last round
+                    let history = await Blis.GetHistory(appId, trainDialog, userName, userId, memory, true);
+                    
+                    let memories = await memory.BotMemory.DumpMemory();
+
+                    let teachWithHistory = new TeachWithHistory({
+                        teach: ModelUtils.ToTeach(teachResponse),
+                        history: history,
+                        memories: memories
+                    })
+                    res.send(teachWithHistory);
+                }
+                catch (error)
+                {
+                    Server.HandleError(res, error);
+                }
+            }
+        );
     }
 }

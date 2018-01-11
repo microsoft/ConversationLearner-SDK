@@ -5,7 +5,7 @@ import {
         LogDialog, LogDialogList, LogDialogIdList, 
         TrainDialog, TrainResponse, TrainDialogList, TrainDialogIdList, 
         Session, SessionList, SessionIdList,
-        UserInput, 
+        UserInput, ContextDialog,
         ExtractResponse, 
         ScoreInput, ScoreResponse, 
         Teach, TeachResponse, TeachList, TeachIdList,
@@ -1511,7 +1511,7 @@ export class BlisClient {
     //=============================================================================
         
         /** Creates a new teaching session and a corresponding trainDialog */
-        public StartTeach(appId : string) : Promise<TeachResponse>
+        public StartTeach(appId : string, contextDialog: ContextDialog) : Promise<TeachResponse>
         {
             let apiPath = `app/${appId}/teach`;
 
@@ -1522,7 +1522,7 @@ export class BlisClient {
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
                         },
-                        body: {},
+                        body: contextDialog ? contextDialog : {},
                         json: true
                     }
 
