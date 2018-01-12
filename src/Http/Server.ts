@@ -1443,8 +1443,8 @@ export class Server {
                     trainDialog.rounds.pop();
                     let contextDialog = ModelUtils.ToContextDialog(trainDialog);
 
-                    // Delete existing train dialog
-                    await BlisClient.client.EndTeach(appId, teach.teachId, `saveDialog=false`);
+                    // Delete existing train dialog (don't await)
+                    BlisClient.client.EndTeach(appId, teach.teachId, `saveDialog=false`);
 
                     // Start new teach session
                     let teachResponse = await BlisClient.client.StartTeach(appId, contextDialog);
