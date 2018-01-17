@@ -975,7 +975,7 @@ export class Server {
                     let turnIndex = req.params.turnIndex;
 
                     // Retreive current train dialog
-                    let trainDialog = await BlisClient.client.GetTrainDialog(appId, trainDialogId);
+                    let trainDialog = await BlisClient.client.GetTrainDialog(appId, trainDialogId, true);
                     
                     // Slice to length requested by user
                     trainDialog.rounds = trainDialog.rounds.slice(0,turnIndex)
@@ -998,6 +998,7 @@ export class Server {
                         history: history,
                         memories: memories
                     })
+
                     res.send(teachWithHistory);
                 }
                 catch (error)
@@ -1437,7 +1438,7 @@ export class Server {
                     let teach = new Teach(req.body);
 
                     // Retreive current train dialog
-                    let trainDialog = await BlisClient.client.GetTrainDialog(appId, teach.trainDialogId);
+                    let trainDialog = await BlisClient.client.GetTrainDialog(appId, teach.trainDialogId, true);
                     
                     // Remove last round
                     trainDialog.rounds.pop();

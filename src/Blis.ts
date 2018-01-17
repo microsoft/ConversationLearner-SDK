@@ -224,10 +224,11 @@ export class Blis  {
      */
     public static async GetHistory(appId: string, trainDialog: TrainDialog, userName: string, userId: string, memory: BlisMemory, updateBotState: boolean = false) : Promise<(string | BB.Activity)[]> {
 
-        // LARSTODO - combine into single api call
-        let entityList = await BlisClient.client.GetEntities(appId, null);
-        let actionList = await BlisClient.client.GetActions(appId, null);
+        let entities = trainDialog.definitions.entities;
+        let actions = trainDialog.definitions.actions;
+        let entityList = new EntityList({entities: entities});
         
+
         if (!trainDialog || !trainDialog.rounds) {
             return [];
         }
@@ -244,14 +245,17 @@ export class Blis  {
                 // Call entity detection callback
                 let textVariation = round.extractorStep.textVariations[0];
                 let predictedEntities = ModelUtils.ToPredictedEntities(textVariation.labelEntities, entityList);
-                await Blis.CallEntityDetectionCallback(textVariation.text, predictedEntities, memory, entityList.entities);
+                await Blis.CallEntityDetectionCallback(textVariation.text, predictedEntities, memory, entities);
             }
 
             let scoreNum = 0;
             for (let scorerStep of round.scorerSteps) {
                 let labelAction = scorerStep.labelAction;
-                let action = actionList.actions.filter((a: ActionBase) => a.actionId === labelAction)[0];
+                let action = actions.filter((a: ActionBase) => a.actionId === labelAction)[0];
 
+                if (!action) {
+                    throw new Error(`Can't find Entity Id ${labelAction}`);
+                }
                 let filledEntityMap = this.CreateFilledEntityMap(scorerStep.input.filledEntities, entityList);
 
                 id = `${SenderType.Bot}:${roundNum}:${scoreNum}`
