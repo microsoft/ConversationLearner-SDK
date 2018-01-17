@@ -171,8 +171,7 @@ export class Blis  {
 
     public static async TakeTextAction(action: ActionBase | ScoredAction, filledEntityMap : FilledEntityMap) : Promise<Partial<BB.Activity> | string | undefined>
     {
-        let outText = await filledEntityMap.Substitute(action.payload);
-        return outText;
+        return await filledEntityMap.Substitute(ActionBase.GetPayload(action))
     }
      
     public static async TakeCardAction(action: ActionBase | ScoredAction, filledEntityMap : FilledEntityMap) : Promise<Partial<BB.Activity> | string | undefined>
