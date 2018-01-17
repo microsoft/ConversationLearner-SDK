@@ -1102,14 +1102,16 @@ export class BlisClient {
 
         /** Retrieves information about a specific trainDialog in the current package 
          * (or the specified package, if provided) */
-        public GetTrainDialog(appId : string, trainDialogId : string) : Promise<TrainDialog>
+        public GetTrainDialog(appId : string, trainDialogId : string, includeDefinitions: boolean = false) : Promise<TrainDialog>
         {
                 return new Promise(
                 (resolve, reject) => {
 
+                let query = `includeDefinitions=${includeDefinitions}`;
+
                 let apiPath = `app/${appId}/traindialog/${trainDialogId}`;
                 const requestData = {
-                        url: this.MakeURL(apiPath),
+                        url: this.MakeURL(apiPath, query),
                         headers: {
                             'Cookie' : this.credentials.Cookiestring()
                         },
