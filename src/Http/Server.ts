@@ -793,6 +793,92 @@ export class Server {
             }
             );
 
+             // LARS MOVE ME TO TEACH
+            /** START TEACH SESSION: Creates a new teaching session from existing train dialog */
+            this.server.post("/app/:appId/teachwithhistory", async (req, res, next) =>
+                {
+                    try
+                    {
+                        this.InitClient();  // TEMP
+
+                        //let query = req.getQuery();
+                        let key = req.params.key;
+                        let appId = req.params.appId;;
+                        let userName = req.params.username;
+                        let userId = req.params.userid;
+                        let trainDialog = new TrainDialog(req.body);
+
+                        let contextDialog = ModelUtils.ToContextDialog(trainDialog);
+                    
+                        // Start new teach session
+                        let teachResponse = await BlisClient.client.StartTeach(appId, contextDialog);
+                
+                        // Update Memory
+                        let memory = BlisMemory.GetMemory(key);
+                        await memory.StartSessionAsync(teachResponse.teachId, null, teachResponse.teachId);
+
+                        // Get history and replay to put bot into last round
+                        let history = await Blis.GetHistory(appId, trainDialog, userName, userId, memory, true);
+                        
+                        let memories = await memory.BotMemory.DumpMemory();
+
+                        let teachWithHistory = new TeachWithHistory({
+                            teach: ModelUtils.ToTeach(teachResponse),
+                            history: history,
+                            memories: memories
+                        })
+                        res.send(teachWithHistory);
+                    }
+                    catch (error)
+                    {
+                        Server.HandleError(res, error);
+                    }
+                }
+            );
+
+            // LARS DELETE ME
+            /** Turn Edited LogDialog back into new Teach session */
+            this.server.post("/app/:appId/logdialog/:logDialogId", async (req, res, next) =>
+            {
+                try
+                {
+                    this.InitClient();  // TEMP
+
+                    //let query = req.getQuery();
+                    let key = req.params.key;
+                    let appId = req.params.appId;;
+                    let userName = req.params.username;
+                    let userId = req.params.userid;
+                    let trainDialog = new TrainDialog(req.body);
+
+                    let contextDialog = ModelUtils.ToContextDialog(trainDialog);
+                
+                    // Start new teach session
+                    let teachResponse = await BlisClient.client.StartTeach(appId, contextDialog);
+              
+                    // Update Memory
+                    let memory = BlisMemory.GetMemory(key);
+                    await memory.StartSessionAsync(teachResponse.teachId, null, teachResponse.teachId);
+
+                    // Get history and replay to put bot into last round
+                    let history = await Blis.GetHistory(appId, trainDialog, userName, userId, memory, true);
+                    
+                    let memories = await memory.BotMemory.DumpMemory();
+
+                    let teachWithHistory = new TeachWithHistory({
+                        teach: ModelUtils.ToTeach(teachResponse),
+                        history: history,
+                        memories: memories
+                    })
+                    res.send(teachWithHistory);
+                }
+                catch (error)
+                {
+                    Server.HandleError(res, error);
+                }
+            }
+        );
+
         //========================================================
         // TrainDialogs
         //========================================================
@@ -821,6 +907,7 @@ export class Server {
                 }
             );
 
+/* NOTE: Not currently used.  We no longer just replace train dialolgs
             this.server.put("/app/:appId/traindialog/:trainDialogId", async (req, res, next) =>
                 {
                     try
@@ -846,6 +933,52 @@ export class Server {
 
                         let trainDialogId = await BlisClient.client.EditTrainDialog(appId, strippedTrainDialog);
                         res.send(trainDialogId);
+                    }
+                    catch (error)
+                    {
+                        Server.HandleError(res, error);
+                    }
+                }
+            );
+*/
+            /** Turn Edited TrainDialog back into new Teach session */
+            this.server.post("/app/:appId/traindialog/:trainDialogId", async (req, res, next) =>
+                {
+                    try
+                    {
+                        this.InitClient();  // TEMP
+
+                        //let query = req.getQuery();
+                        let key = req.params.key;
+                        let appId = req.params.appId;
+                        let trainDialogId = req.params.trainDialogId;
+                        let userName = req.params.username;
+                        let userId = req.params.userid;
+                        let trainDialog = new TrainDialog(req.body);
+
+                        let contextDialog = ModelUtils.ToContextDialog(trainDialog);
+
+                        // Delete existing train dialog (don't await)
+                        BlisClient.client.DeleteTrainDialog(appId, trainDialogId);
+                    
+                        // Start new teach session
+                        let teachResponse = await BlisClient.client.StartTeach(appId, contextDialog);
+                  
+                        // Update Memory
+                        let memory = BlisMemory.GetMemory(key);
+                        await memory.StartSessionAsync(teachResponse.teachId, null, teachResponse.teachId);
+    
+                        // Get history and replay to put bot into last round
+                        let history = await Blis.GetHistory(appId, trainDialog, userName, userId, memory, true);
+                        
+                        let memories = await memory.BotMemory.DumpMemory();
+    
+                        let teachWithHistory = new TeachWithHistory({
+                            teach: ModelUtils.ToTeach(teachResponse),
+                            history: history,
+                            memories: memories
+                        })
+                        res.send(teachWithHistory);
                     }
                     catch (error)
                     {
