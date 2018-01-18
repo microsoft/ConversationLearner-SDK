@@ -791,8 +791,8 @@ export class Server {
                     Server.HandleError(res, error);
                 }
             }
-            );
-
+            );          
+  
         //========================================================
         // TrainDialogs
         //========================================================
@@ -812,39 +812,6 @@ export class Server {
                         let strippedTrainDialog = Utils.StripPrebuiltInfoFromTrain(trainDialog);
 
                         let trainDialogId = await BlisClient.client.AddTrainDialog(appId, strippedTrainDialog);
-                        res.send(trainDialogId);
-                    }
-                    catch (error)
-                    {
-                        Server.HandleError(res, error);
-                    }
-                }
-            );
-
-            this.server.put("/app/:appId/traindialog/:trainDialogId", async (req, res, next) =>
-                {
-                    try
-                    {
-                        this.InitClient();  // TEMP
-
-                        //let query = req.getQuery();
-                        //let key = req.params.key;
-                        let appId = req.params.appId;
-                        let trainDialog = new TrainDialog(req.body);
-
-                        if (!trainDialog.trainDialogId)
-                        {
-                            trainDialog.trainDialogId = req.params.trainDialogId;
-                        }
-                        else if (req.params.trainDialogId != trainDialog.trainDialogId)
-                        {
-                            return next(new Restify.InvalidArgumentError("ActionId of object does not match URI"));
-                        }
-
-                        // TEMP: until object refactor
-                        let strippedTrainDialog = Utils.StripPrebuiltInfoFromTrain(trainDialog);
-
-                        let trainDialogId = await BlisClient.client.EditTrainDialog(appId, strippedTrainDialog);
                         res.send(trainDialogId);
                     }
                     catch (error)
@@ -1140,6 +1107,48 @@ export class Server {
                         // Update Memory
                         let memory = BlisMemory.GetMemory(key);
                         memory.StartSessionAsync(teachResponse.teachId, null, teachResponse.teachId);
+                    }
+                    catch (error)
+                    {
+                        Server.HandleError(res, error);
+                    }
+                }
+            );
+
+            /** START TEACH SESSION: Creates a new teaching session from existing train dialog */
+            this.server.post("/app/:appId/teachwithhistory", async (req, res, next) =>
+                {
+                    try
+                    {
+                        this.InitClient();  // TEMP
+
+                        //let query = req.getQuery();
+                        let key = req.params.key;
+                        let appId = req.params.appId;;
+                        let userName = req.params.username;
+                        let userId = req.params.userid;
+                        let trainDialog = new TrainDialog(req.body);
+
+                        let contextDialog = ModelUtils.ToContextDialog(trainDialog);
+                    
+                        // Start new teach session
+                        let teachResponse = await BlisClient.client.StartTeach(appId, contextDialog);
+                
+                        // Update Memory
+                        let memory = BlisMemory.GetMemory(key);
+                        await memory.StartSessionAsync(teachResponse.teachId, null, teachResponse.teachId);
+
+                        // Get history and replay to put bot into last round
+                        let history = await Blis.GetHistory(appId, trainDialog, userName, userId, memory, true);
+                        
+                        let memories = await memory.BotMemory.DumpMemory();
+
+                        let teachWithHistory = new TeachWithHistory({
+                            teach: ModelUtils.ToTeach(teachResponse),
+                            history: history,
+                            memories: memories
+                        })
+                        res.send(teachWithHistory);
                     }
                     catch (error)
                     {
