@@ -1,21 +1,15 @@
-import * as path from 'path'
 import * as express from 'express'
 import * as http from 'http'
+import * as blisUi from 'blis-ui'
 
 export default function (): { app: express.Express, listener: http.Server } {
+    console.log(`blis-ui directory path: `, blisUi.directoryPath)
+    console.log(`blis-ui default file path: `, blisUi.defaultFilePath)
+    
     const blisUiPort = parseInt(process.env.BLIS_UI_PORT) || 5050
-    // TODO: Find better way to get path to index file from blis-ui package
-    // We're directly accessing node modules which is brittle
-    /**
-     * import blisUi from 'blis-ui'
-     * 
-     * blisUi.directoryPath
-     * blisUi.defaultFilePath
-     */
-    const blisUiPath = path.join(__dirname, '..', 'node_modules', 'blis-ui')
     const app = express()
-    app.use(express.static(blisUiPath))
-    .use((req, res) => res.sendFile(path.join(blisUiPath, 'index.html')))
+    app.use(express.static(blisUi.directoryPath))
+    .use((req, res) => res.sendFile(blisUi.defaultFilePath))
     
     const listener = app.listen(blisUiPort, () => console.log(`Navigate to localhost:${listener.address().port} to view BLIS administration page.`))
 
