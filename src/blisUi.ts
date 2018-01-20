@@ -11,7 +11,7 @@ export default function (): { app: express.Express, listener: http.Server } {
     app.use(express.static(blisUi.directoryPath))
     .use((req, res) => res.sendFile(blisUi.defaultFilePath))
     
-    const listener = app.listen(blisUiPort, () => console.log(`Navigate to localhost:${listener.address().port} to view BLIS administration page.`))
+    const listener = app.listen(blisUiPort, () => console.log(`Navigate to http://localhost:${listener.address().port} to view BLIS administration application.`))
 
     return {
         app,

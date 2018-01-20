@@ -176,7 +176,7 @@ export class Utils  {
             case "builtin.ordinal":
                 return resolution.value;
             case "builtin.temperature":
-            return resolution.value;
+                return resolution.value;
             case "builtin.dimension":
                 return resolution.value;
             case "builtin.money":
