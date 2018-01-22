@@ -1,6 +1,6 @@
 {
   "name": "blis-sdk",
-  "version": "0.109.1",
+  "version": "0.109.2",
   "description": "Node SDK for Blis",
   "main": "lib/Blis-SDK.js",
   "typings": "lib/Blis-SDK.d.ts",
