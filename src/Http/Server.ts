@@ -85,7 +85,9 @@ export class Server {
     }
 
     public static Init() : void{
-        this.server = Restify.createServer();
+        this.server = Restify.createServer({
+            name: `SDK Service`
+        });
 
         this.server.use(Restify.bodyParser());
         this.server.use(Restify.queryParser());
@@ -100,7 +102,8 @@ export class Server {
             return cb();
         });
 
-        this.server.listen(5000, (err : any) =>
+        const port = process.env.BLIS_SDK_PORT || 5000
+        this.server.listen(port, (err : any) =>
         {
             if (err)
             {
@@ -108,7 +111,7 @@ export class Server {
             }
             else
             {
-                BlisDebug.Log(`SDK Service ${this.server.name} listening to ${this.server.url}`);
+                BlisDebug.Log(`${this.server.name} listening to ${this.server.url}`);
             }
         });
 
