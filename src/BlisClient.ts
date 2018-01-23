@@ -316,6 +316,35 @@ export class BlisClient {
             )
         }
 
+        public GetAppSource(appId: string, query: string): Promise<TrainingStatus>
+        {
+            let apiPath = `app/${appId}/source`
+
+            return new Promise(
+                (resolve, reject) => {
+                    let url = this.MakeURL(apiPath, query)
+                    const requestData = {
+                        headers: {
+                            'Cookie' : this.credentials.Cookiestring()
+                        },
+                        json: true
+                    }
+                    BlisDebug.LogRequest("GET", apiPath, requestData);
+                    Request.get(url, requestData, (error, response, body) => {
+                        if (error) {
+                            reject(error)
+                        }
+                        else if (response.statusCode >= 300) {
+                            reject(response)
+                        }
+                        else {
+                            resolve(body)
+                        }
+                    });
+                }
+            )
+        }
+
         public GetAppTrainingStatus(appId: string, query: string): Promise<TrainingStatus>
         {
             let apiPath = `app/${appId}/trainingstatus`

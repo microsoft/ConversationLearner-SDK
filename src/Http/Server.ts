@@ -189,6 +189,21 @@ export class Server {
                 }
             );
 
+            this.server.get("/app/:appId/source", async (req, res, next) => {
+                const query = req.getQuery()
+                const appId = req.params.appId
+
+                this.InitClient()
+
+                try {
+                    const appDefinition = await BlisClient.client.GetAppSource(appId, query)
+                    res.send(appDefinition)
+                }
+                catch (error) {
+                    Server.HandleError(res, error)
+                }
+            })
+
             this.server.get("/app/:appId/trainingstatus", async (req, res, next) => {
                 const query = req.getQuery()
                 const appId = req.params.appId
