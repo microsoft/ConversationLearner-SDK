@@ -14,7 +14,7 @@
   "license": "MIT",
   "dependencies": {
     "blis-models": "0.107.1",
-    "blis-ui": "^0.100.4",
+    "blis-ui": "^0.100.5",
     "botbuilder-core": "^4.0.0-h4.2",
     "express": "^4.15.3",
     "node-cache": "^4.1.1",
