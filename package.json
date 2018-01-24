@@ -13,7 +13,7 @@
   "author": "Microsoft BLIS Team",
   "license": "MIT",
   "dependencies": {
-    "blis-models": "0.110.0",
+    "blis-models": "0.110.1",
     "blis-ui": "^0.100.5",
     "botbuilder-core": "^4.0.0-h4.2",
     "express": "^4.15.3",
