@@ -8,7 +8,7 @@ import { TemplateProvider } from '../TemplateProvider';
 import { Utils } from '../Utils';
 import * as XMLDom from 'xmldom';
 import { TrainDialog, BotInfo, Teach,
-        BlisAppBase, ActionBase, EntityBase, ModelUtils, TeachWithHistory } from 'blis-models'
+        BlisAppBase, ActionBase, EntityBase, ModelUtils } from 'blis-models'
 import { ScoreInput, UIScoreInput, UIExtractResponse, UIScoreResponse, UITeachResponse, UITrainScorerStep  } from 'blis-models'
 import * as corsMiddleware from 'restify-cors-middleware'
 
@@ -966,24 +966,22 @@ export class Server {
                     trainDialog.rounds = trainDialog.rounds.slice(0,turnIndex)
                     let contextDialog = ModelUtils.ToContextDialog(trainDialog);
 
-                    // Start new teach session
-                    let teachResponse = await BlisClient.client.StartTeach(appId, contextDialog);
-
-                    // Update Memory
-                    let memory = BlisMemory.GetMemory(key);
-                    await memory.StartSessionAsync(teachResponse.teachId, null, teachResponse.teachId);
-
                     // Get history and replay to put bot into last round
-                    let history = await Blis.GetHistory(appId, trainDialog, userName, userId, memory, true);
-                     
-                    let memories = await memory.BotMemory.DumpMemory();
+                    let memory = BlisMemory.GetMemory(key);
+                    let teachWithHistory = await Blis.GetHistory(appId, trainDialog, userName, userId, memory, true);
 
-                    let teachWithHistory = new TeachWithHistory({
-                        teach: ModelUtils.ToTeach(teachResponse),
-                        history: history,
-                        memories: memories
-                    })
+                    // Start teach session if replay of API was consistent
+                    if (teachWithHistory.discrepancies.length == 0) {
+                        // Start new teach session
+                        let teachResponse = await BlisClient.client.StartTeach(appId, contextDialog);
 
+                        // Update Memory
+                        await memory.StartSessionAsync(teachResponse.teachId, null, teachResponse.teachId);
+                        let memories = await memory.BotMemory.DumpMemory();
+
+                        teachWithHistory.teach = ModelUtils.ToTeach(teachResponse);
+                        teachWithHistory.memories = memories;
+                    }
                     res.send(teachWithHistory);
                 }
                 catch (error)
@@ -1147,25 +1145,23 @@ export class Server {
                         let userId = req.params.userid;
                         let trainDialog = new TrainDialog(req.body);
 
-                        let contextDialog = ModelUtils.ToContextDialog(trainDialog);
-                    
-                        // Start new teach session
-                        let teachResponse = await BlisClient.client.StartTeach(appId, contextDialog);
-                
-                        // Update Memory
-                        let memory = BlisMemory.GetMemory(key);
-                        await memory.StartSessionAsync(teachResponse.teachId, null, teachResponse.teachId);
-
                         // Get history and replay to put bot into last round
-                        let history = await Blis.GetHistory(appId, trainDialog, userName, userId, memory, true);
-                        
-                        let memories = await memory.BotMemory.DumpMemory();
+                        let memory = BlisMemory.GetMemory(key);
+                        let teachWithHistory = await Blis.GetHistory(appId, trainDialog, userName, userId, memory, true);
 
-                        let teachWithHistory = new TeachWithHistory({
-                            teach: ModelUtils.ToTeach(teachResponse),
-                            history: history,
-                            memories: memories
-                        })
+                        // Start session if API returned consistent results during replay
+                        if (teachWithHistory.discrepancies.length == 0) {
+                            // Start new teach session
+                            let contextDialog = ModelUtils.ToContextDialog(trainDialog);
+                            let teachResponse = await BlisClient.client.StartTeach(appId, contextDialog);
+                    
+                            await memory.StartSessionAsync(teachResponse.teachId, null, teachResponse.teachId);
+
+                            let memories = await memory.BotMemory.DumpMemory();
+
+                            teachWithHistory.teach = ModelUtils.ToTeach(teachResponse);
+                            teachWithHistory.memories = memories;  
+                        }
                         res.send(teachWithHistory);
                     }
                     catch (error)
@@ -1441,8 +1437,8 @@ export class Server {
                     let trainDialog = new TrainDialog(req.body);
 
                     let memory = BlisMemory.GetMemory(key);
-                    let history = await Blis.GetHistory(appId, trainDialog, userName, userId, memory);
-                    res.send(history);
+                    let teachWithHistory = await Blis.GetHistory(appId, trainDialog, userName, userId, memory);
+                    res.send(teachWithHistory.history);
                 }
                 catch (error)
                 {
@@ -1469,28 +1465,28 @@ export class Server {
                     
                     // Remove last round
                     trainDialog.rounds.pop();
-                    let contextDialog = ModelUtils.ToContextDialog(trainDialog);
-
-                    // Delete existing train dialog (don't await)
-                    BlisClient.client.EndTeach(appId, teach.teachId, `saveDialog=false`);
-
-                    // Start new teach session
-                    let teachResponse = await BlisClient.client.StartTeach(appId, contextDialog);
-
-                    // Update Memory
-                    let memory = BlisMemory.GetMemory(key);
-                    await memory.StartSessionAsync(teachResponse.teachId, null, teachResponse.teachId);
 
                     // Get history and replay to put bot into last round
-                    let history = await Blis.GetHistory(appId, trainDialog, userName, userId, memory, true);
-                    
-                    let memories = await memory.BotMemory.DumpMemory();
+                    let memory = BlisMemory.GetMemory(key);
+                    let teachWithHistory = await Blis.GetHistory(appId, trainDialog, userName, userId, memory, true);
 
-                    let teachWithHistory = new TeachWithHistory({
-                        teach: ModelUtils.ToTeach(teachResponse),
-                        history: history,
-                        memories: memories
-                    })
+                    // If APIs returned same values during replay
+                    if (teachWithHistory.discrepancies.length === 0) {
+                        let contextDialog = ModelUtils.ToContextDialog(trainDialog);
+
+                        // Delete existing train dialog (don't await)
+                        BlisClient.client.EndTeach(appId, teach.teachId, `saveDialog=false`);
+
+                        // Start new teach session
+                        let teachResponse = await BlisClient.client.StartTeach(appId, contextDialog);
+
+                        await memory.StartSessionAsync(teachResponse.teachId, null, teachResponse.teachId);
+
+                        let memories = await memory.BotMemory.DumpMemory();
+
+                        teachWithHistory.teach = ModelUtils.ToTeach(teachResponse);
+                        teachWithHistory.memories = memories;
+                    }
                     res.send(teachWithHistory);
                 }
                 catch (error)
