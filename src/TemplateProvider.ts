@@ -26,6 +26,7 @@ export class TemplateProvider {
                     templateString = templateString.replace(new RegExp(`{{${argumentName}}}`, 'g'), value);
                 }
             }
+            templateString = this.RemoveEmptyArguments(templateString);
             return JSON.parse(templateString);
         }
 
@@ -82,6 +83,10 @@ export class TemplateProvider {
                 }
             }
             return unique;
+        }
+
+        public static RemoveEmptyArguments(formString : string) {
+            return formString.replace(/{{\s*[\w\.]+\s*}}/g, "");
         }
 
         public static GetArgumentNames(formString : string) {
