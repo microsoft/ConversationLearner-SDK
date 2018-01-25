@@ -9,10 +9,10 @@
             "request": "attach",
             "name": "Attach to Process",
             "processId": "${command.PickProcess}",
-            "stopOnEntry" : true,
+            "stopOnEntry": true,
             "sourceMaps": true,
-            "port": 5858, 
-            "outDir" : "${workspaceRoot}/lib"
+            "port": 5858,
+            "outDir": "${workspaceRoot}/lib"
         },
         {
             "type": "node",
@@ -21,14 +21,29 @@
             "sourceMaps": true,
             "port": 5858
         },
-        {            
+        {
             "name": "Attach with sourcemaps",
             "type": "node",
             "request": "attach",
-            "address" : "localhost",
+            "address": "localhost",
             "sourceMaps": true,
-              "externalConsole" : true,
+            "externalConsole": true,
             "port": 5858
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Jest Tests",
+            "program": "${workspaceRoot}\\node_modules\\jest\\bin\\jest.js",
+            "args": [
+                "-i"
+            ],
+            "preLaunchTask": "build",
+            "internalConsoleOptions": "openOnSessionStart",
+            "sourceMaps": true,
+            "outFiles": [
+                "${workspaceRoot}/lib/**/*"
+            ]
         }
     ]
 }
