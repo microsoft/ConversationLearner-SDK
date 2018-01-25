@@ -222,36 +222,52 @@ export class Blis  {
     // This checks that API calls didn't change when restoring the bot's state
     // TODO: Internationalize
     private static IsSame(round: TrainRound, memory: BlisMemory, entities: EntityBase[]) : string[] {
-        let discrepancies : string[] = []; 
+        let isSame = true;
         let oldEntities = round.scorerSteps[0].input.filledEntities;
         let newEntities = Object.keys(memory.BotMemory.filledEntities.map).map(k => memory.BotMemory.filledEntities.map[k] as FilledEntity);
 
         if (oldEntities.length != newEntities.length) {
-            discrepancies.push(
-                `Old Entities: ${oldEntities.map(oe => entities.find(e => e.entityId == oe.entityId).entityName).join(" ")}\n\n
-                New Entities: ${newEntities.map(ne => entities.find(e => e.entityId == ne.entityId).entityName).join(" ")}`)
+            isSame = false;
         }
         else {
                 for (let oldEntity of oldEntities) {
                 let newEntity = newEntities.find(ne => ne.entityId == oldEntity.entityId);
                 if (!newEntity) {
-                    discrepancies.push('todo');
+                    isSame = false;
                 }
                 else if (oldEntity.values.length != newEntity.values.length) {
-                    discrepancies.push('todo');;
+                    isSame = false;
                 }
                 else {
                     for (let oldValue of oldEntity.values) {
                         let newValue = newEntity.values.find(v => v.userText == oldValue.userText);
                         if (!newValue) {
-                            discrepancies.push('todo');
+                            isSame = false;
                         }
                         if (oldValue.userText !== newValue.userText) {
-                            discrepancies.push('todo');
+                            isSame = false;
                         }
                     }
                 }
             }
+        }
+        if (isSame) { 
+            return [];
+        }
+        let discrepancies = [];
+        discrepancies.push('Original Entities:');
+        for (let oldEntity of oldEntities)
+        {
+            let name = entities.find(e => e.entityId == oldEntity.entityId).entityName;
+            let values = FilledEntity.EntityValueAsString(oldEntity);
+            discrepancies.push(`${name} = (${values})`);
+        }
+        discrepancies.push('','New Entities:');
+        for (let newEntity of newEntities)
+        {
+            let name = entities.find(e => e.entityId == newEntity.entityId).entityName;
+            let values = FilledEntity.EntityValueAsString(newEntity);
+            discrepancies.push(`${name} = (${values})`);
         }
         return discrepancies;
     }
@@ -276,6 +292,10 @@ export class Blis  {
         let actions = trainDialog.definitions.actions;
         let entityList = new EntityList({entities: entities});
         
+        // Reset the memory
+        if (updateBotState) {
+            memory.BotMemory.Clear();
+        }
 
         if (!trainDialog || !trainDialog.rounds) {
             return null;
@@ -302,6 +322,7 @@ export class Blis  {
 
                 discrepancies = this.IsSame(round, memory, entities);
                 if (discrepancies.length > 0) {
+                    discrepancies = [``,`User Input Step:`,`${userText}`,``,...discrepancies];
                     break;
                 }
             }
