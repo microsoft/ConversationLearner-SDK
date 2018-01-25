@@ -220,7 +220,6 @@ export class Blis  {
 
     // Validate that training round memory is the same as what in the bot's memory
     // This checks that API calls didn't change when restoring the bot's state
-    // TODO: Internationalize
     private static IsSame(round: TrainRound, memory: BlisMemory, entities: EntityBase[]) : string[] {
         let isSame = true;
         let oldEntities = round.scorerSteps[0].input.filledEntities;
