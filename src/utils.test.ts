@@ -4,7 +4,7 @@ describe('utilities', () => {
     describe('PrebuiltDisplayText', () => {
         test('given prebuilt type starts with encyclopediea should return entityText', () => {
             // Arrange
-            const expected = 'randomValue'
+            const expected = 'randomValue1'
 
             // Act
             const actual = utilities.PrebuiltDisplayText('builtin.encyclopedia', null, expected)
