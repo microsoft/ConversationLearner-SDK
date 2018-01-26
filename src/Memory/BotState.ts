@@ -154,7 +154,7 @@ export class BotState
             // If conversation Id matches return the sessionId   
             return convSession.sessionId;
         }
-        // Otherwise session if for another conversation
+        // Otherwise session is for another conversation
         return null;
     }
 
