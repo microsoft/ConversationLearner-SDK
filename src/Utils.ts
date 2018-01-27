@@ -52,7 +52,7 @@ export class Utils  {
         )
     }
     /** Send a text message */
-    public static async SendMessage(bot : BB.Bot, memory : BlisMemory, content : string)
+    public static async SendMessage(bot : BB.Bot, memory : BlisMemory, content : string | BB.Activity)
     { 
         if (memory) {
             await memory.BotState.SendMessage(bot, content);

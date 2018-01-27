@@ -41,9 +41,16 @@ export class BlisTemplateRenderer implements BB.TemplateRenderer {
             setTimeout(async () =>
             {
                 let app = await blisIntent.memory.BotState.AppAsync();
-                let sessionId = await blisIntent.memory.BotState.SessionIdAsync(botContext.conversationReference.user.id);
-                
-                Blis.recognizer.Score(app.appId, sessionId, blisIntent.memory, "", [], blisIntent.blisEntities, blisIntent.inTeach);
+                let sessionId = await blisIntent.memory.BotState.SessionIdAsync(botContext.conversationReference.user.id);        
+                let bestAction = await Blis.recognizer.Score(app.appId, sessionId, blisIntent.memory, "", [], blisIntent.blisEntities, blisIntent.inTeach);
+
+                // If not inTeach, send message to user
+                if (!blisIntent.inTeach) {
+                    blisIntent.scoredAction = bestAction;
+                    let message = await this.renderTemplate(botContext, language, bestAction.actionId, blisIntent);
+                    Blis.SendMessage(blisIntent.memory, message);
+                }
+
             },100)
         }
         return message;

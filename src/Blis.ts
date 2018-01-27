@@ -80,7 +80,7 @@ export class Blis  {
         await Utils.SendIntent(Blis.bot, memory, intent);
     }
 
-    public static async SendMessage(memory: BlisMemory, content: string) : Promise<void> {
+    public static async SendMessage(memory: BlisMemory, content: string | BB.Activity) : Promise<void> {
         await Utils.SendMessage(Blis.bot, memory, content);
     }
 
