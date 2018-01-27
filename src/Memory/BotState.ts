@@ -217,7 +217,7 @@ export class BotState
                 context.reply(message);
             }
             else {
-              context.reply(null ,message);
+              context.reply("", message);
             }
         });
     }
