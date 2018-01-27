@@ -151,6 +151,10 @@ export class BlisRecognizer extends BB.IntentRecognizer {
             // If submit type return as a response
             if (data['submit']) {
                 return data['submit'];
+            } 
+            else {
+                BlisDebug.Error(`Adaptive Card has no Sumbit data`);
+                return null;
             }
         }
         return null;

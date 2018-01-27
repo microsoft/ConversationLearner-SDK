@@ -154,7 +154,7 @@ export class BotState
             // If conversation Id matches return the sessionId   
             return convSession.sessionId;
         }
-        // Otherwise session if for another conversation
+        // Otherwise session is for another conversation
         return null;
     }
 
@@ -210,10 +210,15 @@ export class BotState
     }
 
     //------------------------------------------------------------------
-    public async SendMessage(bot : BB.Bot, message: string) : Promise<any> {
+    public async SendMessage(bot : BB.Bot, message: string | BB.Activity) : Promise<any> {
         let conversationReference = await this.ConversationReverenceAsync();
         bot.createContext(conversationReference, (context) => {
-            context.reply(message);
+            if (typeof message == "string") {
+                context.reply(message);
+            }
+            else {
+              context.reply("", message);
+            }
         });
     }
 

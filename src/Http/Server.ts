@@ -975,8 +975,8 @@ export class Server {
                         // Start new teach session
                         let teachResponse = await BlisClient.client.StartTeach(appId, contextDialog);
 
-                        // Update Memory
-                        await memory.StartSessionAsync(teachResponse.teachId, null, teachResponse.teachId);
+                        // Start Sesion - with "true" to save the memory from the History
+                        await memory.StartSessionAsync(teachResponse.teachId, null, teachResponse.teachId, true);
                         let memories = await memory.BotMemory.DumpMemory();
 
                         teachWithHistory.teach = ModelUtils.ToTeach(teachResponse);
@@ -1155,7 +1155,8 @@ export class Server {
                             let contextDialog = ModelUtils.ToContextDialog(trainDialog);
                             let teachResponse = await BlisClient.client.StartTeach(appId, contextDialog);
                     
-                            await memory.StartSessionAsync(teachResponse.teachId, null, teachResponse.teachId);
+                            // Start Sesion - with "true" to save the memory from the History
+                            await memory.StartSessionAsync(teachResponse.teachId, null, teachResponse.teachId, true);
 
                             let memories = await memory.BotMemory.DumpMemory();
 
@@ -1480,7 +1481,8 @@ export class Server {
                         // Start new teach session
                         let teachResponse = await BlisClient.client.StartTeach(appId, contextDialog);
 
-                        await memory.StartSessionAsync(teachResponse.teachId, null, teachResponse.teachId);
+                        // Start Sesion - with "true" to save the memory from the History
+                        await memory.StartSessionAsync(teachResponse.teachId, null, teachResponse.teachId, true);
 
                         let memories = await memory.BotMemory.DumpMemory();
 
