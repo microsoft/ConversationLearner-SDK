@@ -11,7 +11,7 @@ import { TemplateProvider } from './TemplateProvider';
 import { AzureFunctions } from './AzureFunctions';
 import { Utils } from './Utils';
 import { EntityBase, PredictedEntity, EntityList, TrainDialog, TrainRound,
-        ActionPayload, SenderType, ActionTypes, ScoredAction,
+        ActionPayload, SenderType, ActionTypes, ScoredAction, Memory,
         ScoreInput, ModelUtils, ActionBase, CallbackAPI, FilledEntity, FilledEntityMap, TeachWithHistory } from 'blis-models'
 import { ClientMemoryManager} from './Memory/ClientMemoryManager';
 import { BlisIntent } from './BlisIntent';
@@ -290,10 +290,11 @@ export class Blis  {
         let entities = trainDialog.definitions.entities;
         let actions = trainDialog.definitions.actions;
         let entityList = new EntityList({entities: entities});
-        
+        let prevMemories: Memory[] = []
+
         // Reset the memory
         if (updateBotState) {
-            memory.BotMemory.Clear();
+            await memory.BotMemory.ClearAsync();
         }
 
         if (!trainDialog || !trainDialog.rounds) {
@@ -315,6 +316,9 @@ export class Blis  {
 
             // If I'm updating the bot's state (rather than just returning activities)
             if (updateBotState) {
+                // If I'm updating the bot's state, save memory before this step (used to show changes in UI)
+                prevMemories = await memory.BotMemory.DumpMemory();
+                                    
                 // Call entity detection callback
                 let textVariation = round.extractorStep.textVariations[0];
                 let predictedEntities = ModelUtils.ToPredictedEntities(textVariation.labelEntities, entityList);
@@ -375,8 +379,15 @@ export class Blis  {
             roundNum++;
         }
 
+        let memories = null;
+        if (updateBotState) {
+           memories = await memory.BotMemory.DumpMemory();
+        }
+        
         let teachWithHistory = new TeachWithHistory({
             history: activities,
+            memories: memories,
+            prevMemories: prevMemories,
             discrepancies: discrepancies
         })
         return teachWithHistory;

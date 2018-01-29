@@ -24,7 +24,7 @@ export class BotState
     public convSession : ConversationSession = null;
 
     // Set if in a teach session
-    public teachId : string = null;
+    public inTeach : boolean = null;
  
     public inDebug : boolean = false;
 
@@ -89,7 +89,7 @@ export class BotState
         let json = JSON.parse(text);
         this.app = json.app;
         this.convSession = json.convSession;
-        this.teachId = json.teachId;
+        this.inTeach = json.teachId;
         this.inDebug = json.inDebug ? json.inDebug : false;
         this.conversationReference = json.conversationReference;
     }
@@ -99,7 +99,7 @@ export class BotState
         let jsonObj = {
             app : this.app,
             convSession : this.convSession,
-            teachId : this.teachId,
+            teachId : this.inTeach,
             inDebug : this.inDebug ? this.inDebug : false,
             conversationReference : this.conversationReference
         }
@@ -119,7 +119,7 @@ export class BotState
     {  
         this.app = app;
         this.convSession = null;
-        this.teachId = null;
+        this.inTeach = null;
         this.inDebug = false;
         await this.SetAsync();
     }
@@ -158,24 +158,24 @@ export class BotState
         return null;
     }
 
-    public async SetSessionAsync(sessionId: string, conversationId: string, teachId: string) : Promise<void>
+    public async SetSessionAsync(sessionId: string, conversationId: string, inTeach: boolean) : Promise<void>
     {
         await this.Init();    
         this.convSession = new ConversationSession({sessionId: sessionId, conversationId: conversationId});
-        this.teachId = teachId;
+        this.inTeach = inTeach;
         await this.SetAsync();
     }
 
     public async InTeachAsync() : Promise<boolean> {
         await this.Init();    
-        return this.teachId != null;
+        return this.inTeach != null;
     }
 
     public InTeachSync(cb : (err: any, inTeach: boolean) => void) : void {
         this.GetSync((err, botState) => {
             if (!err)
             {
-                cb(null, botState.teachId != null);
+                cb(null, botState.inTeach != null);
             }
         });    
     }
