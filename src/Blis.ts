@@ -80,7 +80,7 @@ export class Blis  {
         await Utils.SendIntent(Blis.bot, memory, intent);
     }
 
-    public static async SendMessage(memory: BlisMemory, content: string) : Promise<void> {
+    public static async SendMessage(memory: BlisMemory, content: string | BB.Activity) : Promise<void> {
         await Utils.SendMessage(Blis.bot, memory, content);
     }
 
@@ -222,7 +222,7 @@ export class Blis  {
     // This checks that API calls didn't change when restoring the bot's state
     private static IsSame(round: TrainRound, memory: BlisMemory, entities: EntityBase[]) : string[] {
         let isSame = true;
-        let oldEntities = round.scorerSteps[0].input.filledEntities;
+        let oldEntities = (round.scorerSteps[0] && round.scorerSteps[0].input) ? round.scorerSteps[0].input.filledEntities : [];
         let newEntities = Object.keys(memory.BotMemory.filledEntities.map).map(k => memory.BotMemory.filledEntities.map[k] as FilledEntity);
 
         if (oldEntities.length != newEntities.length) {
@@ -313,12 +313,14 @@ export class Blis  {
                 text: userText } as BB.Activity;
             activities.push(userActivity);
 
+            // If I'm updating the bot's state (rather than just returning activities)
             if (updateBotState) {
                 // Call entity detection callback
                 let textVariation = round.extractorStep.textVariations[0];
                 let predictedEntities = ModelUtils.ToPredictedEntities(textVariation.labelEntities, entityList);
                 await Blis.CallEntityDetectionCallback(textVariation.text, predictedEntities, memory, entities);
 
+                // Look for discrenancies when replaying API calls
                 discrepancies = this.IsSame(round, memory, entities);
                 if (discrepancies.length > 0) {
                     discrepancies = [``,`User Input Step:`,`${userText}`,``,...discrepancies];

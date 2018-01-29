@@ -190,10 +190,12 @@ export class BlisMemory {
     }
 
     /** Init memory for a session */
-    public async StartSessionAsync(sessionId : string, conversationId: string, teachId : string) : Promise<void>
+    public async StartSessionAsync(sessionId : string, conversationId: string, teachId : string, saveMemory: boolean = null) : Promise<void>
     {
         await this.BotState.SetSessionAsync(sessionId, conversationId, teachId);
-        await this.BotMemory.Clear();
+        if (!saveMemory) {
+            await this.BotMemory.Clear();
+        }
     }
 
     public get BotMemory() : BotMemory
