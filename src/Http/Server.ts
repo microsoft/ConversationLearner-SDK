@@ -291,7 +291,7 @@ export class Server {
                         if (app && app.appId === appId)
                         {
                             await memory.BotState.SetAppAsync(null);
-                            await memory.BotState.SetSessionAsync(null, null, null);
+                            await memory.BotState.SetSessionAsync(null, null, false);
                         }
                         res.send(200);
                     }
@@ -964,7 +964,6 @@ export class Server {
                     
                     // Slice to length requested by user
                     trainDialog.rounds = trainDialog.rounds.slice(0,turnIndex)
-                    let contextDialog = ModelUtils.ToContextDialog(trainDialog);
 
                     // Get history and replay to put bot into last round
                     let memory = BlisMemory.GetMemory(key);
@@ -972,15 +971,14 @@ export class Server {
 
                     // Start teach session if replay of API was consistent
                     if (teachWithHistory.discrepancies.length == 0) {
-                        // Start new teach session
+                        
+                        // Start new teach session from the old train dialog
+                        let contextDialog = ModelUtils.ToContextDialog(trainDialog);
                         let teachResponse = await BlisClient.client.StartTeach(appId, contextDialog);
 
                         // Start Sesion - with "true" to save the memory from the History
-                        await memory.StartSessionAsync(teachResponse.teachId, null, teachResponse.teachId, true);
-                        let memories = await memory.BotMemory.DumpMemory();
-
+                        await memory.StartSessionAsync(teachResponse.teachId, null, {inTeach: true, saveMemory: true});
                         teachWithHistory.teach = ModelUtils.ToTeach(teachResponse);
-                        teachWithHistory.memories = memories;
                     }
                     res.send(teachWithHistory);
                 }
@@ -1010,7 +1008,7 @@ export class Server {
 
                     // Update Memory
                     let memory = BlisMemory.GetMemory(key);
-                    memory.StartSessionAsync(sessionResponse.sessionId, null, null);
+                    memory.StartSessionAsync(sessionResponse.sessionId, null, {inTeach: false, saveMemory: false});
                 }
                 catch (error)
                 {
@@ -1122,7 +1120,7 @@ export class Server {
 
                         // Update Memory
                         let memory = BlisMemory.GetMemory(key);
-                        memory.StartSessionAsync(teachResponse.teachId, null, teachResponse.teachId);
+                        memory.StartSessionAsync(teachResponse.teachId, null, {inTeach: true, saveMemory: false});
                     }
                     catch (error)
                     {
@@ -1151,17 +1149,14 @@ export class Server {
 
                         // Start session if API returned consistent results during replay
                         if (teachWithHistory.discrepancies.length == 0) {
-                            // Start new teach session
+
+                            // Start new teach session from the old train dialog
                             let contextDialog = ModelUtils.ToContextDialog(trainDialog);
                             let teachResponse = await BlisClient.client.StartTeach(appId, contextDialog);
                     
                             // Start Sesion - with "true" to save the memory from the History
-                            await memory.StartSessionAsync(teachResponse.teachId, null, teachResponse.teachId, true);
-
-                            let memories = await memory.BotMemory.DumpMemory();
-
+                            await memory.StartSessionAsync(teachResponse.teachId, null, {inTeach: true, saveMemory: true});
                             teachWithHistory.teach = ModelUtils.ToTeach(teachResponse);
-                            teachWithHistory.memories = memories;  
                         }
                         res.send(teachWithHistory);
                     }
@@ -1467,27 +1462,30 @@ export class Server {
                     // Remove last round
                     trainDialog.rounds.pop();
 
-                    // Get history and replay to put bot into last round
+                    // Get memory and store a backup in case the undo fails
                     let memory = BlisMemory.GetMemory(key);
+                    let memoryBackup = await memory.BotMemory.FilledEntityMap();
+
+                    // Get history and replay to put bot into last round
                     let teachWithHistory = await Blis.GetHistory(appId, trainDialog, userName, userId, memory, true);
 
                     // If APIs returned same values during replay
                     if (teachWithHistory.discrepancies.length === 0) {
-                        let contextDialog = ModelUtils.ToContextDialog(trainDialog);
 
                         // Delete existing train dialog (don't await)
                         BlisClient.client.EndTeach(appId, teach.teachId, `saveDialog=false`);
 
-                        // Start new teach session
+                        // Start new teach session from the previous trainDialog
+                        let contextDialog = ModelUtils.ToContextDialog(trainDialog);
                         let teachResponse = await BlisClient.client.StartTeach(appId, contextDialog);
 
                         // Start Sesion - with "true" to save the memory from the History
-                        await memory.StartSessionAsync(teachResponse.teachId, null, teachResponse.teachId, true);
-
-                        let memories = await memory.BotMemory.DumpMemory();
-
+                        await memory.StartSessionAsync(teachResponse.teachId, null, {inTeach: true, saveMemory: true});
                         teachWithHistory.teach = ModelUtils.ToTeach(teachResponse);
-                        teachWithHistory.memories = memories;
+                    }
+                    else {
+                        // Failed, so restore the old memory
+                        await memory.BotMemory.RestoreFromMap(memoryBackup);
                     }
                     res.send(teachWithHistory);
                 }

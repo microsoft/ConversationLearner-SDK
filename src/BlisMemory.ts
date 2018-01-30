@@ -4,6 +4,10 @@ import { BotState } from './Memory/BotState';
 import { BlisAppBase } from 'blis-models'
 import * as Redis from "redis";
 
+export interface ISessionStartParams {
+    inTeach: boolean,
+    saveMemory: boolean
+}
 export class BlisMemory {
 
     private static redisClient: Redis.RedisClient = null;
@@ -179,22 +183,22 @@ export class BlisMemory {
     public async Init(app: BlisAppBase) : Promise<void>
     {
         await this.BotState.SetAppAsync(app);
-        await this.BotMemory.Clear();
+        await this.BotMemory.ClearAsync();
     }
 
     /** Clear memory associated with a session */
     public async EndSession() : Promise<void>
     {
-        await this.BotState.SetSessionAsync(null, null, null);
-        await this.BotMemory.Clear();
+        await this.BotState.SetSessionAsync(null, null, false);
+        await this.BotMemory.ClearAsync();
     }
 
     /** Init memory for a session */
-    public async StartSessionAsync(sessionId : string, conversationId: string, teachId : string, saveMemory: boolean = null) : Promise<void>
+    public async StartSessionAsync(sessionId : string, conversationId: string, params : ISessionStartParams) : Promise<void>
     {
-        await this.BotState.SetSessionAsync(sessionId, conversationId, teachId);
-        if (!saveMemory) {
-            await this.BotMemory.Clear();
+        await this.BotState.SetSessionAsync(sessionId, conversationId, params.inTeach);
+        if (!params.saveMemory) {
+            await this.BotMemory.ClearAsync();
         }
     }
 

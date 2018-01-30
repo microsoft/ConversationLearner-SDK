@@ -45,7 +45,7 @@ export class BotMemory
             this.Deserialize(data);
         } 
         else {
-            this.Clear();
+            this.ClearAsync();
         }
     }
 
@@ -70,7 +70,12 @@ export class BotMemory
         await this.memory.SetAsync(BotMemory.MEMKEY, this.Serialize());
     }
 
-    public async Clear() : Promise<void>		
+    public async RestoreFromMap(filledEntityMap: FilledEntityMap) : Promise<void> {
+        this.filledEntities = new FilledEntityMap();
+        await this.Set();	
+    }
+
+    public async ClearAsync() : Promise<void>		
     {		
         this.filledEntities = new FilledEntityMap();
         await this.Set();		
