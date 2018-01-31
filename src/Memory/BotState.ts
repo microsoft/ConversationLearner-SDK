@@ -89,7 +89,7 @@ export class BotState
         let json = JSON.parse(text);
         this.app = json.app;
         this.convSession = json.convSession;
-        this.inTeach = json.inTeach;
+        this.inTeach = json.inTeach ? json.inTeach : false;
         this.inDebug = json.inDebug ? json.inDebug : false;
         this.conversationReference = json.conversationReference;
     }
