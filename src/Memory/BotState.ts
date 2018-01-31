@@ -99,7 +99,7 @@ export class BotState
         let jsonObj = {
             app : this.app,
             convSession : this.convSession,
-            teachId : this.inTeach,
+            inTeach : this.inTeach ? this.inTeach : false,
             inDebug : this.inDebug ? this.inDebug : false,
             conversationReference : this.conversationReference
         }

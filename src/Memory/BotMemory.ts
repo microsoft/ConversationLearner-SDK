@@ -88,33 +88,50 @@ export class BotMemory
             isBucket, predictedEntity.builtinType, predictedEntity.resolution);		
     }
 
-    // Remember value for an entity
-    public async Remember(entityName: string, entityId: string, userText: string, 
+    // Remember value for an entity (assumes init has happend)
+    private async RememberInt(entityName: string, entityId: string, entityValue: string, 
                             isBucket: boolean = false, builtinType: string = null, resolution: {} = null) : Promise<void> {
-
-        await this.Init();
 
         if (!this.filledEntities.map[entityName])
         {
             this.filledEntities.map[entityName] = new FilledEntity({entityId: entityId});
         }
 
-        let displayText = builtinType ? Utils.PrebuiltDisplayText(builtinType, resolution, userText) : null;
+        let displayText = builtinType ? Utils.PrebuiltDisplayText(builtinType, resolution, entityValue) : null;
 
         const filledEntity = this.filledEntities.map[entityName]
         // Check if entity buckets values
         if (isBucket)
         {
             // Add if not a duplicate
-            const containsDuplicateValue = filledEntity.values.some(memoryValue => memoryValue.userText === userText);
+            const containsDuplicateValue = filledEntity.values.some(memoryValue => memoryValue.userText === entityValue);
             if (!containsDuplicateValue) {
-                filledEntity.values.push(new MemoryValue({userText: userText, displayText: displayText, builtinType: builtinType, resolution: resolution}));
+                filledEntity.values.push(new MemoryValue({userText: entityValue, displayText: displayText, builtinType: builtinType, resolution: resolution}));
             }
         }
         else
         {
-            filledEntity.values = [new MemoryValue({userText: userText, displayText: displayText, builtinType: builtinType, resolution: resolution})];
+            filledEntity.values = [new MemoryValue({userText: entityValue, displayText: displayText, builtinType: builtinType, resolution: resolution})];
         }
+    }
+
+    // Remember value for an entity
+    public async Remember(entityName: string, entityId: string, entityValue: string, 
+                            isBucket: boolean = false, builtinType: string = null, resolution: {} = null) : Promise<void> {
+        await this.Init();
+        this.RememberInt(entityName, entityId, entityValue, isBucket, builtinType, resolution);
+        await this.Set();
+    }
+
+    // Remember multiple values for an entity
+    public async RememberMany(entityName: string, entityId: string, entityValues: string[], 
+        isBucket: boolean = false, builtinType: string = null, resolution: {} = null) : Promise<void> {
+        await this.Init();
+
+        for (let entityValue in entityValues) {
+            this.RememberInt(entityName, entityId, entityValue, isBucket, builtinType, resolution);
+        }
+
         await this.Set();
     }
 
