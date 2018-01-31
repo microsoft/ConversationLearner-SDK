@@ -839,6 +839,30 @@ export class Server {
                 }
             );
 
+            this.server.put("/app/:appId/traindialog/:trainDialogId", async (req, res, next) =>
+            {
+                    try
+                    {
+                        this.InitClient();  // TEMP
+
+                        //let query = req.getQuery();
+                        //let key = req.params.key;
+                        let appId = req.params.appId;
+                        let trainDialog = new TrainDialog(req.body);
+
+                        // TEMP: until object refactor
+                        let strippedTrainDialog = Utils.StripPrebuiltInfoFromTrain(trainDialog);
+
+                        let trainDialogId = await BlisClient.client.EditTrainDialog(appId, strippedTrainDialog);
+                        res.send(trainDialogId);
+                    }
+                    catch (error)
+                    {
+                        Server.HandleError(res, error);
+                    }
+                }
+            );
+
             this.server.get("/app/:appId/traindialog/:trainDialogId", async (req, res, next) =>
                 {
                     this.InitClient();  // TEMP

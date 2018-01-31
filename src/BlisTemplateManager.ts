@@ -53,6 +53,6 @@ export class BlisTemplateRenderer implements BB.TemplateRenderer {
 
             },100)
         }
-        return message;
+        return message ? message : " ";
     }
 }

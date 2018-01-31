@@ -24,7 +24,7 @@ export class BotState
     public convSession : ConversationSession = null;
 
     // Set if in a teach session
-    public inTeach : boolean = null;
+    public inTeach : boolean = false;
  
     public inDebug : boolean = false;
 
@@ -89,7 +89,7 @@ export class BotState
         let json = JSON.parse(text);
         this.app = json.app;
         this.convSession = json.convSession;
-        this.inTeach = json.teachId;
+        this.inTeach = json.inTeach;
         this.inDebug = json.inDebug ? json.inDebug : false;
         this.conversationReference = json.conversationReference;
     }
@@ -119,7 +119,7 @@ export class BotState
     {  
         this.app = app;
         this.convSession = null;
-        this.inTeach = null;
+        this.inTeach = false;
         this.inDebug = false;
         await this.SetAsync();
     }
@@ -168,14 +168,14 @@ export class BotState
 
     public async InTeachAsync() : Promise<boolean> {
         await this.Init();    
-        return this.inTeach != null;
+        return this.inTeach;
     }
 
     public InTeachSync(cb : (err: any, inTeach: boolean) => void) : void {
         this.GetSync((err, botState) => {
             if (!err)
             {
-                cb(null, botState.inTeach != null);
+                cb(null, botState.inTeach);
             }
         });    
     }
