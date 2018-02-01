@@ -18,7 +18,7 @@ export class ClientMemoryManager {
         return match;
     }
 
-    public async RememberEntityAsync(entityName : string, value : string) : Promise<void> {
+    public async RememberEntityAsync(entityName : string, entityValue : string) : Promise<void> {
 
         let entity = this.FindEntity(entityName);
 
@@ -28,7 +28,20 @@ export class ClientMemoryManager {
         }
         
         let isBucket = entity.metadata ? entity.metadata.isBucket : false;
-        await this.blisMemory.BotMemory.Remember(entity.entityName, entity.entityId, value, isBucket);
+        await this.blisMemory.BotMemory.Remember(entity.entityName, entity.entityId, entityValue, isBucket);
+    }
+
+    public async RememberEntitiesAsync(entityName : string, entityValues : string[]) : Promise<void> {
+
+        let entity = this.FindEntity(entityName);
+
+        if (!entity) {
+            BlisDebug.Error(`Can't find Entity named: ${entityName}`);
+            return null;
+        }
+        
+        let isBucket = entity.metadata ? entity.metadata.isBucket : false;
+        await this.blisMemory.BotMemory.RememberMany(entity.entityName, entity.entityId, entityValues, isBucket);
     }
 
     public async ForgetEntityAsync(entityName : string, value : string = null) : Promise<void> {
