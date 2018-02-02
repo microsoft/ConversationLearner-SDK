@@ -8,7 +8,7 @@ import { TemplateProvider } from '../TemplateProvider';
 import { Utils } from '../Utils';
 import * as XMLDom from 'xmldom';
 import { TrainDialog, BotInfo, Teach,
-        BlisAppBase, ActionBase, EntityBase, ModelUtils } from 'blis-models'
+        BlisAppBase, ActionBase, EntityBase, ModelUtils, DialogMode } from 'blis-models'
 import { ScoreInput, UIScoreInput, UIExtractResponse, UIScoreResponse, UITeachResponse, UITrainScorerStep  } from 'blis-models'
 import * as corsMiddleware from 'restify-cors-middleware'
 
@@ -123,13 +123,34 @@ export class Server {
                 {
                     try
                     {
-                        this.InitClient();  // TEMP
+                        this.InitClient();  
                         //let query = req.getQuery();
                         let key = req.params.key;
                         let app = new BlisAppBase(req.body);
 
                         let memory = BlisMemory.GetMemory(key);
                         await memory.BotState.SetAppAsync(app);
+                        res.send(200);
+                    }
+                    catch (error)
+                    {
+                        Server.HandleError(res, error);
+                    }
+                }
+            );
+
+            /** Sets the current conversationId so bot can send initial pro-active message */
+            this.server.put("state/conversationId", async (req, res, next) =>
+                {
+                    try
+                    {
+                        this.InitClient();
+                        let key = req.params.key;
+                        let conversationId = req.params.id;
+                        let userName = req.params.username;
+
+                        let memory = BlisMemory.GetMemory(key);
+                        await memory.BotState.CreateConversationReferenceAsync(userName, key, conversationId);
                         res.send(200);
                     }
                     catch (error)
@@ -146,7 +167,7 @@ export class Server {
             /** Retrieves information about the running bot */
             this.server.get("/bot", async (req, res, next) =>
             {
-                this.InitClient();  // TEMP
+                this.InitClient();  
 
                 try
                 {
@@ -175,7 +196,7 @@ export class Server {
                     //let key = req.params.key;
                     let appId = req.params.appId;                   
 
-                    this.InitClient();  // TEMP
+                    this.InitClient();  
 
                     try
                     {
@@ -224,7 +245,7 @@ export class Server {
                 {
                     try
                     {
-                        this.InitClient();  // TEMP
+                        this.InitClient();  
 
                         let query = req.getQuery();
                         let key = req.params.key;
@@ -249,7 +270,7 @@ export class Server {
                 {
                     try
                     {
-                        this.InitClient();  // TEMP
+                        this.InitClient();  
                         let query = req.getQuery();
                         //let key = req.params.key;
                         let app = new BlisAppBase(req.body);
@@ -276,7 +297,7 @@ export class Server {
             /** Archives an existing application */
             this.server.del("/app/:appId", async (req, res, next) =>
             {
-                    this.InitClient();  // TEMP
+                    this.InitClient();  
 
                     try
                     {
@@ -306,7 +327,7 @@ export class Server {
              * Deleting an application from the archive really destroys it – no undo. */
             this.server.del("/archive/:appId", async (req, res, next) =>
             {
-                    this.InitClient();  // TEMP
+                    this.InitClient();  
 
                     try
                     {
@@ -326,7 +347,7 @@ export class Server {
             /** GET APP STATUS : Retrieves details for a specific $appId */
             this.server.get("/archive/:appId", async (req, res, next) =>
             {
-                    this.InitClient();  // TEMP
+                    this.InitClient();  
 
                     try
                     {
@@ -346,7 +367,7 @@ export class Server {
             /** Retrieves a list of (active) applications */
             this.server.get("/apps", async (req, res, next) =>
                 {
-                    this.InitClient();  // TEMP
+                    this.InitClient();  
 
                     try
                     {
@@ -365,7 +386,7 @@ export class Server {
             /** Retrieves a list of application Ids in the archive for the given user */
             this.server.get("/archive", async (req, res, next) =>
                 {
-                    this.InitClient();  // TEMP
+                    this.InitClient();  
 
                     try
                     {
@@ -384,7 +405,7 @@ export class Server {
             /** Retrieves a list of full applications in the archive for the given user */
             this.server.get("/archives", async (req, res, next) =>
                 {
-                    this.InitClient();  // TEMP
+                    this.InitClient();  
 
                     try
                     {
@@ -403,7 +424,7 @@ export class Server {
             /** Moves an application from the archive to the set of active applications */
             this.server.put("/archive/:appId", async (req, res, next) =>
                 {                                    
-                    this.InitClient();  // TEMP
+                    this.InitClient();  
 
                     try
                     {
@@ -425,7 +446,7 @@ export class Server {
         //========================================================
             this.server.get("/app/:appId/action/:actionId", async (req, res, next) =>
                 {
-                    this.InitClient();  // TEMP
+                    this.InitClient();  
 
                     try
                     {
@@ -447,7 +468,7 @@ export class Server {
                 {
                     try
                     {
-                        this.InitClient();  // TEMP
+                        this.InitClient();  
 
                         //let query = req.getQuery();
                         //let key = req.params.key;
@@ -467,7 +488,7 @@ export class Server {
                 {
                     try
                     {
-                        this.InitClient();  // TEMP
+                        this.InitClient();  
 
                         //let query = req.getQuery();
                         //let key = req.params.key;
@@ -494,7 +515,7 @@ export class Server {
 
             this.server.del("/app/:appId/action/:actionId", async (req, res, next) =>
                 {
-                    this.InitClient();  // TEMP
+                    this.InitClient();  
 
                     try
                     {
@@ -514,7 +535,7 @@ export class Server {
 
             this.server.get("/app/:appId/actions", async (req, res, next) =>
                 {
-                    this.InitClient();  // TEMP
+                    this.InitClient();  
 
                     try
                     {
@@ -533,7 +554,7 @@ export class Server {
 
             this.server.get("/app/:appId/action", async (req, res, next) =>
                 {
-                    this.InitClient();  // TEMP
+                    this.InitClient();  
 
                     try
                     {
@@ -559,7 +580,7 @@ export class Server {
 
             this.server.get("/app/:appId/entityIds", async (req, res, next) =>
                 {    
-                    this.InitClient();  // TEMP
+                    this.InitClient();  
 
                     try
                     {
@@ -578,7 +599,7 @@ export class Server {
 
             this.server.get("/app/:appId/entity/:entityId", async (req, res, next) =>
                 {
-                    this.InitClient();  // TEMP
+                    this.InitClient();  
 
                     try
                     {
@@ -600,7 +621,7 @@ export class Server {
                 {
                     try
                     {
-                        this.InitClient();  // TEMP
+                        this.InitClient();  
                         //let query = req.getQuery();
                         //let key = req.params.key;
                         let appId = req.params.appId;
@@ -619,7 +640,7 @@ export class Server {
                 {
                     try
                     {
-                        this.InitClient();  // TEMP
+                        this.InitClient();  
                         //let query = req.getQuery();
                         //let key = req.params.key;
                         let appId = req.params.appId;
@@ -646,7 +667,7 @@ export class Server {
 
             this.server.del("/app/:appId/entity/:entityId", async (req, res, next) =>
                 {
-                    this.InitClient();  // TEMP
+                    this.InitClient();  
 
                     try
                     {
@@ -666,7 +687,7 @@ export class Server {
 
             this.server.get("/app/:appId/entities", async (req, res, next) =>
                 {
-                    this.InitClient();  // TEMP
+                    this.InitClient();  
 
                     try
                     {
@@ -685,7 +706,7 @@ export class Server {
 
             this.server.get("/app/:appId/entity", async (req, res, next) =>
                 {
-                    this.InitClient();  // TEMP
+                    this.InitClient();  
 
                     try
                     {
@@ -707,7 +728,7 @@ export class Server {
         //========================================================
             this.server.get("/app/:appId/logdialog/:logDialogId", async (req, res, next) =>
                 {
-                    this.InitClient();  // TEMP
+                    this.InitClient();  
 
                     try
                     {
@@ -727,7 +748,7 @@ export class Server {
 
             this.server.del("/app/:appId/logdialog/:logDialogId", async (req, res, next) =>
                 {
-                    this.InitClient();  // TEMP
+                    this.InitClient();  
 
                     try
                     {
@@ -747,7 +768,7 @@ export class Server {
 
             this.server.get("/app/:appId/logdialogs", async (req, res, next) =>
                 {
-                    this.InitClient();  // TEMP
+                    this.InitClient();  
 
                     try
                     {
@@ -766,7 +787,7 @@ export class Server {
 
             this.server.get("/app/:appId/logDialogIds", async (req, res, next) =>
                 {
-                    this.InitClient();  // TEMP
+                    this.InitClient();  
 
                     try
                     {
@@ -789,7 +810,7 @@ export class Server {
             {
                 try
                 {
-                    this.InitClient();  // TEMP
+                    this.InitClient();  
                     //let query = req.getQuery();
                     let key = req.params.key;
                     let appId = req.params.appId;
@@ -819,7 +840,7 @@ export class Server {
                 {
                     try
                     {
-                        this.InitClient();  // TEMP
+                        this.InitClient();  
 
                         //let query = req.getQuery();
                         //let key = req.params.key;
@@ -843,14 +864,14 @@ export class Server {
             {
                     try
                     {
-                        this.InitClient();  // TEMP
+                        this.InitClient();  
 
                         //let query = req.getQuery();
                         //let key = req.params.key;
                         let appId = req.params.appId;
                         let trainDialog = new TrainDialog(req.body);
 
-                        // TEMP: until object refactor
+                        //TEMP: until object refactor
                         let strippedTrainDialog = Utils.StripPrebuiltInfoFromTrain(trainDialog);
 
                         let trainDialogId = await BlisClient.client.EditTrainDialog(appId, strippedTrainDialog);
@@ -865,7 +886,7 @@ export class Server {
 
             this.server.get("/app/:appId/traindialog/:trainDialogId", async (req, res, next) =>
                 {
-                    this.InitClient();  // TEMP
+                    this.InitClient();  
 
                     try
                     {
@@ -885,7 +906,7 @@ export class Server {
 
             this.server.del("/app/:appId/traindialog/:trainDialogId", async (req, res, next) =>
                 {
-                    this.InitClient();  // TEMP
+                    this.InitClient();  
 
                     try
                     {
@@ -905,7 +926,7 @@ export class Server {
 
             this.server.get("/app/:appId/traindialogs", async (req, res, next) =>
                 {
-                    this.InitClient();  // TEMP
+                    this.InitClient();  
 
                     try
                     {
@@ -924,7 +945,7 @@ export class Server {
 
             this.server.get("/app/:appId/trainDialogIds", async (req, res, next) =>
                 {
-                    this.InitClient();  // TEMP
+                    this.InitClient();  
 
                     try
                     {
@@ -947,7 +968,7 @@ export class Server {
                 {
                     try
                     {
-                        this.InitClient();  // TEMP
+                        this.InitClient();  
                         //let query = req.getQuery();
                         let key = req.params.key;
                         let appId = req.params.appId;
@@ -1022,7 +1043,7 @@ export class Server {
             {
                 try
                 {
-                    this.InitClient();  // TEMP
+                    this.InitClient();  
 
                     //let query = req.getQuery();
                     let key = req.params.key;
@@ -1046,7 +1067,7 @@ export class Server {
             {
                 try
                 {
-                    this.InitClient();  // TEMP
+                    this.InitClient();  
                     //let query = req.getQuery();
                     //let key = req.params.key;
                     let appId = req.params.appId;
@@ -1064,7 +1085,7 @@ export class Server {
             /** END SESSION : End a session. */
             this.server.del("/app/:appId/session/:sessionId", async (req, res, next) =>
             {
-                this.InitClient();  // TEMP
+                this.InitClient();  
 
                 try
                 {
@@ -1089,7 +1110,7 @@ export class Server {
             /** GET SESSIONS : Retrieves definitions of ALL open sessions */
             this.server.get("/app/:appId/sessions", async (req, res, next) =>
                 {
-                    this.InitClient();  // TEMP
+                    this.InitClient();  
 
                     try
                     {
@@ -1109,7 +1130,7 @@ export class Server {
             /** GET SESSION IDS : Retrieves a list of session IDs */
             this.server.get("/app/:appId/session", async (req, res, next) =>
                 {
-                    this.InitClient();  // TEMP
+                    this.InitClient();  
 
                     try
                     {
@@ -1135,7 +1156,7 @@ export class Server {
                 {
                     try
                     {
-                        this.InitClient();  // TEMP
+                        this.InitClient();  
                         //let query = req.getQuery();
                         let key = req.params.key;
                         let appId = req.params.appId;
@@ -1158,18 +1179,20 @@ export class Server {
                 {
                     try
                     {
-                        this.InitClient();  // TEMP
+                        this.InitClient();  
 
                         //let query = req.getQuery();
                         let key = req.params.key;
-                        let appId = req.params.appId;;
+                        let appId = req.params.appId;
                         let userName = req.params.username;
                         let userId = req.params.userid;
+                        let ignoreLastExtract = req.params.ignoreLastExtract === "true";
+                        let updateBotState = true;
                         let trainDialog = new TrainDialog(req.body);
 
                         // Get history and replay to put bot into last round
                         let memory = BlisMemory.GetMemory(key);
-                        let teachWithHistory = await Blis.GetHistory(appId, trainDialog, userName, userId, memory, true);
+                        let teachWithHistory = await Blis.GetHistory(appId, trainDialog, userName, userId, memory, updateBotState, ignoreLastExtract);
 
                         // Start session if API returned consistent results during replay
                         if (teachWithHistory.discrepancies.length == 0) {
@@ -1181,6 +1204,14 @@ export class Server {
                             // Start Sesion - with "true" to save the memory from the History
                             await memory.StartSessionAsync(teachResponse.teachId, null, {inTeach: true, saveMemory: true});
                             teachWithHistory.teach = ModelUtils.ToTeach(teachResponse);
+
+                            // If last action wasn't terminal need to score
+                            if (teachWithHistory.dialogMode === DialogMode.Scorer) {
+
+                                // Call LUIS callback
+                                teachWithHistory.scoreInput = await Blis.CallEntityDetectionCallback("", [], memory, trainDialog.definitions.entities);
+                                teachWithHistory.scoreResponse = await BlisClient.client.TeachScore(appId, teachWithHistory.teach.teachId, teachWithHistory.scoreInput);
+                            }
                         }
                         res.send(teachWithHistory);
                     }
@@ -1196,7 +1227,7 @@ export class Server {
                 {
                     try
                     {
-                        this.InitClient();  // TEMP
+                        this.InitClient();  
                         //let query = req.getQuery();
                         //let key = req.params.key;
                         let appId = req.params.appId;
@@ -1220,7 +1251,7 @@ export class Server {
                 {
                     try
                     {
-                        this.InitClient();  // TEMP
+                        this.InitClient();  
                         //let query = req.getQuery();
                         let key = req.params.key;
                         let appId = req.params.appId;
@@ -1259,7 +1290,7 @@ export class Server {
                 {
                     try
                     {
-                        this.InitClient();  // TEMP
+                        this.InitClient();  
                         //let query = req.getQuery();
                         let key = req.params.key;
                         let appId = req.params.appId;
@@ -1302,7 +1333,7 @@ export class Server {
             {
                 try
                 {
-                    this.InitClient();  // TEMP
+                    this.InitClient();  
                     const { key, appId, teachId } = req.params
                     const scoreInput = new ScoreInput(req.body)
                     const memory = BlisMemory.GetMemory(key)
@@ -1332,7 +1363,7 @@ export class Server {
                 {
                     try
                     {
-                        this.InitClient();  // TEMP
+                        this.InitClient();  
                         //let query = req.getQuery();
                         let key = req.params.key;
                         let appId = req.params.appId;
@@ -1376,7 +1407,7 @@ export class Server {
              */
             this.server.del("/app/:appId/teach/:teachId", async (req, res, next) =>
                 {
-                    this.InitClient();  // TEMP
+                    this.InitClient();  
 
                     try
                     {
@@ -1402,7 +1433,7 @@ export class Server {
             /** GET TEACH SESSOINS: Retrieves definitions of ALL open teach sessions */
             this.server.get("/app/:appId/teaches", async (req, res, next) =>
                 {
-                    this.InitClient();  // TEMP
+                    this.InitClient();  
 
                     try
                     {
@@ -1422,7 +1453,7 @@ export class Server {
             /** GET TEACH SESSION IDS: Retrieves a list of teach session IDs */
             this.server.get("/app/:appId/teach", async (req, res, next) =>
                 {
-                    this.InitClient();  // TEMP
+                    this.InitClient();  
 
                     try
                     {

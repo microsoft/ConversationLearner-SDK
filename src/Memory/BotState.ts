@@ -191,6 +191,18 @@ export class BotState
         await this.SetAsync();
     }
 
+    // For initial pro-active message need to build conversation reference from scratch
+    public async CreateConversationReferenceAsync(userName: string, userId: string, conversationId: string) : Promise<void> {
+
+        let conversationReference = {  
+            user : {name: userName, id: userId }, 
+            conversation: { id: conversationId },
+            channelId: "emulator",
+            serviceUrl: process.env.DOL_SERVICE_URL || "http://127.0.0.1:3000"
+
+        }
+        this.SetConversationReferenceAsync(conversationReference);
+    }
 
     public async SetConversationReferenceAsync(conversationReference :BB.ConversationReference) : Promise<void> {
         await this.Init();    
