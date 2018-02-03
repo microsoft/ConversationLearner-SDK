@@ -12,7 +12,7 @@ import { AzureFunctions } from './AzureFunctions';
 import { Utils } from './Utils';
 import { EntityBase, PredictedEntity, EntityList, TrainDialog, TrainRound,
         ActionPayload, SenderType, ActionTypes, ScoredAction, Memory,
-        ScoreInput, ModelUtils, ActionBase, CallbackAPI, FilledEntity, FilledEntityMap, TeachWithHistory, DialogMode } from 'blis-models'
+        ScoreInput, ModelUtils, ActionBase, CallbackAPI, FilledEntity, FilledEntityMap, TeachWithHistory, DialogMode, getActionArgumentValueAsPlainText } from 'blis-models'
 import { ClientMemoryManager} from './Memory/ClientMemoryManager';
 import { BlisIntent } from './BlisIntent';
 
@@ -147,17 +147,11 @@ export class Blis  {
         }
 
         // Extract API name and args
-        let apiName = actionPayload.payload;
-        let args = ActionPayload.GetArguments(actionPayload);
+        const apiName = actionPayload.payload;
+        const argArray = actionPayload.arguments
+            .map(a => filledEntityMap.SubstituteEntities(getActionArgumentValueAsPlainText(a)))
 
-        // Make any entity substitutions
-        let argArray = [];
-        for (let arg of args)
-        {
-            argArray.push(filledEntityMap.SubstituteEntities(arg));
-        }
-
-        let api = Blis.apiCallbacks[apiName];
+        const api = Blis.apiCallbacks[apiName];
         if (!api)
         {
             let msg = BlisDebug.Error(`API "${apiName}" is undefined`);

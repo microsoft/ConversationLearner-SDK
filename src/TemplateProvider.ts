@@ -22,7 +22,8 @@ export class TemplateProvider {
                 let actionArgument = actionPayload.arguments.find(a => a.parameter == argumentName);
                 if (actionArgument) {
                     // Substitue any entities
-                    let value = filledEntityMap.SubstituteEntities(actionArgument.value);
+                    const argumentValueAsPlainText = typeof actionArgument.value === 'string' ? actionArgument.value : actionArgument.value.text
+                    let value = filledEntityMap.SubstituteEntities(argumentValueAsPlainText);
                     templateString = templateString.replace(new RegExp(`{{${argumentName}}}`, 'g'), value);
                 }
             }
