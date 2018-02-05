@@ -113,7 +113,7 @@ export class Blis  {
         // Update entities in my memory
         {
             // If negative entity will have a positive counter entity
-            if (predictedEntity.metadata && predictedEntity.metadata.positiveId)
+            if (predictedEntity.positiveId)
             {
                 await memoryManager.blisMemory.BotMemory.ForgetEntity(predictedEntity);
             }

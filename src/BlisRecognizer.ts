@@ -143,8 +143,7 @@ export class BlisRecognizer extends BB.IntentRecognizer {
                     return null;
                 }
                 // Set it
-                let isBucket = entity.metadata ? entity.metadata.isBucket : false;
-                await blisMemory.BotMemory.Remember(entity.entityName, entity.entityId, data[entityName], isBucket);
+                await blisMemory.BotMemory.Remember(entity.entityName, entity.entityId, data[entityName], entity.isMultivalue);
                  
             }
 
