@@ -154,8 +154,7 @@ export class Blis  {
         const api = Blis.apiCallbacks[apiName];
         if (!api)
         {
-            let msg = BlisDebug.Error(`API "${apiName}" is undefined`);
-            throw msg;
+            return BlisDebug.Error(`API "${apiName}" is undefined`);
         }
 
         let memoryManager = new ClientMemoryManager(memory, allEntities);
@@ -175,7 +174,7 @@ export class Blis  {
         try {
             let form = await TemplateProvider.RenderTemplate(actionPayload, filledEntityMap);
             if (form == null) {
-                return `ERROR: MISSING TEMPLATE: ${actionPayload.payload}`;
+                return BlisDebug.Error(`Missing Template: ${actionPayload.payload}`);
             }
             const attachment = BB.CardStyler.adaptiveCard(form);
             const message = BB.MessageStyler.attachment(attachment);
@@ -347,9 +346,9 @@ export class Blis  {
 
                 let channelData = {senderType: SenderType.Bot, roundIndex: roundNum, scoreIndex: scoreNum};
                 let botResponse = null;
-                if (action.metadata && action.metadata.actionType === ActionTypes.CARD) {
+                if (action.actionType === ActionTypes.CARD) {
                     botResponse = await this.TakeCardAction(action, filledEntityMap);
-                } else if (action.metadata && action.metadata.actionType === ActionTypes.API_LOCAL) {
+                } else if (action.actionType === ActionTypes.API_LOCAL) {
                     botResponse = await this.TakeLocalAPIAction(action, filledEntityMap, memory, entityList.entities);                    
                 }  else {
                     botResponse = await Blis.TakeTextAction(action, filledEntityMap);  

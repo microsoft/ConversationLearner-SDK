@@ -19,7 +19,7 @@ export class BlisTemplateRenderer implements BB.TemplateRenderer {
         let filledEntityMap = await blisIntent.memory.BotMemory.FilledEntityMap();
 
         let message = null;
-        switch (blisIntent.scoredAction.metadata.actionType)  {
+        switch (blisIntent.scoredAction.actionType)  {
             case ActionTypes.TEXT:
                 message = await Blis.TakeTextAction(blisIntent.scoredAction, filledEntityMap);
                 break;
