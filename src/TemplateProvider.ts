@@ -1,6 +1,6 @@
 import * as fs from 'fs'
 import * as path from 'path'
-import { Template, ActionPayload, TemplateVariable, FilledEntityMap } from 'blis-models'
+import { Template, ActionPayload, TemplateVariable, FilledEntityMap, getActionArgumentValueAsPlainText } from 'blis-models'
 import { BlisDebug } from './BlisDebug';
 
 //TODO - make this configurable
@@ -26,8 +26,8 @@ export class TemplateProvider {
                 let actionArgument = actionPayload.arguments.find(a => a.parameter == argumentName);
                 if (actionArgument) {
                     // Substitue any entities
-                    let value = filledEntityMap.SubstituteEntities(actionArgument.value);
-                    templateString = templateString.replace(new RegExp(`{{${argumentName}}}`, 'g'), value);
+                    const plainTextValue = filledEntityMap.SubstituteEntities(getActionArgumentValueAsPlainText(actionArgument))
+                    templateString = templateString.replace(new RegExp(`{{${argumentName}}}`, 'g'), plainTextValue);
                 }
             }
             templateString = this.RemoveEmptyArguments(templateString);
