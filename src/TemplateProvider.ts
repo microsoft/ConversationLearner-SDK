@@ -14,6 +14,10 @@ export class TemplateProvider {
             let templateName = actionPayload.payload;
 
             let template = this.GetTemplate(templateName);
+            if (template == null) {
+                return null;
+            }
+
             let templateString = JSON.stringify(template);
             let argumentNames = this.GetArgumentNames(templateString);
 
@@ -44,7 +48,7 @@ export class TemplateProvider {
                 let validationError = this.hasSumbitItem ? null :
                     `Template "${file}" does not have an action with a "submit" item in the data.  At least on action item must be of the form: "type": "Action.Submit", "data": { "submit": "{SUBMIT PAYLOAD"}`;
 
-                let templateBody = JSON.stringify(this.GetTemplate(file));
+                let templateBody = JSON.stringify(fileContent);
                 let template = new Template(
                     {
                         name : file,
@@ -101,9 +105,15 @@ export class TemplateProvider {
         }
 
         public static GetTemplate(templateName: string) : any {
-            const templateString = fs.readFileSync(path.join(templateDirectory, `${templateName}.json`), 'utf-8');
-            const template = JSON.parse(templateString)
-            return template;
+            try {
+                const templateString = fs.readFileSync(path.join(templateDirectory, `${templateName}.json`), 'utf-8');
+                const template = JSON.parse(templateString)
+                return template;
+            }
+            catch {
+                BlisDebug.Error(`Can't find template named: "${templateName}`)
+                return null;
+            }
         }
 
         public static GetTemplatesNames() : string[] {

@@ -180,6 +180,9 @@ export class Blis  {
         
         try {
             let form = await TemplateProvider.RenderTemplate(actionPayload, filledEntityMap);
+            if (form == null) {
+                return `ERROR: MISSING TEMPLATE: ${actionPayload.payload}`;
+            }
             const attachment = BB.CardStyler.adaptiveCard(form);
             const message = BB.MessageStyler.attachment(attachment);
             message.text = null;
