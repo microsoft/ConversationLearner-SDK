@@ -386,7 +386,6 @@ export class Server {
             /** Copy applications between accounts*/
             this.server.post("/apps/copy", async (req, res, next) =>
                 {
-                    let query = req.getQuery();
                     let srcUserId= req.params.srcUserId;
                     let destUserId = req.params.destUserId;
                     let luisSubscriptionKey = req.params.luisSubscriptionKey;                   
