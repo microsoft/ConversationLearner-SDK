@@ -1,4 +1,4 @@
-import * as BB from 'botbuilder-core';
+import * as BB from 'botbuilder';
 import { Blis } from './Blis';
 import { BlisIntent } from './BlisIntent';
 import { ActionTypes } from 'blis-models'

@@ -1,4 +1,4 @@
-import * as BB from 'botbuilder-core';
+import * as BB from 'botbuilder';
 import { BlisRecognizer } from './BlisRecognizer';
 import { BlisTemplateManager } from './BlisTemplateManager';
 import { IBlisOptions } from './BlisOptions';
