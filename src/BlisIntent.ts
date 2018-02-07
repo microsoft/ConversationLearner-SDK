@@ -1,4 +1,4 @@
-import * as BB from 'botbuilder-core';
+import * as BB from 'botbuilder';
 import { BlisMemory } from './BlisMemory';
 import { ScoredAction, EntityBase } from 'blis-models'
 

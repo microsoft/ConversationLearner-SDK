@@ -1,6 +1,6 @@
-import * as BB from 'botbuilder-core';
+import * as BB from 'botbuilder';
 import { BlisRecognizer } from './BlisRecognizer';
-import { BlisTemplateManager } from './BlisTemplateManager';
+import { BlisTemplateRenderer } from './BlisTemplateRenderer';
 import { IBlisOptions } from './BlisOptions';
 import { BlisMemory } from './BlisMemory';
 import { BlisDebug } from './BlisDebug';
@@ -29,7 +29,7 @@ export class Blis  {
     
     public static bot: BB.Bot;
     public static recognizer : BlisRecognizer;
-    public static templateManager : BlisTemplateManager;
+    public static templateRenderer: BlisTemplateRenderer;
 
     public static Init(options: IBlisOptions) {
 
@@ -55,7 +55,7 @@ export class Blis  {
         }
 
         Blis.recognizer = new BlisRecognizer(options);
-        Blis.templateManager = new BlisTemplateManager();
+        Blis.templateRenderer = new BlisTemplateRenderer();
     }
 
     public static SetBot(botContext : BotContext) {

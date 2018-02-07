@@ -2,7 +2,7 @@ import * as models from 'blis-models'
 import { Blis } from "./Blis";
 import { IBlisOptions } from "./BlisOptions";
 import { BlisRecognizer } from "./BlisRecognizer";
-import { BlisTemplateManager } from "./BlisTemplateManager";
+import { BlisTemplateRenderer } from "./BlisTemplateRenderer";
 import { ClientMemoryManager } from "./Memory/ClientMemoryManager";
 import startUiServer from './blisUi'
 
@@ -11,7 +11,7 @@ export {
     Blis,
     IBlisOptions,
     BlisRecognizer,
-    BlisTemplateManager,
+    BlisTemplateRenderer,
     ClientMemoryManager,
     models
 }
