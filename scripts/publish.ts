@@ -14,7 +14,7 @@ const packageLockJsonPath = path.join(__dirname, '..', 'package-lock.json')
 
 async function main() {
     console.log(`Get last release:`)
-    const gitTagsOutput = await execa.stdout('git', ['tag', '-l'])
+    const gitTagsOutput = await execa.stdout('git', ['tag', '-l', '--sort=v:refname'])
     const tagVersions = gitTagsOutput.split('\n')
         .filter(t => /v(\d+).(\d+).(\d+)/.test(t))
         .reduce((versions: IVersion[], t) => {
