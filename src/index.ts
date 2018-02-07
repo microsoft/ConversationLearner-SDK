@@ -1,4 +1,4 @@
-import * as Models from 'blis-models'
+import * as models from 'blis-models'
 import { Blis } from "./Blis";
 import { IBlisOptions } from "./BlisOptions";
 import { BlisRecognizer } from "./BlisRecognizer";
@@ -13,5 +13,5 @@ export {
     BlisRecognizer,
     BlisTemplateManager,
     ClientMemoryManager,
-    Models
+    models
 }
