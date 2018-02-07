@@ -11,6 +11,12 @@
                 "kind": "build",
                 "isDefault": true
             }
+        },
+        {
+            "identifier": "setpublishversion",
+            "type": "npm",
+            "script": "setpublishversion",
+            "group": "build",
         }
     ]
 }
