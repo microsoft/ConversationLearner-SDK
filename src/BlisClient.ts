@@ -406,6 +406,38 @@ export class BlisClient {
             )
         }
 
+        /** Create a new application
+         */
+        public CopyApps(srcUserId: string, destUserId: string, luisSubscriptionKey: string) : Promise<string>
+        {
+            var apiPath = `apps/copy?srcUserId=${srcUserId}&destUserId=${destUserId}&luisSubscriptionKey=${luisSubscriptionKey}`;
+
+
+            return new Promise(
+                (resolve, reject) => {
+                    const requestData = {
+                        url: this.MakeURL(apiPath),
+                        headers: {
+                            'Cookie' : this.credentials.Cookiestring(),
+                        },
+                        json: true
+                    }
+                    BlisDebug.LogRequest("POST",apiPath, requestData);
+                    Request.post(requestData, (error, response, body) => {
+                        if (error) {
+                            reject(error);
+                        }
+                        else if (response.statusCode >= 300) {
+                            reject(response);
+                        }
+                        else {
+                            resolve(body);  // LARS TODO
+                        }
+                    });
+                }
+            )
+        }
+
         /** Rename an existing application or changes its LUIS key
          * Note: Renaming an application does not affect packages
          */
