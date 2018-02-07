@@ -3,14 +3,6 @@ import { Blis } from './Blis';
 import { BlisIntent } from './BlisIntent';
 import { ActionTypes } from 'blis-models'
 
-export class BlisTemplateManager extends BB.TemplateManager {
-    
-    constructor() {
-        super();
-        this.register(new BlisTemplateRenderer());
-    }
-}
-
 export class BlisTemplateRenderer implements BB.TemplateRenderer {
 
     public async renderTemplate(botContext: BotContext, language: string, templateId: string, blisIntent: BlisIntent): Promise<Partial<BB.Activity> | string | undefined> {
