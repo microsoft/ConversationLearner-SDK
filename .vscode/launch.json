@@ -44,6 +44,21 @@
             "outFiles": [
                 "${workspaceRoot}/lib/**/*"
             ]
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Set version test",
+            "program": "${workspaceRoot}\\scripts\\publish.js",
+            "args": [
+                "-i"
+            ],
+            "preLaunchTask": "buildversionscript",
+            "internalConsoleOptions": "openOnSessionStart",
+            "sourceMaps": true,
+            "outFiles": [
+                "${workspaceRoot}/scripts/**/*"
+            ]
         }
     ]
 }
