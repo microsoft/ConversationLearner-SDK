@@ -29,7 +29,6 @@ export class Blis  {
     
     public static bot: BB.Bot;
     public static recognizer : BlisRecognizer;
-    public static templateManager : BlisTemplateRenderer;
     public static templateRenderer: BlisTemplateRenderer;
 
     public static Init(options: IBlisOptions) {
@@ -56,7 +55,6 @@ export class Blis  {
         }
 
         Blis.recognizer = new BlisRecognizer(options);
-        Blis.templateManager = new BlisTemplateRenderer();
         Blis.templateRenderer = new BlisTemplateRenderer();
     }
 
