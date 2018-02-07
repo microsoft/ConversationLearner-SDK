@@ -65,6 +65,9 @@ async function main() {
     catch (e) {
         throw e
     }
+
+    console.log(`Create tag on current commit using the next version: ${nextVersion}`)
+    await execa('git', ['tag', '-a', '-m', `${nextVersion}`, `v${nextVersion}`])
 }
 
 main()
