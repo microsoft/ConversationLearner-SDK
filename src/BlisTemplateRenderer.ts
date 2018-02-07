@@ -1,15 +1,7 @@
-import * as BB from 'botbuilder-core';
+import * as BB from 'botbuilder';
 import { Blis } from './Blis';
 import { BlisIntent } from './BlisIntent';
 import { ActionTypes } from 'blis-models'
-
-export class BlisTemplateManager extends BB.TemplateManager {
-    
-    constructor() {
-        super();
-        this.register(new BlisTemplateRenderer());
-    }
-}
 
 export class BlisTemplateRenderer implements BB.TemplateRenderer {
 
