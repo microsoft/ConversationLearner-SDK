@@ -53,7 +53,7 @@
             "args": [
                 "-i"
             ],
-            "preLaunchTask": "buildversionscript",
+            "preLaunchTask": "setpublishversion",
             "internalConsoleOptions": "openOnSessionStart",
             "sourceMaps": true,
             "outFiles": [

@@ -13,9 +13,9 @@
             }
         },
         {
-            "identifier": "buildversionscript",
+            "identifier": "setpublishversion",
             "type": "npm",
-            "script": "run setpublishversion",
+            "script": "setpublishversion",
             "group": "build",
         }
     ]
