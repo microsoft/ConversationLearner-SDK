@@ -57,5 +57,8 @@
     "testMatch": [
       "**/lib/**/?(*.)(spec|test).js?(x)"
     ]
+  },
+  "publishConfig": {
+    "tag": "next"
   }
 }
