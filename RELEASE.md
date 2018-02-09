@@ -30,6 +30,8 @@ In order to the changes without having to publish packages it is recommended to 
     (Since all the code changes are complete and tested the only thing left to do is use the actual npm packages instead of the locally linked versions)
 
 2. Submit PR for changes in `blis-models`
+  
+    > Note: When committing changes you should use the `npm run commit` command which will output a conventional commit message. This message is analyzed by the build to know which version to increment.
 
 3. Merge PR to auto-publish new version of `blis-models` based on changes.
 
@@ -46,6 +48,8 @@ In order to the changes without having to publish packages it is recommended to 
 8. Submit PR for changes in `blis-sdk`
 
 9. Merge PR to auto-publish new version of `blis-sdk` based on changes.
+  
+   (Currently this auto-publish does not analayze commits and will always increment minor version)
 
 10. Update new version of `blis-sdk` in `blis-sdk-sample`
 
@@ -54,6 +58,27 @@ In order to the changes without having to publish packages it is recommended to 
 12. Merge PR 
 
     (blis-sdk-sample is not an npm package; no publishing is required)
+
+# Promoting packages to latest
+
+`blis-sdk` is the only package we expect consumers to use and by default it is published to the `next` tag to allow publishing releases of newere possibly breaking features without risking / distrupting current user workflow.
+
+After it's determined that the particular version of the package is stable it can be promoted to the `latest` tag to become the default package installed by users.
+
+To promote a package to latest tag:
+```bash
+npm dist-tag add blis-sdk@0.126.0 latest
+```
+
+To view tags for a particular pacakge:
+```bash
+npm view blis-sdk dist-tags
+```
+
+To view all published versions:
+```bash
+npm view blis-sdk versions
+```
 
 
 
