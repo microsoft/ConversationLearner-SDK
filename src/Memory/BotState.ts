@@ -61,28 +61,6 @@ export class BotState
         }
     }
 
-    private GetSync(cb : (err: any, botState: BotState) => void) : void
-    {
-        if (!this.memory)
-        {
-            throw "BotState called without initialzing memory";
-        }
-        
-        // Load bot state
-        this.memory.Get(BotState.MEMKEY, (err, data: string) =>
-        {
-            if (!err && data)
-            {
-                this.Deserialize(data);  
-            }
-            else
-            {
-                this.SetAppAsync(null);
-            }     
-            cb(null, this);      
-        }); 
-    }
-
     private Deserialize(text : string) : void
     {
         if (!text) return null;
@@ -169,15 +147,6 @@ export class BotState
     public async InTeachAsync() : Promise<boolean> {
         await this.Init();    
         return this.inTeach;
-    }
-
-    public InTeachSync(cb : (err: any, inTeach: boolean) => void) : void {
-        this.GetSync((err, botState) => {
-            if (!err)
-            {
-                cb(null, botState.inTeach);
-            }
-        });    
     }
 
     public async InDebugAsync() : Promise<boolean> {
