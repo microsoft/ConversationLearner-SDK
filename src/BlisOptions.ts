@@ -11,10 +11,6 @@ export interface IBlisOptions {
     // Application to start
     appId: string;
 
-    redisServer: string;
-
-    redisKey: string;
-
     // End point for Azure function calls
     azureFunctionsUrl? : string;
 
