@@ -4,6 +4,7 @@ import { IBlisOptions } from "./BlisOptions";
 import { BlisRecognizer } from "./BlisRecognizer";
 import { BlisTemplateRenderer } from "./BlisTemplateRenderer";
 import { ClientMemoryManager } from "./Memory/ClientMemoryManager";
+import { RedisStorage } from "./RedisStorage";
 import startUiServer from './blisUi'
 
 export {
@@ -13,5 +14,6 @@ export {
     BlisRecognizer,
     BlisTemplateRenderer,
     ClientMemoryManager,
+    RedisStorage,
     models
 }
