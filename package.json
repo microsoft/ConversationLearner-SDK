@@ -17,7 +17,7 @@
   "author": "Microsoft BLIS Team",
   "license": "MIT",
   "dependencies": {
-    "blis-models": "^0.117.1",
+    "blis-models": "^0.119.1",
     "blis-ui": "^0.130.0",
     "botbuilder": "^4.0.0-m1.0",
     "express": "^4.15.3",
