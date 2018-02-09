@@ -1,4 +1,4 @@
-import * as BB from 'botbuilder-core';
+import * as BB from 'botbuilder';
 import { UserInput, PredictedEntity,
     EntityBase, ScoredAction } from 'blis-models'
 import { BlisDebug } from './BlisDebug';

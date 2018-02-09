@@ -1,4 +1,4 @@
-import * as BB from 'botbuilder-core';
+import * as BB from 'botbuilder';
 import * as request from 'request';
 import { BlisMemory } from './BlisMemory';
 import { TrainExtractorStep, TextVariation, LabeledEntity, TrainDialog, TrainRound } from 'blis-models';

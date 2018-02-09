@@ -1,6 +1,6 @@
-import * as BB from 'botbuilder-core';
+import * as BB from 'botbuilder';
 import { BlisRecognizer } from './BlisRecognizer';
-import { BlisTemplateManager } from './BlisTemplateManager';
+import { BlisTemplateRenderer } from './BlisTemplateRenderer';
 import { IBlisOptions } from './BlisOptions';
 import { BlisMemory } from './BlisMemory';
 import { BlisDebug } from './BlisDebug';
@@ -29,9 +29,9 @@ export class Blis  {
     
     public static bot: BB.Bot;
     public static recognizer : BlisRecognizer;
-    public static templateManager : BlisTemplateManager;
+    public static templateRenderer: BlisTemplateRenderer;
 
-    public static Init(options: IBlisOptions) {
+    public static Init(options: IBlisOptions, storage: BB.Storage = null) {
 
         Blis.options = options;
 
@@ -39,7 +39,7 @@ export class Blis  {
             BlisDebug.Log("Creating client....");
             BlisClient.SetServiceURI(options.serviceUri);
             BlisClient.Init(options.user, options.secret, options.azureFunctionsUrl, options.azureFunctionsKey);
-            BlisMemory.Init(options.redisServer, options.redisKey);
+            BlisMemory.Init(storage);
 
             // If app not set, assume running on localhost init DOL Runner
             if (options.localhost) {
@@ -55,7 +55,7 @@ export class Blis  {
         }
 
         Blis.recognizer = new BlisRecognizer(options);
-        Blis.templateManager = new BlisTemplateManager();
+        Blis.templateRenderer = new BlisTemplateRenderer();
     }
 
     public static SetBot(botContext : BotContext) {
@@ -401,12 +401,6 @@ export class Blis  {
         let errMsg = "";
         if (!this.options.serviceUri) {
             errMsg += "Options missing serviceUrl. Set BLIS_SERVICE_URI Env value.\n\n";
-        }
-        if (!this.options.redisKey) {
-            errMsg += "Options missing redisKey. Set BLIS_REDIS_KEY Env value.\n\n";
-        }
-        if (!this.options.redisServer) {
-            errMsg += "Options missing redisServer. Set BLIS_REDIS_SERVER Env value.\n\n";
         }
         if (!this.options.localhost && !this.options.appId) {
             errMsg += "Options must specify appId when not running on localhost. Set BLIS_APP_ID Env value.\n\n";

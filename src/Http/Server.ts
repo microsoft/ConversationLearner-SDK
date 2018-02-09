@@ -383,6 +383,27 @@ export class Server {
                 }
             );
 
+            /** Copy applications between accounts*/
+            this.server.post("/apps/copy", async (req, res, next) =>
+                {
+                    let srcUserId= req.params.srcUserId;
+                    let destUserId = req.params.destUserId;
+                    let luisSubscriptionKey = req.params.luisSubscriptionKey;                   
+
+                    this.InitClient();  
+
+                    try
+                    {
+                        let app = await BlisClient.client.CopyApps(srcUserId, destUserId, luisSubscriptionKey);
+                        res.send(app);
+                    }
+                    catch (error)
+                    {
+                        Server.HandleError(res, error);
+                    }
+                }
+            );
+
             /** Retrieves a list of application Ids in the archive for the given user */
             this.server.get("/archive", async (req, res, next) =>
                 {
