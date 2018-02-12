@@ -27,8 +27,7 @@ export class ClientMemoryManager {
             return null;
         }
         
-        let isBucket = entity.metadata ? entity.metadata.isBucket : false;
-        await this.blisMemory.BotMemory.Remember(entity.entityName, entity.entityId, entityValue, isBucket);
+        await this.blisMemory.BotMemory.Remember(entity.entityName, entity.entityId, entityValue, entity.isMultivalue);
     }
 
     public async RememberEntitiesAsync(entityName : string, entityValues : string[]) : Promise<void> {
@@ -40,8 +39,7 @@ export class ClientMemoryManager {
             return null;
         }
         
-        let isBucket = entity.metadata ? entity.metadata.isBucket : false;
-        await this.blisMemory.BotMemory.RememberMany(entity.entityName, entity.entityId, entityValues, isBucket);
+        await this.blisMemory.BotMemory.RememberMany(entity.entityName, entity.entityId, entityValues, entity.isMultivalue);
     }
 
     public async ForgetEntityAsync(entityName : string, value : string = null) : Promise<void> {
@@ -54,8 +52,7 @@ export class ClientMemoryManager {
         }
         
         // If no value given, wipe all entites from buckets
-        let isBucket = (entity.metadata && value) ? entity.metadata.isBucket : false;
-        await this.blisMemory.BotMemory.Forget(entity.entityName, value, isBucket);
+        await this.blisMemory.BotMemory.Forget(entity.entityName, value, entity.isMultivalue);
     }
 
     public async CopyEntityAsync(entityNameFrom : string, entityNameTo: string) : Promise<void> {
@@ -72,9 +69,7 @@ export class ClientMemoryManager {
             return null;
         }
 
-        let isBucketFrom = (entityFrom.metadata) ? entityFrom.metadata.isBucket : false;
-        let isBucketTo = (entityTo.metadata) ? entityTo.metadata.isBucket : false;
-        if (isBucketFrom != isBucketTo) {
+        if (entityFrom.isMultivalue != entityTo.isMultivalue) {
             BlisDebug.Error(`Can't copy between Bucket and Non-Bucket Entities`);
             return null;
         }

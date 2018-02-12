@@ -1,7 +1,7 @@
 import { 
         ActionList, ActionIdList, 
         BlisAppList, BlisAppIdList, 
-        EntityMetaData, EntityList, EntityIdList, 
+        EntityList, EntityIdList, 
         LogDialog, LogDialogList, LogDialogIdList, 
         TrainDialog, TrainResponse, TrainDialogList, TrainDialogIdList, 
         Session, SessionList, SessionIdList,
@@ -737,11 +737,6 @@ export class BlisClient {
                         }
                         else {
                             let entity = new EntityBase(body);
-                            entity.entityId = entityId;
-                            if (!entity.metadata)
-                            {
-                                entity.metadata = new EntityMetaData();
-                            }
                             this.entityCache.set(entityId, entity);
                             resolve(entity);
                         }

@@ -82,10 +82,9 @@ export class BotMemory
     }
 
     /** Remember a predicted entity */		
-    public async RememberEntity(predictedEntity : PredictedEntity) : Promise<void> {		
-        let isBucket = predictedEntity.metadata ? predictedEntity.metadata.isBucket : false;		
+    public async RememberEntity(predictedEntity : PredictedEntity) : Promise<void> {				
         await this.Remember(predictedEntity.entityName, predictedEntity.entityId, predictedEntity.entityText, 
-            isBucket, predictedEntity.builtinType, predictedEntity.resolution);		
+            predictedEntity.isMultivalue, predictedEntity.builtinType, predictedEntity.resolution);		
     }
 
     // Remember value for an entity (assumes init has happend)
@@ -159,11 +158,10 @@ export class BotMemory
     }
 
     /** Forget a predicted Entity */		
-    public async ForgetEntity(predictedEntity : PredictedEntity) : Promise<void> {		
-        let isBucket = predictedEntity.metadata ? predictedEntity.metadata.isBucket : false;		
+    public async ForgetEntity(predictedEntity : PredictedEntity) : Promise<void> {				
         let posName = this.PositiveName(predictedEntity.entityName);		
         if (posName) {		
-             await this.Forget(posName, predictedEntity.entityText, isBucket);		
+             await this.Forget(posName, predictedEntity.entityText, predictedEntity.isMultivalue);		
         }		
     }
 
