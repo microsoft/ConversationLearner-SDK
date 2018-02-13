@@ -1,7 +1,7 @@
 import { BlisMemory } from '../BlisMemory';
 import { BlisDebug} from '../BlisDebug';
 import { Utils} from '../Utils';
-import { Memory, FilledEntity, MemoryValue, PredictedEntity, FilledEntityMap } from 'blis-models';
+import { Memory, FilledEntity, MemoryValue, FilledEntityMap } from 'blis-models';
 
 const NEGATIVE_PREFIX = "~";
 
@@ -81,14 +81,8 @@ export class BotMemory
         await this.Set();		
     }
 
-    /** Remember a predicted entity */		
-    public async RememberEntity(predictedEntity : PredictedEntity) : Promise<void> {				
-        await this.Remember(predictedEntity.entityName, predictedEntity.entityId, predictedEntity.entityText, 
-            predictedEntity.isMultivalue, predictedEntity.builtinType, predictedEntity.resolution);		
-    }
-
     // Remember value for an entity (assumes init has happend)
-    private async RememberInt(entityName: string, entityId: string, entityValue: string, 
+    public async RememberEntity(entityName: string, entityId: string, entityValue: string, 
                             isBucket: boolean = false, builtinType: string = null, resolution: {} = null) : Promise<void> {
 
         if (!this.filledEntities.map[entityName])
@@ -118,7 +112,7 @@ export class BotMemory
     public async Remember(entityName: string, entityId: string, entityValue: string, 
                             isBucket: boolean = false, builtinType: string = null, resolution: {} = null) : Promise<void> {
         await this.Init();
-        this.RememberInt(entityName, entityId, entityValue, isBucket, builtinType, resolution);
+        this.RememberEntity(entityName, entityId, entityValue, isBucket, builtinType, resolution);
         await this.Set();
     }
 
@@ -128,7 +122,7 @@ export class BotMemory
         await this.Init();
 
         for (let entityValue in entityValues) {
-            this.RememberInt(entityName, entityId, entityValue, isBucket, builtinType, resolution);
+            this.RememberEntity(entityName, entityId, entityValue, isBucket, builtinType, resolution);
         }
 
         await this.Set();
@@ -158,10 +152,10 @@ export class BotMemory
     }
 
     /** Forget a predicted Entity */		
-    public async ForgetEntity(predictedEntity : PredictedEntity) : Promise<void> {				
-        let posName = this.PositiveName(predictedEntity.entityName);		
+    public async ForgetEntity(entityName: string, entityValue: string, isMultivalue: boolean) : Promise<void> {				
+        let posName = this.PositiveName(entityName);		
         if (posName) {		
-             await this.Forget(posName, predictedEntity.entityText, predictedEntity.isMultivalue);		
+             await this.Forget(posName, entityValue, isMultivalue);		
         }		
     }
 
