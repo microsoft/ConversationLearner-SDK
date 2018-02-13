@@ -63,11 +63,20 @@ async function main() {
         await fs.writeJson(packageLockJsonPath, newPackageLockJson, { spaces: '  ' })
     }
     catch (e) {
-        throw e
+        const error = e as Error
+        console.error(error.message)
+        process.exit(1)
     }
 
     console.log(`Create tag on current commit using the next version: ${nextVersion}`)
-    await execa('git', ['tag', '-a', '-m', `${nextVersion}`, `v${nextVersion}`])
+    try {
+        await execa('git', ['tag', '-a', '-m', `${nextVersion}`, `v${nextVersion}`])
+    }
+    catch (e) {
+        const error = e as Error
+        console.error(`Error when attempting to create tag: ${nextVersion}`, error.message)
+        process.exit(1)
+    }
 }
 
 main()
