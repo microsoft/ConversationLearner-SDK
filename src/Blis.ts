@@ -112,14 +112,23 @@ export class Blis  {
         for (var predictedEntity of predictedEntities)
         // Update entities in my memory
         {
+            let entity = memoryManager.FindEntityById(predictedEntity.entityId);
+
             // If negative entity will have a positive counter entity
-            if (predictedEntity.positiveId)
+            if (entity.positiveId)
             {
-                await memoryManager.blisMemory.BotMemory.ForgetEntity(predictedEntity);
+                await memoryManager.blisMemory.BotMemory.ForgetEntity(entity.entityName, predictedEntity.entityText, entity.isMultivalue);
             }
             else
             {
-                await memoryManager.blisMemory.BotMemory.RememberEntity(predictedEntity);
+                await memoryManager.blisMemory.BotMemory.RememberEntity(
+                    entity.entityName,
+                    entity.entityId,
+                    predictedEntity.entityText,
+                    entity.isMultivalue,
+                    predictedEntity.builtinType,
+                    predictedEntity.resolution
+                );
             }
 
             // If entity is associated with a task, make sure task is active
@@ -318,7 +327,7 @@ export class Blis  {
                                     
                 // Call entity detection callback
                 let textVariation = round.extractorStep.textVariations[0];
-                let predictedEntities = ModelUtils.ToPredictedEntities(textVariation.labelEntities, entityList);
+                let predictedEntities = ModelUtils.ToPredictedEntities(textVariation.labelEntities);
                 await Blis.CallEntityDetectionCallback(textVariation.text, predictedEntities, memory, entities);
 
                 // Look for discrenancies when replaying API calls

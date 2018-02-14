@@ -18,6 +18,11 @@ export class ClientMemoryManager {
         return match;
     }
 
+    public FindEntityById(entityId : string) : EntityBase {
+        let match = this.entities.find(e => e.entityId == entityId);
+        return match;
+    }
+
     public async RememberEntityAsync(entityName : string, entityValue : string) : Promise<void> {
 
         let entity = this.FindEntity(entityName);

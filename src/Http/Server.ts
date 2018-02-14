@@ -823,35 +823,7 @@ export class Server {
                         Server.HandleError(res, error);
                     }
                 }
-            );
-
-            /** RUN EXTRACTOR: Runs entity extraction on a log dialog 
-             */
-            this.server.put("/app/:appId/logdialog/:logDialogId/extractor/:turnIndex", async (req, res, next) =>
-            {
-                try
-                {
-                    this.InitClient();  
-                    //let query = req.getQuery();
-                    let key = req.params.key;
-                    let appId = req.params.appId;
-                    let logDialogId = req.params.logDialogId;
-                    let turnIndex = req.params.turnIndex;
-                    let userInput = req.body;
-                    
-                    let extractResponse = await BlisClient.client.LogDialogExtract(appId, logDialogId, turnIndex, userInput);
-
-                    let memory = BlisMemory.GetMemory(key);
-                    let memories = await memory.BotMemory.DumpMemory();
-                    let uiExtractResponse = new UIExtractResponse({extractResponse : extractResponse, memories : memories});
-                    res.send(uiExtractResponse);
-                }
-                catch (error)
-                {
-                    Server.HandleError(res, error);
-                }
-            }
-            );          
+            );        
   
         //========================================================
         // TrainDialogs
