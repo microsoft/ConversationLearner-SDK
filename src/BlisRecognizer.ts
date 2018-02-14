@@ -143,7 +143,7 @@ export class BlisRecognizer extends BB.IntentRecognizer {
                     return null;
                 }
                 // Set it
-                await blisMemory.BotMemory.Remember(entity.entityName, entity.entityId, data[entityName], entity.isMultivalue);
+                await blisMemory.BotMemory.RememberEntity(entity.entityName, entity.entityId, data[entityName], entity.isMultivalue);
                  
             }
 

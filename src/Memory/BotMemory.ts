@@ -81,8 +81,8 @@ export class BotMemory
         await this.Set();		
     }
 
-    // Remember value for an entity (assumes init has happend)
-    public async RememberEntity(entityName: string, entityId: string, entityValue: string, 
+    // Intenral: Remember value for an entity (assumes init has happend and save will happen after
+    private async Remember(entityName: string, entityId: string, entityValue: string, 
                             isBucket: boolean = false, builtinType: string = null, resolution: {} = null) : Promise<void> {
 
         if (!this.filledEntities.map[entityName])
@@ -112,10 +112,10 @@ export class BotMemory
     }
 
     // Remember value for an entity
-    public async Remember(entityName: string, entityId: string, entityValue: string, 
+    public async RememberEntity(entityName: string, entityId: string, entityValue: string, 
                             isBucket: boolean = false, builtinType: string = null, resolution: {} = null) : Promise<void> {
         await this.Init();
-        this.RememberEntity(entityName, entityId, entityValue, isBucket, builtinType, resolution);
+        this.Remember(entityName, entityId, entityValue, isBucket, builtinType, resolution);
         await this.Set();
     }
 
@@ -125,7 +125,7 @@ export class BotMemory
         await this.Init();
 
         for (let entityValue in entityValues) {
-            this.RememberEntity(entityName, entityId, entityValue, isBucket, builtinType, resolution);
+            this.Remember(entityName, entityId, entityValue, isBucket, builtinType, resolution);
         }
 
         await this.Set();
