@@ -87,7 +87,10 @@ export class BotMemory
 
         if (!this.filledEntities.map[entityName])
         {
-            this.filledEntities.map[entityName] = new FilledEntity({entityId: entityId});
+            this.filledEntities.map[entityName] = {
+                entityId: entityId,
+                values: []
+            };
         }
 
         let displayText = builtinType ? Utils.PrebuiltDisplayText(builtinType, resolution, entityValue) : null;
@@ -99,12 +102,12 @@ export class BotMemory
             // Add if not a duplicate
             const containsDuplicateValue = filledEntity.values.some(memoryValue => memoryValue.userText === entityValue);
             if (!containsDuplicateValue) {
-                filledEntity.values.push(new MemoryValue({userText: entityValue, displayText: displayText, builtinType: builtinType, resolution: resolution}));
+                filledEntity.values.push({userText: entityValue, displayText: displayText, builtinType: builtinType, resolution: resolution});
             }
         }
         else
         {
-            filledEntity.values = [new MemoryValue({userText: entityValue, displayText: displayText, builtinType: builtinType, resolution: resolution})];
+            filledEntity.values = [{userText: entityValue, displayText: displayText, builtinType: builtinType, resolution: resolution}];
         }
     }
 
@@ -210,7 +213,7 @@ export class BotMemory
         let memory : Memory[] = [];
         for (let entityName in this.filledEntities.map)
         {
-            memory.push(new Memory({entityName:entityName, entityValues: this.MemoryValues(entityName)}));
+            memory.push({entityName:entityName, entityValues: this.MemoryValues(entityName)});
         }
         return memory;
     }

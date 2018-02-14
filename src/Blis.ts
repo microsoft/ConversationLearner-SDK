@@ -12,7 +12,7 @@ import { AzureFunctions } from './AzureFunctions';
 import { Utils } from './Utils';
 import { EntityBase, PredictedEntity, EntityList, TrainDialog, TrainRound,
         ActionPayload, SenderType, ActionTypes, ScoredAction, Memory,
-        ScoreInput, ModelUtils, ActionBase, CallbackAPI, FilledEntity, FilledEntityMap, TeachWithHistory, DialogMode, getActionArgumentValueAsPlainText } from 'blis-models'
+        ScoreInput, ModelUtils, ActionBase, CallbackAPI, FilledEntity, FilledEntityMap, TeachWithHistory, DialogMode, getActionArgumentValueAsPlainText, filledEntityValueAsString } from 'blis-models'
 import { ClientMemoryManager} from './Memory/ClientMemoryManager';
 import { BlisIntent } from './BlisIntent';
 
@@ -68,7 +68,7 @@ export class Blis  {
     public static AddAPICallback(name: string, target : (memoryManager: ClientMemoryManager, ...args : string[]) => Promise<BB.Activity | string | undefined>)
     {
         Blis.apiCallbacks[name] = target;
-        Blis.apiParams.push(new CallbackAPI({name: name, arguments: this.GetArguments(target)}));
+        Blis.apiParams.push({ name, arguments: this.GetArguments(target) })
     }
     
     public static EntityDetectionCallback(target : (text: string, predictedEntities : PredictedEntity[], memoryManager : ClientMemoryManager) => Promise<void>)
@@ -99,11 +99,11 @@ export class Blis  {
         // Get entities from my memory
         var filledEntities = await memoryManager.blisMemory.BotMemory.FilledEntities();
         
-        let scoreInput = new ScoreInput({   
-            filledEntities: filledEntities,
+        let scoreInput: ScoreInput = {   
+            filledEntities,
             context: {},
             maskedActions: []
-        });
+        };
         return scoreInput;
     }
     
@@ -263,14 +263,14 @@ export class Blis  {
         for (let oldEntity of oldEntities)
         {
             let name = entities.find(e => e.entityId == oldEntity.entityId).entityName;
-            let values = FilledEntity.EntityValueAsString(oldEntity);
+            let values = filledEntityValueAsString(oldEntity);
             discrepancies.push(`${name} = (${values})`);
         }
         discrepancies.push('','New Entities:');
         for (let newEntity of newEntities)
         {
             let name = entities.find(e => e.entityId == newEntity.entityId).entityName;
-            let values = FilledEntity.EntityValueAsString(newEntity);
+            let values = filledEntityValueAsString(newEntity);
             discrepancies.push(`${name} = (${values})`);
         }
         return discrepancies;
@@ -294,7 +294,7 @@ export class Blis  {
 
         let entities = trainDialog.definitions.entities;
         let actions = trainDialog.definitions.actions;
-        let entityList = new EntityList({entities: entities});
+        let entityList: EntityList = { entities }
         let prevMemories: Memory[] = []
 
         // Reset the memory
@@ -396,13 +396,16 @@ export class Blis  {
            memories = await memory.BotMemory.DumpMemory();
         }
         
-        let teachWithHistory = new TeachWithHistory({
+        let teachWithHistory: TeachWithHistory = {
+            teach: undefined,
+            scoreInput: undefined,
+            scoreResponse: undefined,
             history: activities,
             memories: memories,
             prevMemories: prevMemories,
             dialogMode: isLastActionTerminal ? DialogMode.Wait : DialogMode.Scorer,
             discrepancies: discrepancies
-        })
+        }
         return teachWithHistory;
     }
     
