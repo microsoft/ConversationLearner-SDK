@@ -32,7 +32,7 @@ export class ClientMemoryManager {
             return null;
         }
         
-        await this.blisMemory.BotMemory.Remember(entity.entityName, entity.entityId, entityValue, entity.isMultivalue);
+        await this.blisMemory.BotMemory.RememberEntity(entity.entityName, entity.entityId, entityValue, entity.isMultivalue);
     }
 
     public async RememberEntitiesAsync(entityName : string, entityValues : string[]) : Promise<void> {
