@@ -1501,13 +1501,16 @@ export class Server {
                     let appId = req.params.appId;
                     let userName = req.params.username;
                     let userId = req.params.userid;
+                    let popRound = req.params.popround;
                     let teach: Teach = req.body;
 
                     // Retreive current train dialog
                     let trainDialog = await BlisClient.client.GetTrainDialog(appId, teach.trainDialogId, true);
                     
                     // Remove last round
-                    trainDialog.rounds.pop();
+                    if (popRound == "true") {
+                        trainDialog.rounds.pop();
+                    }
 
                     // Get memory and store a backup in case the undo fails
                     let memory = BlisMemory.GetMemory(key);
