@@ -104,7 +104,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            var action = new ActionBase(body);
+                            var action: ActionBase = body;
                             action.actionId = actionId;
                             this.actionCache.set(actionId, action);
                             resolve(action);
@@ -139,7 +139,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let actions = new ActionList(body);
+                            let actions: ActionList = body;
                             resolve(actions);
                         }
                     });
@@ -172,7 +172,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let actions = new ActionIdList(body);
+                            let actions: ActionIdList = body;
                             resolve(actions);
                         }
                     });
@@ -307,7 +307,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            var blisApp = new BlisAppBase(body);
+                            var blisApp: BlisAppBase = body;
                             blisApp.appId = appId;
                             resolve(blisApp);
                         }
@@ -398,7 +398,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let apps = new BlisAppList(body);
+                            let apps: BlisAppList = body;
                             resolve(apps);
                         }
                     });
@@ -597,7 +597,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let app = new BlisAppBase(body);
+                            let app: BlisAppBase = body;
                             resolve(app);
                         }
                     });
@@ -661,7 +661,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let apps = new BlisAppIdList(body);
+                            let apps: BlisAppIdList = body;
                             resolve(apps);
                         }
                     });
@@ -694,7 +694,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let apps = new BlisAppList(body);
+                            let apps: BlisAppList = body;
                             resolve(apps);
                         }
                     });
@@ -736,7 +736,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let entity = new EntityBase(body);
+                            let entity: EntityBase = body;
                             this.entityCache.set(entityId, entity);
                             resolve(entity);
                         }
@@ -770,7 +770,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let entities = new EntityList(body);
+                            let entities: EntityList = body;
                             resolve(entities);
                         }
                     });
@@ -803,7 +803,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let entityIds = new EntityIdList(body);
+                            let entityIds: EntityIdList = body;
                             resolve(entityIds);
                         }
                     });
@@ -934,7 +934,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let logDialog = new LogDialog(body);
+                            let logDialog: LogDialog = body;
                             logDialog.logDialogId = logDialogId;
                             resolve(logDialog);
                         }
@@ -968,7 +968,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let logDialogList = new LogDialogList(body);
+                            let logDialogList: LogDialogList = body;
                             resolve(logDialogList);
                         }
                     });
@@ -1000,7 +1000,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let logDialogsIds = new LogDialogIdList(body);
+                            let logDialogsIds: LogDialogIdList = body;
                             resolve(logDialogsIds);
                         }
                     });
@@ -1038,6 +1038,7 @@ export class BlisClient {
             )
         }
     
+
     //=============================================================================
     // Train Dialogs
     //=============================================================================
@@ -1066,7 +1067,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let editResponse = new TrainResponse(body);
+                            let editResponse: TrainResponse = body;
                             resolve(editResponse);
                         }
                     });
@@ -1102,7 +1103,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let editResponse = new TrainResponse(body);
+                            let editResponse: TrainResponse = body;
                             resolve(editResponse);
                         }
                     });
@@ -1136,7 +1137,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let trainDialog = new TrainDialog(body);
+                            let trainDialog: TrainDialog = body;
                             trainDialog.trainDialogId = trainDialogId;
                             resolve(trainDialog);
                         }
@@ -1170,7 +1171,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let trainDialogList = new TrainDialogList(body);
+                            let trainDialogList: TrainDialogList = body;
                             resolve(trainDialogList);
                         }
                     });
@@ -1203,7 +1204,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let trainDialogsIds = new TrainDialogIdList(body);
+                            let trainDialogsIds: TrainDialogIdList = body;
                             resolve(trainDialogsIds);
                         }
                     });
@@ -1234,7 +1235,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let deleteResponse = new TrainResponse(body);
+                            let deleteResponse: TrainResponse = body;
                             resolve(deleteResponse);
                         }
                     });
@@ -1245,6 +1246,7 @@ export class BlisClient {
         /** Runs entity extraction (prediction). */
         public TrainDialogExtract(appId : string, trainDialogId : string, turnIndex: string, userInput : UserInput) : Promise<ExtractResponse>
         {
+
             let apiPath = `app/${appId}/traindialog/${trainDialogId}/extractor/${turnIndex}`;
 
             // Always retrieve entity list
@@ -1269,7 +1271,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            var extractResponse = new ExtractResponse(body);
+                            var extractResponse: ExtractResponse = body;
                             resolve(extractResponse);
                         }
                     });
@@ -1306,7 +1308,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let session = new Session(body);
+                            let session: Session = body;
                             resolve(session);
                         }
                     });
@@ -1337,7 +1339,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let session = new Session(body);
+                            let session: Session = body;
                             session.sessionId = sessionId;
                             resolve(session);
                         }
@@ -1373,7 +1375,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            var extractResponse = new ExtractResponse(body);
+                            var extractResponse: ExtractResponse = body;
                             resolve(extractResponse);
                         }
                     });
@@ -1406,7 +1408,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            var score = new ScoreResponse(body);
+                            var score: ScoreResponse = body;
                             resolve(score);
                         }
                     });
@@ -1468,7 +1470,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let sessions = new SessionList(body);
+                            let sessions: SessionList = body;
                             resolve(sessions);
                         }
                     });
@@ -1500,7 +1502,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let sessionIds = new SessionIdList(body);
+                            let sessionIds: SessionIdList = body;
                             resolve(sessionIds);
                         }
                     });
@@ -1537,7 +1539,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            var teachResponse = new TeachResponse(body);
+                            var teachResponse: TeachResponse = body;
                             resolve(teachResponse);
                         }
                     });
@@ -1568,7 +1570,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let teach = new Teach(body);
+                            let teach: Teach = body;
                             teach.teachId = teachId;
                             resolve(teach);
                         }
@@ -1608,7 +1610,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            var extractResponse = new ExtractResponse(body);
+                            var extractResponse: ExtractResponse = body;
                             resolve(extractResponse);
                         }
                     });
@@ -1644,7 +1646,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            var teachResponse = new TeachResponse(body);
+                            var teachResponse: TeachResponse = body;
                             resolve(teachResponse);
                         }
                     });
@@ -1681,7 +1683,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            var scoreResponse = new ScoreResponse(body);
+                            var scoreResponse: ScoreResponse = body;
                             resolve(scoreResponse);
                         }
                     });
@@ -1717,7 +1719,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            var teachResponse = new TeachResponse(body);
+                            var teachResponse: TeachResponse = body;
                             resolve(teachResponse);
                         }
                     });
@@ -1751,7 +1753,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            var trainResponse = new TrainResponse(body);
+                            var trainResponse: TrainResponse = body;
                             resolve(trainResponse);
                         }
                     });
@@ -1783,7 +1785,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let teaches = new TeachList(body);
+                            let teaches: TeachList = body;
                             resolve(teaches);
                         }
                     });
@@ -1815,7 +1817,7 @@ export class BlisClient {
                             reject(response);
                         }
                         else {
-                            let teachIds = new TeachIdList(body);
+                            let teachIds: TeachIdList = body;
                             resolve(teachIds);
                         }
                     });

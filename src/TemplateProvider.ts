@@ -49,14 +49,13 @@ export class TemplateProvider {
                     `Template "${file}" does not have an action with a "submit" item in the data.  At least on action item must be of the form: "type": "Action.Submit", "data": { "submit": "{SUBMIT PAYLOAD"}`;
 
                 let templateBody = JSON.stringify(fileContent);
-                let template = new Template(
+                let template: Template =
                     {
                         name : file,
                         variables: tvs,
                         body: templateBody,
                         validationError: validationError
                     }
-                )
                 templates.push(template);
             }
 
@@ -147,7 +146,7 @@ export class TemplateProvider {
             let vars = this.GetVarNames(template);
             if (vars.length > 0) {
                 for (let key of vars) {
-                    let tv = new TemplateVariable({key: key, type: template['type']});
+                    let tv: TemplateVariable = { key: key, type: template['type'] };
                     tvs.push(tv);
                 }
             }
