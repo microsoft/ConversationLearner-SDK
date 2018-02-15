@@ -1,22 +1,22 @@
 export interface IBlisOptions {
     // URL for BLIS service
-    serviceUri: string;
+    serviceUri: string
 
     // BLIS User Name
-    user: string;
+    user: string
 
     // BLIS Secret
-    secret: string;
+    secret: string
 
     // Application to start
-    appId: string;
+    appId: string
 
     // End point for Azure function calls
-    azureFunctionsUrl? : string;
+    azureFunctionsUrl?: string
 
     // Key for Azure function calls (optional)
-    azureFunctionsKey? : string;
+    azureFunctionsKey?: string
 
     // Running on localhost
-    localhost? : boolean;
+    localhost?: boolean
 }
