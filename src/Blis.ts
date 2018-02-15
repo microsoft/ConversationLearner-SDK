@@ -157,18 +157,25 @@ export class Blis  {
 
         // Extract API name and args
         const apiName = actionPayload.payload;
-        const argArray = actionPayload.arguments
-            .map(a => filledEntityMap.SubstituteEntities(getActionArgumentValueAsPlainText(a)))
-
         const api = Blis.apiCallbacks[apiName];
-        if (!api)
+        const callbackParams = Blis.apiParams.find(apip => apip.name == apiName);
+        if (!api || ! callbackParams)
         {
             return BlisDebug.Error(`API "${apiName}" is undefined`);
         }
 
+        // Get arguments in order specified by the API
+        const argArray = callbackParams.arguments.map((param: string) => {
+                let argument = actionPayload.arguments.find(arg => arg.parameter == param);
+                return argument ? 
+                    filledEntityMap.SubstituteEntities(getActionArgumentValueAsPlainText(argument))
+                    : "";
+                }
+            );
+
         let memoryManager = new ClientMemoryManager(memory, allEntities);
         
-        return await api(memoryManager, ...argArray.reverse()); 
+        return await api(memoryManager, ...argArray); 
     }
 
     public static async TakeTextAction(action: ActionBase | ScoredAction, filledEntityMap : FilledEntityMap) : Promise<Partial<BB.Activity> | string | undefined>
