@@ -7,6 +7,8 @@
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf lib",
+    "prettier": "prettier",
+    "runprettier": "prettier --write --no-semi --single-quote src/**/*.ts",
     "prepublishOnly": "tsc",
     "pretest": "tsc",
     "tsc": "tsc",
@@ -49,6 +51,7 @@
     "http-server": "^0.9.0",
     "jest": "^22.1.4",
     "nodemon": "^1.11.0",
+    "prettier": "^1.10.2",
     "typescript": "^2.4.2"
   },
   "files": [
@@ -58,6 +61,10 @@
     "testMatch": [
       "**/lib/**/?(*.)(spec|test).js?(x)"
     ]
+  },
+  "prettier": {
+    "tabWidth": 4,
+    "printWidth": 140
   },
   "publishConfig": {
     "tag": "next"
