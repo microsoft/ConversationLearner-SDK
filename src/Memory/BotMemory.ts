@@ -124,7 +124,7 @@ export class BotMemory
         isBucket: boolean = false, builtinType: string = null, resolution: {} = null) : Promise<void> {
         await this.Init();
 
-        for (let entityValue in entityValues) {
+        for (let entityValue of entityValues) {
             this.Remember(entityName, entityId, entityValue, isBucket, builtinType, resolution);
         }
 
