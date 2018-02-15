@@ -8,8 +8,8 @@ import { TemplateProvider } from '../TemplateProvider';
 import { Utils } from '../Utils';
 import * as XMLDom from 'xmldom';
 import { TrainDialog, BotInfo, Teach,
-        BlisAppBase, ActionBase, EntityBase, ModelUtils, DialogMode } from 'blis-models'
-import { ScoreInput, UIScoreInput, UIExtractResponse, UIScoreResponse, UITeachResponse, UITrainScorerStep  } from 'blis-models'
+        BlisAppBase, ActionBase, EntityBase, ModelUtils, DialogMode,
+        ScoreInput, UIScoreInput, UIExtractResponse, UIScoreResponse, UITeachResponse, UITrainScorerStep  } from 'blis-models'
 import * as corsMiddleware from 'restify-cors-middleware'
 
 const cors = corsMiddleware({
@@ -126,7 +126,7 @@ export class Server {
                         this.InitClient();  
                         //let query = req.getQuery();
                         let key = req.params.key;
-                        let app = new BlisAppBase(req.body);
+                        let app: BlisAppBase = req.body;
 
                         let memory = BlisMemory.GetMemory(key);
                         await memory.BotState.SetAppAsync(app);
@@ -171,11 +171,10 @@ export class Server {
 
                 try
                 {
-                    let botInfo = new BotInfo(
-                        {
-                            callbacks: Blis.apiParams,
-                            templates: TemplateProvider.GetTemplates()
-                        });
+                    let botInfo: BotInfo =  {
+                        callbacks: Blis.apiParams,
+                        templates: TemplateProvider.GetTemplates()
+                    }
                     res.send(botInfo);
                 }
                 catch (error)
@@ -249,7 +248,7 @@ export class Server {
 
                         let query = req.getQuery();
                         let key = req.params.key;
-                        let app = new BlisAppBase(req.body);
+                        let app: BlisAppBase = req.body
 
                         app.appId = await BlisClient.client.AddApp(app, query);
                         res.send(app.appId);
@@ -273,7 +272,7 @@ export class Server {
                         this.InitClient();  
                         let query = req.getQuery();
                         //let key = req.params.key;
-                        let app = new BlisAppBase(req.body);
+                        let app: BlisAppBase = req.body;
                         
                         if (!app.appId)
                         {
@@ -494,7 +493,7 @@ export class Server {
                         //let query = req.getQuery();
                         //let key = req.params.key;
                         let appId = req.params.appId;
-                        let action = new ActionBase(req.body);
+                        let action: ActionBase = req.body;
                         let actionId = await BlisClient.client.AddAction(appId, action);
                         res.send(actionId);
                     }
@@ -514,7 +513,7 @@ export class Server {
                         //let query = req.getQuery();
                         //let key = req.params.key;
                         let appId = req.params.appId;
-                        let action = new ActionBase(req.body);
+                        let action: ActionBase = req.body;
 
                         if (!action.actionId)
                         {
@@ -646,7 +645,7 @@ export class Server {
                         //let query = req.getQuery();
                         //let key = req.params.key;
                         let appId = req.params.appId;
-                        let entity = new EntityBase(req.body);
+                        let entity: EntityBase = req.body;
                         let entityId = await BlisClient.client.AddEntity(appId, entity);
                         res.send(entityId);
                     }
@@ -665,7 +664,7 @@ export class Server {
                         //let query = req.getQuery();
                         //let key = req.params.key;
                         let appId = req.params.appId;
-                        let entity = new EntityBase(req.body);    
+                        let entity: EntityBase = req.body;    
 
                         if (!entity.entityId)
                         {
@@ -838,7 +837,7 @@ export class Server {
                         //let query = req.getQuery();
                         //let key = req.params.key;
                         let appId = req.params.appId;
-                        let trainDialog = new TrainDialog(req.body);
+                        let trainDialog: TrainDialog = req.body;
 
                         // TEMP: until object refactor
                         let strippedTrainDialog = Utils.StripPrebuiltInfoFromTrain(trainDialog);
@@ -862,7 +861,7 @@ export class Server {
                         //let query = req.getQuery();
                         //let key = req.params.key;
                         let appId = req.params.appId;
-                        let trainDialog = new TrainDialog(req.body);
+                        let trainDialog: TrainDialog = req.body;
 
                         //TEMP: until object refactor
                         let strippedTrainDialog = Utils.StripPrebuiltInfoFromTrain(trainDialog);
@@ -972,7 +971,7 @@ export class Server {
 
                         let memory = BlisMemory.GetMemory(key);
                         let memories = await memory.BotMemory.DumpMemory();
-                        let uiExtractResponse = new UIExtractResponse({extractResponse : extractResponse, memories : memories});
+                        let uiExtractResponse: UIExtractResponse = { extractResponse, memories }
                         res.send(uiExtractResponse);
                     }
                     catch (error)
@@ -1181,7 +1180,7 @@ export class Server {
                         let userId = req.params.userid;
                         let ignoreLastExtract = req.params.ignoreLastExtract === "true";
                         let updateBotState = true;
-                        let trainDialog = new TrainDialog(req.body);
+                        let trainDialog: TrainDialog = req.body;
 
                         // Get history and replay to put bot into last round
                         let memory = BlisMemory.GetMemory(key);
@@ -1259,7 +1258,7 @@ export class Server {
 
                         let memory = BlisMemory.GetMemory(key);
                         let memories = await memory.BotMemory.DumpMemory();
-                        let uiExtractResponse = new UIExtractResponse({extractResponse : extractResponse, memories : memories});
+                        let uiExtractResponse: UIExtractResponse = {extractResponse, memories }
                         res.send(uiExtractResponse);
                     }
                     catch (error)
@@ -1288,7 +1287,7 @@ export class Server {
                         let key = req.params.key;
                         let appId = req.params.appId;
                         let teachId = req.params.teachId;
-                        let uiScoreInput = new UIScoreInput(req.body);
+                        let uiScoreInput: UIScoreInput = req.body;
 
                         let memory = BlisMemory.GetMemory(key);
 
@@ -1309,7 +1308,7 @@ export class Server {
                         // Get score response
                         let scoreResponse = await BlisClient.client.TeachScore(appId, teachId, scoreInput);
                         let memories = await memory.BotMemory.DumpMemory();
-                        let uiScoreResponse = new UIScoreResponse({scoreInput : scoreInput, scoreResponse : scoreResponse, memories : memories});
+                        let uiScoreResponse: UIScoreResponse = {scoreInput, scoreResponse, memories }
                         res.send(uiScoreResponse);
                     }
                     catch (error)
@@ -1328,17 +1327,17 @@ export class Server {
                 {
                     this.InitClient();  
                     const { key, appId, teachId } = req.params
-                    const scoreInput = new ScoreInput(req.body)
+                    const scoreInput: ScoreInput = req.body
                     const memory = BlisMemory.GetMemory(key)
 
                     // Get new score response re-using scoreInput from previous score request
                     const scoreResponse = await BlisClient.client.TeachScore(appId, teachId, scoreInput)
                     const memories = await memory.BotMemory.DumpMemory()
-                    const uiScoreResponse = new UIScoreResponse({
+                    const uiScoreResponse: UIScoreResponse = {
                         scoreInput,
                         scoreResponse,
                         memories
-                    })
+                    }
 
                     res.send(uiScoreResponse)
                 }
@@ -1361,7 +1360,7 @@ export class Server {
                         let key = req.params.key;
                         let appId = req.params.appId;
                         let teachId = req.params.teachId;
-                        let uiTrainScorerStep = new UITrainScorerStep(req.body);
+                        let uiTrainScorerStep: UITrainScorerStep = req.body;
 
                         // Save scored action and remove from service call
                         let scoredAction = uiTrainScorerStep.trainScorerStep.scoredAction;
@@ -1384,7 +1383,7 @@ export class Server {
                         await Blis.SendIntent(memory, intent);
                                                 
                         let memories = await memory.BotMemory.DumpMemory();
-                        let uiTeachResponse = new UITeachResponse({teachResponse : teachResponse, memories : memories});
+                        let uiTeachResponse: UITeachResponse = { teachResponse, memories }
                         res.send(uiTeachResponse);
                     }
                     catch (error)
@@ -1478,7 +1477,7 @@ export class Server {
                     let appId = req.params.appId;
                     let userName = req.params.username;
                     let userId = req.params.userid;
-                    let trainDialog = new TrainDialog(req.body);
+                    let trainDialog: TrainDialog = req.body;
 
                     let memory = BlisMemory.GetMemory(key);
                     let teachWithHistory = await Blis.GetHistory(appId, trainDialog, userName, userId, memory);
@@ -1502,7 +1501,7 @@ export class Server {
                     let appId = req.params.appId;
                     let userName = req.params.username;
                     let userId = req.params.userid;
-                    let teach = new Teach(req.body);
+                    let teach: Teach = req.body;
 
                     // Retreive current train dialog
                     let trainDialog = await BlisClient.client.GetTrainDialog(appId, teach.trainDialogId, true);

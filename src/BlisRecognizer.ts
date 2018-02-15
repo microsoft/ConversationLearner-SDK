@@ -91,7 +91,7 @@ export class BlisRecognizer extends BB.IntentRecognizer {
                 let entities : EntityBase[] = null;
 
                 errComponent = "SessionExtract";
-                let userInput = new UserInput({text: buttonResponse || botContext.request.text || "  "});
+                let userInput: UserInput = { text: buttonResponse || botContext.request.text || "  "};
                 let extractResponse = await BlisClient.client.SessionExtract(app.appId, sessionId, userInput);
                 entities = extractResponse.definitions.entities;
                 errComponent = "ProcessExtraction";
