@@ -442,7 +442,7 @@ export class Blis {
             history: activities,
             memories: memories,
             prevMemories: prevMemories,
-            dialogMode: isLastActionTerminal ? DialogMode.Wait : DialogMode.Scorer,
+            dialogMode: (isLastActionTerminal || trainDialog.rounds.length == 0) ? DialogMode.Wait : DialogMode.Scorer,
             discrepancies: discrepancies
         }
         return teachWithHistory

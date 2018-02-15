@@ -1218,52 +1218,61 @@ export class Server {
             } catch (error) {
                 Server.HandleError(res, error)
             }
-        })
+        }
+        )
 
-        this.server.post('/app/:appId/teach/:teachId/undo', async (req, res, next) => {
-            try {
-                this.InitClient()
+        this.server.post("/app/:appId/teach/:teachId/undo", async (req, res, next) =>
+        {
+            try
+            {
+                this.InitClient();  
 
                 //let query = req.getQuery();
-                let key = req.params.key
-                let appId = req.params.appId
-                let userName = req.params.username
-                let userId = req.params.userid
-                let teach: Teach = req.body
+                let key = req.params.key;
+                let appId = req.params.appId;
+                let userName = req.params.username;
+                let userId = req.params.userid;
+                let popRound = req.params.popround;
+                let teach: Teach = req.body;
 
                 // Retreive current train dialog
-                let trainDialog = await BlisClient.client.GetTrainDialog(appId, teach.trainDialogId, true)
-
+                let trainDialog = await BlisClient.client.GetTrainDialog(appId, teach.trainDialogId, true);
+                
                 // Remove last round
-                trainDialog.rounds.pop()
+                if (popRound == "true") {
+                    trainDialog.rounds.pop();
+                }
 
                 // Get memory and store a backup in case the undo fails
-                let memory = BlisMemory.GetMemory(key)
-                let memoryBackup = await memory.BotMemory.FilledEntityMap()
+                let memory = BlisMemory.GetMemory(key);
+                let memoryBackup = await memory.BotMemory.FilledEntityMap();
 
                 // Get history and replay to put bot into last round
-                let teachWithHistory = await Blis.GetHistory(appId, trainDialog, userName, userId, memory, true)
+                let teachWithHistory = await Blis.GetHistory(appId, trainDialog, userName, userId, memory, true);
 
                 // If APIs returned same values during replay
                 if (teachWithHistory.discrepancies.length === 0) {
+
                     // Delete existing train dialog (don't await)
-                    BlisClient.client.EndTeach(appId, teach.teachId, `saveDialog=false`)
+                    BlisClient.client.EndTeach(appId, teach.teachId, `saveDialog=false`);
 
                     // Start new teach session from the previous trainDialog
-                    let contextDialog = ModelUtils.ToContextDialog(trainDialog)
-                    let teachResponse = await BlisClient.client.StartTeach(appId, contextDialog)
+                    let contextDialog = ModelUtils.ToContextDialog(trainDialog);
+                    let teachResponse = await BlisClient.client.StartTeach(appId, contextDialog);
 
                     // Start Sesion - with "true" to save the memory from the History
-                    await memory.StartSessionAsync(teachResponse.teachId, null, { inTeach: true, saveMemory: true })
-                    teachWithHistory.teach = ModelUtils.ToTeach(teachResponse)
-                } else {
-                    // Failed, so restore the old memory
-                    await memory.BotMemory.RestoreFromMap(memoryBackup)
+                    await memory.StartSessionAsync(teachResponse.teachId, null, {inTeach: true, saveMemory: true});
+                    teachWithHistory.teach = ModelUtils.ToTeach(teachResponse);
                 }
-                res.send(teachWithHistory)
-            } catch (error) {
-                Server.HandleError(res, error)
+                else {
+                    // Failed, so restore the old memory
+                    await memory.BotMemory.RestoreFromMap(memoryBackup);
+                }
+                res.send(teachWithHistory);
             }
-        })
-    }
-}
+            catch (error) {
+                Server.HandleError(res, error);
+            }
+        }
+    )
+}}

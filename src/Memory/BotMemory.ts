@@ -130,8 +130,8 @@ export class BotMemory {
     ): Promise<void> {
         await this.Init()
 
-        for (let entityValue in entityValues) {
-            this.Remember(entityName, entityId, entityValue, isBucket, builtinType, resolution)
+        for (let entityValue of entityValues) {
+            this.Remember(entityName, entityId, entityValue, isBucket, builtinType, resolution);
         }
 
         await this.Set()
