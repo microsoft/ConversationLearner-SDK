@@ -60,7 +60,7 @@ export class Blis {
         Blis.options = options
 
         try {
-            BlisDebug.Log('Creating client....')
+            BlisDebug.Log('Creating BlisClient....')
             this.blisClient = new BlisClient(options.serviceUri)
             BlisMemory.Init(storage)
 
@@ -79,7 +79,7 @@ export class Blis {
                 }
             })
 
-            BlisDebug.Log('Initialization complete....')
+            BlisDebug.Log('Initialization complete.')
         } catch (error) {
             BlisDebug.Error(error, 'Dialog Constructor')
         }
