@@ -1,73 +1,21 @@
-import {
-    ActionList,
-    ActionIdList,
-    BlisAppList,
-    BlisAppIdList,
-    EntityList,
-    EntityIdList,
-    LogDialog,
-    LogDialogList,
-    LogDialogIdList,
-    TrainDialog,
-    TrainResponse,
-    TrainDialogList,
-    TrainDialogIdList,
-    Session,
-    SessionList,
-    SessionIdList,
-    UserInput,
-    ContextDialog,
-    ExtractResponse,
-    ScoreInput,
-    ScoreResponse,
-    Teach,
-    TeachResponse,
-    TeachList,
-    TeachIdList,
-    TrainExtractorStep,
-    TrainScorerStep,
-    ActionBase,
-    BlisAppBase,
-    EntityBase,
-    TrainingStatus
-} from 'blis-models'
-import { Credentials } from './Http/Credentials'
+import * as models from 'blis-models'
 import { BlisDebug } from './BlisDebug'
 import * as NodeCache from 'node-cache'
 import * as Request from 'request'
 
 export class BlisClient {
-    public static client: BlisClient
-    private static serviceURI: string
-
-    // Create singleton
-    public static Init(user: string, secret: string, azureFunctionsUrl: string, azureFunctionsKey: string) {
-        this.client = new BlisClient(this.serviceURI, user, secret, azureFunctionsUrl, azureFunctionsKey)
-    }
-
-    public static SetServiceURI(serviceURI: string): void {
-        this.serviceURI = serviceURI
-    }
-
+    static authorizationHeader: string
     private serviceUri: string
-    private credentials: Credentials
-    public azureFunctionsUrl: string
-    public azureFunctionsKey: string
-
     private actionCache = new NodeCache({ stdTTL: 300, checkperiod: 600 })
     private entityCache = new NodeCache({ stdTTL: 300, checkperiod: 600 })
     private exportCache = new NodeCache({ stdTTL: 300, checkperiod: 600 })
 
-    private constructor(serviceUri: string, public user: string, secret: string, azureFunctionsUrl: string, azureFunctionsKey: string) {
-        if (!serviceUri) {
-            throw 'ServiceUri is not set'
+    constructor(serviceUri: string) {
+        if (typeof serviceUri !== 'string' || serviceUri.length === 0) {
+            throw new Error(`serviceUri must be a non-empty string. You passed: ${serviceUri}`)
         }
-        BlisDebug.Log('Creating BlisClient...')
-        this.serviceUri = serviceUri
 
-        this.credentials = new Credentials(user, secret)
-        this.azureFunctionsUrl = azureFunctionsUrl
-        this.azureFunctionsKey = azureFunctionsKey
+        this.serviceUri = serviceUri
     }
 
     private MakeURL(apiPath: string, query?: string) {
@@ -86,10 +34,10 @@ export class BlisClient {
 
     /** Retrieves information about a specific action for the current package
      *  (or the specified package if provided) */
-    public GetAction(appId: string, actionId: string, query: string): Promise<ActionBase> {
+    public GetAction(appId: string, actionId: string, query: string): Promise<models.ActionBase> {
         return new Promise((resolve, reject) => {
             // Check cache first
-            let action = this.actionCache.get(actionId) as ActionBase
+            let action = this.actionCache.get(actionId) as models.ActionBase
             if (action) {
                 resolve(action)
                 return
@@ -100,7 +48,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -111,7 +59,7 @@ export class BlisClient {
                 } else if (response.statusCode >= 300) {
                     reject(response)
                 } else {
-                    var action: ActionBase = body
+                    var action: models.ActionBase = body
                     action.actionId = actionId
                     this.actionCache.set(actionId, action)
                     resolve(action)
@@ -123,14 +71,14 @@ export class BlisClient {
     /** Retrieves definitions of ALL actions for the current package
      * (or the specified package if provided). To retrieve just the
      * IDs of actions, see the GetActionIds Method */
-    public GetActions(appId: string, query: string): Promise<ActionList> {
+    public GetActions(appId: string, query: string): Promise<models.ActionList> {
         let apiPath = `app/${appId}/actions`
 
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -141,7 +89,7 @@ export class BlisClient {
                 } else if (response.statusCode >= 300) {
                     reject(response)
                 } else {
-                    let actions: ActionList = body
+                    let actions: models.ActionList = body
                     resolve(actions)
                 }
             })
@@ -151,14 +99,14 @@ export class BlisClient {
     /** Retrieves a list of action IDs for the latest package
      * (or the specified package, if provided).  To retrieve
      * the definitions of many actions, see the GetAction method */
-    public GetActionIds(appId: string, query: string): Promise<ActionIdList> {
+    public GetActionIds(appId: string, query: string): Promise<models.ActionIdList> {
         let apiPath = `app/${appId}/action`
 
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -169,7 +117,7 @@ export class BlisClient {
                 } else if (response.statusCode >= 300) {
                     reject(response)
                 } else {
-                    let actions: ActionIdList = body
+                    let actions: models.ActionIdList = body
                     resolve(actions)
                 }
             })
@@ -177,7 +125,7 @@ export class BlisClient {
     }
 
     /** Updates payload and/or metadata on an existing action */
-    public EditAction(appId: string, action: ActionBase): Promise<string> {
+    public EditAction(appId: string, action: models.ActionBase): Promise<string> {
         let apiPath = `app/${appId}/action/${action.actionId}`
 
         // Clear old one from cache
@@ -187,7 +135,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath),
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 body: action,
                 json: true
@@ -215,7 +163,7 @@ export class BlisClient {
             let url = this.MakeURL(apiPath)
             const requestData = {
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -233,14 +181,14 @@ export class BlisClient {
     }
 
     /** Create a new action */
-    public AddAction(appId: string, action: ActionBase): Promise<string> {
+    public AddAction(appId: string, action: models.ActionBase): Promise<string> {
         let apiPath = `app/${appId}/action`
 
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath),
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 body: action,
                 json: true
@@ -266,14 +214,14 @@ export class BlisClient {
      * If the app ID isn't found in the set of (non-archived) apps,
      * returns 404 error ("not found")
      */
-    public GetApp(appId: string, query: string): Promise<BlisAppBase> {
-        let apiPath = `app/${appId}?userId=${this.user}`
+    public GetApp(appId: string, query: string): Promise<models.BlisAppBase> {
+        let apiPath = `app/${appId}`
 
         return new Promise((resolve, reject) => {
             let url = this.MakeURL(apiPath, query)
             const requestData = {
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -284,7 +232,7 @@ export class BlisClient {
                 } else if (response.statusCode >= 300) {
                     reject(response)
                 } else {
-                    var blisApp: BlisAppBase = body
+                    var blisApp: models.BlisAppBase = body
                     blisApp.appId = appId
                     resolve(blisApp)
                 }
@@ -292,14 +240,14 @@ export class BlisClient {
         })
     }
 
-    public GetAppSource(appId: string, query: string): Promise<TrainingStatus> {
+    public GetAppSource(appId: string, query: string): Promise<models.TrainingStatus> {
         let apiPath = `app/${appId}/source`
 
         return new Promise((resolve, reject) => {
             let url = this.MakeURL(apiPath, query)
             const requestData = {
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -316,14 +264,14 @@ export class BlisClient {
         })
     }
 
-    public GetAppTrainingStatus(appId: string, query: string): Promise<TrainingStatus> {
+    public GetAppTrainingStatus(appId: string, query: string): Promise<models.TrainingStatus> {
         let apiPath = `app/${appId}/trainingstatus`
 
         return new Promise((resolve, reject) => {
             let url = this.MakeURL(apiPath, query)
             const requestData = {
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -341,14 +289,14 @@ export class BlisClient {
     }
 
     /** Retrieve a list of (active) applications */
-    public GetApps(query: string): Promise<BlisAppList> {
+    public GetApps(query: string): Promise<models.BlisAppList> {
         let apiPath = `apps`
 
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -360,7 +308,7 @@ export class BlisClient {
                 } else if (response.statusCode >= 300) {
                     reject(response)
                 } else {
-                    let apps: BlisAppList = body
+                    let apps: models.BlisAppList = body
                     resolve(apps)
                 }
             })
@@ -376,7 +324,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath),
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -396,14 +344,14 @@ export class BlisClient {
     /** Rename an existing application or changes its LUIS key
      * Note: Renaming an application does not affect packages
      */
-    public EditApp(app: BlisAppBase, query: string): Promise<string> {
+    public EditApp(app: models.BlisAppBase, query: string): Promise<string> {
         let apiPath = `app/${app.appId}`
 
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 body: app,
                 json: true
@@ -436,7 +384,7 @@ export class BlisClient {
             let url = this.MakeURL(apiPath)
             const requestData = {
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -455,14 +403,14 @@ export class BlisClient {
 
     /** Create a new application
      */
-    public AddApp(blisApp: BlisAppBase, query: string): Promise<string> {
+    public AddApp(blisApp: models.BlisAppBase, query: string): Promise<string> {
         var apiPath = `app`
 
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 body: blisApp,
                 json: true
@@ -491,7 +439,7 @@ export class BlisClient {
             let url = this.MakeURL(apiPath)
             const requestData = {
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -509,14 +457,14 @@ export class BlisClient {
     }
 
     /** Retrieves details for a specific $appId*/
-    public GetAppStatus(appId: string): Promise<BlisAppBase> {
+    public GetAppStatus(appId: string): Promise<models.BlisAppBase> {
         let apiPath = `archive/${appId}`
 
         return new Promise((resolve, reject) => {
             let url = this.MakeURL(apiPath)
             const requestData = {
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -527,7 +475,7 @@ export class BlisClient {
                 } else if (response.statusCode >= 300) {
                     reject(response)
                 } else {
-                    let app: BlisAppBase = body
+                    let app: models.BlisAppBase = body
                     resolve(app)
                 }
             })
@@ -542,7 +490,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath),
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -562,14 +510,14 @@ export class BlisClient {
     }
 
     /** Retrieves a list of application Ids in the archive for the given user */
-    public GetArchivedAppIds(query: string): Promise<BlisAppIdList> {
+    public GetArchivedAppIds(query: string): Promise<models.BlisAppIdList> {
         let apiPath = `archive`
 
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -581,7 +529,7 @@ export class BlisClient {
                 } else if (response.statusCode >= 300) {
                     reject(response)
                 } else {
-                    let apps: BlisAppIdList = body
+                    let apps: models.BlisAppIdList = body
                     resolve(apps)
                 }
             })
@@ -589,14 +537,14 @@ export class BlisClient {
     }
 
     /** Retrieves a list of full applications in the archive for the given user */
-    public GetArchivedApps(query: string): Promise<BlisAppList> {
+    public GetArchivedApps(query: string): Promise<models.BlisAppList> {
         let apiPath = `archives`
 
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -608,7 +556,7 @@ export class BlisClient {
                 } else if (response.statusCode >= 300) {
                     reject(response)
                 } else {
-                    let apps: BlisAppList = body
+                    let apps: models.BlisAppList = body
                     resolve(apps)
                 }
             })
@@ -621,10 +569,10 @@ export class BlisClient {
 
     /** Retrieves information about a specific entity in the latest package
      * (or the specified package, if provided) */
-    public GetEntity(appId: string, entityId: string, query: string): Promise<EntityBase> {
+    public GetEntity(appId: string, entityId: string, query: string): Promise<models.EntityBase> {
         return new Promise((resolve, reject) => {
             // Check cache first
-            let entity = this.entityCache.get(entityId) as EntityBase
+            let entity = this.entityCache.get(entityId) as models.EntityBase
             if (entity) {
                 resolve(entity)
                 return
@@ -634,7 +582,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -645,7 +593,7 @@ export class BlisClient {
                 } else if (response.statusCode >= 300) {
                     reject(response)
                 } else {
-                    let entity: EntityBase = body
+                    let entity: models.EntityBase = body
                     this.entityCache.set(entityId, entity)
                     resolve(entity)
                 }
@@ -656,14 +604,14 @@ export class BlisClient {
     /** Retrieves definitions of ALL entities in the latest package
      * (or the specified package, if provided).  To retrieve just the IDs
      * of all entities, see the GetEntityIds method */
-    public GetEntities(appId: string, query: string): Promise<EntityList> {
+    public GetEntities(appId: string, query: string): Promise<models.EntityList> {
         let apiPath = `app/${appId}/entities`
 
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -674,7 +622,7 @@ export class BlisClient {
                 } else if (response.statusCode >= 300) {
                     reject(response)
                 } else {
-                    let entities: EntityList = body
+                    let entities: models.EntityList = body
                     resolve(entities)
                 }
             })
@@ -684,14 +632,14 @@ export class BlisClient {
     /** Retrieves a list of entity IDs for the latest package
      * (or the specified package, if provided).  To retrieve the definitions
      * of many entities, see the GetEntities method */
-    public GetEntityIds(appId: string, query: string): Promise<EntityIdList> {
+    public GetEntityIds(appId: string, query: string): Promise<models.EntityIdList> {
         let apiPath = `app/${appId}/entity`
 
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -702,7 +650,7 @@ export class BlisClient {
                 } else if (response.statusCode >= 300) {
                     reject(response)
                 } else {
-                    let entityIds: EntityIdList = body
+                    let entityIds: models.EntityIdList = body
                     resolve(entityIds)
                 }
             })
@@ -710,7 +658,7 @@ export class BlisClient {
     }
 
     /** Updates name and/or metadata on an existing entity */
-    public EditEntity(appId: string, entity: EntityBase): Promise<string> {
+    public EditEntity(appId: string, entity: models.EntityBase): Promise<string> {
         let apiPath = `app/${appId}/entity/${entity.entityId}`
 
         // Clear old one from cache
@@ -720,7 +668,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath),
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 body: entity,
                 json: true
@@ -747,7 +695,7 @@ export class BlisClient {
             let url = this.MakeURL(apiPath)
             const requestData = {
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -765,14 +713,14 @@ export class BlisClient {
     }
 
     /** Create a new entity */
-    public AddEntity(appId: string, entity: EntityBase): Promise<string> {
+    public AddEntity(appId: string, entity: models.EntityBase): Promise<string> {
         let apiPath = `app/${appId}/entity`
 
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath),
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 body: entity,
                 json: true
@@ -795,13 +743,13 @@ export class BlisClient {
     //=============================================================================
 
     /** Retrieves information about a specific logDialog */
-    public GetLogDialog(appId: string, logDialogId: string): Promise<LogDialog> {
+    public GetLogDialog(appId: string, logDialogId: string): Promise<models.LogDialog> {
         return new Promise((resolve, reject) => {
             let apiPath = `app/${appId}/logdialog/${logDialogId}`
             const requestData = {
                 url: this.MakeURL(apiPath),
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -812,7 +760,7 @@ export class BlisClient {
                 } else if (response.statusCode >= 300) {
                     reject(response)
                 } else {
-                    let logDialog: LogDialog = body
+                    let logDialog: models.LogDialog = body
                     logDialog.logDialogId = logDialogId
                     resolve(logDialog)
                 }
@@ -823,14 +771,14 @@ export class BlisClient {
     /** Retrieves the contents of many/all logDialogs.
      * To retrieve just a list of IDs of all logDialogs,
      * see the GET GetLogDialogIds method. */
-    public GetLogDialogs(appId: string, query: string): Promise<LogDialogList> {
+    public GetLogDialogs(appId: string, query: string): Promise<models.LogDialogList> {
         let apiPath = `app/${appId}/logdialogs`
 
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -841,7 +789,7 @@ export class BlisClient {
                 } else if (response.statusCode >= 300) {
                     reject(response)
                 } else {
-                    let logDialogList: LogDialogList = body
+                    let logDialogList: models.LogDialogList = body
                     resolve(logDialogList)
                 }
             })
@@ -850,14 +798,14 @@ export class BlisClient {
 
     /** Retrieves just the IDs of logDialogs.
      * To retrieve the contents of many logDialogs, see the GetLogDialogs method. */
-    public GetLogDialogIds(appId: string, query: string): Promise<LogDialogIdList> {
+    public GetLogDialogIds(appId: string, query: string): Promise<models.LogDialogIdList> {
         let apiPath = `app/${appId}/logdialog`
 
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -868,7 +816,7 @@ export class BlisClient {
                 } else if (response.statusCode >= 300) {
                     reject(response)
                 } else {
-                    let logDialogsIds: LogDialogIdList = body
+                    let logDialogsIds: models.LogDialogIdList = body
                     resolve(logDialogsIds)
                 }
             })
@@ -883,7 +831,7 @@ export class BlisClient {
             let url = this.MakeURL(apiPath)
             const requestData = {
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -905,14 +853,14 @@ export class BlisClient {
     //=============================================================================
 
     /** Create a new TrainDialog */
-    public AddTrainDialog(appId: string, trainDialog: TrainDialog): Promise<TrainResponse> {
+    public AddTrainDialog(appId: string, trainDialog: models.TrainDialog): Promise<models.TrainResponse> {
         let apiPath = `app/${appId}/traindialog`
 
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath),
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 body: trainDialog,
                 json: true
@@ -924,7 +872,7 @@ export class BlisClient {
                 } else if (response.statusCode >= 300) {
                     reject(response)
                 } else {
-                    let editResponse: TrainResponse = body
+                    let editResponse: models.TrainResponse = body
                     resolve(editResponse)
                 }
             })
@@ -932,7 +880,7 @@ export class BlisClient {
     }
 
     /** Updates a trainDialog, overwriting the content of its dialog */
-    public EditTrainDialog(appId: string, trainDialog: TrainDialog): Promise<TrainResponse> {
+    public EditTrainDialog(appId: string, trainDialog: models.TrainDialog): Promise<models.TrainResponse> {
         let apiPath = `app/${appId}/traindialog/${trainDialog.trainDialogId}`
 
         // Clear old one from cache
@@ -942,7 +890,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath),
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 body: trainDialog,
                 json: true
@@ -955,7 +903,7 @@ export class BlisClient {
                 } else if (response.statusCode >= 300) {
                     reject(response)
                 } else {
-                    let editResponse: TrainResponse = body
+                    let editResponse: models.TrainResponse = body
                     resolve(editResponse)
                 }
             })
@@ -964,7 +912,7 @@ export class BlisClient {
 
     /** Retrieves information about a specific trainDialog in the current package
      * (or the specified package, if provided) */
-    public GetTrainDialog(appId: string, trainDialogId: string, includeDefinitions: boolean = false): Promise<TrainDialog> {
+    public GetTrainDialog(appId: string, trainDialogId: string, includeDefinitions: boolean = false): Promise<models.TrainDialog> {
         return new Promise((resolve, reject) => {
             let query = `includeDefinitions=${includeDefinitions}`
 
@@ -972,7 +920,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -983,7 +931,7 @@ export class BlisClient {
                 } else if (response.statusCode >= 300) {
                     reject(response)
                 } else {
-                    let trainDialog: TrainDialog = body
+                    let trainDialog: models.TrainDialog = body
                     trainDialog.trainDialogId = trainDialogId
                     resolve(trainDialog)
                 }
@@ -994,14 +942,14 @@ export class BlisClient {
     /** Retrieves the contents of many/all train dialogs.
      * To retrieve just a list of IDs of all trainDialogs,
      * see the GetTrainDialogIds method */
-    public GetTrainDialogs(appId: string, query: string): Promise<TrainDialogList> {
+    public GetTrainDialogs(appId: string, query: string): Promise<models.TrainDialogList> {
         let apiPath = `app/${appId}/traindialogs`
 
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -1012,7 +960,7 @@ export class BlisClient {
                 } else if (response.statusCode >= 300) {
                     reject(response)
                 } else {
-                    let trainDialogList: TrainDialogList = body
+                    let trainDialogList: models.TrainDialogList = body
                     resolve(trainDialogList)
                 }
             })
@@ -1022,14 +970,14 @@ export class BlisClient {
     /** Retrieves a list of trainDialog IDs.
      * To retrieve the contents of multiple trainDialogs,
      * see the GetTrainDialogs method */
-    public GetTrainDialogIds(appId: string, query: string): Promise<TrainDialogIdList> {
+    public GetTrainDialogIds(appId: string, query: string): Promise<models.TrainDialogIdList> {
         let apiPath = `app/${appId}/traindialog`
 
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -1040,7 +988,7 @@ export class BlisClient {
                 } else if (response.statusCode >= 300) {
                     reject(response)
                 } else {
-                    let trainDialogsIds: TrainDialogIdList = body
+                    let trainDialogsIds: models.TrainDialogIdList = body
                     resolve(trainDialogsIds)
                 }
             })
@@ -1048,14 +996,14 @@ export class BlisClient {
     }
 
     /** Deletes a TrainDialog */
-    public DeleteTrainDialog(appId: string, trainDialogId: string): Promise<TrainResponse> {
+    public DeleteTrainDialog(appId: string, trainDialogId: string): Promise<models.TrainResponse> {
         let apiPath = `app/${appId}/traindialog/${trainDialogId}`
 
         return new Promise((resolve, reject) => {
             let url = this.MakeURL(apiPath)
             const requestData = {
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -1066,7 +1014,7 @@ export class BlisClient {
                 } else if (response.statusCode >= 300) {
                     reject(response)
                 } else {
-                    let deleteResponse: TrainResponse = body
+                    let deleteResponse: models.TrainResponse = body
                     resolve(deleteResponse)
                 }
             })
@@ -1074,7 +1022,12 @@ export class BlisClient {
     }
 
     /** Runs entity extraction (prediction). */
-    public TrainDialogExtract(appId: string, trainDialogId: string, turnIndex: string, userInput: UserInput): Promise<ExtractResponse> {
+    public TrainDialogExtract(
+        appId: string,
+        trainDialogId: string,
+        turnIndex: string,
+        userInput: models.UserInput
+    ): Promise<models.ExtractResponse> {
         let apiPath = `app/${appId}/traindialog/${trainDialogId}/extractor/${turnIndex}`
 
         // Always retrieve entity list
@@ -1083,7 +1036,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 body: userInput,
                 json: true
@@ -1096,7 +1049,7 @@ export class BlisClient {
                 } else if (response.statusCode >= 300) {
                     reject(response)
                 } else {
-                    var extractResponse: ExtractResponse = body
+                    var extractResponse: models.ExtractResponse = body
                     resolve(extractResponse)
                 }
             })
@@ -1108,16 +1061,18 @@ export class BlisClient {
     //=============================================================================
 
     /** Creates a new session and a corresponding logDialog */
-    public StartSession(appId: string): Promise<Session> {
+    public StartSession(appId: string): Promise<models.Session> {
         let apiPath = `app/${appId}/session`
 
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath),
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
-                body: {},
+                body: {
+                    Authorization: BlisClient.authorizationHeader
+                },
                 json: true
             }
 
@@ -1128,7 +1083,7 @@ export class BlisClient {
                 } else if (response.statusCode >= 300) {
                     reject(response)
                 } else {
-                    let session: Session = body
+                    let session: models.Session = body
                     resolve(session)
                 }
             })
@@ -1136,13 +1091,13 @@ export class BlisClient {
     }
 
     /** Retrieves information about the specified session */
-    public GetSession(appId: string, sessionId: string): Promise<Session> {
+    public GetSession(appId: string, sessionId: string): Promise<models.Session> {
         return new Promise((resolve, reject) => {
             let apiPath = `app/${appId}/session/${sessionId}`
             const requestData = {
                 url: this.MakeURL(apiPath),
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -1153,7 +1108,7 @@ export class BlisClient {
                 } else if (response.statusCode >= 300) {
                     reject(response)
                 } else {
-                    let session: Session = body
+                    let session: models.Session = body
                     session.sessionId = sessionId
                     resolve(session)
                 }
@@ -1162,7 +1117,7 @@ export class BlisClient {
     }
 
     /** Runs entity extraction (prediction). */
-    public SessionExtract(appId: string, sessionId: string, userInput: UserInput): Promise<ExtractResponse> {
+    public SessionExtract(appId: string, sessionId: string, userInput: models.UserInput): Promise<models.ExtractResponse> {
         let apiPath = `app/${appId}/session/${sessionId}/extractor`
 
         // Always retrieve entity list
@@ -1171,7 +1126,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 body: userInput,
                 json: true
@@ -1184,7 +1139,7 @@ export class BlisClient {
                 } else if (response.statusCode >= 300) {
                     reject(response)
                 } else {
-                    var extractResponse: ExtractResponse = body
+                    var extractResponse: models.ExtractResponse = body
                     resolve(extractResponse)
                 }
             })
@@ -1192,14 +1147,14 @@ export class BlisClient {
     }
 
     /** Take a turn and returns chosen action */
-    public SessionScore(appId: string, sessionId: string, scorerInput: ScoreInput): Promise<ScoreResponse> {
+    public SessionScore(appId: string, sessionId: string, scorerInput: models.ScoreInput): Promise<models.ScoreResponse> {
         let apiPath = `app/${appId}/session/${sessionId}/scorer`
 
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath),
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 body: scorerInput,
                 json: true
@@ -1212,7 +1167,7 @@ export class BlisClient {
                 } else if (response.statusCode >= 300) {
                     reject(response)
                 } else {
-                    var score: ScoreResponse = body
+                    var score: models.ScoreResponse = body
                     resolve(score)
                 }
             })
@@ -1227,7 +1182,7 @@ export class BlisClient {
             let url = this.MakeURL(apiPath, query)
             const requestData = {
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -1246,14 +1201,14 @@ export class BlisClient {
 
     /** Retrieves definitions of ALL open sessions
      * To retrieve just the IDs, see the GetSessionIds method */
-    public GetSessions(appId: string, query: string): Promise<SessionList> {
+    public GetSessions(appId: string, query: string): Promise<models.SessionList> {
         let apiPath = `app/${appId}/sessions`
 
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -1264,7 +1219,7 @@ export class BlisClient {
                 } else if (response.statusCode >= 300) {
                     reject(response)
                 } else {
-                    let sessions: SessionList = body
+                    let sessions: models.SessionList = body
                     resolve(sessions)
                 }
             })
@@ -1273,14 +1228,14 @@ export class BlisClient {
 
     /** Retrieves a list of session IDs
      * To retrieve the definitions, see the GetSessions method */
-    public GetSessionIds(appId: string, query: string): Promise<SessionIdList> {
+    public GetSessionIds(appId: string, query: string): Promise<models.SessionIdList> {
         let apiPath = `app/${appId}/session`
 
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -1291,7 +1246,7 @@ export class BlisClient {
                 } else if (response.statusCode >= 300) {
                     reject(response)
                 } else {
-                    let sessionIds: SessionIdList = body
+                    let sessionIds: models.SessionIdList = body
                     resolve(sessionIds)
                 }
             })
@@ -1303,14 +1258,14 @@ export class BlisClient {
     //=============================================================================
 
     /** Creates a new teaching session and a corresponding trainDialog */
-    public StartTeach(appId: string, contextDialog: ContextDialog): Promise<TeachResponse> {
+    public StartTeach(appId: string, contextDialog: models.ContextDialog): Promise<models.TeachResponse> {
         let apiPath = `app/${appId}/teach`
 
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath),
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 body: contextDialog ? contextDialog : {},
                 json: true
@@ -1323,7 +1278,7 @@ export class BlisClient {
                 } else if (response.statusCode >= 300) {
                     reject(response)
                 } else {
-                    var teachResponse: TeachResponse = body
+                    var teachResponse: models.TeachResponse = body
                     resolve(teachResponse)
                 }
             })
@@ -1331,13 +1286,13 @@ export class BlisClient {
     }
 
     /** Retrieves information about the specified teach */
-    public GetTeach(appId: string, teachId: string): Promise<Teach> {
+    public GetTeach(appId: string, teachId: string): Promise<models.Teach> {
         return new Promise((resolve, reject) => {
             let apiPath = `app/${appId}/teach/${teachId}`
             const requestData = {
                 url: this.MakeURL(apiPath),
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -1348,7 +1303,7 @@ export class BlisClient {
                 } else if (response.statusCode >= 300) {
                     reject(response)
                 } else {
-                    let teach: Teach = body
+                    let teach: models.Teach = body
                     teach.teachId = teachId
                     resolve(teach)
                 }
@@ -1361,7 +1316,7 @@ export class BlisClient {
      * the server, the session will first migrate to that newer version.  This
      * doesn't affect the trainDialog maintained.
      */
-    public TeachExtract(appId: string, teachId: string, userInput: UserInput): Promise<ExtractResponse> {
+    public TeachExtract(appId: string, teachId: string, userInput: models.UserInput): Promise<models.ExtractResponse> {
         let apiPath = `app/${appId}/teach/${teachId}/extractor`
 
         // Always retrieve entity list
@@ -1370,7 +1325,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 body: { text: userInput.text },
                 json: true
@@ -1383,7 +1338,7 @@ export class BlisClient {
                 } else if (response.statusCode >= 300) {
                     reject(response)
                 } else {
-                    var extractResponse: ExtractResponse = body
+                    var extractResponse: models.ExtractResponse = body
                     resolve(extractResponse)
                 }
             })
@@ -1394,14 +1349,14 @@ export class BlisClient {
      * ie "commits" an entity extraction label, appending it to the teach session's
      * trainDialog, and advancing the dialog. This may yield produce a new package.
      */
-    public TeachExtractFeedback(appId: string, teachId: string, extractorStep: TrainExtractorStep): Promise<TeachResponse> {
+    public TeachExtractFeedback(appId: string, teachId: string, extractorStep: models.TrainExtractorStep): Promise<models.TeachResponse> {
         let apiPath = `app/${appId}/teach/${teachId}/extractor`
 
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath),
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 body: extractorStep,
                 json: true
@@ -1414,7 +1369,7 @@ export class BlisClient {
                 } else if (response.statusCode >= 300) {
                     reject(response)
                 } else {
-                    var teachResponse: TeachResponse = body
+                    var teachResponse: models.TeachResponse = body
                     resolve(teachResponse)
                 }
             })
@@ -1426,14 +1381,14 @@ export class BlisClient {
      * available on the server, the session will first migrate to that newer version.
      * This doesn't affect the trainDialog maintained by the teaching session.
      */
-    public TeachScore(appId: string, teachId: string, scorerInput: ScoreInput): Promise<ScoreResponse> {
+    public TeachScore(appId: string, teachId: string, scorerInput: models.ScoreInput): Promise<models.ScoreResponse> {
         let apiPath = `app/${appId}/teach/${teachId}/scorer`
 
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath),
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 body: scorerInput,
                 json: true
@@ -1446,7 +1401,7 @@ export class BlisClient {
                 } else if (response.statusCode >= 300) {
                     reject(response)
                 } else {
-                    var scoreResponse: ScoreResponse = body
+                    var scoreResponse: models.ScoreResponse = body
                     resolve(scoreResponse)
                 }
             })
@@ -1457,14 +1412,14 @@ export class BlisClient {
      * – ie "commits" a scorer label, appending it to the teach session's
      * trainDialog, and advancing the dialog. This may yield produce a new package.
      */
-    public TeachScoreFeedback(appId: string, teachId: string, scorerResponse: TrainScorerStep): Promise<TeachResponse> {
+    public TeachScoreFeedback(appId: string, teachId: string, scorerResponse: models.TrainScorerStep): Promise<models.TeachResponse> {
         let apiPath = `app/${appId}/teach/${teachId}/scorer`
 
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath),
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 body: scorerResponse,
                 json: true
@@ -1477,7 +1432,7 @@ export class BlisClient {
                 } else if (response.statusCode >= 300) {
                     reject(response)
                 } else {
-                    var teachResponse: TeachResponse = body
+                    var teachResponse: models.TeachResponse = body
                     resolve(teachResponse)
                 }
             })
@@ -1488,14 +1443,14 @@ export class BlisClient {
      * For Teach sessions, does NOT delete the associated trainDialog.
      * To delete the associated trainDialog, call DELETE on the trainDialog.
      */
-    public EndTeach(appId: string, teachId: string, query: string): Promise<TrainResponse> {
+    public EndTeach(appId: string, teachId: string, query: string): Promise<models.TrainResponse> {
         let apiPath = `app/${appId}/teach/${teachId}`
 
         return new Promise((resolve, reject) => {
             let url = this.MakeURL(apiPath, query)
             const requestData = {
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -1506,7 +1461,7 @@ export class BlisClient {
                 } else if (response.statusCode >= 300) {
                     reject(response)
                 } else {
-                    var trainResponse: TrainResponse = body
+                    var trainResponse: models.TrainResponse = body
                     resolve(trainResponse)
                 }
             })
@@ -1515,14 +1470,14 @@ export class BlisClient {
 
     /** Retrieves definitions of ALL teaching sessions
      * To retrieve just the IDs, see the GetTeachIds method */
-    public GetTeaches(appId: string, query: string): Promise<TeachList> {
+    public GetTeaches(appId: string, query: string): Promise<models.TeachList> {
         let apiPath = `app/${appId}/teaches`
 
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -1533,7 +1488,7 @@ export class BlisClient {
                 } else if (response.statusCode >= 300) {
                     reject(response)
                 } else {
-                    let teaches: TeachList = body
+                    let teaches: models.TeachList = body
                     resolve(teaches)
                 }
             })
@@ -1542,14 +1497,14 @@ export class BlisClient {
 
     /** Retrieves a list of teach session IDs
      * To retrieve the definitions, see the GetTeaches method */
-    public GetTeachIds(appId: string, query: string): Promise<TeachIdList> {
+    public GetTeachIds(appId: string, query: string): Promise<models.TeachIdList> {
         let apiPath = `app/${appId}/teach`
 
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Cookie: this.credentials.Cookiestring()
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -1560,7 +1515,7 @@ export class BlisClient {
                 } else if (response.statusCode >= 300) {
                     reject(response)
                 } else {
-                    let teachIds: TeachIdList = body
+                    let teachIds: models.TeachIdList = body
                     resolve(teachIds)
                 }
             })

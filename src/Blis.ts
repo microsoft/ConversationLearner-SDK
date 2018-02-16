@@ -5,10 +5,9 @@ import { IBlisOptions } from './BlisOptions'
 import { BlisMemory } from './BlisMemory'
 import { BlisDebug } from './BlisDebug'
 import { BlisClient } from './BlisClient'
-import { Server } from './Http/Server'
+import createSdkServer from './Http/Server'
 import { InitDOLRunner } from './DOLRunner'
 import { TemplateProvider } from './TemplateProvider'
-import { AzureFunctions } from './AzureFunctions'
 import { Utils } from './Utils'
 import {
     EntityBase,
@@ -55,13 +54,14 @@ export class Blis {
     public static recognizer: BlisRecognizer
     public static templateRenderer: BlisTemplateRenderer
 
+    public static blisClient: BlisClient
+
     public static Init(options: IBlisOptions, storage: BB.Storage = null) {
         Blis.options = options
 
         try {
-            BlisDebug.Log('Creating client....')
-            BlisClient.SetServiceURI(options.serviceUri)
-            BlisClient.Init(options.user, options.secret, options.azureFunctionsUrl, options.azureFunctionsKey)
+            BlisDebug.Log('Creating BlisClient....')
+            this.blisClient = new BlisClient(options.serviceUri)
             BlisMemory.Init(storage)
 
             // If app not set, assume running on localhost init DOL Runner
@@ -69,14 +69,22 @@ export class Blis {
                 InitDOLRunner()
             }
 
-            Server.Init()
+            const port = process.env.BLIS_SDK_PORT || 5000
+            const sdkServer = createSdkServer(this.blisClient)
+            sdkServer.listen(port, (err: any) => {
+                if (err) {
+                    BlisDebug.Error(err, 'Server/Init')
+                } else {
+                    BlisDebug.Log(`${sdkServer.name} listening to ${sdkServer.url}`)
+                }
+            })
 
-            BlisDebug.Log('Initialization complete....')
+            BlisDebug.Log('Initialization complete.')
         } catch (error) {
             BlisDebug.Error(error, 'Dialog Constructor')
         }
 
-        Blis.recognizer = new BlisRecognizer(options)
+        Blis.recognizer = new BlisRecognizer(options, this.blisClient)
         Blis.templateRenderer = new BlisTemplateRenderer()
     }
 
@@ -233,21 +241,21 @@ export class Blis {
         }
     }
 
-    public static async TakeAzureAPIAction(
-        actionPayload: ActionPayload,
-        filledEntityMap: FilledEntityMap
-    ): Promise<Partial<BB.Activity> | string | undefined> {
-        // Extract API name and entities
-        let apiString = actionPayload.payload
-        let [funcName] = apiString.split(' ')
-        let args = ModelUtils.RemoveWords(apiString, 1)
+    // public static async TakeAzureAPIAction(
+    //     actionPayload: ActionPayload,
+    //     filledEntityMap: FilledEntityMap
+    // ): Promise<Partial<BB.Activity> | string | undefined> {
+    //     // Extract API name and entities
+    //     let apiString = actionPayload.payload
+    //     let [funcName] = apiString.split(' ')
+    //     let args = ModelUtils.RemoveWords(apiString, 1)
 
-        // Make any entity substitutions
-        let entities = filledEntityMap.SubstituteEntities(args)
+    //     // Make any entity substitutions
+    //     let entities = filledEntityMap.SubstituteEntities(args)
 
-        // Call Azure function and send output (if any)
-        return await AzureFunctions.Call(BlisClient.client.azureFunctionsUrl, BlisClient.client.azureFunctionsKey, funcName, entities)
-    }
+    //     // Call Azure function and send output (if any)
+    //     return await AzureFunctions.Call(this.blisClient.azureFunctionsUrl, this.blisClient.azureFunctionsKey, funcName, entities)
+    // }
 
     /** Convert list of filled entities into a filled entity map lookup table */
     private static CreateFilledEntityMap(filledEntities: FilledEntity[], entityList: EntityList): FilledEntityMap {
@@ -442,7 +450,7 @@ export class Blis {
             history: activities,
             memories: memories,
             prevMemories: prevMemories,
-            dialogMode: (isLastActionTerminal || trainDialog.rounds.length == 0) ? DialogMode.Wait : DialogMode.Scorer,
+            dialogMode: isLastActionTerminal || trainDialog.rounds.length == 0 ? DialogMode.Wait : DialogMode.Scorer,
             discrepancies: discrepancies
         }
         return teachWithHistory

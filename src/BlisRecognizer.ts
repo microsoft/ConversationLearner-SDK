@@ -11,8 +11,12 @@ import { IBlisOptions } from './BlisOptions'
 export const BLIS_INTENT_WRAPPER = 'BLIS_INTENT_WRAPPER'
 
 export class BlisRecognizer extends BB.IntentRecognizer {
-    constructor(options: IBlisOptions) {
+    private client: BlisClient
+
+    constructor(options: IBlisOptions, client: BlisClient) {
         super()
+
+        this.client = client
 
         this.onRecognize(botContext => {
             Blis.SetBot(botContext)
@@ -28,7 +32,7 @@ export class BlisRecognizer extends BB.IntentRecognizer {
     }
 
     private async StartSessionAsync(botContext: BotContext, memory: BlisMemory, appId: string): Promise<string> {
-        let sessionResponse = await BlisClient.client.StartSession(appId)
+        let sessionResponse = await this.client.StartSession(appId)
         await memory.StartSessionAsync(sessionResponse.sessionId, botContext.request.from.id, { inTeach: false, saveMemory: false })
         BlisDebug.Verbose(`Started Session: ${sessionResponse.sessionId} - ${botContext.request.from.id}`)
         return sessionResponse.sessionId
@@ -59,7 +63,7 @@ export class BlisRecognizer extends BB.IntentRecognizer {
             if (!app || (Blis.options.appId && app.appId !== Blis.options.appId)) {
                 if (Blis.options.appId) {
                     BlisDebug.Log(`Selecting app: ${Blis.options.appId}`)
-                    app = await BlisClient.client.GetApp(Blis.options.appId, null)
+                    app = await this.client.GetApp(Blis.options.appId, null)
                     await memory.BotState.SetAppAsync(app)
                 } else {
                     throw 'BLIS AppID not specified'
@@ -84,7 +88,7 @@ export class BlisRecognizer extends BB.IntentRecognizer {
 
                 errComponent = 'SessionExtract'
                 let userInput: UserInput = { text: buttonResponse || botContext.request.text || '  ' }
-                let extractResponse = await BlisClient.client.SessionExtract(app.appId, sessionId, userInput)
+                let extractResponse = await this.client.SessionExtract(app.appId, sessionId, userInput)
                 entities = extractResponse.definitions.entities
                 errComponent = 'ProcessExtraction'
                 scoredAction = await this.Score(
@@ -122,7 +126,7 @@ export class BlisRecognizer extends BB.IntentRecognizer {
         const data = context.request.value as FormData
         if (data) {
             // Get list of all entities
-            let entityList = await BlisClient.client.GetEntities(appId, null)
+            let entityList = await this.client.GetEntities(appId, null)
 
             // For each form entry
             for (let entityName of Object.keys(data)) {
@@ -168,9 +172,9 @@ export class BlisRecognizer extends BB.IntentRecognizer {
         // Call the scorer
         let scoreResponse = null
         if (inTeach) {
-            scoreResponse = await BlisClient.client.TeachScore(appId, sessionId, scoreInput)
+            scoreResponse = await this.client.TeachScore(appId, sessionId, scoreInput)
         } else {
-            scoreResponse = await BlisClient.client.SessionScore(appId, sessionId, scoreInput)
+            scoreResponse = await this.client.SessionScore(appId, sessionId, scoreInput)
         }
 
         // Get best action
