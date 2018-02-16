@@ -48,7 +48,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -78,7 +78,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -106,7 +106,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -135,7 +135,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath),
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 body: action,
                 json: true
@@ -163,7 +163,7 @@ export class BlisClient {
             let url = this.MakeURL(apiPath)
             const requestData = {
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -188,7 +188,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath),
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 body: action,
                 json: true
@@ -221,7 +221,7 @@ export class BlisClient {
             let url = this.MakeURL(apiPath, query)
             const requestData = {
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -247,7 +247,7 @@ export class BlisClient {
             let url = this.MakeURL(apiPath, query)
             const requestData = {
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -271,7 +271,7 @@ export class BlisClient {
             let url = this.MakeURL(apiPath, query)
             const requestData = {
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -296,7 +296,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -324,7 +324,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath),
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -351,7 +351,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 body: app,
                 json: true
@@ -384,7 +384,7 @@ export class BlisClient {
             let url = this.MakeURL(apiPath)
             const requestData = {
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -410,7 +410,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 body: blisApp,
                 json: true
@@ -439,7 +439,7 @@ export class BlisClient {
             let url = this.MakeURL(apiPath)
             const requestData = {
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -464,7 +464,7 @@ export class BlisClient {
             let url = this.MakeURL(apiPath)
             const requestData = {
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -490,7 +490,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath),
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -517,7 +517,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -544,7 +544,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -582,7 +582,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -611,7 +611,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -639,7 +639,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -668,7 +668,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath),
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 body: entity,
                 json: true
@@ -695,7 +695,7 @@ export class BlisClient {
             let url = this.MakeURL(apiPath)
             const requestData = {
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -720,7 +720,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath),
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 body: entity,
                 json: true
@@ -749,7 +749,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath),
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -778,7 +778,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -805,7 +805,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -831,7 +831,7 @@ export class BlisClient {
             let url = this.MakeURL(apiPath)
             const requestData = {
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -860,7 +860,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath),
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 body: trainDialog,
                 json: true
@@ -890,7 +890,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath),
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 body: trainDialog,
                 json: true
@@ -920,7 +920,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -949,7 +949,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -977,7 +977,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -1003,7 +1003,7 @@ export class BlisClient {
             let url = this.MakeURL(apiPath)
             const requestData = {
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -1036,7 +1036,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 body: userInput,
                 json: true
@@ -1068,10 +1068,10 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath),
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 body: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -1097,7 +1097,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath),
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -1126,7 +1126,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 body: userInput,
                 json: true
@@ -1154,7 +1154,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath),
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 body: scorerInput,
                 json: true
@@ -1182,7 +1182,7 @@ export class BlisClient {
             let url = this.MakeURL(apiPath, query)
             const requestData = {
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -1208,7 +1208,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -1235,7 +1235,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -1265,7 +1265,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath),
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 body: contextDialog ? contextDialog : {},
                 json: true
@@ -1292,7 +1292,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath),
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -1325,7 +1325,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 body: { text: userInput.text },
                 json: true
@@ -1356,7 +1356,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath),
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 body: extractorStep,
                 json: true
@@ -1388,7 +1388,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath),
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 body: scorerInput,
                 json: true
@@ -1419,7 +1419,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath),
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 body: scorerResponse,
                 json: true
@@ -1450,7 +1450,7 @@ export class BlisClient {
             let url = this.MakeURL(apiPath, query)
             const requestData = {
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -1477,7 +1477,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
@@ -1504,7 +1504,7 @@ export class BlisClient {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
                 headers: {
-                    Aauthorization: BlisClient.authorizationHeader
+                    Authorization: BlisClient.authorizationHeader
                 },
                 json: true
             }
