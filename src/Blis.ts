@@ -8,7 +8,6 @@ import { BlisClient } from './BlisClient'
 import createSdkServer from './Http/Server'
 import { InitDOLRunner } from './DOLRunner'
 import { TemplateProvider } from './TemplateProvider'
-import { AzureFunctions } from './AzureFunctions'
 import { Utils } from './Utils'
 import {
     EntityBase,
@@ -85,7 +84,7 @@ export class Blis {
             BlisDebug.Error(error, 'Dialog Constructor')
         }
 
-        Blis.recognizer = new BlisRecognizer(options)
+        Blis.recognizer = new BlisRecognizer(options, this.blisClient)
         Blis.templateRenderer = new BlisTemplateRenderer()
     }
 
