@@ -131,7 +131,7 @@ export class BotMemory {
         await this.Init()
 
         for (let entityValue of entityValues) {
-            this.Remember(entityName, entityId, entityValue, isBucket, builtinType, resolution);
+            this.Remember(entityName, entityId, entityValue, isBucket, builtinType, resolution)
         }
 
         await this.Set()

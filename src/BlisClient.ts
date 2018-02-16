@@ -1,41 +1,20 @@
 import * as models from 'blis-models'
-import { Credentials } from './Http/Credentials'
 import { BlisDebug } from './BlisDebug'
 import * as NodeCache from 'node-cache'
 import * as Request from 'request'
 
 export class BlisClient {
-    public static client: BlisClient
-    private static serviceURI: string
-
-    // Create singleton
-    public static Init(user: string, secret: string, azureFunctionsUrl: string, azureFunctionsKey: string) {
-        this.client = new BlisClient(this.serviceURI, user, secret, azureFunctionsUrl, azureFunctionsKey)
-    }
-
-    public static SetServiceURI(serviceURI: string): void {
-        this.serviceURI = serviceURI
-    }
-
     private serviceUri: string
-    private credentials: Credentials
-    public azureFunctionsUrl: string
-    public azureFunctionsKey: string
-
     private actionCache = new NodeCache({ stdTTL: 300, checkperiod: 600 })
     private entityCache = new NodeCache({ stdTTL: 300, checkperiod: 600 })
     private exportCache = new NodeCache({ stdTTL: 300, checkperiod: 600 })
 
-    private constructor(serviceUri: string, public user: string, secret: string, azureFunctionsUrl: string, azureFunctionsKey: string) {
-        if (!serviceUri) {
-            throw 'ServiceUri is not set'
+    constructor(serviceUri: string) {
+        if (typeof serviceUri !== 'string' || serviceUri.length === 0) {
+            throw new Error(`serviceUri must be a non-empty string. You passed: ${serviceUri}`)
         }
-        BlisDebug.Log('Creating BlisClient...')
-        this.serviceUri = serviceUri
 
-        this.credentials = new Credentials(user, secret)
-        this.azureFunctionsUrl = azureFunctionsUrl
-        this.azureFunctionsKey = azureFunctionsKey
+        this.serviceUri = serviceUri
     }
 
     private MakeURL(apiPath: string, query?: string) {
@@ -67,9 +46,7 @@ export class BlisClient {
             let apiPath = `app/${appId}/action/${actionId}`
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 json: true
             }
             BlisDebug.LogRequest('GET', apiPath, requestData)
@@ -97,9 +74,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 json: true
             }
             BlisDebug.LogRequest('GET', apiPath, requestData)
@@ -125,9 +100,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 json: true
             }
             BlisDebug.LogRequest('GET', apiPath, requestData)
@@ -154,9 +127,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath),
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 body: action,
                 json: true
             }
@@ -182,9 +153,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             let url = this.MakeURL(apiPath)
             const requestData = {
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 json: true
             }
             BlisDebug.LogRequest('DELETE', apiPath, requestData)
@@ -207,9 +176,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath),
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 body: action,
                 json: true
             }
@@ -235,14 +202,12 @@ export class BlisClient {
      * returns 404 error ("not found")
      */
     public GetApp(appId: string, query: string): Promise<models.BlisAppBase> {
-        let apiPath = `app/${appId}?userId=${this.user}`
+        let apiPath = `app/${appId}`
 
         return new Promise((resolve, reject) => {
             let url = this.MakeURL(apiPath, query)
             const requestData = {
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 json: true
             }
             BlisDebug.LogRequest('GET', apiPath, requestData)
@@ -266,9 +231,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             let url = this.MakeURL(apiPath, query)
             const requestData = {
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 json: true
             }
             BlisDebug.LogRequest('GET', apiPath, requestData)
@@ -290,9 +253,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             let url = this.MakeURL(apiPath, query)
             const requestData = {
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 json: true
             }
             BlisDebug.LogRequest('GET', apiPath, requestData)
@@ -315,9 +276,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 json: true
             }
 
@@ -343,9 +302,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath),
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 json: true
             }
             BlisDebug.LogRequest('POST', apiPath, requestData)
@@ -370,9 +327,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 body: app,
                 json: true
             }
@@ -403,9 +358,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             let url = this.MakeURL(apiPath)
             const requestData = {
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 json: true
             }
             BlisDebug.LogRequest('DELETE', apiPath, requestData)
@@ -429,9 +382,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 body: blisApp,
                 json: true
             }
@@ -458,9 +409,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             let url = this.MakeURL(apiPath)
             const requestData = {
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 json: true
             }
             BlisDebug.LogRequest('DELETE', apiPath, requestData)
@@ -483,9 +432,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             let url = this.MakeURL(apiPath)
             const requestData = {
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 json: true
             }
             BlisDebug.LogRequest('DELETE', apiPath, requestData)
@@ -509,9 +456,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath),
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 json: true
             }
 
@@ -536,9 +481,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 json: true
             }
 
@@ -563,9 +506,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 json: true
             }
 
@@ -601,9 +542,7 @@ export class BlisClient {
             let apiPath = `app/${appId}/entity/${entityId}`
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 json: true
             }
             BlisDebug.LogRequest('GET', apiPath, requestData)
@@ -630,9 +569,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 json: true
             }
             BlisDebug.LogRequest('GET', apiPath, requestData)
@@ -658,9 +595,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 json: true
             }
             BlisDebug.LogRequest('GET', apiPath, requestData)
@@ -687,9 +622,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath),
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 body: entity,
                 json: true
             }
@@ -714,9 +647,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             let url = this.MakeURL(apiPath)
             const requestData = {
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 json: true
             }
             BlisDebug.LogRequest('DELETE', apiPath, requestData)
@@ -739,9 +670,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath),
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 body: entity,
                 json: true
             }
@@ -768,9 +697,7 @@ export class BlisClient {
             let apiPath = `app/${appId}/logdialog/${logDialogId}`
             const requestData = {
                 url: this.MakeURL(apiPath),
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 json: true
             }
             BlisDebug.LogRequest('GET', apiPath, requestData)
@@ -797,9 +724,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 json: true
             }
             BlisDebug.LogRequest('GET', apiPath, requestData)
@@ -824,9 +749,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 json: true
             }
             BlisDebug.LogRequest('GET', apiPath, requestData)
@@ -850,9 +773,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             let url = this.MakeURL(apiPath)
             const requestData = {
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 json: true
             }
             BlisDebug.LogRequest('DELETE', apiPath, requestData)
@@ -879,9 +800,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath),
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 body: trainDialog,
                 json: true
             }
@@ -909,9 +828,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath),
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 body: trainDialog,
                 json: true
             }
@@ -939,9 +856,7 @@ export class BlisClient {
             let apiPath = `app/${appId}/traindialog/${trainDialogId}`
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 json: true
             }
             BlisDebug.LogRequest('GET', apiPath, requestData)
@@ -968,9 +883,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 json: true
             }
             BlisDebug.LogRequest('GET', apiPath, requestData)
@@ -996,9 +909,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 json: true
             }
             BlisDebug.LogRequest('GET', apiPath, requestData)
@@ -1022,9 +933,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             let url = this.MakeURL(apiPath)
             const requestData = {
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 json: true
             }
             BlisDebug.LogRequest('DELETE', apiPath, requestData)
@@ -1042,7 +951,12 @@ export class BlisClient {
     }
 
     /** Runs entity extraction (prediction). */
-    public TrainDialogExtract(appId: string, trainDialogId: string, turnIndex: string, userInput: models.UserInput): Promise<models.ExtractResponse> {
+    public TrainDialogExtract(
+        appId: string,
+        trainDialogId: string,
+        turnIndex: string,
+        userInput: models.UserInput
+    ): Promise<models.ExtractResponse> {
         let apiPath = `app/${appId}/traindialog/${trainDialogId}/extractor/${turnIndex}`
 
         // Always retrieve entity list
@@ -1050,9 +964,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 body: userInput,
                 json: true
             }
@@ -1082,9 +994,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath),
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 body: {},
                 json: true
             }
@@ -1109,9 +1019,7 @@ export class BlisClient {
             let apiPath = `app/${appId}/session/${sessionId}`
             const requestData = {
                 url: this.MakeURL(apiPath),
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 json: true
             }
             BlisDebug.LogRequest('GET', apiPath, requestData)
@@ -1138,9 +1046,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 body: userInput,
                 json: true
             }
@@ -1166,9 +1072,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath),
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 body: scorerInput,
                 json: true
             }
@@ -1194,9 +1098,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             let url = this.MakeURL(apiPath, query)
             const requestData = {
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 json: true
             }
             BlisDebug.LogRequest('DELETE', apiPath, requestData)
@@ -1220,9 +1122,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 json: true
             }
             BlisDebug.LogRequest('GET', apiPath, requestData)
@@ -1247,9 +1147,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 json: true
             }
             BlisDebug.LogRequest('GET', apiPath, requestData)
@@ -1277,9 +1175,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath),
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 body: contextDialog ? contextDialog : {},
                 json: true
             }
@@ -1304,9 +1200,7 @@ export class BlisClient {
             let apiPath = `app/${appId}/teach/${teachId}`
             const requestData = {
                 url: this.MakeURL(apiPath),
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 json: true
             }
             BlisDebug.LogRequest('GET', apiPath, requestData)
@@ -1337,9 +1231,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 body: { text: userInput.text },
                 json: true
             }
@@ -1368,9 +1260,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath),
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 body: extractorStep,
                 json: true
             }
@@ -1400,9 +1290,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath),
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 body: scorerInput,
                 json: true
             }
@@ -1431,9 +1319,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath),
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 body: scorerResponse,
                 json: true
             }
@@ -1462,9 +1348,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             let url = this.MakeURL(apiPath, query)
             const requestData = {
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 json: true
             }
             BlisDebug.LogRequest('DELETE', apiPath, requestData)
@@ -1489,9 +1373,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 json: true
             }
             BlisDebug.LogRequest('GET', apiPath, requestData)
@@ -1516,9 +1398,7 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {
-                    Cookie: this.credentials.Cookiestring()
-                },
+                headers: {},
                 json: true
             }
             BlisDebug.LogRequest('GET', apiPath, requestData)
