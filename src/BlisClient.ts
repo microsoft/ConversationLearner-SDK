@@ -4,6 +4,7 @@ import * as NodeCache from 'node-cache'
 import * as Request from 'request'
 
 export class BlisClient {
+    static authorizationHeader: string
     private serviceUri: string
     private actionCache = new NodeCache({ stdTTL: 300, checkperiod: 600 })
     private entityCache = new NodeCache({ stdTTL: 300, checkperiod: 600 })
@@ -46,7 +47,9 @@ export class BlisClient {
             let apiPath = `app/${appId}/action/${actionId}`
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 json: true
             }
             BlisDebug.LogRequest('GET', apiPath, requestData)
@@ -74,7 +77,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 json: true
             }
             BlisDebug.LogRequest('GET', apiPath, requestData)
@@ -100,7 +105,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 json: true
             }
             BlisDebug.LogRequest('GET', apiPath, requestData)
@@ -127,7 +134,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath),
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 body: action,
                 json: true
             }
@@ -153,7 +162,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             let url = this.MakeURL(apiPath)
             const requestData = {
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 json: true
             }
             BlisDebug.LogRequest('DELETE', apiPath, requestData)
@@ -176,7 +187,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath),
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 body: action,
                 json: true
             }
@@ -207,7 +220,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             let url = this.MakeURL(apiPath, query)
             const requestData = {
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 json: true
             }
             BlisDebug.LogRequest('GET', apiPath, requestData)
@@ -231,7 +246,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             let url = this.MakeURL(apiPath, query)
             const requestData = {
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 json: true
             }
             BlisDebug.LogRequest('GET', apiPath, requestData)
@@ -253,7 +270,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             let url = this.MakeURL(apiPath, query)
             const requestData = {
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 json: true
             }
             BlisDebug.LogRequest('GET', apiPath, requestData)
@@ -276,7 +295,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 json: true
             }
 
@@ -302,7 +323,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath),
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 json: true
             }
             BlisDebug.LogRequest('POST', apiPath, requestData)
@@ -327,7 +350,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 body: app,
                 json: true
             }
@@ -358,7 +383,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             let url = this.MakeURL(apiPath)
             const requestData = {
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 json: true
             }
             BlisDebug.LogRequest('DELETE', apiPath, requestData)
@@ -382,7 +409,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 body: blisApp,
                 json: true
             }
@@ -409,7 +438,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             let url = this.MakeURL(apiPath)
             const requestData = {
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 json: true
             }
             BlisDebug.LogRequest('DELETE', apiPath, requestData)
@@ -432,7 +463,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             let url = this.MakeURL(apiPath)
             const requestData = {
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 json: true
             }
             BlisDebug.LogRequest('DELETE', apiPath, requestData)
@@ -456,7 +489,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath),
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 json: true
             }
 
@@ -481,7 +516,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 json: true
             }
 
@@ -506,7 +543,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 json: true
             }
 
@@ -542,7 +581,9 @@ export class BlisClient {
             let apiPath = `app/${appId}/entity/${entityId}`
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 json: true
             }
             BlisDebug.LogRequest('GET', apiPath, requestData)
@@ -569,7 +610,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 json: true
             }
             BlisDebug.LogRequest('GET', apiPath, requestData)
@@ -595,7 +638,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 json: true
             }
             BlisDebug.LogRequest('GET', apiPath, requestData)
@@ -622,7 +667,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath),
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 body: entity,
                 json: true
             }
@@ -647,7 +694,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             let url = this.MakeURL(apiPath)
             const requestData = {
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 json: true
             }
             BlisDebug.LogRequest('DELETE', apiPath, requestData)
@@ -670,7 +719,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath),
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 body: entity,
                 json: true
             }
@@ -697,7 +748,9 @@ export class BlisClient {
             let apiPath = `app/${appId}/logdialog/${logDialogId}`
             const requestData = {
                 url: this.MakeURL(apiPath),
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 json: true
             }
             BlisDebug.LogRequest('GET', apiPath, requestData)
@@ -724,7 +777,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 json: true
             }
             BlisDebug.LogRequest('GET', apiPath, requestData)
@@ -749,7 +804,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 json: true
             }
             BlisDebug.LogRequest('GET', apiPath, requestData)
@@ -773,7 +830,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             let url = this.MakeURL(apiPath)
             const requestData = {
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 json: true
             }
             BlisDebug.LogRequest('DELETE', apiPath, requestData)
@@ -800,7 +859,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath),
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 body: trainDialog,
                 json: true
             }
@@ -828,7 +889,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath),
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 body: trainDialog,
                 json: true
             }
@@ -856,7 +919,9 @@ export class BlisClient {
             let apiPath = `app/${appId}/traindialog/${trainDialogId}`
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 json: true
             }
             BlisDebug.LogRequest('GET', apiPath, requestData)
@@ -883,7 +948,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 json: true
             }
             BlisDebug.LogRequest('GET', apiPath, requestData)
@@ -909,7 +976,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 json: true
             }
             BlisDebug.LogRequest('GET', apiPath, requestData)
@@ -933,7 +1002,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             let url = this.MakeURL(apiPath)
             const requestData = {
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 json: true
             }
             BlisDebug.LogRequest('DELETE', apiPath, requestData)
@@ -964,7 +1035,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 body: userInput,
                 json: true
             }
@@ -994,8 +1067,12 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath),
-                headers: {},
-                body: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
+                body: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 json: true
             }
 
@@ -1019,7 +1096,9 @@ export class BlisClient {
             let apiPath = `app/${appId}/session/${sessionId}`
             const requestData = {
                 url: this.MakeURL(apiPath),
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 json: true
             }
             BlisDebug.LogRequest('GET', apiPath, requestData)
@@ -1046,7 +1125,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 body: userInput,
                 json: true
             }
@@ -1072,7 +1153,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath),
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 body: scorerInput,
                 json: true
             }
@@ -1098,7 +1181,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             let url = this.MakeURL(apiPath, query)
             const requestData = {
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 json: true
             }
             BlisDebug.LogRequest('DELETE', apiPath, requestData)
@@ -1122,7 +1207,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 json: true
             }
             BlisDebug.LogRequest('GET', apiPath, requestData)
@@ -1147,7 +1234,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 json: true
             }
             BlisDebug.LogRequest('GET', apiPath, requestData)
@@ -1175,7 +1264,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath),
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 body: contextDialog ? contextDialog : {},
                 json: true
             }
@@ -1200,7 +1291,9 @@ export class BlisClient {
             let apiPath = `app/${appId}/teach/${teachId}`
             const requestData = {
                 url: this.MakeURL(apiPath),
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 json: true
             }
             BlisDebug.LogRequest('GET', apiPath, requestData)
@@ -1231,7 +1324,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 body: { text: userInput.text },
                 json: true
             }
@@ -1260,7 +1355,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath),
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 body: extractorStep,
                 json: true
             }
@@ -1290,7 +1387,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath),
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 body: scorerInput,
                 json: true
             }
@@ -1319,7 +1418,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath),
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 body: scorerResponse,
                 json: true
             }
@@ -1348,7 +1449,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             let url = this.MakeURL(apiPath, query)
             const requestData = {
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 json: true
             }
             BlisDebug.LogRequest('DELETE', apiPath, requestData)
@@ -1373,7 +1476,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 json: true
             }
             BlisDebug.LogRequest('GET', apiPath, requestData)
@@ -1398,7 +1503,9 @@ export class BlisClient {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: this.MakeURL(apiPath, query),
-                headers: {},
+                headers: {
+                    Aauthorization: BlisClient.authorizationHeader
+                },
                 json: true
             }
             BlisDebug.LogRequest('GET', apiPath, requestData)
