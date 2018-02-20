@@ -6,7 +6,7 @@ import { BlisMemory } from './BlisMemory'
 import { BlisDebug } from './BlisDebug'
 import { BlisClient } from './BlisClient'
 import createSdkServer from './Http/Server'
-import { InitDOLRunner } from './DOLRunner'
+import { startDirectOffLineServer } from './DOLRunner'
 import { TemplateProvider } from './TemplateProvider'
 import { Utils } from './Utils'
 import {
@@ -66,12 +66,11 @@ export class Blis {
 
             // If app not set, assume running on localhost init DOL Runner
             if (options.localhost) {
-                InitDOLRunner()
+                startDirectOffLineServer(options.dolServiceUrl, options.dolBotUrl)
             }
 
-            const port = process.env.BLIS_SDK_PORT || 5000
             const sdkServer = createSdkServer(this.blisClient)
-            sdkServer.listen(port, (err: any) => {
+            sdkServer.listen(options.sdkPort, (err: any) => {
                 if (err) {
                     BlisDebug.Error(err, 'Server/Init')
                 } else {

@@ -1,4 +1,5 @@
 import * as BB from 'botbuilder'
+import { Blis } from '../Blis'
 import { BlisMemory } from '../BlisMemory'
 import { BlisAppBase } from 'blis-models'
 import { BlisIntent } from '../BlisIntent'
@@ -146,7 +147,8 @@ export class BotState {
             user: { name: userName, id: userId },
             conversation: { id: conversationId },
             channelId: 'emulator',
-            serviceUrl: process.env.DOL_SERVICE_URL || 'http://127.0.0.1:3000'
+            // TODO: Refactor away from static coupling.  BotState needs to have access to options object through constructor
+            serviceUrl: Blis.options.dolServiceUrl
         }
         this.SetConversationReferenceAsync(conversationReference)
     }
