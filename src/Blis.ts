@@ -443,6 +443,10 @@ export class Blis {
             memories = await memory.BotMemory.DumpMemory()
         }
 
+        let hasRounds = trainDialog.rounds.length > 0;
+        let hasScorerRound = (hasRounds && trainDialog.rounds[trainDialog.rounds.length-1].scorerSteps.length > 0)
+        let dialogMode = (isLastActionTerminal && hasScorerRound) || !hasRounds ? DialogMode.Wait : DialogMode.Scorer
+
         let teachWithHistory: TeachWithHistory = {
             teach: undefined,
             scoreInput: undefined,
@@ -450,7 +454,7 @@ export class Blis {
             history: activities,
             memories: memories,
             prevMemories: prevMemories,
-            dialogMode: isLastActionTerminal || trainDialog.rounds.length == 0 ? DialogMode.Wait : DialogMode.Scorer,
+            dialogMode: dialogMode,
             discrepancies: discrepancies
         }
         return teachWithHistory
