@@ -14,7 +14,7 @@ export interface RedisStorageSettings extends StorageSettings {
 }
 
 export class RedisStorage extends StorageMiddleware<RedisStorageSettings> implements Storage {
-    private redisClient: Redis.RedisClient = null
+    private redisClient: Redis.RedisClient
     private _get: (...args: any[]) => Promise<any>
     private _set: (...args: any[]) => Promise<any>
     private _del: (...args: any[]) => Promise<any>

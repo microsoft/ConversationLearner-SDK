@@ -23,7 +23,7 @@ export const HTML2Error = (htmlText: string): string => {
         let parser = new XMLDom.DOMParser()
         let document = parser.parseFromString(htmlText)
         let errorTitle = document.getElementById('stackpage')
-        if (errorTitle) {
+        if (errorTitle && errorTitle.textContent) {
             return errorTitle.textContent.slice(0, 1500)
         }
         return htmlText
@@ -730,6 +730,10 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
             // Get history and replay to put bot into last round
             let memory = BlisMemory.GetMemory(key)
             let teachWithHistory = await Blis.GetHistory(appId, trainDialog, userName, userId, memory, true)
+            if (!teachWithHistory) {
+                res.send(500, new Error(`Could not find teach session history for given train dialog`))
+                return
+            }
 
             // Start teach session if replay of API was consistent
             if (teachWithHistory.discrepancies.length == 0) {
@@ -869,6 +873,10 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
             // Get history and replay to put bot into last round
             let memory = BlisMemory.GetMemory(key)
             let teachWithHistory = await Blis.GetHistory(appId, trainDialog, userName, userId, memory, updateBotState, ignoreLastExtract)
+            if (!teachWithHistory) {
+                res.send(500, new Error(`Could not find teach session history for given train dialog`))
+                return
+            }
 
             // Start session if API returned consistent results during replay
             if (teachWithHistory.discrepancies.length == 0) {
@@ -883,7 +891,8 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
                 // If last action wasn't terminal need to score
                 if (teachWithHistory.dialogMode === models.DialogMode.Scorer) {
                     // Call LUIS callback
-                    teachWithHistory.scoreInput = await Blis.CallEntityDetectionCallback('', [], memory, trainDialog.definitions.entities)
+                    const entities = trainDialog.definitions ? trainDialog.definitions.entities : []
+                    teachWithHistory.scoreInput = await Blis.CallEntityDetectionCallback('', [], memory, entities)
                     teachWithHistory.scoreResponse = await client.TeachScore(
                         appId,
                         teachWithHistory.teach.teachId,
@@ -1029,6 +1038,9 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
 
             // Save scored action and remove from service call
             let scoredAction = uiTrainScorerStep.trainScorerStep.scoredAction
+            if (!scoredAction) {
+                throw new Error(`trainScorerStep.scoredAction must be defined.`)
+            }
             delete uiTrainScorerStep.trainScorerStep.scoredAction
 
             let teachResponse = await client.TeachScoreFeedback(appId, teachId, uiTrainScorerStep.trainScorerStep)
@@ -1066,7 +1078,7 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
             let key = req.params.key
             let appId = req.params.appId
             let teachId = req.params.teachId
-            let save = req.params.save ? `saveDialog=${req.params.save}` : null
+            let save = req.params.save ? `saveDialog=${req.params.save}` : ''
             let response = await client.EndTeach(appId, teachId, save)
             res.send(response)
 
@@ -1122,7 +1134,12 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
 
             let memory = BlisMemory.GetMemory(key)
             let teachWithHistory = await Blis.GetHistory(appId, trainDialog, userName, userId, memory)
-            res.send(teachWithHistory.history)
+            if (teachWithHistory) {
+                res.send(teachWithHistory.history)
+            }
+            else {
+                res.send(204)
+            }
         } catch (error) {
             HandleError(res, error)
         }
@@ -1153,6 +1170,9 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
 
             // Get history and replay to put bot into last round
             let teachWithHistory = await Blis.GetHistory(appId, trainDialog, userName, userId, memory, true)
+            if (!teachWithHistory) {
+                throw new Error(`Attempted to undo last action of teach session, but could not get session history`)
+            }
 
             // If APIs returned same values during replay
             if (teachWithHistory.discrepancies.length === 0) {

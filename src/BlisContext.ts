@@ -15,7 +15,7 @@ export class BlisContext {
         return context
     }
 
-    public Address(): BB.ChannelAccount {
+    public Address(): BB.ChannelAccount | undefined {
         return this.botContext.request.from
     }
 

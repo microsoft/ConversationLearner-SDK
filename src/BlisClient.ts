@@ -56,7 +56,7 @@ export class BlisClient {
             Request.get(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     var action: models.ActionBase = body
@@ -86,7 +86,7 @@ export class BlisClient {
             Request.get(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     let actions: models.ActionList = body
@@ -114,7 +114,7 @@ export class BlisClient {
             Request.get(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     let actions: models.ActionIdList = body
@@ -145,7 +145,7 @@ export class BlisClient {
             Request.put(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     // Service returns a 204
@@ -171,7 +171,7 @@ export class BlisClient {
             Request.delete(url, requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     resolve(body)
@@ -197,7 +197,7 @@ export class BlisClient {
             Request.post(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     resolve(body.actionId)
@@ -229,7 +229,7 @@ export class BlisClient {
             Request.get(url, requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     var blisApp: models.BlisAppBase = body
@@ -255,7 +255,7 @@ export class BlisClient {
             Request.get(url, requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     resolve(body)
@@ -279,7 +279,7 @@ export class BlisClient {
             Request.get(url, requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     resolve(body)
@@ -305,7 +305,7 @@ export class BlisClient {
             Request.get(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     let apps: models.BlisAppList = body
@@ -332,7 +332,7 @@ export class BlisClient {
             Request.post(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     resolve(body) // LARS TODO
@@ -361,7 +361,7 @@ export class BlisClient {
             Request.put(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     // Service returns a 204
@@ -392,7 +392,7 @@ export class BlisClient {
             Request.delete(url, requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     resolve(body)
@@ -419,7 +419,7 @@ export class BlisClient {
             Request.post(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     var appId = body.appId
@@ -447,7 +447,7 @@ export class BlisClient {
             Request.delete(url, requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     resolve(body)
@@ -472,7 +472,7 @@ export class BlisClient {
             Request.get(url, requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     let app: models.BlisAppBase = body
@@ -499,7 +499,7 @@ export class BlisClient {
             Request.put(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     // Service returns a 204
@@ -526,7 +526,7 @@ export class BlisClient {
             Request.get(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     let apps: models.BlisAppIdList = body
@@ -553,7 +553,7 @@ export class BlisClient {
             Request.get(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     let apps: models.BlisAppList = body
@@ -590,7 +590,7 @@ export class BlisClient {
             Request.get(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     let entity: models.EntityBase = body
@@ -604,7 +604,7 @@ export class BlisClient {
     /** Retrieves definitions of ALL entities in the latest package
      * (or the specified package, if provided).  To retrieve just the IDs
      * of all entities, see the GetEntityIds method */
-    public GetEntities(appId: string, query: string): Promise<models.EntityList> {
+    public GetEntities(appId: string, query?: string): Promise<models.EntityList> {
         let apiPath = `app/${appId}/entities`
 
         return new Promise((resolve, reject) => {
@@ -619,7 +619,7 @@ export class BlisClient {
             Request.get(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     let entities: models.EntityList = body
@@ -647,7 +647,7 @@ export class BlisClient {
             Request.get(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     let entityIds: models.EntityIdList = body
@@ -678,7 +678,7 @@ export class BlisClient {
             Request.put(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     resolve(body)
@@ -703,7 +703,7 @@ export class BlisClient {
             Request.delete(url, requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     resolve(body)
@@ -729,7 +729,7 @@ export class BlisClient {
             Request.post(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     resolve(body.entityId)
@@ -757,7 +757,7 @@ export class BlisClient {
             Request.get(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     let logDialog: models.LogDialog = body
@@ -786,7 +786,7 @@ export class BlisClient {
             Request.get(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     let logDialogList: models.LogDialogList = body
@@ -813,7 +813,7 @@ export class BlisClient {
             Request.get(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     let logDialogsIds: models.LogDialogIdList = body
@@ -839,7 +839,7 @@ export class BlisClient {
             Request.delete(url, requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     resolve(body)
@@ -869,7 +869,7 @@ export class BlisClient {
             Request.post(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     let editResponse: models.TrainResponse = body
@@ -900,7 +900,7 @@ export class BlisClient {
             Request.put(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     let editResponse: models.TrainResponse = body
@@ -928,7 +928,7 @@ export class BlisClient {
             Request.get(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     let trainDialog: models.TrainDialog = body
@@ -957,7 +957,7 @@ export class BlisClient {
             Request.get(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     let trainDialogList: models.TrainDialogList = body
@@ -985,7 +985,7 @@ export class BlisClient {
             Request.get(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     let trainDialogsIds: models.TrainDialogIdList = body
@@ -1011,7 +1011,7 @@ export class BlisClient {
             Request.delete(url, requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     let deleteResponse: models.TrainResponse = body
@@ -1046,7 +1046,7 @@ export class BlisClient {
             Request.put(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     var extractResponse: models.ExtractResponse = body
@@ -1080,7 +1080,7 @@ export class BlisClient {
             Request.post(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     let session: models.Session = body
@@ -1105,7 +1105,7 @@ export class BlisClient {
             Request.get(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     let session: models.Session = body
@@ -1136,7 +1136,7 @@ export class BlisClient {
             Request.put(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     var extractResponse: models.ExtractResponse = body
@@ -1164,7 +1164,7 @@ export class BlisClient {
             Request.put(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     var score: models.ScoreResponse = body
@@ -1190,7 +1190,7 @@ export class BlisClient {
             Request.delete(url, requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     resolve(body)
@@ -1216,7 +1216,7 @@ export class BlisClient {
             Request.get(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     let sessions: models.SessionList = body
@@ -1243,7 +1243,7 @@ export class BlisClient {
             Request.get(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     let sessionIds: models.SessionIdList = body
@@ -1258,7 +1258,7 @@ export class BlisClient {
     //=============================================================================
 
     /** Creates a new teaching session and a corresponding trainDialog */
-    public StartTeach(appId: string, contextDialog: models.ContextDialog): Promise<models.TeachResponse> {
+    public StartTeach(appId: string, contextDialog: models.ContextDialog | null): Promise<models.TeachResponse> {
         let apiPath = `app/${appId}/teach`
 
         return new Promise((resolve, reject) => {
@@ -1275,7 +1275,7 @@ export class BlisClient {
             Request.post(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     var teachResponse: models.TeachResponse = body
@@ -1300,7 +1300,7 @@ export class BlisClient {
             Request.get(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     let teach: models.Teach = body
@@ -1335,7 +1335,7 @@ export class BlisClient {
             Request.put(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     var extractResponse: models.ExtractResponse = body
@@ -1366,7 +1366,7 @@ export class BlisClient {
             Request.post(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     var teachResponse: models.TeachResponse = body
@@ -1398,7 +1398,7 @@ export class BlisClient {
             Request.put(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     var scoreResponse: models.ScoreResponse = body
@@ -1429,7 +1429,7 @@ export class BlisClient {
             Request.post(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     var teachResponse: models.TeachResponse = body
@@ -1458,7 +1458,7 @@ export class BlisClient {
             Request.delete(url, requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     var trainResponse: models.TrainResponse = body
@@ -1485,7 +1485,7 @@ export class BlisClient {
             Request.get(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     let teaches: models.TeachList = body
@@ -1512,7 +1512,7 @@ export class BlisClient {
             Request.get(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
                     let teachIds: models.TeachIdList = body

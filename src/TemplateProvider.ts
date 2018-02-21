@@ -92,7 +92,7 @@ export class TemplateProvider {
         // Get set of unique entities
         let mustaches = formString.match(/{{\s*[\w\.]+\s*}}/g)
         if (mustaches) {
-            let entities = [...new Set(mustaches.map(x => x.match(/[\w\.]+/)[0]))]
+            let entities = [...new Set(mustaches.map(x => x.match(/[\w\.]+/)![0]))]
             return entities
         }
         return []
@@ -123,7 +123,7 @@ export class TemplateProvider {
                 let searchStr = JSON.stringify(template[i])
                 let results = searchStr.match(/{{\s*[\w\.]+\s*}}/g)
                 if (results) {
-                    mustaches = mustaches.concat(results.map(x => x.match(/[\w\.]+/)[0]))
+                    mustaches = mustaches.concat(results.map(x => x.match(/[\w\.]+/)![0]))
                 }
             }
         }
