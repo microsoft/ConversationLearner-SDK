@@ -6,7 +6,7 @@ import { Memory, FilledEntity, MemoryValue, FilledEntityMap } from 'blis-models'
 const NEGATIVE_PREFIX = '~'
 
 export class BotMemory {
-    private static _instance: BotMemory = null
+    private static _instance: BotMemory | null = null
     private static MEMKEY = 'BOTMEMORY'
     private memory: BlisMemory
     public filledEntities: FilledEntityMap
@@ -47,7 +47,7 @@ export class BotMemory {
     }
 
     private Deserialize(text: string): void {
-        if (!text) return null
+        if (!text) return
         let json = JSON.parse(text)
         this.filledEntities.map = json ? json : {}
     }
@@ -75,8 +75,9 @@ export class BotMemory {
         entityId: string,
         entityValue: string,
         isBucket: boolean = false,
-        builtinType: string = null,
-        resolution: {} = null
+        builtinType: string | null = null,
+        // TODO: Add stronger type safety
+        resolution: any | null = null
     ): Promise<void> {
         if (!this.filledEntities.map[entityName]) {
             this.filledEntities.map[entityName] = {
@@ -111,8 +112,8 @@ export class BotMemory {
         entityId: string,
         entityValue: string,
         isBucket: boolean = false,
-        builtinType: string = null,
-        resolution: {} = null
+        builtinType: string | null = null,
+        resolution: any | null = null
     ): Promise<void> {
         await this.Init()
         this.Remember(entityName, entityId, entityValue, isBucket, builtinType, resolution)
@@ -125,8 +126,8 @@ export class BotMemory {
         entityId: string,
         entityValues: string[],
         isBucket: boolean = false,
-        builtinType: string = null,
-        resolution: {} = null
+        builtinType: string | null = null,
+        resolution: {} | null = null
     ): Promise<void> {
         await this.Init()
 
@@ -153,7 +154,7 @@ export class BotMemory {
 
     /** Given negative entity name, return positive version **/
 
-    private PositiveName(negativeName: string): string {
+    private PositiveName(negativeName: string): string | null {
         if (negativeName.startsWith(NEGATIVE_PREFIX)) {
             return negativeName.slice(1)
         }
@@ -170,7 +171,7 @@ export class BotMemory {
     }
 
     /** Forget an entity value */
-    public async Forget(entityName: string, entityValue: string = null, isBucket: boolean = false): Promise<void> {
+    public async Forget(entityName: string, entityValue: string | null = null, isBucket: boolean = false): Promise<void> {
         try {
             // Check if entity buckets values
             await this.Init()
@@ -185,9 +186,9 @@ export class BotMemory {
                     delete this.filledEntities.map[entityName]
                 } else {
                     // Find case insensitive index
-                    let lowerCaseNames = this.filledEntities.map[entityName].values.map(mv => {
-                        return mv.userText.toLowerCase()
-                    })
+                    let lowerCaseNames = this.filledEntities.map[entityName].values
+                        .filter(mv => mv.userText)
+                        .map(mv => mv.userText!.toLowerCase())
 
                     let index = lowerCaseNames.indexOf(entityValue.toLowerCase())
                     if (index > -1) {
@@ -217,7 +218,7 @@ export class BotMemory {
         return memory
     }
 
-    public async Value(entityName: string): Promise<string> {
+    public async Value(entityName: string): Promise<string | null> {
         await this.Init()
         return this.filledEntities.EntityValueAsString(entityName)
     }

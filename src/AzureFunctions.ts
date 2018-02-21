@@ -31,7 +31,7 @@ export class AzureFunctions {
             Request.get(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(body)
                 } else {
                     resolve(body.Result)
