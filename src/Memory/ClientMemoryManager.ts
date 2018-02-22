@@ -3,20 +3,20 @@ import { BlisDebug } from '../BlisDebug'
 import { EntityBase, MemoryValue, FilledEntity } from 'blis-models'
 
 export class ClientMemoryManager {
-    public blisMemory: BlisMemory = null
-    private entities: EntityBase[] = null
+    public blisMemory: BlisMemory
+    private entities: EntityBase[] = []
 
     public constructor(memory: BlisMemory, entities: EntityBase[]) {
         this.entities = entities
         this.blisMemory = memory
     }
 
-    public FindEntity(entityName: string): EntityBase {
+    public FindEntity(entityName: string): EntityBase | undefined {
         let match = this.entities.find(e => e.entityName == entityName)
         return match
     }
 
-    public FindEntityById(entityId: string): EntityBase {
+    public FindEntityById(entityId: string): EntityBase | undefined {
         let match = this.entities.find(e => e.entityId == entityId)
         return match
     }
@@ -26,7 +26,7 @@ export class ClientMemoryManager {
 
         if (!entity) {
             BlisDebug.Error(`Can't find Entity named: ${entityName}`)
-            return null
+            return
         }
 
         await this.blisMemory.BotMemory.RememberEntity(entity.entityName, entity.entityId, entityValue, entity.isMultivalue)
@@ -37,18 +37,18 @@ export class ClientMemoryManager {
 
         if (!entity) {
             BlisDebug.Error(`Can't find Entity named: ${entityName}`)
-            return null
+            return
         }
 
         await this.blisMemory.BotMemory.RememberMany(entity.entityName, entity.entityId, entityValues, entity.isMultivalue)
     }
 
-    public async ForgetEntityAsync(entityName: string, value: string = null): Promise<void> {
+    public async ForgetEntityAsync(entityName: string, value: string | null = null): Promise<void> {
         let entity = this.FindEntity(entityName)
 
         if (!entity) {
             BlisDebug.Error(`Can't find Entity named: ${entityName}`)
-            return null
+            return
         }
 
         // If no value given, wipe all entites from buckets
@@ -61,16 +61,16 @@ export class ClientMemoryManager {
 
         if (!entityFrom) {
             BlisDebug.Error(`Can't find Entity named: ${entityNameFrom}`)
-            return null
+            return
         }
         if (!entityTo) {
             BlisDebug.Error(`Can't find Entity named: ${entityNameTo}`)
-            return null
+            return
         }
 
         if (entityFrom.isMultivalue != entityTo.isMultivalue) {
             BlisDebug.Error(`Can't copy between Bucket and Non-Bucket Entities`)
-            return null
+            return
         }
 
         // Clear "To" entity
@@ -85,7 +85,7 @@ export class ClientMemoryManager {
         }
     }
 
-    public async EntityValueAsync(entityName: string): Promise<string> {
+    public async EntityValueAsync(entityName: string): Promise<string | null> {
         return await this.blisMemory.BotMemory.Value(entityName)
     }
 
@@ -103,6 +103,9 @@ export class ClientMemoryManager {
 
     public async AppNameAsync(): Promise<string> {
         let app = await this.blisMemory.BotState.AppAsync()
+        if (!app) {
+            throw new Error(`Attempted to get current app from bot state before app was set.`)
+        }
         return app.appName
     }
 }

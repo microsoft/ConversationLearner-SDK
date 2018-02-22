@@ -106,7 +106,7 @@ export class Utils {
             request.get(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)
-                } else if (response.statusCode >= 300) {
+                } else if (response.statusCode && response.statusCode >= 300) {
                     reject(body.message)
                 } else {
                     let model = String.fromCharCode.apply(null, body.data)
@@ -167,7 +167,7 @@ export class Utils {
             case 'builtin.encyclopedia':
                 return entityText
             default:
-                return null
+                return entityText
         }
     }
 }

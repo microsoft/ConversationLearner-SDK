@@ -6,7 +6,7 @@ import { BlisMemory } from './BlisMemory'
 import { BlisDebug } from './BlisDebug'
 import { BlisClient } from './BlisClient'
 import createSdkServer from './Http/Server'
-import { InitDOLRunner } from './DOLRunner'
+import { startDirectOffLineServer } from './DOLRunner'
 import { TemplateProvider } from './TemplateProvider'
 import { Utils } from './Utils'
 import {
@@ -56,7 +56,7 @@ export class Blis {
 
     public static blisClient: BlisClient
 
-    public static Init(options: IBlisOptions, storage: BB.Storage = null) {
+    public static Init(options: IBlisOptions, storage: BB.Storage | null = null) {
         Blis.options = options
 
         try {
@@ -66,12 +66,11 @@ export class Blis {
 
             // If app not set, assume running on localhost init DOL Runner
             if (options.localhost) {
-                InitDOLRunner()
+                startDirectOffLineServer(options.dolServiceUrl, options.dolBotUrl)
             }
 
-            const port = process.env.BLIS_SDK_PORT || 5000
             const sdkServer = createSdkServer(this.blisClient)
-            sdkServer.listen(port, (err: any) => {
+            sdkServer.listen(options.sdkPort, (err: any) => {
                 if (err) {
                     BlisDebug.Error(err, 'Server/Init')
                 } else {
@@ -152,7 +151,9 @@ export class Blis {
         // Update entities in my memory
         for (var predictedEntity of predictedEntities) {
             let entity = memoryManager.FindEntityById(predictedEntity.entityId)
-
+            if (!entity) {
+                throw new Error(`Could not find entity by id: ${predictedEntity.entityId}`)
+            }
             // If negative entity will have a positive counter entity
             if (entity.positiveId) {
                 await memoryManager.blisMemory.BotMemory.ForgetEntity(entity.entityName, predictedEntity.entityText, entity.isMultivalue)
@@ -233,7 +234,7 @@ export class Blis {
             }
             const attachment = BB.CardStyler.adaptiveCard(form)
             const message = BB.MessageStyler.attachment(attachment)
-            message.text = null
+            message.text = undefined
             return message
         } catch (error) {
             let msg = BlisDebug.Error(error, 'Failed to Render Template')
@@ -291,7 +292,7 @@ export class Blis {
                         if (!newValue) {
                             isSame = false
                         }
-                        if (oldValue.userText !== newValue.userText) {
+                        else if (oldValue.userText !== newValue.userText) {
                             isSame = false
                         }
                     }
@@ -304,13 +305,23 @@ export class Blis {
         let discrepancies = []
         discrepancies.push('Original Entities:')
         for (let oldEntity of oldEntities) {
-            let name = entities.find(e => e.entityId == oldEntity.entityId).entityName
+            const entity = entities.find(e => e.entityId == oldEntity.entityId)
+            if (!entity) {
+                throw new Error(`Could not find entity by id: ${oldEntity.entityId}`)
+            }
+
+            let name = entity.entityName
             let values = filledEntityValueAsString(oldEntity)
             discrepancies.push(`${name} = (${values})`)
         }
         discrepancies.push('', 'New Entities:')
         for (let newEntity of newEntities) {
-            let name = entities.find(e => e.entityId == newEntity.entityId).entityName
+            const entity = entities.find(e => e.entityId == newEntity.entityId)
+            if (!entity) {
+                throw new Error(`Could not find entity by id: ${newEntity.entityId}`)
+            }
+
+            let name = entity.entityName
             let values = filledEntityValueAsString(newEntity)
             discrepancies.push(`${name} = (${values})`)
         }
@@ -339,9 +350,9 @@ export class Blis {
         memory: BlisMemory,
         updateBotState: boolean = false,
         ignoreLastExtract: boolean = false
-    ): Promise<TeachWithHistory> {
-        let entities = trainDialog.definitions.entities
-        let actions = trainDialog.definitions.actions
+    ): Promise<TeachWithHistory | null> {
+        let entities = trainDialog.definitions ? trainDialog.definitions.entities : []
+        let actions = trainDialog.definitions ? trainDialog.definitions.actions : []
         let entityList: EntityList = { entities }
         let prevMemories: Memory[] = []
 
@@ -414,7 +425,7 @@ export class Blis {
                 // TODO
                 //  TakeAzureAPIAction
 
-                let botActivity: BB.Activity = null
+                let botActivity: BB.Activity | null = null
                 if (typeof botResponse == 'string') {
                     botActivity = {
                         id: this.generateGUID(),
@@ -438,7 +449,7 @@ export class Blis {
             roundNum++
         }
 
-        let memories = null
+        let memories: Memory[] = []
         if (updateBotState) {
             memories = await memory.BotMemory.DumpMemory()
         }

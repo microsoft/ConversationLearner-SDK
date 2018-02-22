@@ -9,10 +9,10 @@ export interface ISessionStartParams {
     saveMemory: boolean
 }
 export class BlisMemory {
-    private static memoryStorage: BB.Storage = null
+    private static memoryStorage: BB.Storage | null = null
     private memCache = {}
 
-    public static Init(memoryStorage: BB.Storage): void {
+    public static Init(memoryStorage: BB.Storage | null): void {
         this.memoryStorage = memoryStorage
         // If memory storage not defined use disk storage
         if (!memoryStorage) {
@@ -30,6 +30,13 @@ export class BlisMemory {
     // Generate memory key from session
     public static async InitMemory(botContext: BotContext): Promise<BlisMemory> {
         let user = botContext.request.from
+        if (!user) {
+            throw new Error(`Attempted to initialize memory, but cannot get memory key because current request did not have 'from'/user specified`)
+        }
+        if (!user.id) {
+            throw new Error(`Attempted to initialize memory, but user.id was not provided which is required for use as memory key.`)
+        }
+        
         let memory = new BlisMemory(user.id)
         await memory.BotState.SetConversationReferenceAsync(botContext.conversationReference)
         return memory
@@ -104,8 +111,13 @@ export class BlisMemory {
             if (!cacheData) {
                 BlisDebug.Log(`-> ${key} : -----`, 'memverbose')
             } else {
-                BlisMemory.memoryStorage.delete([key])
-                {
+                // TODO: Remove possibility of being null
+                if (!BlisMemory.memoryStorage) {
+                    BlisDebug.Error(`You attempted to delete key: ${key} before memoryStorage was defined`)
+                }
+                else {
+
+                    BlisMemory.memoryStorage.delete([key])
                     this.memCache[key] = null
                     BlisDebug.Log(`D> ${key} : -----`, 'memory')
                 }
@@ -127,7 +139,7 @@ export class BlisMemory {
     }
 
     /** Init memory for a session */
-    public async StartSessionAsync(sessionId: string, conversationId: string, params: ISessionStartParams): Promise<void> {
+    public async StartSessionAsync(sessionId: string, conversationId: string | null, params: ISessionStartParams): Promise<void> {
         await this.BotState.SetSessionAsync(sessionId, conversationId, params.inTeach)
         if (!params.saveMemory) {
             await this.BotMemory.ClearAsync()

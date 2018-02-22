@@ -40,7 +40,20 @@ export class BlisTemplateRenderer implements BB.TemplateRenderer {
         if (!blisIntent.scoredAction.isTerminal) {
             setTimeout(async () => {
                 let app = await blisIntent.memory.BotState.AppAsync()
-                let sessionId = await blisIntent.memory.BotState.SessionIdAsync(botContext.conversationReference.user.id)
+                if (!app) {
+                    throw new Error(`Attempted to get current app before app was set.`)
+                }
+
+                const user = botContext.conversationReference.user
+                if(!user || !user.id) {
+                    throw new Error(`Attempted to get session by user id, but user was not defined on current conversation`)
+                }
+
+                let sessionId = await blisIntent.memory.BotState.SessionIdAsync(user.id)
+                if (!sessionId) {
+                    throw new Error(`Attempted to get session by user id: ${user.id} but session was not found`)
+                }
+
                 let bestAction = await Blis.recognizer.Score(
                     app.appId,
                     sessionId,
@@ -55,6 +68,10 @@ export class BlisTemplateRenderer implements BB.TemplateRenderer {
                 if (!blisIntent.inTeach) {
                     blisIntent.scoredAction = bestAction
                     let message = await this.renderTemplate(botContext, language, bestAction.actionId, blisIntent)
+                    if (message === undefined) {
+                        throw new Error(`Attempted to send message, but resulting message was undefined`)
+                    }
+
                     Blis.SendMessage(blisIntent.memory, message)
                 }
             }, 100)

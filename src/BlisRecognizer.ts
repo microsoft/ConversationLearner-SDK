@@ -33,14 +33,23 @@ export class BlisRecognizer extends BB.IntentRecognizer {
 
     private async StartSessionAsync(botContext: BotContext, memory: BlisMemory, appId: string): Promise<string> {
         let sessionResponse = await this.client.StartSession(appId)
-        await memory.StartSessionAsync(sessionResponse.sessionId, botContext.request.from.id, { inTeach: false, saveMemory: false })
-        BlisDebug.Verbose(`Started Session: ${sessionResponse.sessionId} - ${botContext.request.from.id}`)
+        const user = botContext.request.from
+        if (!user) {
+            throw new Error(`Attempted to start session but user was not set on current request.`)
+        }
+
+        if (!user.id) {
+            throw new Error(`Attempted to start session but user.id was not set on current request.`)
+        }
+
+        await memory.StartSessionAsync(sessionResponse.sessionId, user.id, { inTeach: false, saveMemory: false })
+        BlisDebug.Verbose(`Started Session: ${sessionResponse.sessionId} - ${user.id}`)
         return sessionResponse.sessionId
     }
 
-    private async ProcessInput(botContext: BotContext): Promise<BB.Intent> {
+    private async ProcessInput(botContext: BotContext): Promise<BB.Intent | null> {
         let errComponent = 'ProcessInput'
-        let memory: BlisMemory = null
+        let memory: BlisMemory | null = null
         try {
             BlisDebug.Verbose(`Process Input...`)
             let blisContext = await BlisContext.CreateAsync(Blis.bot, botContext)
@@ -63,14 +72,19 @@ export class BlisRecognizer extends BB.IntentRecognizer {
             if (!app || (Blis.options.appId && app.appId !== Blis.options.appId)) {
                 if (Blis.options.appId) {
                     BlisDebug.Log(`Selecting app: ${Blis.options.appId}`)
-                    app = await this.client.GetApp(Blis.options.appId, null)
+                    app = await this.client.GetApp(Blis.options.appId, '')
                     await memory.BotState.SetAppAsync(app)
                 } else {
                     throw 'BLIS AppID not specified'
                 }
             } else {
                 // Attempt to load the session
-                sessionId = await memory.BotState.SessionIdAsync(botContext.request.from.id)
+                const user = botContext.request.from
+                if (!user || !user.id) {
+                    throw new Error(`Attempted to get current session for user, but user was not defined on bot request.`)
+                }
+
+                sessionId = await memory.BotState.SessionIdAsync(user.id)
             }
 
             // If no session for this conversation (or it's expired), create a new one
@@ -83,15 +97,14 @@ export class BlisRecognizer extends BB.IntentRecognizer {
 
             // Teach inputs are handled via API calls from the BLIS api
             if (!inTeach) {
-                let scoredAction: ScoredAction = null
-                let entities: EntityBase[] = null
+                let entities: EntityBase[] = []
 
                 errComponent = 'SessionExtract'
                 let userInput: UserInput = { text: buttonResponse || botContext.request.text || '  ' }
                 let extractResponse = await this.client.SessionExtract(app.appId, sessionId, userInput)
                 entities = extractResponse.definitions.entities
                 errComponent = 'ProcessExtraction'
-                scoredAction = await this.Score(
+                const scoredAction = await this.Score(
                     app.appId,
                     sessionId,
                     memory,
@@ -111,22 +124,26 @@ export class BlisRecognizer extends BB.IntentRecognizer {
             }
             return null
         } catch (error) {
+            BlisDebug.Log(`Error during ProcessInput: ${error.message}`)
+            // TODO: This code makes assumption about memory being assigned above, but memory would remain as null if it reached this point of catch statement.
             // Session is invalid
             if (memory) {
                 BlisDebug.Verbose('ProcessInput Failure. Clearing Session')
-                memory.EndSession()
+                // memory.EndSession()
             }
             let msg = BlisDebug.Error(error, errComponent)
-            await Blis.SendMessage(memory, msg)
+            if (memory) {
+                await Blis.SendMessage(memory, msg)
+            }
             return null
         }
     }
 
-    private async ProcessFormData(context: BotContext, blisMemory: BlisMemory, appId: string): Promise<string> {
+    private async ProcessFormData(context: BotContext, blisMemory: BlisMemory, appId: string): Promise<string | null> {
         const data = context.request.value as FormData
         if (data) {
             // Get list of all entities
-            let entityList = await this.client.GetEntities(appId, null)
+            let entityList = await this.client.GetEntities(appId)
 
             // For each form entry
             for (let entityName of Object.keys(data)) {
