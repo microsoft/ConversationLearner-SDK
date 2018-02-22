@@ -57,14 +57,20 @@ export class BlisMemory {
             BlisDebug.Log(`-< ${key} : ${cacheData}`, 'memverbose')
             return cacheData
         } else {
-            let data = await BlisMemory.memoryStorage.read([key])
-            if (data[key]) {
-                that.memCache[key] = data[key].value
-            } else {
-                that.memCache[key] = null
+            try {
+                let data = await BlisMemory.memoryStorage.read([key])
+                if (data[key]) {
+                    that.memCache[key] = data[key].value
+                } else {
+                    that.memCache[key] = null
+                }
+                BlisDebug.Log(`R< ${key} : ${that.memCache[key]}`, 'memory')
+                return that.memCache[key]
             }
-            BlisDebug.Log(`R< ${key} : ${that.memCache[key]}`, 'memory')
-            return that.memCache[key]
+            catch (err) {
+                BlisDebug.Error(err);
+                return null;
+            }
         }
     }
 
