@@ -31,8 +31,10 @@ export class BlisRecognizer extends BB.IntentRecognizer {
         })
     }
 
-    private async StartSessionAsync(botContext: BotContext, memory: BlisMemory, appId: string): Promise<string> {
-        let sessionResponse = await this.client.StartSession(appId)
+    private async StartSessionAsync(botContext: BotContext, memory: BlisMemory, appId: string, saveToLog: boolean): Promise<string> {
+
+        let sessionCreateParams = {saveToLog}
+        let sessionResponse = await this.client.StartSession(appId, sessionCreateParams)
         const user = botContext.request.from
         if (!user) {
             throw new Error(`Attempted to start session but user was not set on current request.`)
@@ -89,7 +91,7 @@ export class BlisRecognizer extends BB.IntentRecognizer {
 
             // If no session for this conversation (or it's expired), create a new one
             if (!sessionId) {
-                sessionId = await this.StartSessionAsync(botContext, memory, app.appId)
+                sessionId = await this.StartSessionAsync(botContext, memory, app.appId, app.metadata.isLoggingOn !== false)
             }
 
             // Process any form data
