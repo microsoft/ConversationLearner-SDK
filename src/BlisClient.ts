@@ -1061,7 +1061,7 @@ export class BlisClient {
     //=============================================================================
 
     /** Creates a new session and a corresponding logDialog */
-    public StartSession(appId: string): Promise<models.Session> {
+    public StartSession(appId: string, sessionCreateParams: models.SessionCreateParams): Promise<models.Session> {
         let apiPath = `app/${appId}/session`
 
         return new Promise((resolve, reject) => {
@@ -1070,9 +1070,7 @@ export class BlisClient {
                 headers: {
                     Authorization: BlisClient.authorizationHeader
                 },
-                body: {
-                    Authorization: BlisClient.authorizationHeader
-                },
+                body: sessionCreateParams,
                 json: true
             }
 
