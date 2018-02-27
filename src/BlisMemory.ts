@@ -1,4 +1,5 @@
 import * as BB from 'botbuilder'
+import { Blis } from './Blis'
 import { BlisDebug } from './BlisDebug'
 import { BotMemory } from './Memory/BotMemory'
 import { BotState } from './Memory/BotState'
@@ -6,7 +7,7 @@ import { BlisAppBase } from 'blis-models'
 
 export interface ISessionStartParams {
     inTeach: boolean
-    saveMemory: boolean
+    isContinued: boolean
 }
 export class BlisMemory {
     private static memoryStorage: BB.Storage | null = null
@@ -134,15 +135,23 @@ export class BlisMemory {
 
     /** Clear memory associated with a session */
     public async EndSession(): Promise<void> {
-        await this.BotState.SetSessionAsync(null, null, false)
-        await this.BotMemory.ClearAsync()
+        await this.BotState.EndSessionAsync()
+        let app = await this.BotState.AppAsync()
+        if (app) {
+            // Default callback will clear the bot memory
+            Blis.CallSessionEndCallback(this, app.appId);
+        }
     }
 
     /** Init memory for a session */
-    public async StartSessionAsync(sessionId: string, conversationId: string | null, params: ISessionStartParams): Promise<void> {
-        await this.BotState.SetSessionAsync(sessionId, conversationId, params.inTeach)
-        if (!params.saveMemory) {
+    public async StartSessionAsync(sessionId: string, conversationId: string | null, params: ISessionStartParams, orgSessionId: string | null = null): Promise<void> {
+        await this.BotState.SetSessionAsync(sessionId, conversationId, params.inTeach, orgSessionId) 
+        if (!params.isContinued) {
             await this.BotMemory.ClearAsync()
+            let app = await this.BotState.AppAsync()
+            if (app) {
+                Blis.CallSessionStartCallback(this, app.appId);
+            }
         }
     }
 

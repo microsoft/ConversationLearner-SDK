@@ -233,7 +233,7 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
             let app = await memory.BotState.AppAsync()
             if (app && app.appId === appId) {
                 await memory.BotState.SetAppAsync(null)
-                await memory.BotState.SetSessionAsync(null, null, false)
+                await memory.BotState.EndSessionAsync();
             }
             res.send(200)
         } catch (error) {
@@ -711,7 +711,7 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
                 let teachResponse = await client.StartTeach(appId, contextDialog)
 
                 // Start Sesion - with "true" to save the memory from the History
-                await memory.StartSessionAsync(teachResponse.teachId, null, { inTeach: true, saveMemory: true })
+                await memory.StartSessionAsync(teachResponse.teachId, null, { inTeach: true, isContinued: true })
                 teachWithHistory.teach = models.ModelUtils.ToTeach(teachResponse)
             }
             res.send(teachWithHistory)
@@ -736,7 +736,7 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
 
             // Update Memory
             let memory = BlisMemory.GetMemory(key)
-            memory.StartSessionAsync(sessionResponse.sessionId, null, { inTeach: false, saveMemory: false })
+            memory.StartSessionAsync(sessionResponse.sessionId, null, { inTeach: false, isContinued: false })
         } catch (error) {
             HandleError(res, error)
         }
@@ -760,15 +760,19 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
     server.del('/app/:appId/session/:sessionId', async (req, res, next) => {
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
-            let query = req.getQuery()
             const key = req.header(memoryKeyHeaderName)
             let appId = req.params.appId
             let sessionId = req.params.sessionId
-            let response = await client.EndSession(appId, sessionId, query)
+
+
+            // Session may be a replacement for an expired one
+            let memory = BlisMemory.GetMemory(key)
+            sessionId = await memory.BotState.OrgSessionIdAsync(sessionId)
+
+            let response = await client.EndSession(appId, sessionId)
             res.send(response)
 
             // Update Memory
-            let memory = BlisMemory.GetMemory(key)
             memory.EndSession()
         } catch (error) {
             HandleError(res, error)
@@ -817,7 +821,7 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
 
             // Update Memory
             let memory = BlisMemory.GetMemory(key)
-            memory.StartSessionAsync(teachResponse.teachId, null, { inTeach: true, saveMemory: false })
+            memory.StartSessionAsync(teachResponse.teachId, null, { inTeach: true, isContinued: false })
         } catch (error) {
             HandleError(res, error)
         }
@@ -851,7 +855,7 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
                 let teachResponse = await client.StartTeach(appId, contextDialog)
 
                 // Start Sesion - with "true" to save the memory from the History
-                await memory.StartSessionAsync(teachResponse.teachId, null, { inTeach: true, saveMemory: true })
+                await memory.StartSessionAsync(teachResponse.teachId, null, { inTeach: true, isContinued: true })
                 teachWithHistory.teach = models.ModelUtils.ToTeach(teachResponse)
 
                 // If last action wasn't terminal need to score
@@ -1147,7 +1151,7 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
                 let teachResponse = await client.StartTeach(appId, contextDialog)
 
                 // Start Sesion - with "true" to save the memory from the History
-                await memory.StartSessionAsync(teachResponse.teachId, null, { inTeach: true, saveMemory: true })
+                await memory.StartSessionAsync(teachResponse.teachId, null, { inTeach: true, isContinued: true })
                 teachWithHistory.teach = models.ModelUtils.ToTeach(teachResponse)
             } else {
                 // Failed, so restore the old memory

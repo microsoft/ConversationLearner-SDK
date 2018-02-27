@@ -15,15 +15,25 @@ export class BotState {
     private static MEMKEY = 'BOTSTATE'
     public memory: BlisMemory
 
+    // Currently running application
     public app: BlisAppBase | null = null
 
-    public convSession: ConversationSession | null = null
+    // Currently active session
+    public sessionId: string | null
 
-    // Set if in a teach session
+    // Is current session a teach session
     public inTeach: boolean = false
 
-    public inDebug: boolean = false
+    // Last time active session was used (in ticks)
+    public lastActive: number
 
+    // Conversation Id associated with this sesssion
+    public conversationId: string | null
+
+    // If session is continuation of times out session, what was the original sessionId
+    public orgSessionId: string | null
+
+    // BotBuilder conversation reference
     public conversationReference: BB.ConversationReference | null = null
 
     private constructor(init?: Partial<BotState>) {
@@ -55,18 +65,22 @@ export class BotState {
         if (!text) return
         let json = JSON.parse(text)
         this.app = json.app
-        this.convSession = json.convSession
+        this.sessionId = json.sessionId
         this.inTeach = json.inTeach ? json.inTeach : false
-        this.inDebug = json.inDebug ? json.inDebug : false
+        this.lastActive = json.lastActive,
+        this.conversationId = json.conversationId,
+        this.orgSessionId = json.orgSessionId,
         this.conversationReference = json.conversationReference
     }
 
     private Serialize(): string {
         let jsonObj = {
             app: this.app,
-            convSession: this.convSession,
+            sessionId: this.sessionId,
             inTeach: this.inTeach ? this.inTeach : false,
-            inDebug: this.inDebug ? this.inDebug : false,
+            lastActive: this.lastActive,
+            conversationId: this.conversationId,
+            orgSessionId: this.orgSessionId,
             conversationReference: this.conversationReference
         }
         return JSON.stringify(jsonObj)
@@ -81,9 +95,11 @@ export class BotState {
 
     public async SetAppAsync(app: BlisAppBase | null): Promise<void> {
         this.app = app
-        this.convSession = null
+        this.sessionId = null
+        this.conversationId = null,
+        this.lastActive = 0,
+        this.orgSessionId = null,
         this.inTeach = false
-        this.inDebug = false
         await this.SetAsync()
     }
 
@@ -96,46 +112,73 @@ export class BotState {
         }
     }
 
+    public async ConversationIdAsync(): Promise<string | null> {
+        await this.Init()
+        return this.conversationId
+    }
+
+    public async OrgSessionIdAsync(sessionId: string): Promise<string | null> {
+        await this.Init()
+
+        // If session expired and was replaced with a more recent one, return the new sessionId
+        if (this.orgSessionId == sessionId) {
+            return this.sessionId;
+        }
+        return sessionId;
+    }
+
+    public async LastActiveAsync(): Promise<number> {
+        await this.Init()
+        return this.lastActive
+    }
+
+    public async SetLastActiveAsync(lastActive: number): Promise<void> {
+        this.lastActive = lastActive;
+        await this.SetAsync()
+    }
+
     public async SessionIdAsync(conversationId: string): Promise<string | null> {
         await this.Init()
 
-        let convSession = this.convSession
-        if (!convSession) {
-            return null
-        } else if (!convSession.conversationId) {
-            // If convId not set yet, use the session and set it
-            convSession.conversationId = conversationId
+        // If convId not set yet, use the session and set it
+        if (!this.conversationId) {
+            this.conversationId = conversationId
             await this.SetAsync()
-            return convSession.sessionId
-        } else if (convSession.conversationId == conversationId) {
-            // If conversation Id matches return the sessionId
-            return convSession.sessionId
+            return this.sessionId
+        } 
+        // If conversation Id matches return the sessionId
+        else if (this.conversationId == conversationId) {
+            return this.sessionId
         }
         // Otherwise session is for another conversation
         return null
     }
 
-    public async SetSessionAsync(sessionId: string | null, conversationId: string | null, inTeach: boolean): Promise<void> {
+    public async SetSessionAsync(sessionId: string | null, conversationId: string | null, inTeach: boolean, orgSessionId: string | null): Promise<void> {
         await this.Init()
-        this.convSession = { sessionId, conversationId }
+        this.sessionId = sessionId;
+        // Only update original sessionId, if one hasn't already been set (could be multiple restarts)
+        if (!this.orgSessionId) {
+            this.orgSessionId = orgSessionId;
+        }
+        this.conversationId = conversationId;
+        this.lastActive = new Date().getTime();
         this.inTeach = inTeach
+        await this.SetAsync()
+    }
+
+    public async EndSessionAsync(): Promise<void> {
+        this.sessionId = null;
+        this.orgSessionId = null;
+        this.conversationId = null;
+        this.lastActive = 0;
+        this.inTeach = false
         await this.SetAsync()
     }
 
     public async InTeachAsync(): Promise<boolean> {
         await this.Init()
         return this.inTeach
-    }
-
-    public async InDebugAsync(): Promise<boolean> {
-        await this.Init()
-        return this.inDebug
-    }
-
-    public async SetInDebugAsync(isTrue: boolean): Promise<void> {
-        await this.Init()
-        this.inDebug = isTrue
-        await this.SetAsync()
     }
 
     // For initial pro-active message need to build conversation reference from scratch

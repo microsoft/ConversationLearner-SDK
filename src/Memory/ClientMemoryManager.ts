@@ -55,6 +55,18 @@ export class ClientMemoryManager {
         await this.blisMemory.BotMemory.Forget(entity.entityName, value, entity.isMultivalue)
     }
 
+    /** Clear all entity values apart from any included in the list of saveEntityNames
+     * Useful in the "onSessionEndCallback" to preserve a subset of entities for the next session
+     */
+    public async ClearAllEntitiesAsync(saveEntityNames: string[]): Promise<void> {
+        
+        for (let entity of this.entities) {
+            if (saveEntityNames.indexOf(entity.entityName) < 0) {
+                await this.blisMemory.BotMemory.Forget(entity.entityName, null, entity.isMultivalue)
+            }
+        }
+    }
+
     public async CopyEntityAsync(entityNameFrom: string, entityNameTo: string): Promise<void> {
         let entityFrom = this.FindEntity(entityNameFrom)
         let entityTo = this.FindEntity(entityNameTo)
@@ -98,7 +110,7 @@ export class ClientMemoryManager {
     }
 
     public async GetFilledEntitiesAsync(): Promise<FilledEntity[]> {
-        return await this.blisMemory.BotMemory.FilledEntities()
+        return await this.blisMemory.BotMemory.FilledEntitiesAsync()
     }
 
     public async AppNameAsync(): Promise<string> {

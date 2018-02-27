@@ -145,7 +145,7 @@ export class BotMemory {
     }
 
     /** Return array of entity Ids for which I've remembered something */
-    public async FilledEntities(): Promise<FilledEntity[]> {
+    public async FilledEntitiesAsync(): Promise<FilledEntity[]> {
         await this.Init()
         return Object.keys(this.filledEntities.map).map(val => {
             return this.filledEntities.map[val]
