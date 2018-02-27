@@ -63,6 +63,7 @@ export const HandleError = (response: Restify.Response, err: any): void => {
     BlisDebug.Error(log)
 }
 
+const memoryKeyHeaderName = 'x-blis-memory-key'
 const defaultOptions: Restify.ServerOptions = {
     name: `SDK Service`
 }
@@ -93,8 +94,7 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
     server.put('state/app', async (req, res, next) => {
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
-            //let query = req.getQuery();
-            let key = req.params.key
+            const key = req.header(memoryKeyHeaderName)
             let app: models.BlisAppBase = req.body
 
             let memory = BlisMemory.GetMemory(key)
@@ -109,7 +109,7 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
     server.put('state/conversationId', async (req, res, next) => {
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
-            let key = req.params.key
+            const key = req.header(memoryKeyHeaderName)
             let conversationId = req.params.id
             let userName = req.params.username
 
@@ -147,7 +147,6 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
     server.get('/app/:appId', async (req, res, next) => {
         BlisClient.authorizationHeader = req.header('Authorization')
         let query = req.getQuery()
-        //let key = req.params.key;
         let appId = req.params.appId
         try {
             let app = await client.GetApp(appId, query)
@@ -186,7 +185,7 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             let query = req.getQuery()
-            let key = req.params.key
+            const key = req.header(memoryKeyHeaderName)
             let app: models.BlisAppBase = req.body
 
             app.appId = await client.AddApp(app, query)
@@ -205,7 +204,6 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             let query = req.getQuery()
-            //let key = req.params.key;
             let app: models.BlisAppBase = req.body
 
             if (!app.appId) {
@@ -226,7 +224,7 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             //let query = req.getQuery();
-            let key = req.params.key
+            const key = req.header(memoryKeyHeaderName)
             let appId = req.params.appId
             await client.ArchiveApp(appId)
 
@@ -249,7 +247,6 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             //let query = req.getQuery();
-            //let key = req.params.key;
             let appId = req.params.appId
             await client.DeleteApp(appId)
             res.send(200)
@@ -263,7 +260,6 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             //let query = req.getQuery();
-            //let key = req.params.key;
             let appId = req.params.appId
             let blisApp = await client.GetAppStatus(appId)
             res.send(blisApp)
@@ -277,7 +273,6 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             let query = req.getQuery()
-            //let key = req.params.key;
             let apps = await client.GetApps(query)
             res.send(apps)
         } catch (error) {
@@ -304,7 +299,6 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             let query = req.getQuery()
-            //let key = req.params.key;
             let apps = await client.GetArchivedAppIds(query)
             res.send(apps)
         } catch (error) {
@@ -317,7 +311,6 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             let query = req.getQuery()
-            //let key = req.params.key;
             let apps = await client.GetArchivedApps(query)
             res.send(apps)
         } catch (error) {
@@ -330,7 +323,6 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             //let query = req.getQuery();
-            //let key = req.params.key;
             let appId = req.params.appId
             let app = await client.RestoreApp(appId)
             res.send(app)
@@ -346,7 +338,6 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             let query = req.getQuery()
-            //let key = req.params.key;
             let appId = req.params.appId
             let actionId = req.params.actionId
             let action = await client.GetAction(appId, actionId, query)
@@ -360,7 +351,6 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             //let query = req.getQuery();
-            //let key = req.params.key;
             let appId = req.params.appId
             let action: models.ActionBase = req.body
             let actionId = await client.AddAction(appId, action)
@@ -374,7 +364,6 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             //let query = req.getQuery();
-            //let key = req.params.key;
             let appId = req.params.appId
             let action: models.ActionBase = req.body
 
@@ -394,7 +383,6 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             //let query = req.getQuery();
-            //let key = req.params.key;
             let appId = req.params.appId
             let actionId = req.params.actionId
             await client.DeleteAction(appId, actionId)
@@ -408,7 +396,6 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             let query = req.getQuery()
-            //let key = req.params.key;
             let appId = req.params.appId
             let actions = await client.GetActions(appId, query)
             res.send(actions)
@@ -421,7 +408,6 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             let query = req.getQuery()
-            //let key = req.params.key;
             let appId = req.params.appId
             let actions = await client.GetActionIds(appId, query)
             res.send(actions)
@@ -438,7 +424,6 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             let query = req.getQuery()
-            //let key = req.params.key;
             let appId = req.params.appId
             let actions = await client.GetEntityIds(appId, query)
             res.send(actions)
@@ -451,7 +436,6 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             let query = req.getQuery()
-            //let key = req.params.key;
             let appId = req.params.appId
             let entityId = req.params.entityId
             let entity = await client.GetEntity(appId, entityId, query)
@@ -465,7 +449,6 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             //let query = req.getQuery();
-            //let key = req.params.key;
             let appId = req.params.appId
             let entity: models.EntityBase = req.body
             let entityId = await client.AddEntity(appId, entity)
@@ -479,7 +462,6 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             //let query = req.getQuery();
-            //let key = req.params.key;
             let appId = req.params.appId
             let entity: models.EntityBase = req.body
 
@@ -500,7 +482,6 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             //let query = req.getQuery();
-            //let key = req.params.key;
             let appId = req.params.appId
             let entityId = req.params.entityId
             await client.DeleteEntity(appId, entityId)
@@ -514,7 +495,6 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             let query = req.getQuery()
-            //let key = req.params.key;
             let appId = req.params.appId
             let entities = await client.GetEntities(appId, query)
             res.send(entities)
@@ -527,7 +507,6 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             let query = req.getQuery()
-            //let key = req.params.key;
             let appId = req.params.appId
             let entityIds = await client.GetEntityIds(appId, query)
             res.send(entityIds)
@@ -543,7 +522,6 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             //let query = req.getQuery();
-            //let key = req.params.key;
             let appId = req.params.appId
             let logDialogId = req.params.logDialogId
             let logDialog = await client.GetLogDialog(appId, logDialogId)
@@ -557,7 +535,6 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             //let query = req.getQuery();
-            //let key = req.params.key;
             let appId = req.params.appId
             let logDialogId = req.params.logDialogId
             await client.DeleteLogDialog(appId, logDialogId)
@@ -571,7 +548,6 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             let query = req.getQuery()
-            //let key = req.params.key;
             let appId = req.params.appId
             let logDialogs = await client.GetLogDialogs(appId, query)
             res.send(logDialogs)
@@ -584,7 +560,6 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             let query = req.getQuery()
-            //let key = req.params.key;
             let appId = req.params.appId
             let logDialogIds = await client.GetLogDialogIds(appId, query)
             res.send(logDialogIds)
@@ -601,7 +576,6 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             //let query = req.getQuery();
-            //let key = req.params.key;
             let appId = req.params.appId
             let trainDialog: models.TrainDialog = req.body
 
@@ -619,7 +593,6 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             //let query = req.getQuery();
-            //let key = req.params.key;
             let appId = req.params.appId
             let trainDialog: models.TrainDialog = req.body
 
@@ -637,7 +610,6 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             //let query = req.getQuery();
-            //let key = req.params.key;
             let appId = req.params.appId
             let trainDialogId = req.params.trainDialogId
             let trainDialog = await client.GetTrainDialog(appId, trainDialogId)
@@ -651,7 +623,6 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             //let query = req.getQuery();
-            //let key = req.params.key;
             let appId = req.params.appId
             let trainDialogId = req.params.trainDialogId
             await client.DeleteTrainDialog(appId, trainDialogId)
@@ -665,7 +636,6 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             let query = req.getQuery()
-            //let key = req.params.key;
             let appId = req.params.appId
             let trainDialogs = await client.GetTrainDialogs(appId, query)
             res.send(trainDialogs)
@@ -678,7 +648,6 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             let query = req.getQuery()
-            //let key = req.params.key;
             let appId = req.params.appId
             let trainDialogIds = await client.GetTrainDialogIds(appId, query)
             res.send(trainDialogIds)
@@ -693,7 +662,7 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             //let query = req.getQuery();
-            let key = req.params.key
+            const key = req.header(memoryKeyHeaderName)
             let appId = req.params.appId
             let trainDialogId = req.params.trainDialogId
             let turnIndex = req.params.turnIndex
@@ -714,7 +683,7 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             //let query = req.getQuery();
-            let key = req.params.key
+            const key = req.header(memoryKeyHeaderName)
             let appId = req.params.appId
             let userName = req.params.username
             let userId = req.params.userid
@@ -759,7 +728,7 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
     server.post('/app/:appId/session', async (req, res, next) => {
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
-            let key = req.params.key
+            const key = req.header(memoryKeyHeaderName)
             let appId = req.params.appId
             let sessionCreateParams : models.SessionCreateParams = req.body
             let sessionResponse = await client.StartSession(appId, sessionCreateParams)
@@ -778,7 +747,6 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             //let query = req.getQuery();
-            //let key = req.params.key;
             let appId = req.params.appId
             let sessionId = req.params.sessionId
             let response = await client.GetSession(appId, sessionId)
@@ -793,7 +761,7 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             let query = req.getQuery()
-            let key = req.params.key
+            const key = req.header(memoryKeyHeaderName)
             let appId = req.params.appId
             let sessionId = req.params.sessionId
             let response = await client.EndSession(appId, sessionId, query)
@@ -812,7 +780,6 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             let query = req.getQuery()
-            //let key = req.params.key;
             let appId = req.params.appId
             let sessions = await client.GetSessions(appId, query)
             res.send(sessions)
@@ -826,7 +793,6 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             let query = req.getQuery()
-            //let key = req.params.key;
             let appId = req.params.appId
             let sessionIds = await client.GetSessionIds(appId, query)
             res.send(sessionIds)
@@ -844,7 +810,7 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             //let query = req.getQuery();
-            let key = req.params.key
+            const key = req.header(memoryKeyHeaderName)
             let appId = req.params.appId
             let teachResponse = await client.StartTeach(appId, null)
             res.send(teachResponse)
@@ -862,7 +828,7 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             //let query = req.getQuery();
-            let key = req.params.key
+            const key = req.header(memoryKeyHeaderName)
             let appId = req.params.appId
             let userName = req.params.username
             let userId = req.params.userid
@@ -911,7 +877,6 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             //let query = req.getQuery();
-            //let key = req.params.key;
             let appId = req.params.appId
             let teachId = req.params.teachId
             let teach = await client.GetTeach(appId, teachId)
@@ -930,7 +895,7 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             //let query = req.getQuery();
-            let key = req.params.key
+            const key = req.header(memoryKeyHeaderName)
             let appId = req.params.appId
             let teachId = req.params.teachId
             let userInput = req.body
@@ -963,7 +928,7 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             //let query = req.getQuery();
-            let key = req.params.key
+            const key = req.header(memoryKeyHeaderName)
             let appId = req.params.appId
             let teachId = req.params.teachId
             let uiScoreInput: models.UIScoreInput = req.body
@@ -1031,7 +996,7 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             //let query = req.getQuery();
-            let key = req.params.key
+            const key = req.header(memoryKeyHeaderName)
             let appId = req.params.appId
             let teachId = req.params.teachId
             let uiTrainScorerStep: models.UITrainScorerStep = req.body
@@ -1075,7 +1040,7 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             ///let query = req.getQuery();
-            let key = req.params.key
+            const key = req.header(memoryKeyHeaderName)
             let appId = req.params.appId
             let teachId = req.params.teachId
             let save = req.params.save ? `saveDialog=${req.params.save}` : ''
@@ -1095,7 +1060,6 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             let query = req.getQuery()
-            //let key = req.params.key;
             let appId = req.params.appId
             let teaches = await client.GetTeaches(appId, query)
             res.send(teaches)
@@ -1109,7 +1073,6 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             let query = req.getQuery()
-            //let key = req.params.key;
             let appId = req.params.appId
             let teachIds = await client.GetTeachIds(appId, query)
             res.send(teachIds)
@@ -1126,7 +1089,7 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             //let query = req.getQuery();
-            let key = req.params.key
+            const key = req.header(memoryKeyHeaderName)
             let appId = req.params.appId
             let userName = req.params.username
             let userId = req.params.userid
@@ -1149,7 +1112,7 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
             //let query = req.getQuery();
-            let key = req.params.key
+            const key = req.header(memoryKeyHeaderName)
             let appId = req.params.appId
             let userName = req.params.username
             let userId = req.params.userid
