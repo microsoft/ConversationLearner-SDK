@@ -10,6 +10,9 @@ import { IBlisOptions } from './BlisOptions'
 
 export const BLIS_INTENT_WRAPPER = 'BLIS_INTENT_WRAPPER'
 
+// Maxium allowed chat session length
+const MAX_SESSION_LENGTH = 2*60*1000;  //LARS
+
 export class BlisRecognizer extends BB.IntentRecognizer {
     private client: BlisClient
 
@@ -44,7 +47,7 @@ export class BlisRecognizer extends BB.IntentRecognizer {
             throw new Error(`Attempted to start session but user.id was not set on current request.`)
         }
 
-        await memory.StartSessionAsync(sessionResponse.sessionId, user.id, { inTeach: false, saveMemory: false })
+        await memory.StartSessionAsync(sessionResponse.sessionId, user.id, { inTeach: false, isContinued: false })
         BlisDebug.Verbose(`Started Session: ${sessionResponse.sessionId} - ${user.id}`)
         return sessionResponse.sessionId
     }
@@ -87,6 +90,38 @@ export class BlisRecognizer extends BB.IntentRecognizer {
                 }
 
                 sessionId = await memory.BotState.SessionIdAsync(user.id)
+
+                // Make sure session hasn't expired
+                if (!inTeach && sessionId) {
+                    const currentTicks = new Date().getTime();
+                    let lastActive = await memory.BotState.LastActiveAsync()
+                    let passedTicks = currentTicks - lastActive;
+
+                    // If session expired, create a new one
+                    if (passedTicks > MAX_SESSION_LENGTH) { 
+
+                        // Store conversationId
+                        let conversationId = await memory.BotState.ConversationIdAsync()
+
+                        // End the current session, clear the memory
+                        await Blis.blisClient.EndSession(app.appId, sessionId);
+                        memory.EndSession()
+
+                        // Start a new session 
+                        let sessionResponse = await Blis.blisClient.StartSession(app.appId, {saveToLog: app.metadata.isLoggingOn})
+            
+                        // Update Memory, passing in original sessionId for reference
+
+                        memory.StartSessionAsync(sessionResponse.sessionId, conversationId, { inTeach: inTeach, isContinued: false }, sessionId)
+
+                        // Set new sessionId
+                        sessionId = sessionResponse.sessionId;
+                    }
+                    // Otherwise update last access time
+                    else {
+                        await memory.BotState.SetLastActiveAsync(currentTicks);
+                    }
+                }
             }
 
             // If no session for this conversation (or it's expired), create a new one

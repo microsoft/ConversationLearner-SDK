@@ -1173,11 +1173,11 @@ export class BlisClient {
     }
 
     /** End a session. */
-    public EndSession(appId: string, sessionId: string, query: string): Promise<string> {
+    public EndSession(appId: string, sessionId: string): Promise<string> {
         let apiPath = `app/${appId}/session/${sessionId}`
 
         return new Promise((resolve, reject) => {
-            let url = this.MakeURL(apiPath, query)
+            let url = this.MakeURL(apiPath)
             const requestData = {
                 headers: {
                     Authorization: BlisClient.authorizationHeader

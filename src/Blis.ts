@@ -50,6 +50,16 @@ export class Blis {
         memoryManager: ClientMemoryManager
     ) => Promise<void>
 
+    // Optional callback than runs before a new chat session starts.  Allows Bot to set initial entities
+    public static onSessionStartCallback: (
+        memoryManager: ClientMemoryManager
+    ) => Promise<void>
+
+    // Optional callback than runs when a session ends.  Allows Bot set and/or preserve memories after session end
+    public static onSessionEndCallback: (
+        memoryManager: ClientMemoryManager
+    ) => Promise<void>
+
     public static bot: BB.Bot
     public static recognizer: BlisRecognizer
     public static templateRenderer: BlisTemplateRenderer
@@ -108,6 +118,18 @@ export class Blis {
         Blis.entityDetectionCallback = target
     }
 
+    public static OnSessionEndCallback(
+        target: (memoryManager: ClientMemoryManager) => Promise<void>
+    ) {
+        Blis.onSessionEndCallback = target
+    }
+
+    public static OnSessionStartCallback(
+        target: (memoryManager: ClientMemoryManager) => Promise<void>
+    ) {
+        Blis.onSessionStartCallback = target
+    }
+
     public static async SendIntent(memory: BlisMemory, intent: BlisIntent): Promise<void> {
         await Utils.SendIntent(Blis.bot, memory, intent)
     }
@@ -133,7 +155,7 @@ export class Blis {
         }
 
         // Get entities from my memory
-        var filledEntities = await memoryManager.blisMemory.BotMemory.FilledEntities()
+        var filledEntities = await memoryManager.blisMemory.BotMemory.FilledEntitiesAsync()
 
         let scoreInput: ScoreInput = {
             filledEntities,
@@ -141,6 +163,30 @@ export class Blis {
             maskedActions: []
         }
         return scoreInput
+    }
+
+    public static async CallSessionStartCallback(memory: BlisMemory, appId: string): Promise<void> {
+
+        // If bot has callback, call it
+        if (Blis.onSessionStartCallback) {
+            let entityList = await this.blisClient.GetEntities(appId)
+            let memoryManager = new ClientMemoryManager(memory, entityList.entities)
+            await Blis.onSessionStartCallback(memoryManager)
+        }
+    }
+
+    public static async CallSessionEndCallback(memory: BlisMemory, appId: string): Promise<void> {
+
+        // If bot has callback, call it to determine which entites to clear / edit
+        if (Blis.onSessionEndCallback) {
+            let entityList = await this.blisClient.GetEntities(appId)
+            let memoryManager = new ClientMemoryManager(memory, entityList.entities)
+            await Blis.onSessionEndCallback(memoryManager)
+        } 
+        // Otherwise just clear the memory
+        else {
+            await memory.BotMemory.ClearAsync()
+        }
     }
 
     public static async ProcessPredictedEntities(
