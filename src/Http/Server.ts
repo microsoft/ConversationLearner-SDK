@@ -728,10 +728,10 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
     server.post('/app/:appId/session', async (req, res, next) => {
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
-            //let query = req.getQuery();
             const key = req.header(memoryKeyHeaderName)
             let appId = req.params.appId
-            let sessionResponse = await client.StartSession(appId)
+            let sessionCreateParams : models.SessionCreateParams = req.body
+            let sessionResponse = await client.StartSession(appId, sessionCreateParams)
             res.send(sessionResponse)
 
             // Update Memory
