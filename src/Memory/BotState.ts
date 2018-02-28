@@ -37,7 +37,7 @@ export class BotState {
     public conversationReference: BB.ConversationReference | null = null
 
     private constructor(init?: Partial<BotState>) {
-        ;(<any>Object).assign(this, init)
+        (<any>Object).assign(this, init)
     }
 
     public static Get(blisMemory: BlisMemory): BotState {

@@ -11,7 +11,7 @@ import { IBlisOptions } from './BlisOptions'
 export const BLIS_INTENT_WRAPPER = 'BLIS_INTENT_WRAPPER'
 
 // Maxium allowed chat session length
-const MAX_SESSION_LENGTH = 2*60*1000;  //LARS
+const MAX_SESSION_LENGTH = 20*60*1000;  // 20 minutes
 
 export class BlisRecognizer extends BB.IntentRecognizer {
     private client: BlisClient

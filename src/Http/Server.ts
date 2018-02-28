@@ -756,6 +756,32 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         }
     })
 
+    /** EXPIRE SESSION : Expires the current session (timeout) */
+    server.put('/app/:appId/session/:sessionId', async (req, res, next) => {
+        BlisClient.authorizationHeader = req.header('Authorization')
+        try {
+            const key = req.header(memoryKeyHeaderName)
+
+            let memory = BlisMemory.GetMemory(key)
+            let conversationId = await memory.BotState.ConversationIdAsync();
+            if (!conversationId) {
+                // If conversation is empty
+                return;
+            }
+
+            let sessionId = await memory.BotState.SessionIdAsync(conversationId);
+            if (sessionId != req.params.sessionId) {
+                throw new Error("Attempting to expire sessionId not in use")
+            }
+
+            // Force sesion to expire
+            await memory.BotState.SetLastActiveAsync(0);
+            res.send(200)
+        } catch (error) {
+            HandleError(res, error)
+        }
+    })
+
     /** END SESSION : End a session. */
     server.del('/app/:appId/session/:sessionId', async (req, res, next) => {
         BlisClient.authorizationHeader = req.header('Authorization')
