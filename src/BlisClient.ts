@@ -275,7 +275,8 @@ export class BlisClient {
                 },
                 json: true
             }
-            BlisDebug.LogRequest('GET', apiPath, requestData)
+            // Disable unless debugging to reduce chatter
+            //BlisDebug.LogRequest('GET', apiPath, requestData)
             Request.get(url, requestData, (error, response, body) => {
                 if (error) {
                     reject(error)

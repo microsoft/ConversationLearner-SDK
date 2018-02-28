@@ -147,7 +147,10 @@ export class BlisMemory {
     public async StartSessionAsync(sessionId: string, conversationId: string | null, params: ISessionStartParams, orgSessionId: string | null = null): Promise<void> {
         await this.BotState.SetSessionAsync(sessionId, conversationId, params.inTeach, orgSessionId) 
         if (!params.isContinued) {
-            await this.BotMemory.ClearAsync()
+            // If continuing an expired session allow uncleared entities to remain
+            if (!orgSessionId) {
+                await this.BotMemory.ClearAsync()
+            }
             let app = await this.BotState.AppAsync()
             if (app) {
                 Blis.CallSessionStartCallback(this, app.appId);
