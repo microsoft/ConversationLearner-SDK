@@ -1,7 +1,32 @@
 import * as BB from 'botbuilder'
 import { Blis } from './Blis'
 import { BlisIntent } from './BlisIntent'
-import { ActionTypes } from 'blis-models'
+import { ActionTypes, FilledEntityMap } from 'blis-models'
+
+const addEntitiesById = (valuesByName: FilledEntityMap): FilledEntityMap => {
+    const valuesById = convertToMapById(valuesByName)
+    const map = {
+        ...valuesByName.map,
+        ...valuesById.map
+    }
+    
+    return new FilledEntityMap({ map })
+}
+
+const convertToMapById = (entityMap: FilledEntityMap): FilledEntityMap => {
+    const map = Object.keys(entityMap.map).reduce((newMap, key) => {
+        const filledEntity = entityMap.map[key]
+        if (!filledEntity.entityId) {
+            throw new Error(`Cannot convert filledEntityMap by name to filledEntityMap by id because id does not exist for entity: ${key}`)
+        }
+
+        newMap[filledEntity.entityId] = filledEntity
+
+        return newMap
+    }, {})
+
+    return new FilledEntityMap({ map })
+}
 
 export class BlisTemplateRenderer implements BB.TemplateRenderer {
     public async renderTemplate(
@@ -12,11 +37,12 @@ export class BlisTemplateRenderer implements BB.TemplateRenderer {
     ): Promise<Partial<BB.Activity> | string | undefined> {
         // Get filled entities from memory
         let filledEntityMap = await blisIntent.memory.BotMemory.FilledEntityMap()
+        const betterFilledEntityMap = addEntitiesById(filledEntityMap)
 
         let message = null
         switch (blisIntent.scoredAction.actionType) {
             case ActionTypes.TEXT:
-                message = await Blis.TakeTextAction(blisIntent.scoredAction, filledEntityMap)
+                message = await Blis.TakeTextAction(blisIntent.scoredAction, betterFilledEntityMap)
                 break
             /* TODO
             case ActionTypes.API_AZURE:
@@ -26,13 +52,13 @@ export class BlisTemplateRenderer implements BB.TemplateRenderer {
             case ActionTypes.API_LOCAL:
                 message = await Blis.TakeLocalAPIAction(
                     blisIntent.scoredAction,
-                    filledEntityMap,
+                    betterFilledEntityMap,
                     blisIntent.memory,
                     blisIntent.blisEntities
                 )
                 break
             case ActionTypes.CARD:
-                message = await Blis.TakeCardAction(blisIntent.scoredAction, filledEntityMap)
+                message = await Blis.TakeCardAction(blisIntent.scoredAction, betterFilledEntityMap)
                 break
         }
 
