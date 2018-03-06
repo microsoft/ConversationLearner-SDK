@@ -73,54 +73,55 @@ export class BlisRecognizer extends BB.IntentRecognizer {
             let app = await memory.BotState.AppAsync()
             let sessionId = null
 
-            // If I don't have an app yet, or app does not match
-            if (!app || (Blis.options.appId && app.appId !== Blis.options.appId)) {
-                if (Blis.options.appId) {
-                    BlisDebug.Log(`Selecting app: ${Blis.options.appId}`)
-                    app = await this.client.GetApp(Blis.options.appId, '')
-                    await memory.BotState.SetAppAsync(app)
-                } else {
-                    throw 'BLIS AppID not specified'
-                }
-            } else {
-                // Attempt to load the session
-                const user = botContext.request.from
-                if (!user || !user.id) {
-                    throw new Error(`Attempted to get current session for user, but user was not defined on bot request.`)
-                }
+            // If I don't have an app, default to using config
+            if (!app && Blis.options.appId) {
 
-                sessionId = await memory.BotState.SessionIdAsync(user.id)
-
-                // Make sure session hasn't expired
-                if (!inTeach && sessionId) {
-                    const currentTicks = new Date().getTime();
-                    let lastActive = await memory.BotState.LastActiveAsync()
-                    let passedTicks = currentTicks - lastActive;
-
-                    // If session expired, create a new one
-                    if (passedTicks > MAX_SESSION_LENGTH) { 
-
-                        // Store conversationId
-                        let conversationId = await memory.BotState.ConversationIdAsync()
-
-                        // End the current session, clear the memory
-                        await Blis.blisClient.EndSession(app.appId, sessionId);
-                        memory.EndSession()
-
-                        // Start a new session 
-                        let sessionResponse = await Blis.blisClient.StartSession(app.appId, {saveToLog: app.metadata.isLoggingOn})
+                BlisDebug.Log(`Selecting app specified in config: ${Blis.options.appId}`)
+                app = await this.client.GetApp(Blis.options.appId, '')
+                await memory.BotState.SetAppAsync(app)
+            }
             
-                        // Update Memory, passing in original sessionId for reference
+            if (!app) {
+                throw new Error('BLIS AppID not specified')
+            }
+            
+            // Attempt to load the session
+            const user = botContext.request.from
+            if (!user || !user.id) {
+                throw new Error(`Attempted to get current session for user, but user was not defined on bot request.`)
+            }
 
-                        memory.StartSessionAsync(sessionResponse.sessionId, conversationId, { inTeach: inTeach, isContinued: false }, sessionId)
+            sessionId = await memory.BotState.SessionIdAsync(user.id)
 
-                        // Set new sessionId
-                        sessionId = sessionResponse.sessionId;
-                    }
-                    // Otherwise update last access time
-                    else {
-                        await memory.BotState.SetLastActiveAsync(currentTicks);
-                    }
+            // Make sure session hasn't expired
+            if (!inTeach && sessionId) {
+                const currentTicks = new Date().getTime();
+                let lastActive = await memory.BotState.LastActiveAsync()
+                let passedTicks = currentTicks - lastActive;
+
+                // If session expired, create a new one
+                if (passedTicks > MAX_SESSION_LENGTH) { 
+
+                    // Store conversationId
+                    let conversationId = await memory.BotState.ConversationIdAsync()
+
+                    // End the current session, clear the memory
+                    await Blis.blisClient.EndSession(app.appId, sessionId);
+                    memory.EndSession()
+
+                    // Start a new session 
+                    let sessionResponse = await Blis.blisClient.StartSession(app.appId, {saveToLog: app.metadata.isLoggingOn})
+        
+                    // Update Memory, passing in original sessionId for reference
+
+                    memory.StartSessionAsync(sessionResponse.sessionId, conversationId, { inTeach: inTeach, isContinued: false }, sessionId)
+
+                    // Set new sessionId
+                    sessionId = sessionResponse.sessionId;
+                }
+                // Otherwise update last access time
+                else {
+                    await memory.BotState.SetLastActiveAsync(currentTicks);
                 }
             }
 
