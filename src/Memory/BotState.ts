@@ -33,6 +33,9 @@ export class BotState {
     // If session is continuation of times out session, what was the original sessionId
     public orgSessionId: string | null
 
+    // True if onEndSession has been
+    public onEndSessionCalled: boolean
+
     // BotBuilder conversation reference
     public conversationReference: BB.ConversationReference | null = null
 
@@ -70,6 +73,7 @@ export class BotState {
         this.lastActive = json.lastActive,
         this.conversationId = json.conversationId,
         this.orgSessionId = json.orgSessionId,
+        this.onEndSessionCalled = json.onEndSessionCalled ? json.onEndSessionCalled : false
         this.conversationReference = json.conversationReference
     }
 
@@ -81,6 +85,7 @@ export class BotState {
             lastActive: this.lastActive,
             conversationId: this.conversationId,
             orgSessionId: this.orgSessionId,
+            onEndSessionCalled: this.onEndSessionCalled ? this.onEndSessionCalled : false,
             conversationReference: this.conversationReference
         }
         return JSON.stringify(jsonObj)
@@ -99,6 +104,7 @@ export class BotState {
         this.conversationId = null,
         this.lastActive = 0,
         this.orgSessionId = null,
+        this.onEndSessionCalled = false,
         this.inTeach = false
         await this.SetAsync()
     }
@@ -125,6 +131,16 @@ export class BotState {
             return this.sessionId;
         }
         return sessionId;
+    }
+
+    public async OnEndSessionCalledAsync(): Promise<boolean> {
+        await this.Init()
+        return this.onEndSessionCalled;
+    }
+
+    public async SetOnEndSessionCalledAsync(called: boolean): Promise<void> {
+        this.onEndSessionCalled = called;
+        await this.SetAsync();
     }
 
     public async LastActiveAsync(): Promise<number> {
@@ -161,6 +177,7 @@ export class BotState {
         if (!this.orgSessionId) {
             this.orgSessionId = orgSessionId;
         }
+        this.onEndSessionCalled = false;
         this.conversationId = conversationId;
         this.lastActive = new Date().getTime();
         this.inTeach = inTeach
@@ -170,6 +187,7 @@ export class BotState {
     public async EndSessionAsync(): Promise<void> {
         this.sessionId = null;
         this.orgSessionId = null;
+        this.onEndSessionCalled = false;
         this.conversationId = null;
         this.lastActive = 0;
         this.inTeach = false

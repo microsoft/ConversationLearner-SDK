@@ -233,7 +233,7 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
             let app = await memory.BotState.AppAsync()
             if (app && app.appId === appId) {
                 await memory.BotState.SetAppAsync(null)
-                await memory.BotState.EndSessionAsync();
+                await memory.EndSessionAsync();
             }
             res.send(200)
         } catch (error) {
@@ -799,7 +799,7 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
             res.send(response)
 
             // Update Memory
-            memory.EndSession()
+            memory.EndSessionAsync()
         } catch (error) {
             HandleError(res, error)
         }
@@ -1079,7 +1079,7 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
 
             // Update Memory
             let memory = BlisMemory.GetMemory(key)
-            memory.EndSession()
+            memory.EndSessionAsync()
         } catch (error) {
             HandleError(res, error)
         }

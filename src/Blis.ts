@@ -175,10 +175,10 @@ export class Blis {
         }
     }
 
-    public static async CallSessionEndCallback(memory: BlisMemory, appId: string): Promise<void> {
+    public static async CallSessionEndCallback(memory: BlisMemory, appId: string | null): Promise<void> {
 
         // If bot has callback, call it to determine which entites to clear / edit
-        if (Blis.onSessionEndCallback) {
+        if (appId && Blis.onSessionEndCallback) {
             let entityList = await this.blisClient.GetEntities(appId)
             let memoryManager = new ClientMemoryManager(memory, entityList.entities)
             await Blis.onSessionEndCallback(memoryManager)
