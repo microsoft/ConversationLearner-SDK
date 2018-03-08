@@ -110,10 +110,15 @@ export class TemplateProvider {
     }
 
     public static GetTemplatesNames(): string[] {
-        let fileNames: string[] = fs.readdirSync(templateDirectory)
-        fileNames = fileNames.filter(fn => fn.endsWith('.json'))
-        let templates = fileNames.map(f => f.slice(0, f.indexOf('.')))
-        return templates
+        try {
+            let fileNames: string[] = fs.readdirSync(templateDirectory)
+            fileNames = fileNames.filter(fn => fn.endsWith('.json'))
+            let templates = fileNames.map(f => f.slice(0, f.indexOf('.')))
+            return templates
+        } catch {
+            BlisDebug.Log("No Card directory found")
+            return [];
+        }
     }
 
     private static GetVarNames(template: any): string[] {

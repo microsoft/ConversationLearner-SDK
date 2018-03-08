@@ -22,9 +22,7 @@ export class BlisRecognizer extends BB.IntentRecognizer {
         this.client = client
 
         this.onRecognize(botContext => {
-            BlisDebug.Verbose(`On Recognize...`)
-            console.log('On recognize 2...')
-            
+
             Blis.SetBot(botContext)
 
             const intents: BB.Intent[] = []
