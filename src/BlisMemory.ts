@@ -133,29 +133,34 @@ export class BlisMemory {
         await this.BotMemory.ClearAsync()
     }
 
-    /** Clear memory associated with a session */
-    public async EndSession(): Promise<void> {
-        await this.BotState.EndSessionAsync()
+    /** Update memory associated with a session */
+    public async EndSessionAsync(): Promise<void> {
+
         let app = await this.BotState.AppAsync()
-        if (app) {
-            // Default callback will clear the bot memory
-            Blis.CallSessionEndCallback(this, app.appId);
-        }
+
+        // Default callback will clear the bot memory
+        Blis.CallSessionEndCallback(this, app ? app.appId : null);
+
+        await this.BotState.EndSessionAsync();
     }
 
     /** Init memory for a session */
     public async StartSessionAsync(sessionId: string, conversationId: string | null, params: ISessionStartParams, orgSessionId: string | null = null): Promise<void> {
-        await this.BotState.SetSessionAsync(sessionId, conversationId, params.inTeach, orgSessionId) 
-        if (!params.isContinued) {
-            // If continuing an expired session allow uncleared entities to remain
-            if (!orgSessionId) {
-                await this.BotMemory.ClearAsync()
-            }
-            let app = await this.BotState.AppAsync()
-            if (app) {
-                Blis.CallSessionStartCallback(this, app.appId);
+ 
+        // If not continuing an edited session or restarting an expired session 
+        if (!params.isContinued && !orgSessionId) {
+
+            // If onEndSession hasn't been called yet, call it
+            let calledEndSession = await this.BotState.OnEndSessionCalledAsync();
+            if (!calledEndSession) {
+
+                let app = await this.BotState.AppAsync()
+
+                // Default callback will clear the bot memory
+                Blis.CallSessionEndCallback(this, app ? app.appId : null);
             }
         }
+        await this.BotState.SetSessionAsync(sessionId, conversationId, params.inTeach, orgSessionId)
     }
 
     public get BotMemory(): BotMemory {
