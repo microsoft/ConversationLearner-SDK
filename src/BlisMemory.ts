@@ -128,9 +128,13 @@ export class BlisMemory {
         }
     }
 
-    public async Init(app: BlisAppBase): Promise<void> {
-        await this.BotState.SetAppAsync(app)
-        await this.BotMemory.ClearAsync()
+    public async SetAppAsync(app: BlisAppBase | null): Promise<void> {
+        const curApp = await this.BotState.AppAsync();
+        await this.BotState._SetAppAsync(app)
+
+        if (!app || !curApp || curApp.appId !== app.appId) {
+            await this.BotMemory.ClearAsync()
+        }
     }
 
     /** Update memory associated with a session */

@@ -98,7 +98,7 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
             let app: models.BlisAppBase = req.body
 
             let memory = BlisMemory.GetMemory(key)
-            await memory.BotState.SetAppAsync(app)
+            await memory.SetAppAsync(app)
             res.send(200)
         } catch (error) {
             HandleError(res, error)
@@ -192,7 +192,7 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
             res.send(app.appId)
 
             // Initialize memory
-            await BlisMemory.GetMemory(key).Init(app)
+            await BlisMemory.GetMemory(key).SetAppAsync(app)
         } catch (error) {
             HandleError(res, error)
         }
@@ -232,7 +232,7 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
             let memory = BlisMemory.GetMemory(key)
             let app = await memory.BotState.AppAsync()
             if (app && app.appId === appId) {
-                await memory.BotState.SetAppAsync(null)
+                await memory.SetAppAsync(null)
                 await memory.EndSessionAsync();
             }
             res.send(200)
@@ -287,8 +287,8 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
         let destUserId = req.params.destUserId
         let luisSubscriptionKey = req.params.luisSubscriptionKey
         try {
-            let app = await client.CopyApps(srcUserId, destUserId, luisSubscriptionKey)
-            res.send(app)
+            let appIds = await client.CopyApps(srcUserId, destUserId, luisSubscriptionKey)
+            res.send(appIds)
         } catch (error) {
             HandleError(res, error)
         }
@@ -839,15 +839,35 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
     server.post('/app/:appId/teach', async (req, res, next) => {
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
-            //let query = req.getQuery();
             const key = req.header(memoryKeyHeaderName)
             let appId = req.params.appId
             let teachResponse = await client.StartTeach(appId, null)
-            res.send(teachResponse)
 
             // Update Memory
             let memory = BlisMemory.GetMemory(key)
             memory.StartSessionAsync(teachResponse.teachId, null, { inTeach: true, isContinued: false })
+
+            // Include and persistent memories in the response
+            let memories = await memory.BotMemory.DumpMemory()
+            let uiTeachResponse: models.UITeachResponse = { teachResponse, memories }
+            res.send(uiTeachResponse)
+
+        } catch (error) {
+            HandleError(res, error)
+        }
+    })
+
+    /** Clear the bot's memory */
+    server.del('/app/:appId/botmemory', async (req, res, next) => {
+        BlisClient.authorizationHeader = req.header('Authorization')
+        try {
+            const key = req.header(memoryKeyHeaderName)
+
+            // Update Memory
+            let memory = BlisMemory.GetMemory(key)
+            await memory.BotMemory.ClearAsync();
+            res.send(200)
+
         } catch (error) {
             HandleError(res, error)
         }
