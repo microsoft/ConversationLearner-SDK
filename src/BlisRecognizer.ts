@@ -79,7 +79,7 @@ export class BlisRecognizer extends BB.IntentRecognizer {
 
                 BlisDebug.Log(`Selecting app specified in config: ${Blis.options.appId}`)
                 app = await this.client.GetApp(Blis.options.appId, '')
-                await memory.BotState.SetAppAsync(app)
+                await memory.SetAppAsync(app)
             }
             
             if (!app) {

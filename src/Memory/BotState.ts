@@ -60,7 +60,7 @@ export class BotState {
         if (data) {
             this.Deserialize(data)
         } else {
-            this.SetAppAsync(null)
+            this._SetAppAsync(null)
         }
     }
 
@@ -98,7 +98,8 @@ export class BotState {
         await this.memory.SetAsync(BotState.MEMKEY, this.Serialize())
     }
 
-    public async SetAppAsync(app: BlisAppBase | null): Promise<void> {
+    // NOTE: BlisMemory should be the only one to call this
+    public async _SetAppAsync(app: BlisAppBase | null): Promise<void> {
         this.app = app
         this.sessionId = null
         this.conversationId = null,

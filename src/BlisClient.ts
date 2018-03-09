@@ -336,7 +336,8 @@ export class BlisClient {
                 } else if (response.statusCode && response.statusCode >= 300) {
                     reject(response)
                 } else {
-                    resolve(body) // LARS TODO
+                    // Array of appIds
+                    resolve(body) 
                 }
             })
         })
