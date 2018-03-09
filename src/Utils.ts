@@ -1,7 +1,7 @@
 import * as BB from 'botbuilder'
 import * as request from 'request'
 import { BlisMemory } from './BlisMemory'
-import { TrainExtractorStep, TrainDialog } from 'blis-models'
+import { TrainExtractorStep, TrainDialog, FilledEntityMap } from 'blis-models'
 import { BlisIntent } from './BlisIntent'
 
 export class Utils {
@@ -170,4 +170,29 @@ export class Utils {
                 return entityText
         }
     }
+}
+
+const convertToMapById = (entityMap: FilledEntityMap): FilledEntityMap => {
+    const map = Object.keys(entityMap.map).reduce((newMap, key) => {
+        const filledEntity = entityMap.map[key]
+        if (!filledEntity.entityId) {
+            throw new Error(`Cannot convert filledEntityMap by name to filledEntityMap by id because id does not exist for entity: ${key}`)
+        }
+
+        newMap[filledEntity.entityId] = filledEntity
+
+        return newMap
+    }, {})
+
+    return new FilledEntityMap({ map })
+}
+
+export const addEntitiesById = (valuesByName: FilledEntityMap): FilledEntityMap => {
+    const valuesById = convertToMapById(valuesByName)
+    const map = {
+        ...valuesByName.map,
+        ...valuesById.map
+    }
+    
+    return new FilledEntityMap({ map })
 }

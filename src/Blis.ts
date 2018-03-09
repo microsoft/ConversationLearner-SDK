@@ -8,7 +8,7 @@ import { BlisClient } from './BlisClient'
 import createSdkServer from './Http/Server'
 import { startDirectOffLineServer } from './DOLRunner'
 import { TemplateProvider } from './TemplateProvider'
-import { Utils } from './Utils'
+import { Utils, addEntitiesById } from './Utils'
 import {
     EntityBase,
     PredictedEntity,
@@ -462,8 +462,8 @@ export class Blis {
                 }
                 isLastActionTerminal = action.isTerminal
 
-                let filledEntityMap = this.CreateFilledEntityMap(scorerStep.input.filledEntities, entityList)
-
+                let filledEntityMap = addEntitiesById(this.CreateFilledEntityMap(scorerStep.input.filledEntities, entityList))
+                
                 let channelData = { senderType: SenderType.Bot, roundIndex: roundNum, scoreIndex: scoreNum }
                 let botResponse = null
                 if (action.actionType === ActionTypes.CARD) {
