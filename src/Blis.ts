@@ -257,7 +257,13 @@ export class Blis {
 
         let memoryManager = new ClientMemoryManager(memory, allEntities)
 
-        return await api(memoryManager, ...argArray)
+        try {
+            let response = await api(memoryManager, ...argArray)
+            return response;
+        }
+        catch (err) {
+            return BlisDebug.Error(err)
+        }
     }
 
     public static async TakeTextAction(
