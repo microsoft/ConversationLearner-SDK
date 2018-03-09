@@ -165,10 +165,10 @@ export class Blis {
         return scoreInput
     }
 
-    public static async CallSessionStartCallback(memory: BlisMemory, appId: string): Promise<void> {
+    public static async CallSessionStartCallback(memory: BlisMemory, appId: string | null): Promise<void> {
 
         // If bot has callback, call it
-        if (Blis.onSessionStartCallback) {
+        if (appId && Blis.onSessionStartCallback) {
             let entityList = await this.blisClient.GetEntities(appId)
             let memoryManager = new ClientMemoryManager(memory, entityList.entities)
             await Blis.onSessionStartCallback(memoryManager)
