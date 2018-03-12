@@ -21,8 +21,8 @@
   "license": "MIT",
   "dependencies": {
     "async-file": "^2.0.2",
-    "blis-models": "0.127.0",
-    "blis-ui": "0.165.0",
+    "blis-models": "0.128.0",
+    "blis-ui": "0.167.0",
     "botbuilder": "4.0.0-m1.4",
     "express": "^4.15.3",
     "filenamify": "^2.0.0",

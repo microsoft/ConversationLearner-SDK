@@ -1,6 +1,6 @@
 import * as fs from 'fs'
 import * as path from 'path'
-import { Template, ActionPayload, TemplateVariable, FilledEntityMap, getActionArgumentValueAsPlainText } from 'blis-models'
+import { Template, ActionPayload, TemplateVariable, FilledEntityMap, getEntityDisplayValueMap, EntityIdSerializer } from 'blis-models'
 import { BlisDebug } from './BlisDebug'
 
 //TODO - make this configurable
@@ -9,6 +9,7 @@ const templateDirectory = path.join(process.cwd(), './cards')
 export class TemplateProvider {
     private static hasSumbitItem = false
 
+    // TODO: Give this method pre-rendered action arguments to remove knowledge about entity substitution
     public static async RenderTemplate(actionPayload: ActionPayload, filledEntityMap: FilledEntityMap): Promise<any> {
         let templateName = actionPayload.payload
 
@@ -25,7 +26,7 @@ export class TemplateProvider {
             let actionArgument = actionPayload.arguments.find(a => a.parameter == argumentName)
             if (actionArgument) {
                 // Substitue any entities
-                const plainTextValue = filledEntityMap.SubstituteEntities(getActionArgumentValueAsPlainText(actionArgument))
+                const plainTextValue = EntityIdSerializer.serialize(actionArgument.value.json, getEntityDisplayValueMap(filledEntityMap))
                 templateString = templateString.replace(new RegExp(`{{${argumentName}}}`, 'g'), plainTextValue)
             }
         }

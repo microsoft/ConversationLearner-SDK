@@ -8,7 +8,7 @@ import { BlisClient } from './BlisClient'
 import createSdkServer from './Http/Server'
 import { startDirectOffLineServer } from './DOLRunner'
 import { TemplateProvider } from './TemplateProvider'
-import { Utils } from './Utils'
+import { Utils, addEntitiesById } from './Utils'
 import {
     EntityBase,
     PredictedEntity,
@@ -28,8 +28,9 @@ import {
     FilledEntityMap,
     TeachWithHistory,
     DialogMode,
-    getActionArgumentValueAsPlainText,
-    filledEntityValueAsString
+    filledEntityValueAsString,
+    getEntityDisplayValueMap,
+    EntityIdSerializer
 } from 'blis-models'
 import { ClientMemoryManager } from './Memory/ClientMemoryManager'
 import { BlisIntent } from './BlisIntent'
@@ -251,8 +252,12 @@ export class Blis {
 
         // Get arguments in order specified by the API
         const argArray = callbackParams.arguments.map((param: string) => {
-            let argument = actionPayload.arguments.find(arg => arg.parameter == param)
-            return argument ? filledEntityMap.SubstituteEntities(getActionArgumentValueAsPlainText(argument)) : ''
+            let argument = actionPayload.arguments.find(arg => arg.parameter === param)
+            if (!argument) {
+                return ''
+            }
+
+            return EntityIdSerializer.serialize(argument.value.json, getEntityDisplayValueMap(filledEntityMap))
         })
 
         let memoryManager = new ClientMemoryManager(memory, allEntities)
@@ -270,7 +275,7 @@ export class Blis {
         action: ActionBase | ScoredAction,
         filledEntityMap: FilledEntityMap
     ): Promise<Partial<BB.Activity> | string | undefined> {
-        return await filledEntityMap.Substitute(ActionBase.GetPayload(action))
+        return Promise.resolve(ActionBase.GetPayload(action, getEntityDisplayValueMap(filledEntityMap)))
     }
 
     public static async TakeCardAction(
@@ -463,8 +468,8 @@ export class Blis {
                 }
                 isLastActionTerminal = action.isTerminal
 
-                let filledEntityMap = this.CreateFilledEntityMap(scorerStep.input.filledEntities, entityList)
-
+                let filledEntityMap = addEntitiesById(this.CreateFilledEntityMap(scorerStep.input.filledEntities, entityList))
+                
                 let channelData = { senderType: SenderType.Bot, roundIndex: roundNum, scoreIndex: scoreNum }
                 let botResponse = null
                 if (action.actionType === ActionTypes.CARD) {

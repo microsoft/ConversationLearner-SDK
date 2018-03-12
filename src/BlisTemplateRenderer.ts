@@ -2,6 +2,7 @@ import * as BB from 'botbuilder'
 import { Blis } from './Blis'
 import { BlisIntent } from './BlisIntent'
 import { ActionTypes } from 'blis-models'
+import { addEntitiesById } from './Utils'
 
 export class BlisTemplateRenderer implements BB.TemplateRenderer {
     public async renderTemplate(
@@ -12,6 +13,7 @@ export class BlisTemplateRenderer implements BB.TemplateRenderer {
     ): Promise<Partial<BB.Activity> | string | undefined> {
         // Get filled entities from memory
         let filledEntityMap = await blisIntent.memory.BotMemory.FilledEntityMap()
+        filledEntityMap = addEntitiesById(filledEntityMap)
 
         let message = null
         switch (blisIntent.scoredAction.actionType) {
