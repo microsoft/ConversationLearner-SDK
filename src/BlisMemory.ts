@@ -151,6 +151,8 @@ export class BlisMemory {
     /** Init memory for a session */
     public async StartSessionAsync(sessionId: string, conversationId: string | null, params: ISessionStartParams, orgSessionId: string | null = null): Promise<void> {
  
+        let app = await this.BotState.AppAsync()
+
         // If not continuing an edited session or restarting an expired session 
         if (!params.isContinued && !orgSessionId) {
 
@@ -158,12 +160,11 @@ export class BlisMemory {
             let calledEndSession = await this.BotState.OnEndSessionCalledAsync();
             if (!calledEndSession) {
 
-                let app = await this.BotState.AppAsync()
-
                 // Default callback will clear the bot memory
                 Blis.CallSessionEndCallback(this, app ? app.appId : null);
             }
         }
+        await Blis.CallSessionStartCallback(this, app ? app.appId : null);
         await this.BotState.SetSessionAsync(sessionId, conversationId, params.inTeach, orgSessionId)
     }
 
