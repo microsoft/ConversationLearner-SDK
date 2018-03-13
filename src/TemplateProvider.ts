@@ -1,6 +1,6 @@
 import * as fs from 'fs'
 import * as path from 'path'
-import { Template, ActionPayload, TemplateVariable, FilledEntityMap, getEntityDisplayValueMap, EntityIdSerializer } from 'blis-models'
+import { Template, TemplateVariable, RenderedActionArgument } from 'blis-models'
 import { BlisDebug } from './BlisDebug'
 
 //TODO - make this configurable
@@ -9,10 +9,9 @@ const templateDirectory = path.join(process.cwd(), './cards')
 export class TemplateProvider {
     private static hasSumbitItem = false
 
-    // TODO: Give this method pre-rendered action arguments to remove knowledge about entity substitution
-    public static async RenderTemplate(actionPayload: ActionPayload, filledEntityMap: FilledEntityMap): Promise<any> {
-        let templateName = actionPayload.payload
-
+    // TODO: Decouple template renderer from types from Action classes
+    // E.g. use generic key,value object instead of RenderedActionArgument
+    public static async RenderTemplate(templateName: string, templateArguments: RenderedActionArgument[]): Promise<any | null> {
         let template = this.GetTemplate(templateName)
         if (template == null) {
             return null
@@ -23,11 +22,9 @@ export class TemplateProvider {
 
         // Substitute argument values
         for (let argumentName of argumentNames) {
-            let actionArgument = actionPayload.arguments.find(a => a.parameter == argumentName)
-            if (actionArgument) {
-                // Substitue any entities
-                const plainTextValue = EntityIdSerializer.serialize(actionArgument.value.json, getEntityDisplayValueMap(filledEntityMap))
-                templateString = templateString.replace(new RegExp(`{{${argumentName}}}`, 'g'), plainTextValue)
+            let renderedActionArgument = templateArguments.find(a => a.parameter == argumentName)
+            if (renderedActionArgument) {
+                templateString = templateString.replace(new RegExp(`{{${argumentName}}}`, 'g'), renderedActionArgument.value)
             }
         }
         templateString = this.RemoveEmptyArguments(templateString)
