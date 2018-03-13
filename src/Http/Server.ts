@@ -76,7 +76,9 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
     })
 
     server.use(restify.plugins.bodyParser())
-    server.use(restify.plugins.queryParser())
+    server.use(restify.plugins.queryParser({
+        mapParams: true
+    }))
 
     //CORS
     server.pre(cors.preflight)
