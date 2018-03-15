@@ -12,10 +12,12 @@ export const BLIS_INTENT_WRAPPER = 'BLIS_INTENT_WRAPPER'
 
 export class BlisRecognizer extends BB.IntentRecognizer {
     private client: BlisClient
+    private options: IBlisOptions
 
     constructor(options: IBlisOptions, client: BlisClient) {
         super()
 
+        this.options = options
         this.client = client
 
         this.onRecognize(botContext => {
@@ -72,10 +74,10 @@ export class BlisRecognizer extends BB.IntentRecognizer {
             let sessionId = null
 
             // If I don't have an app, default to using config
-            if (!app && Blis.options.appId) {
+            if (!app && this.options.appId) {
 
-                BlisDebug.Log(`Selecting app specified in config: ${Blis.options.appId}`)
-                app = await this.client.GetApp(Blis.options.appId, '')
+                BlisDebug.Log(`Selecting app specified in config: ${this.options.appId}`)
+                app = await this.client.GetApp(this.options.appId, '')
                 await memory.SetAppAsync(app)
             }
             
