@@ -107,11 +107,11 @@ export class BlisRecognizer extends BB.IntentRecognizer {
                     let conversationId = await memory.BotState.ConversationIdAsync()
 
                     // End the current session, clear the memory
-                    await Blis.blisClient.EndSession(app.appId, sessionId);
+                    await this.client.EndSession(app.appId, sessionId);
                     memory.EndSessionAsync()
 
                     // Start a new session 
-                    let sessionResponse = await Blis.blisClient.StartSession(app.appId, {saveToLog: app.metadata.isLoggingOn})
+                    let sessionResponse = await this.client.StartSession(app.appId, {saveToLog: app.metadata.isLoggingOn})
         
                     // Update Memory, passing in original sessionId for reference
 
