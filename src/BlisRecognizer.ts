@@ -10,9 +10,6 @@ import { IBlisOptions } from './BlisOptions'
 
 export const BLIS_INTENT_WRAPPER = 'BLIS_INTENT_WRAPPER'
 
-// Maxium allowed chat session length
-const MAX_SESSION_LENGTH = 20*60*1000;  // 20 minutes
-
 export class BlisRecognizer extends BB.IntentRecognizer {
     private client: BlisClient
 
@@ -101,7 +98,7 @@ export class BlisRecognizer extends BB.IntentRecognizer {
                 let passedTicks = currentTicks - lastActive;
 
                 // If session expired, create a new one
-                if (passedTicks > MAX_SESSION_LENGTH) { 
+                if (passedTicks > this.options.sessionMaxTimeout!) { 
 
                     // Store conversationId
                     let conversationId = await memory.BotState.ConversationIdAsync()

@@ -34,6 +34,7 @@ import {
 } from 'blis-models'
 import { ClientMemoryManager } from './Memory/ClientMemoryManager'
 import { BlisIntent } from './BlisIntent'
+const DEFAULT_MAX_SESSION_LENGTH = 20 * 60 * 1000;  // 20 minutes
 
 export class Blis {
     public static options: IBlisOptions
@@ -66,6 +67,10 @@ export class Blis {
     private static blisClient: BlisClient
 
     public static Init(options: IBlisOptions, storage: BB.Storage | null = null) {
+        if (typeof options.sessionMaxTimeout !== 'number') {
+            options.sessionMaxTimeout = DEFAULT_MAX_SESSION_LENGTH
+        }
+
         Blis.options = options
 
         try {
