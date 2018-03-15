@@ -40,7 +40,7 @@ export class Blis {
     public static options: IBlisOptions
 
     // Mapping between user defined API names and functions
-    public static apiCallbacks: { string: (memoryManager: ClientMemoryManager, ...args: string[]) => Promise<BB.Activity | string | undefined> }
+    public static apiCallbacks: { [name: string]: (memoryManager: ClientMemoryManager, ...args: string[]) => Promise<BB.Activity | string | undefined> } = {}
     public static apiParams: CallbackAPI[] = []
 
     // Optional callback than runs after LUIS but before BLIS.  Allows Bot to substitute entities
