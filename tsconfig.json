@@ -2,11 +2,11 @@
     "compileOnSave": true,
     "compilerOptions": {
         "noUnusedLocals": true,
-        "forceConsistentCasingInFileNames": false,  
+        "forceConsistentCasingInFileNames": true,  
         "noImplicitReturns": true,
         "noImplicitThis": true,
         "noImplicitAny": true,
-        "strictNullChecks": true, // TODO: Enable
+        "strictNullChecks": true,
         "suppressImplicitAnyIndexErrors": true,
         "experimentalDecorators": true,
         "emitDecoratorMetadata": true,

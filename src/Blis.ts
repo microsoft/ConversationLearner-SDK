@@ -10,15 +10,14 @@ import { startDirectOffLineServer } from './DOLRunner'
 import { TemplateProvider } from './TemplateProvider'
 import { Utils } from './Utils'
 import {
+    ApiAction,
     EntityBase,
     PredictedEntity,
     EntityList,
     TrainDialog,
     TrainRound,
-    ActionPayload,
     SenderType,
     ActionTypes,
-    ScoredAction,
     Memory,
     ScoreInput,
     ModelUtils,
@@ -28,19 +27,20 @@ import {
     FilledEntityMap,
     TeachWithHistory,
     DialogMode,
-    getActionArgumentValueAsPlainText,
-    filledEntityValueAsString
+    filledEntityValueAsString,
+    getEntityDisplayValueMap,
+    TextAction,
+    CardAction
 } from 'blis-models'
 import { ClientMemoryManager } from './Memory/ClientMemoryManager'
 import { BlisIntent } from './BlisIntent'
+const DEFAULT_MAX_SESSION_LENGTH = 20 * 60 * 1000;  // 20 minutes
 
 export class Blis {
     public static options: IBlisOptions
 
     // Mapping between user defined API names and functions
-    public static apiCallbacks:
-        | { string: (memoryManager: ClientMemoryManager, ...args: string[]) => Promise<BB.Activity | string | undefined> }
-        | {} = {}
+    public static apiCallbacks: { [name: string]: (memoryManager: ClientMemoryManager, ...args: string[]) => Promise<BB.Activity | string | undefined> } = {}
     public static apiParams: CallbackAPI[] = []
 
     // Optional callback than runs after LUIS but before BLIS.  Allows Bot to substitute entities
@@ -64,9 +64,13 @@ export class Blis {
     public static recognizer: BlisRecognizer
     public static templateRenderer: BlisTemplateRenderer
 
-    public static blisClient: BlisClient
+    private static blisClient: BlisClient
 
     public static Init(options: IBlisOptions, storage: BB.Storage | null = null) {
+        if (typeof options.sessionMaxTimeout !== 'number') {
+            options.sessionMaxTimeout = DEFAULT_MAX_SESSION_LENGTH
+        }
+
         Blis.options = options
 
         try {
@@ -230,29 +234,37 @@ export class Blis {
     }
 
     public static async TakeLocalAPIAction(
-        action: ActionBase | ScoredAction,
+        apiAction: ApiAction,
         filledEntityMap: FilledEntityMap,
         memory: BlisMemory,
         allEntities: EntityBase[]
     ): Promise<Partial<BB.Activity> | string | undefined> {
-        let actionPayload = JSON.parse(action.payload) as ActionPayload
         if (!Blis.apiCallbacks) {
             BlisDebug.Error('No Local APIs defined.')
             return undefined
         }
 
         // Extract API name and args
-        const apiName = actionPayload.payload
+        const apiName = apiAction.name
         const api = Blis.apiCallbacks[apiName]
         const callbackParams = Blis.apiParams.find(apip => apip.name == apiName)
         if (!api || !callbackParams) {
             return BlisDebug.Error(`API "${apiName}" is undefined`)
         }
 
+        // TODO: This issue arises because we only save non-null non-empty argument values on the actions
+        // which means callback may accept more arguments than is actually available on the action.arguments
+        // To me, it seeems it would make more sense to always have these be same length, but perhaps there is
+        // dependency on action not being defined somewhere else in the application like AcionCreatorEditor
+        
         // Get arguments in order specified by the API
         const argArray = callbackParams.arguments.map((param: string) => {
-            let argument = actionPayload.arguments.find(arg => arg.parameter == param)
-            return argument ? filledEntityMap.SubstituteEntities(getActionArgumentValueAsPlainText(argument)) : ''
+            let argument = apiAction.arguments.find(arg => arg.parameter === param)
+            if (!argument) {
+                return ''
+            }
+
+            return argument.renderValue(getEntityDisplayValueMap(filledEntityMap))
         })
 
         let memoryManager = new ClientMemoryManager(memory, allEntities)
@@ -267,22 +279,23 @@ export class Blis {
     }
 
     public static async TakeTextAction(
-        action: ActionBase | ScoredAction,
+        textAction: TextAction,
         filledEntityMap: FilledEntityMap
     ): Promise<Partial<BB.Activity> | string | undefined> {
-        return await filledEntityMap.Substitute(ActionBase.GetPayload(action))
+        return Promise.resolve(textAction.renderValue(getEntityDisplayValueMap(filledEntityMap)))
     }
 
     public static async TakeCardAction(
-        action: ActionBase | ScoredAction,
+        cardAction: CardAction,
         filledEntityMap: FilledEntityMap
     ): Promise<Partial<BB.Activity> | string | undefined> {
-        let actionPayload = JSON.parse(action.payload) as ActionPayload
-
         try {
-            let form = await TemplateProvider.RenderTemplate(actionPayload, filledEntityMap)
+            const entityDisplayValues = getEntityDisplayValueMap(filledEntityMap)
+            const renderedArguments = cardAction.renderArguments(entityDisplayValues)
+            const form = await TemplateProvider.RenderTemplate(cardAction.templateName, renderedArguments)
+            // TODO: Look for better pattern than returning null
             if (form == null) {
-                return BlisDebug.Error(`Missing Template: ${actionPayload.payload}`)
+                return BlisDebug.Error(`Missing Template: ${cardAction.templateName}`)
             }
             const attachment = BB.CardStyler.adaptiveCard(form)
             const message = BB.MessageStyler.attachment(attachment)
@@ -317,6 +330,7 @@ export class Blis {
             let entity = entityList.entities.find(e => e.entityId == filledEntity.entityId)
             if (entity) {
                 filledEntityMap.map[entity.entityName] = filledEntity
+                filledEntityMap.map[entity.entityId] = filledEntity
             }
         }
         return filledEntityMap
@@ -471,14 +485,21 @@ export class Blis {
                     let filledEntityMap = this.CreateFilledEntityMap(scorerStep.input.filledEntities, entityList)
 
                     if (action.actionType === ActionTypes.CARD) {
-                        botResponse = await this.TakeCardAction(action, filledEntityMap)
+                        const cardAction = new CardAction(action)
+                        botResponse = await this.TakeCardAction(cardAction, filledEntityMap)
                     } else if (action.actionType === ActionTypes.API_LOCAL) {
-                        botResponse = await this.TakeLocalAPIAction(action, filledEntityMap, memory, entityList.entities)
-                    } else {
-                        botResponse = await Blis.TakeTextAction(action, filledEntityMap)
+                        const apiAction = new ApiAction(action)
+                        botResponse = await this.TakeLocalAPIAction(apiAction, filledEntityMap, memory, entityList.entities)
+                    } else if (action.actionType === ActionTypes.TEXT) {
+                        const textAction = new TextAction(action)
+                        botResponse = await Blis.TakeTextAction(textAction, filledEntityMap)
                     }
                     // TODO
                     //  TakeAzureAPIAction
+
+                    else {
+                        throw new Error(`Cannont construct bot response for unknown action type: ${action.actionType}`)
+                    }
                 }
 
 

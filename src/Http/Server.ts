@@ -1,4 +1,5 @@
-import * as Restify from 'restify'
+import * as restify from 'restify'
+import * as errors from 'restify-errors'
 import { BlisDebug } from '../BlisDebug'
 import { BlisClient } from '../BlisClient'
 import { Blis } from '../Blis'
@@ -33,7 +34,7 @@ export const HTML2Error = (htmlText: string): string => {
 }
 
 // Parse error to return appropriate error message
-export const HandleError = (response: Restify.Response, err: any): void => {
+export const HandleError = (response: restify.Response, err: any): void => {
     // Generate error message
     let error = ''
     if (typeof err == 'string') {
@@ -67,18 +68,20 @@ export const HandleError = (response: Restify.Response, err: any): void => {
 }
 
 const memoryKeyHeaderName = 'x-blis-memory-key'
-const defaultOptions: Restify.ServerOptions = {
+const defaultOptions: restify.ServerOptions = {
     name: `SDK Service`
 }
 
-export const createSdkServer = (client: BlisClient, options: Restify.ServerOptions = {}): Restify.Server => {
-    const server = Restify.createServer({
+export const createSdkServer = (client: BlisClient, options: restify.ServerOptions = {}): restify.Server => {
+    const server = restify.createServer({
         ...defaultOptions,
         ...options
     })
 
-    server.use(Restify.bodyParser())
-    server.use(Restify.queryParser())
+    server.use(restify.plugins.bodyParser())
+    server.use(restify.plugins.queryParser({
+        mapParams: true
+    }))
 
     //CORS
     server.pre(cors.preflight)
@@ -212,7 +215,7 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
             if (!app.appId) {
                 app.appId = req.params.appId
             } else if (req.params.appId != app.appId) {
-                return next(new Restify.InvalidArgumentError('AppId of object does not match URI'))
+                return next(new errors.BadRequestError(`appId of object: ${app.appId} must match appId in url: ${req.params.appId}`))
             }
 
             let appId = await client.EditApp(app, query)
@@ -442,7 +445,7 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
             if (!action.actionId) {
                 action.actionId = req.params.actionId
             } else if (req.params.actionId != action.actionId) {
-                return next(new Restify.InvalidArgumentError('ActionId of object does not match URI'))
+                return next(new errors.BadRequestError('ActionId of object does not match URI'))
             }
             let actionId = await client.EditAction(appId, action)
             res.send(actionId)
@@ -540,7 +543,7 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
             if (!entity.entityId) {
                 entity.entityId = req.params.entityId
             } else if (req.params.entityId != entity.entityId) {
-                return next(new Restify.InvalidArgumentError('EntityId of object does not match URI'))
+                return next(new errors.BadRequestError('EntityId of object does not match URI'))
             }
 
             let entityId = await client.EditEntity(appId, entity)

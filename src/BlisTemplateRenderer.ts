@@ -1,7 +1,8 @@
 import * as BB from 'botbuilder'
 import { Blis } from './Blis'
 import { BlisIntent } from './BlisIntent'
-import { ActionTypes } from 'blis-models'
+import { ActionTypes, CardAction, TextAction, ApiAction } from 'blis-models'
+import { addEntitiesById } from './Utils'
 
 export class BlisTemplateRenderer implements BB.TemplateRenderer {
     public async renderTemplate(
@@ -12,11 +13,16 @@ export class BlisTemplateRenderer implements BB.TemplateRenderer {
     ): Promise<Partial<BB.Activity> | string | undefined> {
         // Get filled entities from memory
         let filledEntityMap = await blisIntent.memory.BotMemory.FilledEntityMap()
+        filledEntityMap = addEntitiesById(filledEntityMap)
 
         let message = null
         switch (blisIntent.scoredAction.actionType) {
             case ActionTypes.TEXT:
-                message = await Blis.TakeTextAction(blisIntent.scoredAction, filledEntityMap)
+                // This is hack to allow ScoredAction to be accepted as ActionBase
+                // TODO: Remove extra properties from ScoredAction so it only had actionId and up service to return actions definitions of scored/unscored actions
+                // so UI can link the two together instead of having "partial" actions being incorrectly treated as full actions
+                const textAction = new TextAction(blisIntent.scoredAction as any)
+                message = await Blis.TakeTextAction(textAction, filledEntityMap)
                 break
             /* TODO
             case ActionTypes.API_AZURE:
@@ -24,15 +30,17 @@ export class BlisTemplateRenderer implements BB.TemplateRenderer {
                 break;
             */
             case ActionTypes.API_LOCAL:
+                const apiAction = new ApiAction(blisIntent.scoredAction as any)
                 message = await Blis.TakeLocalAPIAction(
-                    blisIntent.scoredAction,
+                    apiAction,
                     filledEntityMap,
                     blisIntent.memory,
                     blisIntent.blisEntities
                 )
                 break
             case ActionTypes.CARD:
-                message = await Blis.TakeCardAction(blisIntent.scoredAction, filledEntityMap)
+                const cardAction = new CardAction(blisIntent.scoredAction as any)
+                message = await Blis.TakeCardAction(cardAction, filledEntityMap)
                 break
         }
 
