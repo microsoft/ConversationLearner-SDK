@@ -53,6 +53,9 @@ export const HandleError = (response: Restify.Response, err: any): void => {
             error += `${err.body}\n`
         }
     }
+    if (err.statusMessage && typeof err.statusMessage == 'string') {
+        error += `${err.statusMessage}\n`
+    }
     if (err.body && err.body.errorMessages && err.body.errorMessages.length > 0) {
         error += err.body.errorMessages.join()
     }
@@ -146,10 +149,9 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
     /** Retrieves information about a specific application */
     server.get('/app/:appId', async (req, res, next) => {
         BlisClient.authorizationHeader = req.header('Authorization')
-        let query = req.getQuery()
         let appId = req.params.appId
         try {
-            let app = await client.GetApp(appId, query)
+            let app = await client.GetApp(appId)
             res.send(app)
         } catch (error) {
             HandleError(res, error)
@@ -158,10 +160,10 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
 
     server.get('/app/:appId/source', async (req, res, next) => {
         BlisClient.authorizationHeader = req.header('Authorization')
-        const query = req.getQuery()
         const appId = req.params.appId
+        const packageId = req.params.packageId
         try {
-            const appDefinition = await client.GetAppSource(appId, query)
+            const appDefinition = await client.GetAppSource(appId, packageId)
             res.send(appDefinition)
         } catch (error) {
             HandleError(res, error)
@@ -188,8 +190,9 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
             const key = req.header(memoryKeyHeaderName)
             let app: models.BlisAppBase = req.body
 
-            app.appId = await client.AddApp(app, query)
-            res.send(app.appId)
+            let appId = await client.AddApp(app, query)
+            app = await client.GetApp(appId);
+            res.send(app)
 
             // Initialize memory
             await BlisMemory.GetMemory(key).SetAppAsync(app)
@@ -272,9 +275,16 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
     server.get('/apps', async (req, res, next) => {
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
+            const key = req.header(memoryKeyHeaderName)
             let query = req.getQuery()
             let apps = await client.GetApps(query)
-            res.send(apps)
+
+            // Get lookup table for which apps packages are being edited
+            let memory = BlisMemory.GetMemory(key)
+            let activeApps = await memory.BotState.ActiveAppsAsync();
+
+            let uiAppList = {appList: apps, activeApps: activeApps} as models.UIAppList;
+            res.send(uiAppList)
         } catch (error) {
             HandleError(res, error)
         }
@@ -326,6 +336,68 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
             let appId = req.params.appId
             let app = await client.RestoreApp(appId)
             res.send(app)
+        } catch (error) {
+            HandleError(res, error)
+        }
+    })
+
+    /** Creates a new package tag for an app */
+    server.put('/app/:appId/publish', async (req, res, next) => {
+        BlisClient.authorizationHeader = req.header('Authorization')
+        try {
+            let appId = req.params.appId
+            let tagName = req.params.version
+            let makeLive = req.params.makeLive === "true";
+
+            // Create tag, then load updated app
+            let packageReference = await client.PublishApp(appId, tagName)
+
+            // Make live app if requested
+            if (makeLive) {
+                await client.PublishProdPackage(appId, packageReference.packageId)
+            }
+            let app = await client.GetApp(appId);
+
+            res.send(app)
+        } catch (error) {
+            HandleError(res, error)
+        }
+    })
+
+    /** Sets the live package tag for an app */
+    server.post('/app/:appId/publish/:packageId', async (req, res, next) => {
+        BlisClient.authorizationHeader = req.header('Authorization')
+        try {
+            let appId = req.params.appId
+            let packageId = req.params.packageId
+
+            await client.PublishProdPackage(appId, packageId)
+            let app = await client.GetApp(appId);
+            res.send(app)
+        } catch (error) {
+            HandleError(res, error)
+        }
+    })
+
+    /** Sets which app package is being edited */
+    server.post('/app/:appId/edit/:packageId', async (req, res, next) => {
+        BlisClient.authorizationHeader = req.header('Authorization')
+        try {
+            const key = req.header(memoryKeyHeaderName)
+            let appId = req.params.appId
+            let packageId = req.params.packageId
+
+            let app = await client.GetApp(appId);
+            if (packageId != app.devPackageId) {
+                if (!app.packageVersions || !app.packageVersions.find(pv => pv.packageId == packageId)) {
+                    throw new Error(`Attemped to edit package that doesn't exist: ${packageId}`)
+                }
+            }
+
+            let memory = BlisMemory.GetMemory(key)
+            let updatedPackageVersions = await memory.BotState.SetActiveAppAsync(appId, packageId);
+            res.send(updatedPackageVersions)
+
         } catch (error) {
             HandleError(res, error)
         }
@@ -547,9 +619,9 @@ export const createSdkServer = (client: BlisClient, options: Restify.ServerOptio
     server.get('/app/:appId/logdialogs', async (req, res, next) => {
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
-            let query = req.getQuery()
             let appId = req.params.appId
-            let logDialogs = await client.GetLogDialogs(appId, query)
+            let packageId = req.params.packageId
+            let logDialogs = await client.GetLogDialogs(appId, packageId)
             res.send(logDialogs)
         } catch (error) {
             HandleError(res, error)

@@ -1,5 +1,5 @@
 import * as BB from 'botbuilder'
-import { UserInput, PredictedEntity, EntityBase, ScoredAction } from 'blis-models'
+import { UserInput, PredictedEntity, EntityBase, ScoredAction, SessionCreateParams } from 'blis-models'
 import { BlisDebug } from './BlisDebug'
 import { BlisMemory } from './BlisMemory'
 import { BlisClient } from './BlisClient'
@@ -35,9 +35,9 @@ export class BlisRecognizer extends BB.IntentRecognizer {
         })
     }
 
-    private async StartSessionAsync(botContext: BotContext, memory: BlisMemory, appId: string, saveToLog: boolean): Promise<string> {
+    private async StartSessionAsync(botContext: BotContext, memory: BlisMemory, appId: string, saveToLog: boolean, packageId: string): Promise<string> {
 
-        let sessionCreateParams = {saveToLog}
+        let sessionCreateParams = {saveToLog, packageId} as SessionCreateParams
         let sessionResponse = await this.client.StartSession(appId, sessionCreateParams)
         const user = botContext.request.from
         if (!user) {
@@ -78,7 +78,7 @@ export class BlisRecognizer extends BB.IntentRecognizer {
             if (!app && Blis.options.appId) {
 
                 BlisDebug.Log(`Selecting app specified in config: ${Blis.options.appId}`)
-                app = await this.client.GetApp(Blis.options.appId, '')
+                app = await this.client.GetApp(Blis.options.appId)
                 await memory.SetAppAsync(app)
             }
             
@@ -86,6 +86,8 @@ export class BlisRecognizer extends BB.IntentRecognizer {
                 throw new Error('BLIS AppID not specified')
             }
             
+            let packageId = await memory.BotState.ActiveAppAsync(app.appId)
+
             // Attempt to load the session
             const user = botContext.request.from
             if (!user || !user.id) {
@@ -111,7 +113,7 @@ export class BlisRecognizer extends BB.IntentRecognizer {
                     memory.EndSessionAsync()
 
                     // Start a new session 
-                    let sessionResponse = await Blis.blisClient.StartSession(app.appId, {saveToLog: app.metadata.isLoggingOn})
+                    let sessionResponse = await Blis.blisClient.StartSession(app.appId, {saveToLog: app.metadata.isLoggingOn, packageId: packageId})
         
                     // Update Memory, passing in original sessionId for reference
 
@@ -128,7 +130,7 @@ export class BlisRecognizer extends BB.IntentRecognizer {
 
             // If no session for this conversation (or it's expired), create a new one
             if (!sessionId) {
-                sessionId = await this.StartSessionAsync(botContext, memory, app.appId, app.metadata.isLoggingOn !== false)
+                sessionId = await this.StartSessionAsync(botContext, memory, app.appId, app.metadata.isLoggingOn !== false, packageId)
             }
 
             // Process any form data

@@ -456,26 +456,31 @@ export class Blis {
             let scoreNum = 0
             for (let scorerStep of round.scorerSteps) {
                 let labelAction = scorerStep.labelAction
-                let action = actions.filter((a: ActionBase) => a.actionId === labelAction)[0]
-
-                if (!action) {
-                    throw new Error(`Can't find Entity Id ${labelAction}`)
-                }
-                isLastActionTerminal = action.isTerminal
-
-                let filledEntityMap = this.CreateFilledEntityMap(scorerStep.input.filledEntities, entityList)
+                let botResponse = null
 
                 let channelData = { senderType: SenderType.Bot, roundIndex: roundNum, scoreIndex: scoreNum }
-                let botResponse = null
-                if (action.actionType === ActionTypes.CARD) {
-                    botResponse = await this.TakeCardAction(action, filledEntityMap)
-                } else if (action.actionType === ActionTypes.API_LOCAL) {
-                    botResponse = await this.TakeLocalAPIAction(action, filledEntityMap, memory, entityList.entities)
-                } else {
-                    botResponse = await Blis.TakeTextAction(action, filledEntityMap)
+
+                // Generate bot response
+                let action = actions.filter((a: ActionBase) => a.actionId === labelAction)[0]
+                if (!action) {
+                    botResponse = BlisDebug.Error(`Can't find Entity Id ${labelAction}`);
                 }
-                // TODO
-                //  TakeAzureAPIAction
+                else {
+                    isLastActionTerminal = action.isTerminal
+
+                    let filledEntityMap = this.CreateFilledEntityMap(scorerStep.input.filledEntities, entityList)
+
+                    if (action.actionType === ActionTypes.CARD) {
+                        botResponse = await this.TakeCardAction(action, filledEntityMap)
+                    } else if (action.actionType === ActionTypes.API_LOCAL) {
+                        botResponse = await this.TakeLocalAPIAction(action, filledEntityMap, memory, entityList.entities)
+                    } else {
+                        botResponse = await Blis.TakeTextAction(action, filledEntityMap)
+                    }
+                    // TODO
+                    //  TakeAzureAPIAction
+                }
+
 
                 let botActivity: BB.Activity | null = null
                 if (typeof botResponse == 'string') {
