@@ -62,7 +62,7 @@ export class BlisRecognizer extends BB.IntentRecognizer {
             memory = blisContext.Memory()
 
             // Validate setup
-            let validationError = Blis.ValidationErrors()
+            let validationError = Blis.OptionsValidationErrors()
             if (validationError) {
                 BlisDebug.Error(validationError)
                 await Blis.SendMessage(memory, validationError)
