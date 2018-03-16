@@ -34,14 +34,13 @@ import {
 } from 'blis-models'
 import { ClientMemoryManager } from './Memory/ClientMemoryManager'
 import { BlisIntent } from './BlisIntent'
+const DEFAULT_MAX_SESSION_LENGTH = 20 * 60 * 1000;  // 20 minutes
 
 export class Blis {
     public static options: IBlisOptions
 
     // Mapping between user defined API names and functions
-    public static apiCallbacks:
-        | { string: (memoryManager: ClientMemoryManager, ...args: string[]) => Promise<BB.Activity | string | undefined> }
-        | {} = {}
+    public static apiCallbacks: { [name: string]: (memoryManager: ClientMemoryManager, ...args: string[]) => Promise<BB.Activity | string | undefined> } = {}
     public static apiParams: CallbackAPI[] = []
 
     // Optional callback than runs after LUIS but before BLIS.  Allows Bot to substitute entities
@@ -65,9 +64,13 @@ export class Blis {
     public static recognizer: BlisRecognizer
     public static templateRenderer: BlisTemplateRenderer
 
-    public static blisClient: BlisClient
+    private static blisClient: BlisClient
 
     public static Init(options: IBlisOptions, storage: BB.Storage | null = null) {
+        if (typeof options.sessionMaxTimeout !== 'number') {
+            options.sessionMaxTimeout = DEFAULT_MAX_SESSION_LENGTH
+        }
+
         Blis.options = options
 
         try {

@@ -10,15 +10,14 @@ import { IBlisOptions } from './BlisOptions'
 
 export const BLIS_INTENT_WRAPPER = 'BLIS_INTENT_WRAPPER'
 
-// Maxium allowed chat session length
-const MAX_SESSION_LENGTH = 20*60*1000;  // 20 minutes
-
 export class BlisRecognizer extends BB.IntentRecognizer {
     private client: BlisClient
+    private options: IBlisOptions
 
     constructor(options: IBlisOptions, client: BlisClient) {
         super()
 
+        this.options = options
         this.client = client
 
         this.onRecognize(botContext => {
@@ -75,10 +74,10 @@ export class BlisRecognizer extends BB.IntentRecognizer {
             let sessionId = null
 
             // If I don't have an app, default to using config
-            if (!app && Blis.options.appId) {
+            if (!app && this.options.appId) {
 
-                BlisDebug.Log(`Selecting app specified in config: ${Blis.options.appId}`)
-                app = await this.client.GetApp(Blis.options.appId, '')
+                BlisDebug.Log(`Selecting app specified in config: ${this.options.appId}`)
+                app = await this.client.GetApp(this.options.appId, '')
                 await memory.SetAppAsync(app)
             }
             
@@ -101,17 +100,17 @@ export class BlisRecognizer extends BB.IntentRecognizer {
                 let passedTicks = currentTicks - lastActive;
 
                 // If session expired, create a new one
-                if (passedTicks > MAX_SESSION_LENGTH) { 
+                if (passedTicks > this.options.sessionMaxTimeout!) { 
 
                     // Store conversationId
                     let conversationId = await memory.BotState.ConversationIdAsync()
 
                     // End the current session, clear the memory
-                    await Blis.blisClient.EndSession(app.appId, sessionId);
+                    await this.client.EndSession(app.appId, sessionId);
                     memory.EndSessionAsync()
 
                     // Start a new session 
-                    let sessionResponse = await Blis.blisClient.StartSession(app.appId, {saveToLog: app.metadata.isLoggingOn})
+                    let sessionResponse = await this.client.StartSession(app.appId, {saveToLog: app.metadata.isLoggingOn})
         
                     // Update Memory, passing in original sessionId for reference
 

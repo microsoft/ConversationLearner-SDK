@@ -5,6 +5,8 @@ export interface IBlisOptions {
     uiPort: number
     // Application to start
     appId: string
+    // Application settings
+    sessionMaxTimeout?: number
     // Running on localhost
     localhost?: boolean
     dolBotUrl: string
