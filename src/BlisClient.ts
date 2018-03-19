@@ -3,6 +3,9 @@ import { BlisDebug } from './BlisDebug'
 import * as NodeCache from 'node-cache'
 import * as Request from 'request'
 
+const luisAuthoringKeyHeader = 'x-luis-authoring-key'
+const luisSubscriptionKeyHeader = 'x-luis-subscription-key'
+
 type HTTP_METHOD = 'GET' | 'PUT' | 'POST' | 'DELETE'
 const requestMethodMap = new Map<HTTP_METHOD, typeof Request.get | typeof Request.post>([
     ['GET', Request.get],
@@ -11,19 +14,31 @@ const requestMethodMap = new Map<HTTP_METHOD, typeof Request.get | typeof Reques
     ['DELETE', Request.delete]
 ])
 
+export interface IBlisClientOptions {
+    serviceUri: string
+    luisAuthoringKey?: string
+    luisSubscriptionKey?: string
+}
+
 export class BlisClient {
     static authorizationHeader: string
     private serviceUri: string
+    private luisAuthoringKey: string | undefined
+    private luisSubscriptionKey: string | undefined
     private actionCache = new NodeCache({ stdTTL: 300, checkperiod: 600 })
     private entityCache = new NodeCache({ stdTTL: 300, checkperiod: 600 })
     private exportCache = new NodeCache({ stdTTL: 300, checkperiod: 600 })
 
-    constructor(serviceUri: string) {
-        if (typeof serviceUri !== 'string' || serviceUri.length === 0) {
-            throw new Error(`serviceUri must be a non-empty string. You passed: ${serviceUri}`)
+    constructor(options: IBlisClientOptions) {
+        if (typeof options.serviceUri !== 'string' || options.serviceUri.length === 0) {
+            throw new Error(`serviceUri must be a non-empty string. You passed: ${options.serviceUri}`)
         }
 
-        this.serviceUri = serviceUri
+        // TODO: Make luisAuthoringKey required, add guard statement similar to serviceUri
+
+        this.serviceUri = options.serviceUri
+        this.luisAuthoringKey = options.luisAuthoringKey
+        this.luisSubscriptionKey = options.luisSubscriptionKey
     }
 
     private MakeURL(apiPath: string, query?: string) {
@@ -42,6 +57,8 @@ export class BlisClient {
                 url,
                 headers: {
                     Authorization: BlisClient.authorizationHeader,
+                    [luisAuthoringKeyHeader]: this.luisAuthoringKey,
+                    [luisSubscriptionKeyHeader]: this.luisSubscriptionKey
                 },
                 json: true,
                 body
