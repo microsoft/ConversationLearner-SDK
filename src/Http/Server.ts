@@ -780,7 +780,7 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
             }
 
             // Start teach session if replay of API was consistent
-            if (teachWithHistory.replayDiscrepancies.length === 0 && teachWithHistory.validationErrors.length === 0) {
+            if (teachWithHistory.replayErrors.length === 0) {
                 // Start new teach session from the old train dialog
                 let contextDialog = models.ModelUtils.ToContextDialog(trainDialog)
                 let teachResponse = await client.StartTeach(appId, contextDialog)
@@ -970,7 +970,7 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
             }
 
             // Start session if API returned consistent results during replay
-            if (teachWithHistory.replayDiscrepancies.length === 0 && teachWithHistory.validationErrors.length === 0) {
+            if (teachWithHistory.replayErrors.length === 0) {
                 // Start new teach session from the old train dialog
                 let contextDialog = models.ModelUtils.ToContextDialog(trainDialog)
                 let teachResponse = await client.StartTeach(appId, contextDialog)
@@ -1263,7 +1263,7 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
             }
 
             // If APIs returned same values during replay
-            if (teachWithHistory.replayDiscrepancies.length === 0 && teachWithHistory.validationErrors.length === 0) {
+            if (teachWithHistory.replayErrors.length === 0) {
                 // Delete existing train dialog (don't await)
                 client.EndTeach(appId, teach.teachId, `saveDialog=false`)
 
