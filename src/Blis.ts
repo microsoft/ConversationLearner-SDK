@@ -377,11 +377,8 @@ export class Blis {
         let originalEntities = [];
         for (let oldEntity of oldEntities) {
             const entity = entities.find(e => e.entityId == oldEntity.entityId)
-            if (!entity) {
-                throw new Error(`Could not find entity by id: ${oldEntity.entityId}`)
-            }
 
-            let name = entity.entityName
+            let name = entity ? entity.entityName : "MISSING ENTITY";
             let values = filledEntityValueAsString(oldEntity)
             originalEntities.push(`${name} = (${values})`)
         }
@@ -389,11 +386,8 @@ export class Blis {
         let updatedEntities = [];
         for (let newEntity of newEntities) {
             const entity = entities.find(e => e.entityId == newEntity.entityId)
-            if (!entity) {
-                throw new Error(`Could not find entity by id: ${newEntity.entityId}`)
-            }
 
-            let name = entity.entityName
+            let name = entity? entity.entityName : "MISSING ENTITY"
             let values = filledEntityValueAsString(newEntity)
             updatedEntities.push(`${name} = (${values})`)
         }
@@ -507,7 +501,7 @@ export class Blis {
                     let discrepancyError = this.EntityDiscrepancy(userText, round, memory, entities)
                     if (discrepancyError) {
                         replayErrors.push(discrepancyError);
-                        break
+                        // LARS break
                     }
                 }
             }
