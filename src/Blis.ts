@@ -461,11 +461,11 @@ export class Blis {
 
             // VALIDATION
             // Check that entities exist
-            let replayError = null;
+            let chatHighlight = null;
             for (let fentity of filledEntities) {
                 if (!entities.find(e => e.entityId == fentity.entityId)) {
-                    replayError = new ReplayErrorMissingEntity(filledEntityValueAsString(fentity));
-                    replayErrors.push(replayError);
+                    replayErrors.push(new ReplayErrorMissingEntity(filledEntityValueAsString(fentity)));
+                    chatHighlight = "warning"
                 }
             }
 
@@ -478,7 +478,7 @@ export class Blis {
                     roundIndex: roundNum, 
                     scoreIndex: 0, 
                     clientActivityId: this.generateGUID(),
-                    validationError: replayError},  //LARS rename
+                    highlight: chatHighlight},  
                 type: 'message',
                 text: userText
             } as BB.Activity
@@ -512,19 +512,19 @@ export class Blis {
                 let botResponse = null
 
                 // VALIDATION
-                let replayError = null;
+                chatHighlight = null;
                 // Check that action exists
                 let selectedAction = actions.find(a => a.actionId == labelAction)
                 if (!selectedAction)
                 {
-                    replayError = new ReplayErrorMissingAction(userText);
-                    replayErrors.push(replayError);
+                    chatHighlight = "error";
+                    replayErrors.push(new ReplayErrorMissingAction(userText));
                 }
                 else {
                     // Check action availability
                     if (!this.isActionAvailable(selectedAction, scorerStep.input.filledEntities)) {
-                        replayError = new ReplayErrorActionUnavailable(userText);
-                        replayErrors.push(replayError);
+                        chatHighlight = "error";
+                        replayErrors.push(new ReplayErrorActionUnavailable(userText));
                     }
                 }
 
@@ -532,7 +532,7 @@ export class Blis {
                     senderType: SenderType.Bot, 
                     roundIndex: roundNum, 
                     scoreIndex: scoreNum,
-                    validationError: replayError
+                    highlight: chatHighlight
                 }
 
                 // Generate bot response
