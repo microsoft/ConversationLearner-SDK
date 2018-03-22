@@ -241,7 +241,7 @@ export class BlisClient {
         })
     }
 
-    public GetAppSource(appId: string, packageId: string): Promise<models.TrainingStatus> {
+    public GetAppSource(appId: string, packageId: string): Promise<models.AppDefinition> {
         let apiPath = `app/${appId}/source?package=${packageId}`
 
         return new Promise((resolve, reject) => {

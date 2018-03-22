@@ -6,7 +6,7 @@ import { Blis } from '../Blis'
 import { BlisMemory } from '../BlisMemory'
 import { BlisIntent } from '../BlisIntent'
 import { TemplateProvider } from '../TemplateProvider'
-import { Utils } from '../Utils'
+import { Utils, replace } from '../Utils'
 import * as XMLDom from 'xmldom'
 import * as models from 'blis-models'
 import * as corsMiddleware from 'restify-cors-middleware'
@@ -454,6 +454,34 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
         }
     })
 
+    /** Returns list of trainingDialogIds that are invalidated by the given changed action */
+    server.put('/app/:appId/action/:actionId/validationErrors', async (req, res, next) => {
+        BlisClient.authorizationHeader = req.header('Authorization')
+        try {
+            //let query = req.getQuery();
+            let appId = req.params.appId
+            let action: models.ActionBase = req.body
+            const packageId = req.params.packageId
+
+            if (!action.actionId) {
+                action.actionId = req.params.actionId
+            } else if (req.params.actionId != action.actionId) {
+                return next(new errors.BadRequestError('ActionId of object does not match URI'))
+            }
+
+            const appDefinition = await client.GetAppSource(appId, packageId)
+            
+            // Replace the action with new one
+            appDefinition.actions = replace(appDefinition.actions, action, a => a.actionId)
+
+            let invalidTrainDialogIds = Blis.validateTrainDialogs(appDefinition);
+            res.send(invalidTrainDialogIds)
+        } catch (error) {
+            HandleError(res, error)
+        }
+    })
+
+    /** Delete action */
     server.del('/app/:appId/action/:actionId', async (req, res, next) => {
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
@@ -462,6 +490,27 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
             let actionId = req.params.actionId
             await client.DeleteAction(appId, actionId)
             res.send(200)
+        } catch (error) {
+            HandleError(res, error)
+        }
+    })
+
+    /** Returns list of trainDialogs invalidated by deleting the given action */
+    server.del('/app/:appId/action/:actionId/validationErrors', async (req, res, next) => {
+        BlisClient.authorizationHeader = req.header('Authorization')
+        try {
+            //let query = req.getQuery();
+            let appId = req.params.appId
+            let actionId = req.params.actionId
+            const packageId = req.params.packageId
+
+            const appDefinition = await client.GetAppSource(appId, packageId)
+            
+            // Remove the action
+            appDefinition.actions = appDefinition.actions.filter(a => a.actionId != actionId);
+
+            let invalidTrainDialogIds = Blis.validateTrainDialogs(appDefinition);
+            res.send(invalidTrainDialogIds)
         } catch (error) {
             HandleError(res, error)
         }
@@ -561,6 +610,27 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
             let entityId = req.params.entityId
             await client.DeleteEntity(appId, entityId)
             res.send(200)
+        } catch (error) {
+            HandleError(res, error)
+        }
+    })
+
+    /** Returns list of trainDialogs invalidated by deleting the given entity */
+    server.del('/app/:appId/entity/:entityId/validationErrors', async (req, res, next) => {
+        BlisClient.authorizationHeader = req.header('Authorization')
+        try {
+            //let query = req.getQuery();
+            let appId = req.params.appId
+            let entityId = req.params.entityId
+            const packageId = req.params.packageId
+
+            const appDefinition = await client.GetAppSource(appId, packageId)
+            
+            // Remove the action
+            appDefinition.entities = appDefinition.entities.filter(e => e.entityId != entityId);
+
+            let invalidTrainDialogIds = Blis.validateTrainDialogs(appDefinition);
+            res.send(invalidTrainDialogIds)
         } catch (error) {
             HandleError(res, error)
         }
