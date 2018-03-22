@@ -556,7 +556,6 @@ export class Blis {
                     let discrepancyError = this.EntityDiscrepancy(userText, round, memory, entities)
                     if (discrepancyError) {
                         replayErrors.push(discrepancyError);
-                        // LARS break
                     }
                 }
             }
