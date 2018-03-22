@@ -81,7 +81,7 @@ export class Blis {
 
         try {
             BlisDebug.Log('Creating BlisClient....')
-            this.blisClient = new BlisClient(options.serviceUri)
+            this.blisClient = new BlisClient(options)
             BlisMemory.Init(storage)
 
             // If app not set, assume running on localhost init DOL Runner
