@@ -30,7 +30,13 @@ import {
     filledEntityValueAsString,
     getEntityDisplayValueMap,
     TextAction,
-    CardAction
+    CardAction,
+    ReplayError,
+    ReplayErrorMissingAction,
+    ReplayErrorMissingEntity,
+    ReplayErrorActionUnavailable,
+    ReplayErrorEntityDiscrepancy,
+    AppDefinition
 } from 'blis-models'
 import { ClientMemoryManager } from './Memory/ClientMemoryManager'
 import { BlisIntent } from './BlisIntent'
@@ -338,7 +344,7 @@ export class Blis {
 
     // Validate that training round memory is the same as what in the bot's memory
     // This checks that API calls didn't change when restoring the bot's state
-    private static IsSame(round: TrainRound, memory: BlisMemory, entities: EntityBase[]): string[] {
+    private static EntityDiscrepancy(userInput: string, round: TrainRound, memory: BlisMemory, entities: EntityBase[]): ReplayErrorEntityDiscrepancy | null {
         let isSame = true
         let oldEntities = round.scorerSteps[0] && round.scorerSteps[0].input ? round.scorerSteps[0].input.filledEntities : []
         let newEntities = Object.keys(memory.BotMemory.filledEntities.map).map(k => memory.BotMemory.filledEntities.map[k] as FilledEntity)
@@ -366,32 +372,28 @@ export class Blis {
             }
         }
         if (isSame) {
-            return []
+            return null;
         }
-        let discrepancies = []
-        discrepancies.push('Original Entities:')
+
+        let originalEntities = [];
         for (let oldEntity of oldEntities) {
             const entity = entities.find(e => e.entityId == oldEntity.entityId)
-            if (!entity) {
-                throw new Error(`Could not find entity by id: ${oldEntity.entityId}`)
-            }
 
-            let name = entity.entityName
+            let name = entity ? entity.entityName : "MISSING ENTITY";
             let values = filledEntityValueAsString(oldEntity)
-            discrepancies.push(`${name} = (${values})`)
+            originalEntities.push(`${name} = (${values})`)
         }
-        discrepancies.push('', 'New Entities:')
+
+        let updatedEntities = [];
         for (let newEntity of newEntities) {
             const entity = entities.find(e => e.entityId == newEntity.entityId)
-            if (!entity) {
-                throw new Error(`Could not find entity by id: ${newEntity.entityId}`)
-            }
 
-            let name = entity.entityName
+            let name = entity? entity.entityName : "MISSING ENTITY"
             let values = filledEntityValueAsString(newEntity)
-            discrepancies.push(`${name} = (${values})`)
+            updatedEntities.push(`${name} = (${values})`)
         }
-        return discrepancies
+
+        return new ReplayErrorEntityDiscrepancy(userInput, originalEntities, updatedEntities);
     }
 
     // LARS - temp. move to shared utils after branch merge
@@ -403,6 +405,78 @@ export class Blis {
             return (char == 'x' ? r : (r & 0x3) | 0x8).toString(16)
         })
         return guid
+    }
+
+    // Returns true if Action is available given Entities in Memory
+    public static isActionAvailable(action: ActionBase, filledEntities: FilledEntity[]): boolean {
+
+        for (let entityId of action.requiredEntities) {
+            let found = filledEntities.find(e => e.entityId == entityId);
+            if (!found) {
+                return false;
+            }
+        }
+        for (let entityId of action.negativeEntities) {
+            let found = filledEntities.find(e => e.entityId == entityId);
+            if (found) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** Return a list of trainDialogs that are invalid for the given set of entities and actions */
+    public static validateTrainDialogs(appDefinition: AppDefinition): string[] {
+        let invalidTrainDialogIds = [];
+        for (let trainDialog of appDefinition.trainDialogs) {
+            let validationErrors = Blis.DialogValidationErrors(trainDialog, appDefinition.entities, appDefinition.actions);
+            if (validationErrors.length > 0) {
+                invalidTrainDialogIds.push(trainDialog.trainDialogId);
+            }
+        }
+        return invalidTrainDialogIds;
+    }
+
+    /** Identify any validation issues 
+     * Missing Entities
+     * Missing Actions
+     * Unavailble Actions
+    */
+   public static DialogValidationErrors(trainDialog: TrainDialog, entities: EntityBase[], actions: ActionBase[]) : string[] {
+
+        let validationErrors: string[] = [];
+
+        for (let round of trainDialog.rounds) {
+            let userText = round.extractorStep.textVariations[0].text;
+            let filledEntities = round.scorerSteps[0] && round.scorerSteps[0].input ? round.scorerSteps[0].input.filledEntities : []
+
+            // Check that entities exist
+            for (let fentity of filledEntities) {
+                if (!entities.find(e => e.entityId == fentity.entityId)) {
+                    validationErrors.push(`Missing Entity for "${filledEntityValueAsString(fentity)}"`);
+                }
+            }
+
+            for (let scorerStep of round.scorerSteps) {
+                let labelAction = scorerStep.labelAction
+
+                // Check that action exists
+                let selectedAction = actions.find(a => a.actionId == labelAction)
+                if (!selectedAction)
+                {
+                    validationErrors.push(`Missing Action response for "${userText}"`);
+                }
+                else {
+                    // Check action availability
+                    if (!this.isActionAvailable(selectedAction, scorerStep.input.filledEntities)) {
+                        validationErrors.push(`Selected Action in unavailable in response to "${userText}"`);
+                    }
+                }
+            }
+        }
+        // Make errors unique using Set operator
+        validationErrors = [...new Set(validationErrors)]
+        return validationErrors;
     }
 
     /** Get Activites generated by trainDialog.  If "updateBotState" is set, will also update bot state to
@@ -417,8 +491,8 @@ export class Blis {
         updateBotState: boolean = false,
         ignoreLastExtract: boolean = false
     ): Promise<TeachWithHistory | null> {
-        let entities = trainDialog.definitions ? trainDialog.definitions.entities : []
-        let actions = trainDialog.definitions ? trainDialog.definitions.actions : []
+        let entities: EntityBase[] = trainDialog.definitions ? trainDialog.definitions.entities : []
+        let actions: ActionBase[] = trainDialog.definitions ? trainDialog.definitions.actions : []
         let entityList: EntityList = { entities }
         let prevMemories: Memory[] = []
 
@@ -432,15 +506,34 @@ export class Blis {
         }
 
         let activities = []
-        let discrepancies: string[] = []
+        let replayErrors: ReplayError[] = [];
         let roundNum = 0
         let isLastActionTerminal = false
+
         for (let round of trainDialog.rounds) {
             let userText = round.extractorStep.textVariations[0].text
+            let filledEntities = round.scorerSteps[0] && round.scorerSteps[0].input ? round.scorerSteps[0].input.filledEntities : []
+
+            // VALIDATION
+            // Check that entities exist
+            let chatHighlight = null;
+            for (let fentity of filledEntities) {
+                if (!entities.find(e => e.entityId == fentity.entityId)) {
+                    replayErrors.push(new ReplayErrorMissingEntity(filledEntityValueAsString(fentity)));
+                    chatHighlight = "warning"
+                }
+            }
+
+            // Generate activity
             let userActivity = {
                 id: this.generateGUID(),
                 from: { id: userId, name: userName },
-                channelData: { senderType: SenderType.User, roundIndex: roundNum, scoreIndex: 0, clientActivityId: this.generateGUID() },
+                channelData: { 
+                    senderType: SenderType.User, 
+                    roundIndex: roundNum, 
+                    scoreIndex: 0, 
+                    clientActivityId: this.generateGUID(),
+                    highlight: chatHighlight},  
                 type: 'message',
                 text: userText
             } as BB.Activity
@@ -454,15 +547,15 @@ export class Blis {
                 // Call entity detection callback
                 let textVariation = round.extractorStep.textVariations[0]
                 let predictedEntities = ModelUtils.ToPredictedEntities(textVariation.labelEntities)
+
                 await Blis.CallEntityDetectionCallback(textVariation.text, predictedEntities, memory, entities)
 
                 // Look for discrenancies when replaying API calls
                 // Unless asked to ignore the last as user trigged an edit by editing last extract step
                 if (!ignoreLastExtract || roundNum != trainDialog.rounds.length - 1) {
-                    discrepancies = this.IsSame(round, memory, entities)
-                    if (discrepancies.length > 0) {
-                        discrepancies = [``, `User Input Step:`, `${userText}`, ``, ...discrepancies]
-                        break
+                    let discrepancyError = this.EntityDiscrepancy(userText, round, memory, entities)
+                    if (discrepancyError) {
+                        replayErrors.push(discrepancyError);
                     }
                 }
             }
@@ -470,32 +563,58 @@ export class Blis {
             let scoreNum = 0
             for (let scorerStep of round.scorerSteps) {
                 let labelAction = scorerStep.labelAction
-                let action = actions.filter((a: ActionBase) => a.actionId === labelAction)[0]
-
-                if (!action) {
-                    throw new Error(`Can't find Entity Id ${labelAction}`)
-                }
-                isLastActionTerminal = action.isTerminal
-
-                let filledEntityMap = this.CreateFilledEntityMap(scorerStep.input.filledEntities, entityList)
-                
-                let channelData = { senderType: SenderType.Bot, roundIndex: roundNum, scoreIndex: scoreNum }
                 let botResponse = null
-                if (action.actionType === ActionTypes.CARD) {
-                    const cardAction = new CardAction(action)
-                    botResponse = await this.TakeCardAction(cardAction, filledEntityMap)
-                } else if (action.actionType === ActionTypes.API_LOCAL) {
-                    const apiAction = new ApiAction(action)
-                    botResponse = await this.TakeLocalAPIAction(apiAction, filledEntityMap, memory, entityList.entities)
-                } else if (action.actionType === ActionTypes.TEXT) {
-                    const textAction = new TextAction(action)
-                    botResponse = await Blis.TakeTextAction(textAction, filledEntityMap)
+
+                // VALIDATION
+                chatHighlight = null;
+                // Check that action exists
+                let selectedAction = actions.find(a => a.actionId == labelAction)
+                if (!selectedAction)
+                {
+                    chatHighlight = "error";
+                    replayErrors.push(new ReplayErrorMissingAction(userText));
                 }
                 else {
-                    throw new Error(`Cannont construct bot response for unknown action type: ${action.actionType}`)
+                    // Check action availability
+                    if (!this.isActionAvailable(selectedAction, scorerStep.input.filledEntities)) {
+                        chatHighlight = "error";
+                        replayErrors.push(new ReplayErrorActionUnavailable(userText));
+                    }
                 }
-                // TODO
-                //  TakeAzureAPIAction
+
+                let channelData = { 
+                    senderType: SenderType.Bot, 
+                    roundIndex: roundNum, 
+                    scoreIndex: scoreNum,
+                    highlight: chatHighlight
+                }
+
+                // Generate bot response
+                let action = actions.filter((a: ActionBase) => a.actionId === labelAction)[0]
+                if (!action) {
+                    botResponse = BlisDebug.Error(`Can't find Action Id ${labelAction}`);
+                }
+                else {
+                    isLastActionTerminal = action.isTerminal
+
+                    let filledEntityMap = this.CreateFilledEntityMap(scorerStep.input.filledEntities, entityList)
+
+                    if (action.actionType === ActionTypes.CARD) {
+                        const cardAction = new CardAction(action)
+                        botResponse = await this.TakeCardAction(cardAction, filledEntityMap)
+                    } else if (action.actionType === ActionTypes.API_LOCAL) {
+                        const apiAction = new ApiAction(action)
+                        botResponse = await this.TakeLocalAPIAction(apiAction, filledEntityMap, memory, entityList.entities)
+                    } else if (action.actionType === ActionTypes.TEXT) {
+                        const textAction = new TextAction(action)
+                        botResponse = await Blis.TakeTextAction(textAction, filledEntityMap)
+                    }
+                    // TODO
+                    //  TakeAzureAPIAction
+                    else {
+                        throw new Error(`Cannont construct bot response for unknown action type: ${action.actionType}`)
+                    }
+                }
 
                 let botActivity: BB.Activity | null = null
                 if (typeof botResponse == 'string') {
@@ -530,6 +649,9 @@ export class Blis {
         let hasScorerRound = (hasRounds && trainDialog.rounds[trainDialog.rounds.length-1].scorerSteps.length > 0)
         let dialogMode = (isLastActionTerminal && hasScorerRound) || !hasRounds ? DialogMode.Wait : DialogMode.Scorer
 
+        // Make errors unique using Set operator  LARS CHECK
+        replayErrors = [...new Set(replayErrors)]
+
         let teachWithHistory: TeachWithHistory = {
             teach: undefined,
             scoreInput: undefined,
@@ -538,12 +660,12 @@ export class Blis {
             memories: memories,
             prevMemories: prevMemories,
             dialogMode: dialogMode,
-            discrepancies: discrepancies
+            replayErrors: replayErrors
         }
         return teachWithHistory
     }
 
-    public static ValidationErrors(): string {
+    public static OptionsValidationErrors(): string {
         let errMsg = ''
         if (!this.options.serviceUri) {
             errMsg += 'Options missing serviceUrl. Set BLIS_SERVICE_URI Env value.\n\n'

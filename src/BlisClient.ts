@@ -2,6 +2,7 @@ import * as models from 'blis-models'
 import { BlisDebug } from './BlisDebug'
 import * as NodeCache from 'node-cache'
 import * as Request from 'request'
+import { PackageReference } from 'blis-models';
 
 const luisAuthoringKeyHeader = 'x-luis-authoring-key'
 const luisSubscriptionKeyHeader = 'x-luis-subscription-key'
@@ -156,14 +157,35 @@ export class BlisClient {
      * If the app ID isn't found in the set of (non-archived) apps,
      * returns 404 error ("not found")
      */
-    public GetApp(appId: string, query: string): Promise<models.BlisAppBase> {
+    public GetApp(appId: string): Promise<models.BlisAppBase> {
         let apiPath = `app/${appId}`
-        return this.send<models.BlisAppBase>('GET', this.MakeURL(apiPath))
+
+        return new Promise((resolve, reject) => {
+            let url = this.MakeURL(apiPath)
+            const requestData = {
+                headers: {
+                    Authorization: BlisClient.authorizationHeader
+                },
+                json: true
+            }
+            BlisDebug.LogRequest('GET', apiPath, requestData)
+            Request.get(url, requestData, (error, response, body) => {
+                if (error) {
+                    reject(error)
+                } else if (response.statusCode && response.statusCode >= 300) {
+                    reject(response)
+                } else {
+                    var blisApp: models.BlisAppBase = body
+                    blisApp.appId = appId
+                    resolve(blisApp)
+                }
+            })
+        })
     }
 
-    public GetAppSource(appId: string, query: string): Promise<models.TrainingStatus> {
-        let apiPath = `app/${appId}/source`
-        return this.send('GET', this.MakeURL(apiPath, query))
+    public GetAppSource(appId: string, packageId: string): Promise<models.AppDefinition> {
+        let apiPath = `app/${appId}/source?package=${packageId}`
+        return this.send('GET', this.MakeURL(apiPath))
     }
 
     public GetAppTrainingStatus(appId: string, query: string): Promise<models.TrainingStatus> {
@@ -247,6 +269,60 @@ export class BlisClient {
         return this.send('GET', this.MakeURL(apiPath, query))
     }
 
+    /** Creates a new package tag */
+    public PublishApp(appId: string, tagName: string): Promise<PackageReference> {
+        let apiPath = `app/${appId}/publish?version=${tagName}`
+
+        return new Promise((resolve, reject) => {
+            const requestData = {
+                url: this.MakeURL(apiPath),
+                headers: {
+                    Authorization: BlisClient.authorizationHeader
+                },
+                json: true
+            }
+
+            BlisDebug.LogRequest('PUT', apiPath, requestData)
+            Request.put(requestData, (error, response, body) => {
+                if (error) {
+                    reject(error)
+                } else if (response.statusCode && response.statusCode >= 300) {
+                    reject(response)
+                } else {
+                    let packageReference: models.PackageReference = body
+                    resolve(packageReference)
+                }
+            })
+        })
+    }
+
+    /** Sets a package tags as the live version */
+    public PublishProdPackage(appId: string, packageId: string): Promise<string> {
+        let apiPath = `app/${appId}/publish/${packageId}`
+
+        return new Promise((resolve, reject) => {
+            const requestData = {
+                url: this.MakeURL(apiPath),
+                headers: {
+                    Authorization: BlisClient.authorizationHeader
+                },
+                json: true
+            }
+
+            BlisDebug.LogRequest('POST', apiPath, requestData)
+            Request.post(requestData, (error, response, body) => {
+                if (error) {
+                    reject(error)
+                } else if (response.statusCode && response.statusCode >= 300) {
+                    reject(response)
+                } else {
+                    // Service returns a 204
+                    resolve(body)
+                }
+            })
+        })
+    }
+
     //==============================================================================
     // Entity
     //=============================================================================
@@ -319,9 +395,10 @@ export class BlisClient {
     /** Retrieves the contents of many/all logDialogs.
      * To retrieve just a list of IDs of all logDialogs,
      * see the GET GetLogDialogIds method. */
-    public GetLogDialogs(appId: string, query: string): Promise<models.LogDialogList> {
-        let apiPath = `app/${appId}/logdialogs`
-        return this.send('GET', this.MakeURL(apiPath, query))
+    public GetLogDialogs(appId: string, packageId: string): Promise<models.LogDialogList> {
+        let packages = packageId.split(",").map(p => `package=${p}`).join("&");
+        let apiPath = `app/${appId}/logdialogs?${packages}`
+        return this.send('GET', this.MakeURL(apiPath))
     }
 
     /** Retrieves just the IDs of logDialogs.

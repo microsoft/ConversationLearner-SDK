@@ -6,7 +6,7 @@ import { Blis } from '../Blis'
 import { BlisMemory } from '../BlisMemory'
 import { BlisIntent } from '../BlisIntent'
 import { TemplateProvider } from '../TemplateProvider'
-import { Utils } from '../Utils'
+import { Utils, replace } from '../Utils'
 import * as XMLDom from 'xmldom'
 import * as models from 'blis-models'
 import * as corsMiddleware from 'restify-cors-middleware'
@@ -53,6 +53,9 @@ export const HandleError = (response: restify.Response, err: any): void => {
         } else {
             error += `${err.body}\n`
         }
+    }
+    if (err.statusMessage && typeof err.statusMessage == 'string') {
+        error += `${err.statusMessage}\n`
     }
     if (err.body && err.body.errorMessages && err.body.errorMessages.length > 0) {
         error += err.body.errorMessages.join()
@@ -149,10 +152,9 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
     /** Retrieves information about a specific application */
     server.get('/app/:appId', async (req, res, next) => {
         BlisClient.authorizationHeader = req.header('Authorization')
-        let query = req.getQuery()
         let appId = req.params.appId
         try {
-            let app = await client.GetApp(appId, query)
+            let app = await client.GetApp(appId)
             res.send(app)
         } catch (error) {
             HandleError(res, error)
@@ -161,10 +163,10 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
 
     server.get('/app/:appId/source', async (req, res, next) => {
         BlisClient.authorizationHeader = req.header('Authorization')
-        const query = req.getQuery()
         const appId = req.params.appId
+        const packageId = req.params.packageId
         try {
-            const appDefinition = await client.GetAppSource(appId, query)
+            const appDefinition = await client.GetAppSource(appId, packageId)
             res.send(appDefinition)
         } catch (error) {
             HandleError(res, error)
@@ -191,8 +193,9 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
             const key = req.header(memoryKeyHeaderName)
             let app: models.BlisAppBase = req.body
 
-            app.appId = await client.AddApp(app, query)
-            res.send(app.appId)
+            let appId = await client.AddApp(app, query)
+            app = await client.GetApp(appId);
+            res.send(app)
 
             // Initialize memory
             await BlisMemory.GetMemory(key).SetAppAsync(app)
@@ -275,9 +278,16 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
     server.get('/apps', async (req, res, next) => {
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
+            const key = req.header(memoryKeyHeaderName)
             let query = req.getQuery()
             let apps = await client.GetApps(query)
-            res.send(apps)
+
+            // Get lookup table for which apps packages are being edited
+            let memory = BlisMemory.GetMemory(key)
+            let activeApps = await memory.BotState.ActiveAppsAsync();
+
+            let uiAppList = {appList: apps, activeApps: activeApps} as models.UIAppList;
+            res.send(uiAppList)
         } catch (error) {
             HandleError(res, error)
         }
@@ -334,6 +344,68 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
         }
     })
 
+    /** Creates a new package tag for an app */
+    server.put('/app/:appId/publish', async (req, res, next) => {
+        BlisClient.authorizationHeader = req.header('Authorization')
+        try {
+            let appId = req.params.appId
+            let tagName = req.params.version
+            let makeLive = req.params.makeLive === "true";
+
+            // Create tag, then load updated app
+            let packageReference = await client.PublishApp(appId, tagName)
+
+            // Make live app if requested
+            if (makeLive) {
+                await client.PublishProdPackage(appId, packageReference.packageId)
+            }
+            let app = await client.GetApp(appId);
+
+            res.send(app)
+        } catch (error) {
+            HandleError(res, error)
+        }
+    })
+
+    /** Sets the live package tag for an app */
+    server.post('/app/:appId/publish/:packageId', async (req, res, next) => {
+        BlisClient.authorizationHeader = req.header('Authorization')
+        try {
+            let appId = req.params.appId
+            let packageId = req.params.packageId
+
+            await client.PublishProdPackage(appId, packageId)
+            let app = await client.GetApp(appId);
+            res.send(app)
+        } catch (error) {
+            HandleError(res, error)
+        }
+    })
+
+    /** Sets which app package is being edited */
+    server.post('/app/:appId/edit/:packageId', async (req, res, next) => {
+        BlisClient.authorizationHeader = req.header('Authorization')
+        try {
+            const key = req.header(memoryKeyHeaderName)
+            let appId = req.params.appId
+            let packageId = req.params.packageId
+
+            let app = await client.GetApp(appId);
+            if (packageId != app.devPackageId) {
+                if (!app.packageVersions || !app.packageVersions.find(pv => pv.packageId == packageId)) {
+                    throw new Error(`Attemped to edit package that doesn't exist: ${packageId}`)
+                }
+            }
+
+            let memory = BlisMemory.GetMemory(key)
+            let updatedPackageVersions = await memory.BotState.SetActiveAppAsync(appId, packageId);
+            res.send(updatedPackageVersions)
+
+        } catch (error) {
+            HandleError(res, error)
+        }
+    })
+
     //========================================================
     // Action
     //========================================================
@@ -382,6 +454,34 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
         }
     })
 
+    /** Returns list of trainingDialogIds that are invalidated by the given changed action */
+    server.put('/app/:appId/action/:actionId/validationErrors', async (req, res, next) => {
+        BlisClient.authorizationHeader = req.header('Authorization')
+        try {
+            //let query = req.getQuery();
+            let appId = req.params.appId
+            let action: models.ActionBase = req.body
+            const packageId = req.params.packageId
+
+            if (!action.actionId) {
+                action.actionId = req.params.actionId
+            } else if (req.params.actionId != action.actionId) {
+                return next(new errors.BadRequestError('ActionId of object does not match URI'))
+            }
+
+            const appDefinition = await client.GetAppSource(appId, packageId)
+            
+            // Replace the action with new one
+            appDefinition.actions = replace(appDefinition.actions, action, a => a.actionId)
+
+            let invalidTrainDialogIds = Blis.validateTrainDialogs(appDefinition);
+            res.send(invalidTrainDialogIds)
+        } catch (error) {
+            HandleError(res, error)
+        }
+    })
+
+    /** Delete action */
     server.del('/app/:appId/action/:actionId', async (req, res, next) => {
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
@@ -390,6 +490,27 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
             let actionId = req.params.actionId
             await client.DeleteAction(appId, actionId)
             res.send(200)
+        } catch (error) {
+            HandleError(res, error)
+        }
+    })
+
+    /** Returns list of trainDialogs invalidated by deleting the given action */
+    server.del('/app/:appId/action/:actionId/validationErrors', async (req, res, next) => {
+        BlisClient.authorizationHeader = req.header('Authorization')
+        try {
+            //let query = req.getQuery();
+            let appId = req.params.appId
+            let actionId = req.params.actionId
+            const packageId = req.params.packageId
+
+            const appDefinition = await client.GetAppSource(appId, packageId)
+            
+            // Remove the action
+            appDefinition.actions = appDefinition.actions.filter(a => a.actionId != actionId);
+
+            let invalidTrainDialogIds = Blis.validateTrainDialogs(appDefinition);
+            res.send(invalidTrainDialogIds)
         } catch (error) {
             HandleError(res, error)
         }
@@ -494,6 +615,27 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
         }
     })
 
+    /** Returns list of trainDialogs invalidated by deleting the given entity */
+    server.del('/app/:appId/entity/:entityId/validationErrors', async (req, res, next) => {
+        BlisClient.authorizationHeader = req.header('Authorization')
+        try {
+            //let query = req.getQuery();
+            let appId = req.params.appId
+            let entityId = req.params.entityId
+            const packageId = req.params.packageId
+
+            const appDefinition = await client.GetAppSource(appId, packageId)
+            
+            // Remove the action
+            appDefinition.entities = appDefinition.entities.filter(e => e.entityId != entityId);
+
+            let invalidTrainDialogIds = Blis.validateTrainDialogs(appDefinition);
+            res.send(invalidTrainDialogIds)
+        } catch (error) {
+            HandleError(res, error)
+        }
+    })
+
     server.get('/app/:appId/entities', async (req, res, next) => {
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
@@ -550,9 +692,9 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
     server.get('/app/:appId/logdialogs', async (req, res, next) => {
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
-            let query = req.getQuery()
             let appId = req.params.appId
-            let logDialogs = await client.GetLogDialogs(appId, query)
+            let packageId = req.params.packageId
+            let logDialogs = await client.GetLogDialogs(appId, packageId)
             res.send(logDialogs)
         } catch (error) {
             HandleError(res, error)
@@ -708,7 +850,7 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
             }
 
             // Start teach session if replay of API was consistent
-            if (teachWithHistory.discrepancies.length == 0) {
+            if (teachWithHistory.replayErrors.length === 0) {
                 // Start new teach session from the old train dialog
                 let contextDialog = models.ModelUtils.ToContextDialog(trainDialog)
                 let teachResponse = await client.StartTeach(appId, contextDialog)
@@ -898,7 +1040,7 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
             }
 
             // Start session if API returned consistent results during replay
-            if (teachWithHistory.discrepancies.length == 0) {
+            if (teachWithHistory.replayErrors.length === 0) {
                 // Start new teach session from the old train dialog
                 let contextDialog = models.ModelUtils.ToContextDialog(trainDialog)
                 let teachResponse = await client.StartTeach(appId, contextDialog)
@@ -1151,7 +1293,7 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
             let memory = BlisMemory.GetMemory(key)
             let teachWithHistory = await Blis.GetHistory(appId, trainDialog, userName, userId, memory)
             if (teachWithHistory) {
-                res.send(teachWithHistory.history)
+                res.send(teachWithHistory)
             }
             else {
                 res.send(204)
@@ -1191,7 +1333,7 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
             }
 
             // If APIs returned same values during replay
-            if (teachWithHistory.discrepancies.length === 0) {
+            if (teachWithHistory.replayErrors.length === 0) {
                 // Delete existing train dialog (don't await)
                 client.EndTeach(appId, teach.teachId, `saveDialog=false`)
 

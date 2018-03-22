@@ -39,6 +39,9 @@ export class BotState {
     // BotBuilder conversation reference
     public conversationReference: BB.ConversationReference | null = null
 
+    // Which packages are active for editing
+    public activeApps: { [appId: string]: string };  // appId: packageId
+
     private constructor(init?: Partial<BotState>) {
         (<any>Object).assign(this, init)
     }
@@ -74,7 +77,8 @@ export class BotState {
         this.conversationId = json.conversationId,
         this.orgSessionId = json.orgSessionId,
         this.onEndSessionCalled = json.onEndSessionCalled ? json.onEndSessionCalled : false
-        this.conversationReference = json.conversationReference
+        this.conversationReference = json.conversationReference,
+        this.activeApps = json.activeApps
     }
 
     private Serialize(): string {
@@ -86,7 +90,8 @@ export class BotState {
             conversationId: this.conversationId,
             orgSessionId: this.orgSessionId,
             onEndSessionCalled: this.onEndSessionCalled ? this.onEndSessionCalled : false,
-            conversationReference: this.conversationReference
+            conversationReference: this.conversationReference,
+            activeApps: this.activeApps
         }
         return JSON.stringify(jsonObj)
     }
@@ -102,11 +107,12 @@ export class BotState {
     public async _SetAppAsync(app: BlisAppBase | null): Promise<void> {
         this.app = app
         this.sessionId = null
-        this.conversationId = null,
-        this.lastActive = 0,
-        this.orgSessionId = null,
-        this.onEndSessionCalled = false,
+        this.conversationId = null
+        this.lastActive = 0
+        this.orgSessionId = null
+        this.onEndSessionCalled = false
         this.inTeach = false
+        this.activeApps = {}
         await this.SetAsync()
     }
 
@@ -122,6 +128,23 @@ export class BotState {
     public async ConversationIdAsync(): Promise<string | null> {
         await this.Init()
         return this.conversationId
+    }
+
+    public async ActiveAppsAsync(): Promise<{ [appId: string]: string }> {
+        await this.Init()
+        return this.activeApps
+    }
+
+    public async SetActiveAppAsync(appId: string, packageId: string): Promise<{ [appId: string]: string }> {
+        await this.Init()
+        this.activeApps[appId] = packageId;
+        await this.SetAsync();
+        return this.activeApps;
+    }
+
+    public async ActiveAppAsync(appId: string): Promise<string> {
+        await this.Init()
+        return this.activeApps[appId];
     }
 
     public async OrgSessionIdAsync(sessionId: string): Promise<string | null> {
