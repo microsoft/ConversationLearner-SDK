@@ -130,12 +130,15 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
     //========================================================
     // Bot
     //========================================================
-
     /** Retrieves information about the running bot */
     server.get('/bot', async (req, res, next) => {
         BlisClient.authorizationHeader = req.header('Authorization')
         try {
-            let botInfo: models.BotInfo = {
+            const botInfo: models.BotInfo = {
+                user: {
+                    name: "Developer",
+                    id: Blis.options.luisAuthoringKey!
+                },
                 callbacks: Blis.apiParams,
                 templates: TemplateProvider.GetTemplates()
             }

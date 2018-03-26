@@ -4,6 +4,7 @@ import * as NodeCache from 'node-cache'
 import * as Request from 'request'
 import { PackageReference } from 'blis-models';
 
+const userIdHeader = 'x-user-id'
 const luisAuthoringKeyHeader = 'x-luis-authoring-key'
 const luisSubscriptionKeyHeader = 'x-luis-subscription-key'
 
@@ -59,7 +60,9 @@ export class BlisClient {
                 headers: {
                     Authorization: BlisClient.authorizationHeader,
                     [luisAuthoringKeyHeader]: this.luisAuthoringKey,
-                    [luisSubscriptionKeyHeader]: this.luisSubscriptionKey
+                    [luisSubscriptionKeyHeader]: this.luisSubscriptionKey,
+                    // This is only used when directly targeting service.  In future APIM will provide user/subscription id associated from LUIS key
+                    [userIdHeader]: this.luisAuthoringKey
                 },
                 json: true,
                 body
