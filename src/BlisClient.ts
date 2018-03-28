@@ -23,7 +23,6 @@ export interface IBlisClientOptions {
 }
 
 export class BlisClient {
-    static authorizationHeader: string
     private serviceUri: string
     private luisAuthoringKey: string | undefined
     private luisSubscriptionKey: string | undefined
@@ -58,7 +57,6 @@ export class BlisClient {
             const requestData = {
                 url,
                 headers: {
-                    Authorization: BlisClient.authorizationHeader,
                     [luisAuthoringKeyHeader]: this.luisAuthoringKey,
                     [luisSubscriptionKeyHeader]: this.luisSubscriptionKey,
                     // This is only used when directly targeting service.  In future APIM will provide user/subscription id associated from LUIS key
