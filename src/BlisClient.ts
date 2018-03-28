@@ -162,28 +162,7 @@ export class BlisClient {
      */
     public GetApp(appId: string): Promise<models.BlisAppBase> {
         let apiPath = `app/${appId}`
-
-        return new Promise((resolve, reject) => {
-            let url = this.MakeURL(apiPath)
-            const requestData = {
-                headers: {
-                    Authorization: BlisClient.authorizationHeader
-                },
-                json: true
-            }
-            BlisDebug.LogRequest('GET', apiPath, requestData)
-            Request.get(url, requestData, (error, response, body) => {
-                if (error) {
-                    reject(error)
-                } else if (response.statusCode && response.statusCode >= 300) {
-                    reject(response)
-                } else {
-                    var blisApp: models.BlisAppBase = body
-                    blisApp.appId = appId
-                    resolve(blisApp)
-                }
-            })
-        })
+        return this.send('GET', this.MakeURL(apiPath))
     }
 
     public GetAppSource(appId: string, packageId: string): Promise<models.AppDefinition> {
@@ -275,55 +254,13 @@ export class BlisClient {
     /** Creates a new package tag */
     public PublishApp(appId: string, tagName: string): Promise<PackageReference> {
         let apiPath = `app/${appId}/publish?version=${tagName}`
-
-        return new Promise((resolve, reject) => {
-            const requestData = {
-                url: this.MakeURL(apiPath),
-                headers: {
-                    Authorization: BlisClient.authorizationHeader
-                },
-                json: true
-            }
-
-            BlisDebug.LogRequest('PUT', apiPath, requestData)
-            Request.put(requestData, (error, response, body) => {
-                if (error) {
-                    reject(error)
-                } else if (response.statusCode && response.statusCode >= 300) {
-                    reject(response)
-                } else {
-                    let packageReference: models.PackageReference = body
-                    resolve(packageReference)
-                }
-            })
-        })
+        return this.send('PUT', this.MakeURL(apiPath))
     }
 
     /** Sets a package tags as the live version */
     public PublishProdPackage(appId: string, packageId: string): Promise<string> {
         let apiPath = `app/${appId}/publish/${packageId}`
-
-        return new Promise((resolve, reject) => {
-            const requestData = {
-                url: this.MakeURL(apiPath),
-                headers: {
-                    Authorization: BlisClient.authorizationHeader
-                },
-                json: true
-            }
-
-            BlisDebug.LogRequest('POST', apiPath, requestData)
-            Request.post(requestData, (error, response, body) => {
-                if (error) {
-                    reject(error)
-                } else if (response.statusCode && response.statusCode >= 300) {
-                    reject(response)
-                } else {
-                    // Service returns a 204
-                    resolve(body)
-                }
-            })
-        })
+        return this.send('POST', this.MakeURL(apiPath))
     }
 
     //==============================================================================
