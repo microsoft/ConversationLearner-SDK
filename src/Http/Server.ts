@@ -436,12 +436,7 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
     })
 
     /** Returns list of trainingDialogIds that are invalidated by the given changed action */
-<<<<<<< HEAD
     server.post('/app/:appId/action/:actionId/editValidation', async (req, res, next) => {
-        BlisClient.authorizationHeader = req.header('Authorization')
-=======
-    server.put('/app/:appId/action/:actionId/validationErrors', async (req, res, next) => {
->>>>>>> master
         try {
             //let query = req.getQuery();
             let appId = req.params.appId
@@ -560,13 +555,8 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
         }
     })
 
-<<<<<<< HEAD
     /** Returns list of trainingDialogIds that are invalidated by the given changed entity */
     server.post('/app/:appId/entity/:entityId/editValidation', async (req, res, next) => {
-        BlisClient.authorizationHeader = req.header('Authorization')
-=======
-    server.put('/app/:appId/entity/:entityId', async (req, res, next) => {
->>>>>>> master
         try {
             //let query = req.getQuery();
             let appId = req.params.appId
@@ -604,12 +594,7 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
     })
 
     /** Returns list of trainDialogs invalidated by deleting the given entity */
-<<<<<<< HEAD
     server.get('/app/:appId/entity/:entityId/deleteValidation', async (req, res, next) => {
-        BlisClient.authorizationHeader = req.header('Authorization')
-=======
-    server.del('/app/:appId/entity/:entityId/validationErrors', async (req, res, next) => {
->>>>>>> master
         try {
             //let query = req.getQuery();
             let appId = req.params.appId
