@@ -18,13 +18,13 @@ const requestMethodMap = new Map<HTTP_METHOD, typeof Request.get | typeof Reques
 
 export interface IBlisClientOptions {
     serviceUri: string
-    luisAuthoringKey?: string
+    luisAuthoringKey: string | undefined
     luisSubscriptionKey?: string
 }
 
 export class BlisClient {
     private serviceUri: string
-    private luisAuthoringKey: string | undefined
+    private luisAuthoringKey: string
     private luisSubscriptionKey: string | undefined
     private actionCache = new NodeCache({ stdTTL: 300, checkperiod: 600 })
     private entityCache = new NodeCache({ stdTTL: 300, checkperiod: 600 })
@@ -35,7 +35,9 @@ export class BlisClient {
             throw new Error(`serviceUri must be a non-empty string. You passed: ${options.serviceUri}`)
         }
 
-        // TODO: Make luisAuthoringKey required, add guard statement similar to serviceUri
+        if (typeof options.luisAuthoringKey !== 'string' || options.luisAuthoringKey.length === 0) {
+            throw new Error(`luisAuthoringKey must be a non-empty string. You passed: ${options.luisAuthoringKey}`)
+        }
 
         this.serviceUri = options.serviceUri
         this.luisAuthoringKey = options.luisAuthoringKey
