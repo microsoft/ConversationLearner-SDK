@@ -4,6 +4,7 @@ import * as NodeCache from 'node-cache'
 import * as Request from 'request'
 import { PackageReference } from 'blis-models';
 
+const apimSubscriptionIdHeader = 'apim-subscription-id'
 const luisAuthoringKeyHeader = 'x-luis-authoring-key'
 const luisSubscriptionKeyHeader = 'x-luis-subscription-key'
 
@@ -17,14 +18,13 @@ const requestMethodMap = new Map<HTTP_METHOD, typeof Request.get | typeof Reques
 
 export interface IBlisClientOptions {
     serviceUri: string
-    luisAuthoringKey?: string
+    luisAuthoringKey: string | undefined
     luisSubscriptionKey?: string
 }
 
 export class BlisClient {
-    static authorizationHeader: string
     private serviceUri: string
-    private luisAuthoringKey: string | undefined
+    private luisAuthoringKey: string
     private luisSubscriptionKey: string | undefined
     private actionCache = new NodeCache({ stdTTL: 300, checkperiod: 600 })
     private entityCache = new NodeCache({ stdTTL: 300, checkperiod: 600 })
@@ -35,7 +35,9 @@ export class BlisClient {
             throw new Error(`serviceUri must be a non-empty string. You passed: ${options.serviceUri}`)
         }
 
-        // TODO: Make luisAuthoringKey required, add guard statement similar to serviceUri
+        if (typeof options.luisAuthoringKey !== 'string' || options.luisAuthoringKey.length === 0) {
+            throw new Error(`luisAuthoringKey must be a non-empty string. You passed: ${options.luisAuthoringKey}`)
+        }
 
         this.serviceUri = options.serviceUri
         this.luisAuthoringKey = options.luisAuthoringKey
@@ -57,9 +59,10 @@ export class BlisClient {
             const requestData = {
                 url,
                 headers: {
-                    Authorization: BlisClient.authorizationHeader,
                     [luisAuthoringKeyHeader]: this.luisAuthoringKey,
-                    [luisSubscriptionKeyHeader]: this.luisSubscriptionKey
+                    [luisSubscriptionKeyHeader]: this.luisSubscriptionKey,
+                    // This is only used when directly targeting service.  In future APIM will provide user/subscription id associated from LUIS key
+                    [apimSubscriptionIdHeader]: this.luisAuthoringKey
                 },
                 json: true,
                 body
@@ -159,28 +162,7 @@ export class BlisClient {
      */
     public GetApp(appId: string): Promise<models.BlisAppBase> {
         let apiPath = `app/${appId}`
-
-        return new Promise((resolve, reject) => {
-            let url = this.MakeURL(apiPath)
-            const requestData = {
-                headers: {
-                    Authorization: BlisClient.authorizationHeader
-                },
-                json: true
-            }
-            BlisDebug.LogRequest('GET', apiPath, requestData)
-            Request.get(url, requestData, (error, response, body) => {
-                if (error) {
-                    reject(error)
-                } else if (response.statusCode && response.statusCode >= 300) {
-                    reject(response)
-                } else {
-                    var blisApp: models.BlisAppBase = body
-                    blisApp.appId = appId
-                    resolve(blisApp)
-                }
-            })
-        })
+        return this.send('GET', this.MakeURL(apiPath))
     }
 
     public GetAppSource(appId: string, packageId: string): Promise<models.AppDefinition> {
@@ -272,55 +254,13 @@ export class BlisClient {
     /** Creates a new package tag */
     public PublishApp(appId: string, tagName: string): Promise<PackageReference> {
         let apiPath = `app/${appId}/publish?version=${tagName}`
-
-        return new Promise((resolve, reject) => {
-            const requestData = {
-                url: this.MakeURL(apiPath),
-                headers: {
-                    Authorization: BlisClient.authorizationHeader
-                },
-                json: true
-            }
-
-            BlisDebug.LogRequest('PUT', apiPath, requestData)
-            Request.put(requestData, (error, response, body) => {
-                if (error) {
-                    reject(error)
-                } else if (response.statusCode && response.statusCode >= 300) {
-                    reject(response)
-                } else {
-                    let packageReference: models.PackageReference = body
-                    resolve(packageReference)
-                }
-            })
-        })
+        return this.send('PUT', this.MakeURL(apiPath))
     }
 
     /** Sets a package tags as the live version */
     public PublishProdPackage(appId: string, packageId: string): Promise<string> {
         let apiPath = `app/${appId}/publish/${packageId}`
-
-        return new Promise((resolve, reject) => {
-            const requestData = {
-                url: this.MakeURL(apiPath),
-                headers: {
-                    Authorization: BlisClient.authorizationHeader
-                },
-                json: true
-            }
-
-            BlisDebug.LogRequest('POST', apiPath, requestData)
-            Request.post(requestData, (error, response, body) => {
-                if (error) {
-                    reject(error)
-                } else if (response.statusCode && response.statusCode >= 300) {
-                    reject(response)
-                } else {
-                    // Service returns a 204
-                    resolve(body)
-                }
-            })
-        })
+        return this.send('POST', this.MakeURL(apiPath))
     }
 
     //==============================================================================
