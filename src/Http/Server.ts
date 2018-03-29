@@ -436,7 +436,7 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
     })
 
     /** Returns list of trainingDialogIds that are invalidated by the given changed action */
-    server.put('/app/:appId/action/:actionId/validationErrors', async (req, res, next) => {
+    server.post('/app/:appId/action/:actionId/editValidation', async (req, res, next) => {
         try {
             //let query = req.getQuery();
             let appId = req.params.appId
@@ -475,7 +475,7 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
     })
 
     /** Returns list of trainDialogs invalidated by deleting the given action */
-    server.del('/app/:appId/action/:actionId/validationErrors', async (req, res, next) => {
+    server.get('/app/:appId/action/:actionId/deleteValidation', async (req, res, next) => {
         try {
             //let query = req.getQuery();
             let appId = req.params.appId
@@ -555,11 +555,13 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
         }
     })
 
-    server.put('/app/:appId/entity/:entityId', async (req, res, next) => {
+    /** Returns list of trainingDialogIds that are invalidated by the given changed entity */
+    server.post('/app/:appId/entity/:entityId/editValidation', async (req, res, next) => {
         try {
             //let query = req.getQuery();
             let appId = req.params.appId
             let entity: models.EntityBase = req.body
+            const packageId = req.params.packageId
 
             if (!entity.entityId) {
                 entity.entityId = req.params.entityId
@@ -567,8 +569,13 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
                 return next(new errors.BadRequestError('EntityId of object does not match URI'))
             }
 
-            let entityId = await client.EditEntity(appId, entity)
-            res.send(entityId)
+            const appDefinition = await client.GetAppSource(appId, packageId)
+            
+            // Replace the entity with new one
+            appDefinition.entities = replace(appDefinition.entities, entity, e => e.entityId)
+
+            let invalidTrainDialogIds = Blis.validateTrainDialogs(appDefinition);
+            res.send(invalidTrainDialogIds)
         } catch (error) {
             HandleError(res, error)
         }
@@ -587,7 +594,7 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
     })
 
     /** Returns list of trainDialogs invalidated by deleting the given entity */
-    server.del('/app/:appId/entity/:entityId/validationErrors', async (req, res, next) => {
+    server.get('/app/:appId/entity/:entityId/deleteValidation', async (req, res, next) => {
         try {
             //let query = req.getQuery();
             let appId = req.params.appId
