@@ -67,7 +67,7 @@ export class BlisClient {
 
     private MakeSessionURL(apiPath: string, query?: string) {
         // check if request is bypassing cognitive services APIM
-        if(this.serviceUri.includes('api.cognitive.microsoft.com'))
+        if(!this.serviceUri.includes('api.cognitive.microsoft.com'))
         {
             // In this case we are not chaning the serviceUrl and it stays the same, 
             // for example: https://localhost:37936/api/v1/ -> https://localhost:37936/api/v1/
