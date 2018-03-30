@@ -1005,9 +1005,17 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
 
                 // If last action wasn't terminal need to score
                 if (teachWithHistory.dialogMode === models.DialogMode.Scorer) {
+
+                    // Get entities from my memory
+                    var filledEntities = await memory.BotMemory.FilledEntitiesAsync()
+                    let scoreInput: models.ScoreInput = {
+                        filledEntities,
+                        context: {},
+                        maskedActions: []
+                    }
                     // Call LUIS callback
-                    const entities = trainDialog.definitions ? trainDialog.definitions.entities : []
-                    teachWithHistory.scoreInput = await Blis.CallEntityDetectionCallback('', [], memory, entities)
+                    //LARSconst entities = trainDialog.definitions ? trainDialog.definitions.entities : []
+                    teachWithHistory.scoreInput = scoreInput;//LARSawait Blis.CallEntityDetectionCallback('', [], memory, entities)
                     teachWithHistory.scoreResponse = await client.TeachScore(
                         appId,
                         teachWithHistory.teach.teachId,
