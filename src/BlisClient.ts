@@ -4,6 +4,7 @@ import * as NodeCache from 'node-cache'
 import * as Request from 'request'
 import { PackageReference } from 'blis-models';
 
+const apimSubscriptionKeyHeader = 'Ocp-Apim-Subscription-Key'
 const apimSubscriptionIdHeader = 'apim-subscription-id'
 const luisAuthoringKeyHeader = 'x-luis-authoring-key'
 const luisSubscriptionKeyHeader = 'x-luis-subscription-key'
@@ -18,6 +19,8 @@ const requestMethodMap = new Map<HTTP_METHOD, typeof Request.get | typeof Reques
 
 export interface IBlisClientOptions {
     serviceUri: string
+    // This should only set when directly targeting cognitive services ppe environment.
+    apimSubscriptionKey: string | undefined
     luisAuthoringKey: string | undefined
     luisSubscriptionKey?: string
 }
@@ -25,6 +28,7 @@ export interface IBlisClientOptions {
 export class BlisClient {
     private serviceUri: string
     private luisAuthoringKey: string
+    private apimSubscriptionKey: string
     private luisSubscriptionKey: string | undefined
     private actionCache = new NodeCache({ stdTTL: 300, checkperiod: 600 })
     private entityCache = new NodeCache({ stdTTL: 300, checkperiod: 600 })
@@ -39,15 +43,58 @@ export class BlisClient {
             throw new Error(`luisAuthoringKey must be a non-empty string. You passed: ${options.luisAuthoringKey}`)
         }
 
+        if (options.apimSubscriptionKey === undefined) {
+            this.apimSubscriptionKey = options.luisAuthoringKey;
+        } else {
+            this.apimSubscriptionKey = options.apimSubscriptionKey;
+        }
+
         this.serviceUri = options.serviceUri
         this.luisAuthoringKey = options.luisAuthoringKey
         this.luisSubscriptionKey = options.luisSubscriptionKey
     }
 
-    private MakeURL(apiPath: string, query?: string) {
-        let uri = this.serviceUri + (!this.serviceUri.endsWith('/') ? '/' : '') + apiPath
+    private BuildURL(baseUri: string, apiPath: string, query?: string)
+    {
+        let uri = baseUri + (!baseUri.endsWith('/') ? '/' : '') + apiPath
         if (query) uri += `?${query}`
         return uri
+    }
+
+    private MakeURL(apiPath: string, query?: string) {
+        return this.BuildURL(this.serviceUri, apiPath, query)
+    }
+
+    private MakeSessionURL(apiPath: string, query?: string) {
+        // check if request is bypassing cognitive services APIM
+        if(!this.serviceUri.includes('api.cognitive.microsoft.com'))
+        {
+            // In this case we are not chaning the serviceUrl and it stays the same, 
+            // for example: https://localhost:37936/api/v1/ -> https://localhost:37936/api/v1/
+            return this.MakeURL(apiPath, query)
+        }
+        
+        // The base uri for session API in cognitive services APIM is in the form of '<service url>/blis/session/api/v1'
+        // Session API are the following api: 
+        //  1) POST /app/<appId>/session
+        //  2) PUT /app/<appId>/session/extract
+        //  3) PUT /app/<appId>/session/score
+        //  4) DELETE /app/<appId>/session
+        var baseUri = this.serviceUri.endsWith('/') ? this.serviceUri : `${this.serviceUri}/`
+        if(baseUri.endsWith('/api/v1/'))
+        {
+            // In this case, serviceurl has api version information in it; "session" will be inserted before /api/v1
+            // this means that https://westus.api.cognitive.microsoft.com/blis/api/v1/ becomes 
+            // https://westus.api.cognitive.microsoft.com/blis/session/api/v1/
+            baseUri = `${baseUri.substring(0, baseUri.lastIndexOf('/api/v1/'))}/session/api/v1/`
+        }
+        else
+        {
+            // When api version information is not part of the serviceUrl, we simply add /session/ to end of the api
+            // example: https://westus.api.cognitive.microsoft.com/blis/ -> https://westus.api.cognitive.microsoft.com/blis/session/
+            baseUri += 'session/'
+        }
+        return this.BuildURL(baseUri, apiPath, query)
     }
 
     public ClearExportCache(appId: string): void {
@@ -62,7 +109,8 @@ export class BlisClient {
                     [luisAuthoringKeyHeader]: this.luisAuthoringKey,
                     [luisSubscriptionKeyHeader]: this.luisSubscriptionKey,
                     // This is only used when directly targeting service.  In future APIM will provide user/subscription id associated from LUIS key
-                    [apimSubscriptionIdHeader]: this.luisAuthoringKey
+                    [apimSubscriptionIdHeader]: this.luisAuthoringKey,
+                    [apimSubscriptionKeyHeader]: this.apimSubscriptionKey
                 },
                 json: true,
                 body
@@ -420,7 +468,7 @@ export class BlisClient {
     /** Creates a new session and a corresponding logDialog */
     public StartSession(appId: string, sessionCreateParams: models.SessionCreateParams): Promise<models.Session> {
         let apiPath = `app/${appId}/session`
-        return this.send('POST', this.MakeURL(apiPath), sessionCreateParams)
+        return this.send('POST', this.MakeSessionURL(apiPath), sessionCreateParams)
     }
 
     /** Retrieves information about the specified session */
@@ -436,19 +484,21 @@ export class BlisClient {
         // Always retrieve entity list
         let query = 'includeDefinitions=true'
 
-        return this.send('PUT', this.MakeURL(apiPath, query), userInput)
+        return this.send('PUT', this.MakeSessionURL(apiPath, query), userInput)
     }
 
     /** Take a turn and returns chosen action */
     public SessionScore(appId: string, sessionId: string, scorerInput: models.ScoreInput): Promise<models.ScoreResponse> {
         let apiPath = `app/${appId}/session/${sessionId}/scorer`
-        return this.send('PUT', this.MakeURL(apiPath), scorerInput)
+        return this.send('PUT', this.MakeSessionURL(apiPath), scorerInput)
     }
 
     /** End a session. */
     public EndSession(appId: string, sessionId: string): Promise<string> {
         let apiPath = `app/${appId}/session/${sessionId}`
-        return this.send('DELETE', this.MakeURL(apiPath))
+        //TODO: remove this when redundant query parameter is removed 
+        let query = 'saveDialog=false'
+        return this.send('DELETE', this.MakeSessionURL(apiPath, query))
     }
 
     /** Retrieves definitions of ALL open sessions
