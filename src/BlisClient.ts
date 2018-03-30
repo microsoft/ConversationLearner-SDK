@@ -67,8 +67,10 @@ export class BlisClient {
 
     private MakeSessionURL(apiPath: string, query?: string) {
         // check if request is bypassing cognitive services APIM
-        if(this.serviceUri.toLowerCase().indexOf('api.cognitive.microsoft.com') == -1)
+        if(this.serviceUri.includes('api.cognitive.microsoft.com'))
         {
+            // In this case we are not chaning the serviceUrl and it stays the same, 
+            // for example: https://localhost:37936/api/v1/ -> https://localhost:37936/api/v1/
             return this.MakeURL(apiPath, query)
         }
         
@@ -81,10 +83,15 @@ export class BlisClient {
         var baseUri = this.serviceUri.endsWith('/') ? this.serviceUri : `${this.serviceUri}/`
         if(baseUri.endsWith('/api/v1/'))
         {
+            // In this case, serviceurl has api version information in it; "session" will be inserted before /api/v1
+            // this means that https://westus.api.cognitive.microsoft.com/blis/api/v1/ becomes 
+            // https://westus.api.cognitive.microsoft.com/blis/session/api/v1/
             baseUri = `${baseUri.substring(0, baseUri.lastIndexOf('/api/v1/'))}/session/api/v1/`
         }
         else
         {
+            // When api version information is not part of the serviceUrl, we simply add /session/ to end of the api
+            // example: https://westus.api.cognitive.microsoft.com/blis/ -> https://westus.api.cognitive.microsoft.com/blis/session/
             baseUri += 'session/'
         }
         return this.BuildURL(baseUri, apiPath, query)
