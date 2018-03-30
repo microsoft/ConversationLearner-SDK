@@ -1013,9 +1013,7 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
                         context: {},
                         maskedActions: []
                     }
-                    // Call LUIS callback
-                    //LARSconst entities = trainDialog.definitions ? trainDialog.definitions.entities : []
-                    teachWithHistory.scoreInput = scoreInput;//LARSawait Blis.CallEntityDetectionCallback('', [], memory, entities)
+                    teachWithHistory.scoreInput = scoreInput;
                     teachWithHistory.scoreResponse = await client.TeachScore(
                         appId,
                         teachWithHistory.teach.teachId,
