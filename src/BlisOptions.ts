@@ -1,6 +1,7 @@
 export interface IBlisOptions {
     luisAuthoringKey: string | undefined
     luisSubscriptionKey: string | undefined
+    apimSubscriptionKey: string | undefined
     // URL for BLIS service
     serviceUri: string
     sdkPort: number
