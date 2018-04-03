@@ -177,15 +177,14 @@ export class BlisClient {
     }
 
     /** Updates payload and/or metadata on an existing action */
-    public EditAction(appId: string, action: models.ActionBase): Promise<string> {
+    public EditAction(appId: string, action: models.ActionBase): Promise<models.DeleteEditResponse> {
         this.actionCache.del(action.actionId)
-
         let apiPath = `app/${appId}/action/${action.actionId}`
         return this.send('PUT', this.MakeURL(apiPath), action)
     }
 
     /** Marks an action as deleted */
-    public DeleteAction(appId: string, actionId: string): Promise<string> {
+    public DeleteAction(appId: string, actionId: string): Promise<models.DeleteEditResponse> {
         this.actionCache.del(actionId)
         let apiPath = `app/${appId}/action/${actionId}`
         return this.send('DELETE', this.MakeURL(apiPath))
