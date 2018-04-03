@@ -429,9 +429,12 @@ export class Blis {
     public static validateTrainDialogs(appDefinition: AppDefinition): string[] {
         let invalidTrainDialogIds = [];
         for (let trainDialog of appDefinition.trainDialogs) {
-            let validationErrors = Blis.DialogValidationErrors(trainDialog, appDefinition.entities, appDefinition.actions);
-            if (validationErrors.length > 0) {
-                invalidTrainDialogIds.push(trainDialog.trainDialogId);
+            // Ignore train dialogs that are already invalid
+            if (!trainDialog.invalid) {
+                let validationErrors = Blis.DialogValidationErrors(trainDialog, appDefinition.entities, appDefinition.actions);
+                if (validationErrors.length > 0) {
+                    invalidTrainDialogIds.push(trainDialog.trainDialogId);
+                }
             }
         }
         return invalidTrainDialogIds;
