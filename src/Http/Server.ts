@@ -555,6 +555,25 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
         }
     })
 
+    server.put('/app/:appId/entity/:entityId', async (req, res, next) => {
+        try {
+            //let query = req.getQuery();
+            let appId = req.params.appId
+            let entity: models.EntityBase = req.body
+
+            if (!entity.entityId) {
+                entity.entityId = req.params.entityId
+            } else if (req.params.entityId != entity.entityId) {
+                return next(new errors.BadRequestError('EntityId of object does not match URI'))
+            }
+
+            let entityId = await client.EditEntity(appId, entity)
+            res.send(entityId)
+        } catch (error) {
+            HandleError(res, error)
+        }
+    })
+    
     /** Returns list of trainingDialogIds that are invalidated by the given changed entity */
     server.post('/app/:appId/entity/:entityId/editValidation', async (req, res, next) => {
         try {
