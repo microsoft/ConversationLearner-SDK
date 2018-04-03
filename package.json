@@ -22,7 +22,7 @@
   "dependencies": {
     "async-file": "^2.0.2",
     "blis-models": "0.133.0",
-    "blis-ui": "0.177.0",
+    "blis-ui": "0.183.0",
     "botbuilder": "4.0.0-m1.4",
     "express": "^4.15.3",
     "filenamify": "^2.0.0",
