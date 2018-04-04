@@ -10,6 +10,12 @@ export interface ConversationSession {
     conversationId: string | null
 }
 
+export interface SessionInfo {
+    userName: string,
+    userId: string,
+    sessionId: string
+}
+
 export class BotState {
     private static _instance: BotState | null = null
     private static MEMKEY = 'BOTSTATE'
@@ -250,16 +256,13 @@ export class BotState {
         }
     }
 
-    public async ConversationInfoAsync(): Promise<any> {
-        try {
-            await this.Init()
-            return {
-                user : this.conversationReference && this.conversationReference.user,
-                sessionId: this.sessionId
-            }
-        } catch (err) {
-            return null
-        }
+    public async SessionInfoAsync(): Promise<SessionInfo> {
+        await this.Init()
+        return {
+            userName : this.conversationReference && this.conversationReference.user && this.conversationReference.user.name,
+            userId : this.conversationReference && this.conversationReference.user && this.conversationReference.user.id,
+            sessionId: this.sessionId
+        } as SessionInfo
     }
 
     //------------------------------------------------------------------
