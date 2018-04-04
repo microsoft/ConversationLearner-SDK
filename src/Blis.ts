@@ -262,7 +262,8 @@ export class Blis {
         // which means callback may accept more arguments than is actually available on the action.arguments
         // To me, it seeems it would make more sense to always have these be same length, but perhaps there is
         // dependency on action not being defined somewhere else in the application like AcionCreatorEditor
-        
+        ;
+        let missingEntities: string[] = []
         // Get arguments in order specified by the API
         const argArray = callbackParams.arguments.map((param: string) => {
             let argument = apiAction.arguments.find(arg => arg.parameter === param)
@@ -270,8 +271,18 @@ export class Blis {
                 return ''
             }
 
-            return argument.renderValue(getEntityDisplayValueMap(filledEntityMap))
-        })
+            try {
+                return argument.renderValue(getEntityDisplayValueMap(filledEntityMap))
+            }
+            catch (error) {
+                missingEntities.push(param);
+                return '';
+            }
+        }, missingEntities)
+
+        if (missingEntities.length > 0) {
+            return `ERROR: Missing Entity value(s) for ${missingEntities.join(', ')}`;
+        }
 
         let memoryManager = new ClientMemoryManager(memory, allEntities)
 
