@@ -120,4 +120,8 @@ export class ClientMemoryManager {
         }
         return app.appName
     }
+
+    public async SesionInfoAsync(): Promise<any> {
+        return await this.blisMemory.BotState.ConversationInfoAsync()
+    }
 }
