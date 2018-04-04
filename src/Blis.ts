@@ -309,6 +309,12 @@ export class Blis {
         try {
             const entityDisplayValues = getEntityDisplayValueMap(filledEntityMap)
             const renderedArguments = cardAction.renderArguments(entityDisplayValues)
+
+            const missingEntities = renderedArguments.filter(ra => ra.value === null);
+            if (missingEntities.length > 0) {
+                return `ERROR: Missing Entity value(s) for ${missingEntities.map(me => me.parameter).join(', ')}`;
+            }
+
             const form = await TemplateProvider.RenderTemplate(cardAction.templateName, renderedArguments)
             // TODO: Look for better pattern than returning null
             if (form == null) {
