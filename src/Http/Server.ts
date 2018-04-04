@@ -223,7 +223,6 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
     /** Archives an existing application */
     server.del('/app/:appId', async (req, res, next) => {
         try {
-            //let query = req.getQuery();
             const key = req.header(memoryKeyHeaderName)
             let appId = req.params.appId
             await client.ArchiveApp(appId)
@@ -245,7 +244,6 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
      * Deleting an application from the archive really destroys it – no undo. */
     server.del('/archive/:appId', async (req, res, next) => {
         try {
-            //let query = req.getQuery();
             let appId = req.params.appId
             await client.DeleteApp(appId)
             res.send(200)
@@ -257,7 +255,6 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
     /** GET APP STATUS : Retrieves details for a specific $appId */
     server.get('/archive/:appId', async (req, res, next) => {
         try {
-            //let query = req.getQuery();
             let appId = req.params.appId
             let blisApp = await client.GetAppStatus(appId)
             res.send(blisApp)
@@ -322,7 +319,6 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
     /** Moves an application from the archive to the set of active applications */
     server.put('/archive/:appId', async (req, res, next) => {
         try {
-            //let query = req.getQuery();
             let appId = req.params.appId
             let app = await client.RestoreApp(appId)
             res.send(app)
@@ -407,7 +403,6 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
 
     server.post('/app/:appId/action', async (req, res, next) => {
         try {
-            //let query = req.getQuery();
             let appId = req.params.appId
             let action: models.ActionBase = req.body
             let actionId = await client.AddAction(appId, action)
@@ -419,7 +414,6 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
 
     server.put('/app/:appId/action/:actionId', async (req, res, next) => {
         try {
-            //let query = req.getQuery();
             let appId = req.params.appId
             let action: models.ActionBase = req.body
 
@@ -428,8 +422,8 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
             } else if (req.params.actionId != action.actionId) {
                 return next(new errors.BadRequestError('ActionId of object does not match URI'))
             }
-            let actionId = await client.EditAction(appId, action)
-            res.send(actionId)
+            let deleteEditResponse = await client.EditAction(appId, action)
+            res.send(deleteEditResponse)
         } catch (error) {
             HandleError(res, error)
         }
@@ -438,7 +432,6 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
     /** Returns list of trainingDialogIds that are invalidated by the given changed action */
     server.post('/app/:appId/action/:actionId/editValidation', async (req, res, next) => {
         try {
-            //let query = req.getQuery();
             let appId = req.params.appId
             let action: models.ActionBase = req.body
             const packageId = req.params.packageId
@@ -464,11 +457,10 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
     /** Delete action */
     server.del('/app/:appId/action/:actionId', async (req, res, next) => {
         try {
-            //let query = req.getQuery();
             let appId = req.params.appId
             let actionId = req.params.actionId
-            await client.DeleteAction(appId, actionId)
-            res.send(200)
+            let deleteEditResponse = await client.DeleteAction(appId, actionId)
+            res.send(deleteEditResponse)
         } catch (error) {
             HandleError(res, error)
         }
@@ -477,7 +469,6 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
     /** Returns list of trainDialogs invalidated by deleting the given action */
     server.get('/app/:appId/action/:actionId/deleteValidation', async (req, res, next) => {
         try {
-            //let query = req.getQuery();
             let appId = req.params.appId
             let actionId = req.params.actionId
             const packageId = req.params.packageId
@@ -545,7 +536,6 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
 
     server.post('/app/:appId/entity', async (req, res, next) => {
         try {
-            //let query = req.getQuery();
             let appId = req.params.appId
             let entity: models.EntityBase = req.body
             let entityId = await client.AddEntity(appId, entity)
@@ -555,10 +545,27 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
         }
     })
 
+    server.put('/app/:appId/entity/:entityId', async (req, res, next) => {
+        try {
+            let appId = req.params.appId
+            let entity: models.EntityBase = req.body
+
+            if (!entity.entityId) {
+                entity.entityId = req.params.entityId
+            } else if (req.params.entityId != entity.entityId) {
+                return next(new errors.BadRequestError('EntityId of object does not match URI'))
+            }
+
+            let entityId = await client.EditEntity(appId, entity)
+            res.send(entityId)
+        } catch (error) {
+            HandleError(res, error)
+        }
+    })
+    
     /** Returns list of trainingDialogIds that are invalidated by the given changed entity */
     server.post('/app/:appId/entity/:entityId/editValidation', async (req, res, next) => {
         try {
-            //let query = req.getQuery();
             let appId = req.params.appId
             let entity: models.EntityBase = req.body
             const packageId = req.params.packageId
@@ -583,11 +590,10 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
 
     server.del('/app/:appId/entity/:entityId', async (req, res, next) => {
         try {
-            //let query = req.getQuery();
             let appId = req.params.appId
             let entityId = req.params.entityId
-            await client.DeleteEntity(appId, entityId)
-            res.send(200)
+            let deleteEditResponse = await client.DeleteEntity(appId, entityId)
+            res.send(deleteEditResponse)
         } catch (error) {
             HandleError(res, error)
         }
@@ -596,7 +602,6 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
     /** Returns list of trainDialogs invalidated by deleting the given entity */
     server.get('/app/:appId/entity/:entityId/deleteValidation', async (req, res, next) => {
         try {
-            //let query = req.getQuery();
             let appId = req.params.appId
             let entityId = req.params.entityId
             const packageId = req.params.packageId
@@ -640,7 +645,6 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
     //========================================================
     server.get('/app/:appId/logdialog/:logDialogId', async (req, res, next) => {
         try {
-            //let query = req.getQuery();
             let appId = req.params.appId
             let logDialogId = req.params.logDialogId
             let logDialog = await client.GetLogDialog(appId, logDialogId)
@@ -652,7 +656,6 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
 
     server.del('/app/:appId/logdialog/:logDialogId', async (req, res, next) => {
         try {
-            //let query = req.getQuery();
             let appId = req.params.appId
             let logDialogId = req.params.logDialogId
             await client.DeleteLogDialog(appId, logDialogId)
@@ -690,7 +693,6 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
 
     server.post('/app/:appId/traindialog', async (req, res, next) => {
         try {
-            //let query = req.getQuery();
             let appId = req.params.appId
             let trainDialog: models.TrainDialog = req.body
 
@@ -706,7 +708,6 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
 
     server.put('/app/:appId/traindialog/:trainDialogId', async (req, res, next) => {
         try {
-            //let query = req.getQuery();
             let appId = req.params.appId
             let trainDialog: models.TrainDialog = req.body
 
@@ -722,7 +723,6 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
 
     server.get('/app/:appId/traindialog/:trainDialogId', async (req, res, next) => {
         try {
-            //let query = req.getQuery();
             let appId = req.params.appId
             let trainDialogId = req.params.trainDialogId
             let trainDialog = await client.GetTrainDialog(appId, trainDialogId)
@@ -734,7 +734,6 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
 
     server.del('/app/:appId/traindialog/:trainDialogId', async (req, res, next) => {
         try {
-            //let query = req.getQuery();
             let appId = req.params.appId
             let trainDialogId = req.params.trainDialogId
             await client.DeleteTrainDialog(appId, trainDialogId)
@@ -770,7 +769,6 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
      */
     server.put('/app/:appId/traindialog/:trainDialogId/extractor/:turnIndex', async (req, res, next) => {
         try {
-            //let query = req.getQuery();
             const key = req.header(memoryKeyHeaderName)
             let appId = req.params.appId
             let trainDialogId = req.params.trainDialogId
@@ -790,7 +788,6 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
     /** Create a new teach session based on the current train dialog starting at round turnIndex */
     server.post('/app/:appId/traindialog/:trainDialogId/branch/:turnIndex', async (req, res, next) => {
         try {
-            //let query = req.getQuery();
             const key = req.header(memoryKeyHeaderName)
             let appId = req.params.appId
             let userName = req.params.username
@@ -852,7 +849,6 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
     /** GET SESSION : Retrieves information about the specified session */
     server.get('/app/:appId/session/:sessionId', async (req, res, next) => {
         try {
-            //let query = req.getQuery();
             let appId = req.params.appId
             let sessionId = req.params.sessionId
             let response = await client.GetSession(appId, sessionId)
@@ -976,7 +972,6 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
     /** START TEACH SESSION: Creates a new teaching session from existing train dialog */
     server.post('/app/:appId/teachwithhistory', async (req, res, next) => {
         try {
-            //let query = req.getQuery();
             const key = req.header(memoryKeyHeaderName)
             let appId = req.params.appId
             let userName = req.params.username
@@ -1030,7 +1025,6 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
     /** GET TEACH: Retrieves information about the specified teach */
     server.get('/app/:appId/teach/:teachId', async (req, res, next) => {
         try {
-            //let query = req.getQuery();
             let appId = req.params.appId
             let teachId = req.params.teachId
             let teach = await client.GetTeach(appId, teachId)
@@ -1047,7 +1041,6 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
      */
     server.put('/app/:appId/teach/:teachId/extractor', async (req, res, next) => {
         try {
-            //let query = req.getQuery();
             const key = req.header(memoryKeyHeaderName)
             let appId = req.params.appId
             let teachId = req.params.teachId
@@ -1079,7 +1072,6 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
      */
     server.put('/app/:appId/teach/:teachId/scorer', async (req, res, next) => {
         try {
-            //let query = req.getQuery();
             const key = req.header(memoryKeyHeaderName)
             let appId = req.params.appId
             let teachId = req.params.teachId
@@ -1145,7 +1137,6 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
      */
     server.post('/app/:appId/teach/:teachId/scorer', async (req, res, next) => {
         try {
-            //let query = req.getQuery();
             const key = req.header(memoryKeyHeaderName)
             let appId = req.params.appId
             let teachId = req.params.teachId
@@ -1188,7 +1179,6 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
      */
     server.del('/app/:appId/teach/:teachId', async (req, res, next) => {
         try {
-            ///let query = req.getQuery();
             const key = req.header(memoryKeyHeaderName)
             let appId = req.params.appId
             let teachId = req.params.teachId
@@ -1234,7 +1224,6 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
 
     server.post('/app/:appId/history', async (req, res, next) => {
         try {
-            //let query = req.getQuery();
             const key = req.header(memoryKeyHeaderName)
             let appId = req.params.appId
             let userName = req.params.username
@@ -1256,7 +1245,6 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
 
     server.post('/app/:appId/teach/:teachId/undo', async (req, res, next) => {
         try {
-            //let query = req.getQuery();
             const key = req.header(memoryKeyHeaderName)
             let appId = req.params.appId
             let userName = req.params.username
