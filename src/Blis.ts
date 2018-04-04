@@ -3,6 +3,7 @@ import { BlisRecognizer } from './BlisRecognizer'
 import { BlisTemplateRenderer } from './BlisTemplateRenderer'
 import { IBlisOptions } from './BlisOptions'
 import { BlisMemory } from './BlisMemory'
+import { BotMemory } from './Memory/BotMemory'
 import { BlisDebug } from './BlisDebug'
 import { BlisClient } from './BlisClient'
 import createSdkServer from './Http/Server'
@@ -52,7 +53,6 @@ export class Blis {
     // Optional callback than runs after LUIS but before BLIS.  Allows Bot to substitute entities
     public static entityDetectionCallback: (
         text: string,
-        predictedEntities: PredictedEntity[],
         memoryManager: ClientMemoryManager
     ) => Promise<void>
 
@@ -123,7 +123,7 @@ export class Blis {
     }
 
     public static EntityDetectionCallback(
-        target: (text: string, predictedEntities: PredictedEntity[], memoryManager: ClientMemoryManager) => Promise<void>
+        target: (text: string, memoryManager: ClientMemoryManager) => Promise<void>
     ) {
         Blis.entityDetectionCallback = target
     }
@@ -154,18 +154,18 @@ export class Blis {
         memory: BlisMemory,
         allEntities: EntityBase[]
     ): Promise<ScoreInput> {
-        let memoryManager = new ClientMemoryManager(memory, allEntities)
+        let memoryManager = await ClientMemoryManager.CreateAsync(memory, allEntities)
 
         // Update memory with predicted entities
-        await Blis.ProcessPredictedEntities(text, predictedEntities, memoryManager)
+        await Blis.ProcessPredictedEntities(text, memory.BotMemory, predictedEntities, allEntities)
 
         // If bot has callback, call it
         if (Blis.entityDetectionCallback) {
-            await Blis.entityDetectionCallback(text, predictedEntities, memoryManager)
+            await Blis.entityDetectionCallback(text, memoryManager)
         }
 
         // Get entities from my memory
-        var filledEntities = await memoryManager.blisMemory.BotMemory.FilledEntitiesAsync()
+        var filledEntities = await memory.BotMemory.FilledEntitiesAsync()
 
         let scoreInput: ScoreInput = {
             filledEntities,
@@ -180,7 +180,7 @@ export class Blis {
         // If bot has callback, call it
         if (appId && Blis.onSessionStartCallback) {
             let entityList = await this.blisClient.GetEntities(appId)
-            let memoryManager = new ClientMemoryManager(memory, entityList.entities)
+            let memoryManager = await ClientMemoryManager.CreateAsync(memory, entityList.entities)
             await Blis.onSessionStartCallback(memoryManager)
         }
     }
@@ -190,7 +190,7 @@ export class Blis {
         // If bot has callback, call it to determine which entites to clear / edit
         if (appId && Blis.onSessionEndCallback) {
             let entityList = await this.blisClient.GetEntities(appId)
-            let memoryManager = new ClientMemoryManager(memory, entityList.entities)
+            let memoryManager = await ClientMemoryManager.CreateAsync(memory, entityList.entities)
             await Blis.onSessionEndCallback(memoryManager)
         } 
         // Otherwise just clear the memory
@@ -199,22 +199,25 @@ export class Blis {
         }
     }
 
-    public static async ProcessPredictedEntities(
+    private static async ProcessPredictedEntities(
         text: string,
+        memory: BotMemory,
         predictedEntities: PredictedEntity[],
-        memoryManager: ClientMemoryManager
+        allEntities: EntityBase[]
     ): Promise<void> {
+
+        // Get previous filled entities
         // Update entities in my memory
         for (var predictedEntity of predictedEntities) {
-            let entity = memoryManager.FindEntityById(predictedEntity.entityId)
+            let entity = allEntities.find(e => e.entityId == predictedEntity.entityId)
             if (!entity) {
                 throw new Error(`Could not find entity by id: ${predictedEntity.entityId}`)
             }
             // If negative entity will have a positive counter entity
             if (entity.positiveId) {
-                await memoryManager.blisMemory.BotMemory.ForgetEntity(entity.entityName, predictedEntity.entityText, entity.isMultivalue)
+                await memory.ForgetEntity(entity.entityName, predictedEntity.entityText, entity.isMultivalue)
             } else {
-                await memoryManager.blisMemory.BotMemory.RememberEntity(
+                await memory.RememberEntity(
                     entity.entityName,
                     entity.entityId,
                     predictedEntity.entityText,
@@ -284,7 +287,7 @@ export class Blis {
             return `ERROR: Missing Entity value(s) for ${missingEntities.join(', ')}`;
         }
 
-        let memoryManager = new ClientMemoryManager(memory, allEntities)
+        let memoryManager = await ClientMemoryManager.CreateAsync(memory, allEntities)
 
         try {
             let response = await api(memoryManager, ...argArray)

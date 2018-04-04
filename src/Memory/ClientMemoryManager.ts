@@ -1,23 +1,30 @@
+import { BotMemory } from '../Memory/BotMemory'
+import { SessionInfo } from '../Memory/BotState'
 import { BlisMemory } from '../BlisMemory'
 import { BlisDebug } from '../BlisDebug'
-import { EntityBase, MemoryValue, FilledEntity } from 'blis-models'
+import { EntityBase, MemoryValue, FilledEntity, FilledEntityMap } from 'blis-models'
 
 export class ClientMemoryManager {
-    public blisMemory: BlisMemory
-    private entities: EntityBase[] = []
+    public botMemory: BotMemory
+    protected entities: EntityBase[] = []
+    private sessionInfo: SessionInfo
+    private prevMemories: FilledEntityMap
 
-    public constructor(memory: BlisMemory, entities: EntityBase[]) {
+    public static async CreateAsync(blisMemory: BlisMemory, entities: EntityBase[]): Promise<ClientMemoryManager> {
+        let sessionInfo = await blisMemory.BotState.SessionInfoAsync()
+        let prevMemories = await blisMemory.BotMemory.FilledEntityMap();
+        return new ClientMemoryManager(blisMemory.BotMemory, prevMemories, entities, sessionInfo);
+    }
+
+    private constructor(botMemory: BotMemory, prevMemories: FilledEntityMap, entities: EntityBase[], sessionInfo: SessionInfo) {
         this.entities = entities
-        this.blisMemory = memory
+        this.botMemory = botMemory
+        this.sessionInfo = sessionInfo;
+        this.prevMemories = prevMemories;
     }
 
-    public FindEntity(entityName: string): EntityBase | undefined {
+    private FindEntity(entityName: string): EntityBase | undefined {
         let match = this.entities.find(e => e.entityName == entityName)
-        return match
-    }
-
-    public FindEntityById(entityId: string): EntityBase | undefined {
-        let match = this.entities.find(e => e.entityId == entityId)
         return match
     }
 
@@ -29,7 +36,7 @@ export class ClientMemoryManager {
             return
         }
 
-        await this.blisMemory.BotMemory.RememberEntity(entity.entityName, entity.entityId, entityValue, entity.isMultivalue)
+        await this.botMemory.RememberEntity(entity.entityName, entity.entityId, entityValue, entity.isMultivalue)
     }
 
     public async RememberEntitiesAsync(entityName: string, entityValues: string[]): Promise<void> {
@@ -40,7 +47,7 @@ export class ClientMemoryManager {
             return
         }
 
-        await this.blisMemory.BotMemory.RememberMany(entity.entityName, entity.entityId, entityValues, entity.isMultivalue)
+        await this.botMemory.RememberMany(entity.entityName, entity.entityId, entityValues, entity.isMultivalue)
     }
 
     public async ForgetEntityAsync(entityName: string, value: string | null = null): Promise<void> {
@@ -52,7 +59,7 @@ export class ClientMemoryManager {
         }
 
         // If no value given, wipe all entites from buckets
-        await this.blisMemory.BotMemory.Forget(entity.entityName, value, entity.isMultivalue)
+        await this.botMemory.Forget(entity.entityName, value, entity.isMultivalue)
     }
 
     /** Clear all entity values apart from any included in the list of saveEntityNames
@@ -62,7 +69,7 @@ export class ClientMemoryManager {
         
         for (let entity of this.entities) {
             if (saveEntityNames.indexOf(entity.entityName) < 0) {
-                await this.blisMemory.BotMemory.Forget(entity.entityName, null, entity.isMultivalue)
+                await this.botMemory.Forget(entity.entityName, null, entity.isMultivalue)
             }
         }
     }
@@ -86,10 +93,10 @@ export class ClientMemoryManager {
         }
 
         // Clear "To" entity
-        await this.blisMemory.BotMemory.Forget(entityNameTo)
+        await this.botMemory.Forget(entityNameTo)
 
         // Get value of "From" entity
-        let values = await this.blisMemory.BotMemory.ValueAsList(entityNameFrom)
+        let values = await this.botMemory.ValueAsList(entityNameFrom)
 
         // Copy values from "From"
         for (let value of values) {
@@ -98,30 +105,37 @@ export class ClientMemoryManager {
     }
 
     public async EntityValueAsync(entityName: string): Promise<string | null> {
-        return await this.blisMemory.BotMemory.Value(entityName)
+        return await this.botMemory.Value(entityName)
     }
 
     public async EntityValueAsPrebuiltAsync(entityName: string): Promise<MemoryValue[]> {
-        return await this.blisMemory.BotMemory.ValueAsPrebuilt(entityName)
+        return await this.botMemory.ValueAsPrebuilt(entityName)
     }
 
     public async EntityValueAsListAsync(entityName: string): Promise<string[]> {
-        return await this.blisMemory.BotMemory.ValueAsList(entityName)
+        return await this.botMemory.ValueAsList(entityName)
+    }
+
+    public PrevEntityValue(entityName: string): (string | null) {
+        return this.prevMemories.EntityValueAsString(entityName)
+    }
+
+    public PrevEntityValueAsPrebuilt(entityName: string): MemoryValue[] {
+        if (!this.prevMemories.map[entityName]) {
+            return []
+        }
+        return this.prevMemories.map[entityName].values
+    }
+
+    public PrevEntityValueAsList(entityName: string): string[] {
+        return this.prevMemories.EntityValueAsList(entityName)
     }
 
     public async GetFilledEntitiesAsync(): Promise<FilledEntity[]> {
-        return await this.blisMemory.BotMemory.FilledEntitiesAsync()
+        return await this.botMemory.FilledEntitiesAsync()
     }
 
-    public async AppNameAsync(): Promise<string> {
-        let app = await this.blisMemory.BotState.AppAsync()
-        if (!app) {
-            throw new Error(`Attempted to get current app from bot state before app was set.`)
-        }
-        return app.appName
-    }
-
-    public async SessionInfoAsync(): Promise<any> {
-        return await this.blisMemory.BotState.ConversationInfoAsync()
+    public SessionInfo(): SessionInfo {
+        return this.sessionInfo;
     }
 }
