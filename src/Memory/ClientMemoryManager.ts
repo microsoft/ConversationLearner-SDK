@@ -12,7 +12,7 @@ export class ClientMemoryManager {
 
     public static async CreateAsync(blisMemory: BlisMemory, entities: EntityBase[]): Promise<ClientMemoryManager> {
         let sessionInfo = await blisMemory.BotState.SessionInfoAsync()
-        let prevMemories = await blisMemory.BotMemory.FilledEntityMap();
+        let prevMemories = new FilledEntityMap(await blisMemory.BotMemory.FilledEntityMap());
         return new ClientMemoryManager(blisMemory.BotMemory, prevMemories, entities, sessionInfo);
     }
 
