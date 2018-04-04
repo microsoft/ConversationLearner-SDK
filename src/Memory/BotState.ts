@@ -250,6 +250,18 @@ export class BotState {
         }
     }
 
+    public async ConversationInfoAsync(): Promise<any> {
+        try {
+            await this.Init()
+            return {
+                user : this.conversationReference && this.conversationReference.user,
+                sessionId: this.sessionId
+            }
+        } catch (err) {
+            return null
+        }
+    }
+
     //------------------------------------------------------------------
     public async SendMessage(bot: BB.Bot, message: string | BB.Activity): Promise<void> {
         let conversationReference = await this.ConversationReverenceAsync()
