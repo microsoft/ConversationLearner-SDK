@@ -24,7 +24,7 @@ export class TemplateProvider {
         for (let argumentName of argumentNames) {
             let renderedActionArgument = templateArguments.find(a => a.parameter == argumentName)
             if (renderedActionArgument) {
-                templateString = templateString.replace(new RegExp(`{{${argumentName}}}`, 'g'), renderedActionArgument.value)
+                templateString = templateString.replace(new RegExp(`{{${argumentName}}}`, 'g'), renderedActionArgument.value || '')
             }
         }
         templateString = this.RemoveEmptyArguments(templateString)
