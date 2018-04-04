@@ -60,7 +60,8 @@
     "typescript": "^2.4.2"
   },
   "files": [
-    "lib"
+    "lib",
+    "src"
   ],
   "jest": {
     "testMatch": [
