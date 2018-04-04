@@ -82,7 +82,9 @@ export class BlisRecognizer extends BB.IntentRecognizer {
             }
             
             if (!app) {
-                throw new Error('BLIS AppID not specified')
+                let error = "ERROR: AppId not specified.  When running in a channel (i.e. Skype) or the Bot Framework Emulator, BLIS_APP_ID must be specified in your Bot's .env file or Application Settings on the server"
+                await Blis.SendMessage(memory, error)
+                return null;
             }
             
             let packageId = await memory.BotState.ActiveAppAsync(app.appId)
