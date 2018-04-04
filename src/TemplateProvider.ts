@@ -111,7 +111,7 @@ export class TemplateProvider {
         try {
             let fileNames: string[] = fs.readdirSync(templateDirectory)
             fileNames = fileNames.filter(fn => fn.endsWith('.json'))
-            let templates = fileNames.map(f => f.slice(0, f.indexOf('.')))
+            let templates = fileNames.map(f => f.slice(0, f.lastIndexOf('.')))
             return templates
         } catch {
             BlisDebug.Log("No Card directory found")
