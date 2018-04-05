@@ -154,6 +154,7 @@ export class Blis {
         memory: BlisMemory,
         allEntities: EntityBase[]
     ): Promise<ScoreInput> {
+
         let memoryManager = await ClientMemoryManager.CreateAsync(memory, allEntities)
 
         // Update memory with predicted entities
