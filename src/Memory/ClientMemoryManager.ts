@@ -142,6 +142,14 @@ export class ClientMemoryManager {
         return this.prevMemories.EntityValueAsList(entityName)
     }
 
+    public PrevValueAsObject<T>(entityName: string): (T | null) {
+        const textObj = this.prevMemories.EntityValueAsString(entityName)
+        if (textObj) {
+            return JSON.parse(textObj) as T;
+        }
+        return null;
+    }
+
     public async GetFilledEntitiesAsync(): Promise<FilledEntity[]> {
         return await this.botMemory.FilledEntitiesAsync()
     }
