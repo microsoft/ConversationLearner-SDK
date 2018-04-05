@@ -462,7 +462,7 @@ export class BlisClient {
         let apiPath = `app/${appId}/traindialog/${trainDialogId}/extractor/${turnIndex}`
         // Always retrieve entity list
         let query = 'includeDefinitions=true'
-        return this.send('PUT', this.MakeURL(apiPath, query))
+        return this.send('PUT', this.MakeURL(apiPath, query), userInput)
     }
 
     //=============================================================================
