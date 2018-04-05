@@ -1,5 +1,5 @@
 import * as BB from 'botbuilder'
-import { UserInput, PredictedEntity, EntityBase, ScoredAction, SessionCreateParams } from 'blis-models'
+import { UserInput, PredictedEntity, EntityBase, ScoredAction, SessionCreateParams, BlisAppBase } from 'blis-models'
 import { BlisDebug } from './BlisDebug'
 import { BlisMemory } from './BlisMemory'
 import { BlisClient } from './BlisClient'
@@ -7,6 +7,7 @@ import { BlisContext } from './BlisContext'
 import { BlisIntent } from './BlisIntent'
 import { Blis } from './Blis'
 import { IBlisOptions } from './BlisOptions'
+import { BLIS_DEVELOPER } from './Utils';
 
 export const BLIS_INTENT_WRAPPER = 'BLIS_INTENT_WRAPPER'
 
@@ -52,13 +53,49 @@ export class BlisRecognizer extends BB.IntentRecognizer {
         return sessionResponse.sessionId
     }
 
+    private async SetApp(botContext: BotContext, memory: BlisMemory) : Promise<BlisAppBase | null> {
+
+        let app = await memory.BotState.AppAsync()
+
+        // If I'm not in the editing UI, always use app specified by options
+        if (app) {
+
+            let inEditingUI = 
+                botContext.conversationReference &&
+                botContext.conversationReference.user &&
+                botContext.conversationReference.user.name === BLIS_DEVELOPER;
+            
+            if (!inEditingUI && app.appId != this.options.appId)
+            {
+                // Use config value
+                BlisDebug.Log(`Switching to app specified in config: ${this.options.appId}`)
+                app = await this.client.GetApp(this.options.appId)
+                await memory.SetAppAsync(app)
+            }
+        }
+        // If I don't have an app, attempt to use one set in config
+        else if (this.options.appId) {
+            BlisDebug.Log(`Selecting app specified in config: ${this.options.appId}`)
+            app = await this.client.GetApp(this.options.appId)
+            await memory.SetAppAsync(app)
+        }
+
+        return app;
+    }
+
     private async ProcessInput(botContext: BotContext): Promise<BB.Intent | null> {
         let errComponent = 'ProcessInput'
         let memory: BlisMemory | null = null
         try {
             BlisDebug.Verbose(`Process Input...`)
-            let blisContext = await BlisContext.CreateAsync(Blis.bot, botContext)
 
+            // Validate request
+            const user = botContext.request.from
+            if (!user || !user.id) {
+                throw new Error(`Attempted to get current session for user, but user was not defined on bot request.`)
+            }
+
+            let blisContext = await BlisContext.CreateAsync(Blis.bot, botContext)
             memory = blisContext.Memory()
 
             // Validate setup
@@ -70,32 +107,16 @@ export class BlisRecognizer extends BB.IntentRecognizer {
             }
 
             let inTeach = await memory.BotState.InTeachAsync()
-            let app = await memory.BotState.AppAsync()
-            let sessionId = null
-
-            // If I don't have an app, default to using config
-            if (!app && this.options.appId) {
-
-                BlisDebug.Log(`Selecting app specified in config: ${this.options.appId}`)
-                app = await this.client.GetApp(this.options.appId)
-                await memory.SetAppAsync(app)
-            }
+            let app = await this.SetApp(blisContext.botContext, memory);
             
             if (!app) {
                 let error = "ERROR: AppId not specified.  When running in a channel (i.e. Skype) or the Bot Framework Emulator, BLIS_APP_ID must be specified in your Bot's .env file or Application Settings on the server"
                 await Blis.SendMessage(memory, error)
                 return null;
             }
-            
+
             let packageId = await memory.BotState.ActiveAppAsync(app.appId)
-
-            // Attempt to load the session
-            const user = botContext.request.from
-            if (!user || !user.id) {
-                throw new Error(`Attempted to get current session for user, but user was not defined on bot request.`)
-            }
-
-            sessionId = await memory.BotState.SessionIdAsync(user.id)
+            let sessionId = await memory.BotState.SessionIdAsync(user.id)
 
             // Make sure session hasn't expired
             if (!inTeach && sessionId) {

@@ -6,7 +6,7 @@ import { Blis } from '../Blis'
 import { BlisMemory } from '../BlisMemory'
 import { BlisIntent } from '../BlisIntent'
 import { TemplateProvider } from '../TemplateProvider'
-import { Utils, replace } from '../Utils'
+import { Utils, replace, BLIS_DEVELOPER } from '../Utils'
 import * as XMLDom from 'xmldom'
 import * as models from 'blis-models'
 import * as corsMiddleware from 'restify-cors-middleware'
@@ -133,7 +133,9 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
         try {
             const botInfo: models.BotInfo = {
                 user: {
-                    name: "Developer",
+                    // We keep track that the editing  UI is running by putting this as the name of the user
+                    // Can't check localhost as can be running localhost and not UI
+                    name: BLIS_DEVELOPER,
                     id: Blis.options.luisAuthoringKey!
                 },
                 callbacks: Blis.apiParams,
