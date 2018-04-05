@@ -28,7 +28,7 @@ export class ClientMemoryManager {
         return match
     }
 
-    public async RememberEntityAsync(entityName: string, entityValue: string): Promise<void> {
+    public async RememberEntityAsync(entityName: string, entityValue: string | object): Promise<void> {
         let entity = this.FindEntity(entityName)
 
         if (!entity) {
@@ -36,6 +36,9 @@ export class ClientMemoryManager {
             return
         }
 
+        if (typeof entityValue == 'object') {
+            entityValue = JSON.stringify(entityValue);
+        }
         await this.botMemory.RememberEntity(entity.entityName, entity.entityId, entityValue, entity.isMultivalue)
     }
 
@@ -116,6 +119,14 @@ export class ClientMemoryManager {
         return await this.botMemory.ValueAsList(entityName)
     }
 
+    public async EntityValueAsObject<T>(entityName: string): Promise<T | null> {
+        const textObj = await this.botMemory.Value(entityName)
+        if (textObj) {
+            return JSON.parse(textObj) as T;
+        }
+        return null;
+    }
+
     public PrevEntityValue(entityName: string): (string | null) {
         return this.prevMemories.EntityValueAsString(entityName)
     }
@@ -129,6 +140,14 @@ export class ClientMemoryManager {
 
     public PrevEntityValueAsList(entityName: string): string[] {
         return this.prevMemories.EntityValueAsList(entityName)
+    }
+
+    public PrevValueAsObject<T>(entityName: string): (T | null) {
+        const textObj = this.prevMemories.EntityValueAsString(entityName)
+        if (textObj) {
+            return JSON.parse(textObj) as T;
+        }
+        return null;
     }
 
     public async GetFilledEntitiesAsync(): Promise<FilledEntity[]> {
