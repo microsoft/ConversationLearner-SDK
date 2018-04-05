@@ -376,7 +376,8 @@ export class BlisClient {
     /** Retrieves information about a specific logDialog */
     public GetLogDialog(appId: string, logDialogId: string): Promise<models.LogDialog> {
         let apiPath = `app/${appId}/logdialog/${logDialogId}`
-        return this.send('GET', this.MakeURL(apiPath))
+        let query = 'includeDefinitions=false'
+        return this.send('GET', this.MakeURL(apiPath, query))
     }
 
     /** Retrieves the contents of many/all logDialogs.
@@ -384,7 +385,7 @@ export class BlisClient {
      * see the GET GetLogDialogIds method. */
     public GetLogDialogs(appId: string, packageId: string): Promise<models.LogDialogList> {
         let packages = packageId.split(",").map(p => `package=${p}`).join("&");
-        let apiPath = `app/${appId}/logdialogs?${packages}`
+        let apiPath = `app/${appId}/logdialogs?includeDefinitions=false&${packages}`
         return this.send('GET', this.MakeURL(apiPath))
     }
 
@@ -430,6 +431,10 @@ export class BlisClient {
      * see the GetTrainDialogIds method */
     public GetTrainDialogs(appId: string, query: string): Promise<models.TrainDialogList> {
         let apiPath = `app/${appId}/traindialogs`
+        if(!query.includes('includeDefinitions'))
+        {
+            query += `${query.length > 0 ? '&' : ''}includeDefinitions=false`; 
+        }
         return this.send('GET', this.MakeURL(apiPath, query))
     }
 
