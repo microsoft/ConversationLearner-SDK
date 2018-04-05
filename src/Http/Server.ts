@@ -274,7 +274,7 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
 
             // Get lookup table for which apps packages are being edited
             let memory = BlisMemory.GetMemory(key)
-            let activeApps = await memory.BotState.ActiveAppsAsync();
+            let activeApps = await memory.BotState.EditingPackagesAsync();
 
             let uiAppList = { appList: apps, activeApps: activeApps } as models.UIAppList;
             res.send(uiAppList)
@@ -380,7 +380,7 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
             }
 
             let memory = BlisMemory.GetMemory(key)
-            let updatedPackageVersions = await memory.BotState.SetActiveAppAsync(appId, packageId);
+            let updatedPackageVersions = await memory.BotState.SetEditingPackageAsync(appId, packageId);
             res.send(updatedPackageVersions)
 
         } catch (error) {

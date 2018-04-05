@@ -161,7 +161,7 @@ export class BlisMemory {
             if (!calledEndSession) {
 
                 // Default callback will clear the bot memory
-                Blis.CallSessionEndCallback(this, app ? app.appId : null);
+                await Blis.CallSessionEndCallback(this, app ? app.appId : null);
             }
         }
         await Blis.CallSessionStartCallback(this, app ? app.appId : null);
