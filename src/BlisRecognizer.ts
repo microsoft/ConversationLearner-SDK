@@ -53,18 +53,12 @@ export class BlisRecognizer extends BB.IntentRecognizer {
         return sessionResponse.sessionId
     }
 
-    private async SetApp(botContext: BotContext, memory: BlisMemory) : Promise<BlisAppBase | null> {
+    private async SetApp(botContext: BotContext, memory: BlisMemory, inEditingUI: boolean) : Promise<BlisAppBase | null> {
 
         let app = await memory.BotState.AppAsync()
 
         // If I'm not in the editing UI, always use app specified by options
-        if (app) {
-
-            let inEditingUI = 
-                botContext.conversationReference &&
-                botContext.conversationReference.user &&
-                botContext.conversationReference.user.name === BLIS_DEVELOPER;
-            
+        if (app) {         
             if (!inEditingUI && app.appId != this.options.appId)
             {
                 // Use config value
@@ -107,7 +101,12 @@ export class BlisRecognizer extends BB.IntentRecognizer {
             }
 
             let inTeach = await memory.BotState.InTeachAsync()
-            let app = await this.SetApp(blisContext.botContext, memory);
+            let inEditingUI = 
+                botContext.conversationReference &&
+                botContext.conversationReference.user &&
+                botContext.conversationReference.user.name === BLIS_DEVELOPER || false;
+
+            let app = await this.SetApp(blisContext.botContext, memory, inEditingUI);
             
             if (!app) {
                 let error = "ERROR: AppId not specified.  When running in a channel (i.e. Skype) or the Bot Framework Emulator, BLIS_APP_ID must be specified in your Bot's .env file or Application Settings on the server"
@@ -115,7 +114,7 @@ export class BlisRecognizer extends BB.IntentRecognizer {
                 return null;
             }
 
-            let packageId = await memory.BotState.ActiveAppAsync(app.appId)
+
             let sessionId = await memory.BotState.SessionIdAsync(user.id)
 
             // Make sure session hasn't expired
@@ -127,18 +126,21 @@ export class BlisRecognizer extends BB.IntentRecognizer {
                 // If session expired, create a new one
                 if (passedTicks > this.options.sessionMaxTimeout!) { 
 
-                    // Store conversationId
-                    let conversationId = await memory.BotState.ConversationIdAsync()
-
                     // End the current session, clear the memory
                     await this.client.EndSession(app.appId, sessionId);
                     memory.EndSessionAsync()
 
+                    // If I'm not in the UI, reload the App to get any changes (live package version may have been updated)
+                    if (!inEditingUI) {
+                        app = await this.client.GetApp(this.options.appId)
+                        await memory.SetAppAsync(app)
+                    }
+                    
                     // Start a new session 
                     let sessionResponse = await this.client.StartSession(app.appId, {saveToLog: app.metadata.isLoggingOn})
         
                     // Update Memory, passing in original sessionId for reference
-
+                    let conversationId = await memory.BotState.ConversationIdAsync()
                     memory.StartSessionAsync(sessionResponse.sessionId, conversationId, { inTeach: inTeach, isContinued: false }, sessionId)
 
                     // Set new sessionId
@@ -148,6 +150,14 @@ export class BlisRecognizer extends BB.IntentRecognizer {
                 else {
                     await memory.BotState.SetLastActiveAsync(currentTicks);
                 }
+            }
+
+            // PackageId: Use live package id if not in editing UI, default to devPackage if no active package set
+            let packageId = (inEditingUI ? await memory.BotState.EditingPackageAsync(app.appId) : app.livePackageId) || app.devPackageId
+            if (!packageId) {
+                let error = "ERROR: No PackageId has been set"
+                await Blis.SendMessage(memory, error)
+                return null;
             }
 
             // If no session for this conversation (or it's expired), create a new one

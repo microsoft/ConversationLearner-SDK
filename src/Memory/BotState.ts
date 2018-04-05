@@ -46,7 +46,7 @@ export class BotState {
     public conversationReference: BB.ConversationReference | null = null
 
     // Which packages are active for editing
-    public activeApps: { [appId: string]: string };  // appId: packageId
+    public editingPackages: { [appId: string]: string };  // appId: packageId
 
     private constructor(init?: Partial<BotState>) {
         (<any>Object).assign(this, init)
@@ -84,7 +84,7 @@ export class BotState {
         this.orgSessionId = json.orgSessionId,
         this.onEndSessionCalled = json.onEndSessionCalled ? json.onEndSessionCalled : false
         this.conversationReference = json.conversationReference,
-        this.activeApps = json.activeApps
+        this.editingPackages = json.activeApps
     }
 
     private Serialize(): string {
@@ -97,7 +97,7 @@ export class BotState {
             orgSessionId: this.orgSessionId,
             onEndSessionCalled: this.onEndSessionCalled ? this.onEndSessionCalled : false,
             conversationReference: this.conversationReference,
-            activeApps: this.activeApps
+            activeApps: this.editingPackages
         }
         return JSON.stringify(jsonObj)
     }
@@ -118,7 +118,7 @@ export class BotState {
         this.orgSessionId = null
         this.onEndSessionCalled = false
         this.inTeach = false
-        this.activeApps = {}
+        this.editingPackages = {}
         await this.SetAsync()
     }
 
@@ -136,21 +136,21 @@ export class BotState {
         return this.conversationId
     }
 
-    public async ActiveAppsAsync(): Promise<{ [appId: string]: string }> {
+    public async EditingPackagesAsync(): Promise<{ [appId: string]: string }> {
         await this.Init()
-        return this.activeApps
+        return this.editingPackages
     }
 
-    public async SetActiveAppAsync(appId: string, packageId: string): Promise<{ [appId: string]: string }> {
+    public async SetEditingPackageAsync(appId: string, packageId: string): Promise<{ [appId: string]: string }> {
         await this.Init()
-        this.activeApps[appId] = packageId;
+        this.editingPackages[appId] = packageId;
         await this.SetAsync();
-        return this.activeApps;
+        return this.editingPackages;
     }
 
-    public async ActiveAppAsync(appId: string): Promise<string> {
+    public async EditingPackageAsync(appId: string): Promise<string> {
         await this.Init()
-        return this.activeApps[appId];
+        return this.editingPackages[appId];
     }
 
     public async OrgSessionIdAsync(sessionId: string): Promise<string | null> {
