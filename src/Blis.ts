@@ -162,7 +162,14 @@ export class Blis {
 
         // If bot has callback, call it
         if (Blis.entityDetectionCallback) {
-            await Blis.entityDetectionCallback(text, memoryManager)
+            try {
+                await Blis.entityDetectionCallback(text, memoryManager)
+            }
+            catch (err) {
+                await Blis.SendMessage(memory, "Exception hit in Bot's EntityDetectionCallback")
+                let errMsg = BlisDebug.Error(err);
+                Blis.SendMessage(memory, errMsg);
+            }
         }
 
         // Get entities from my memory
@@ -291,8 +298,15 @@ export class Blis {
         let memoryManager = await ClientMemoryManager.CreateAsync(memory, allEntities)
 
         try {
-            let response = await api(memoryManager, ...argArray)
-            return response;
+            try {
+                let response = await api(memoryManager, ...argArray)
+                return response;
+            }
+            catch (err) {
+                await Blis.SendMessage(memory, `Exception hit in Bot's API Callback: '${apiName}'`)
+                let errMsg = BlisDebug.Error(err);
+                return errMsg;
+            }
         }
         catch (err) {
             return BlisDebug.Error(err)
