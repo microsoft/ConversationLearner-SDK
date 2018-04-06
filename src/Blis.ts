@@ -41,6 +41,7 @@ import {
 } from 'blis-models'
 import { ClientMemoryManager } from './Memory/ClientMemoryManager'
 import { BlisIntent } from './BlisIntent'
+import * as path from 'path'  // LARS TEMP DEBUG
 const DEFAULT_MAX_SESSION_LENGTH = 20 * 60 * 1000;  // 20 minutes
 
 export class Blis {
@@ -334,9 +335,10 @@ export class Blis {
             }
 
             const form = await TemplateProvider.RenderTemplate(cardAction.templateName, renderedArguments)
-            // TODO: Look for better pattern than returning null
+
             if (form == null) {
-                return BlisDebug.Error(`Missing Template: ${cardAction.templateName}`)
+                const cardPath = path.join(path.join(process.cwd(), './cards'), `${cardAction.templateName}.json`);
+                return BlisDebug.Error(`Missing Template: ${cardPath}`)
             }
             const attachment = BB.CardStyler.adaptiveCard(form)
             const message = BB.MessageStyler.attachment(attachment)
