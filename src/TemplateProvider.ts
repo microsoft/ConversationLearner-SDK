@@ -3,9 +3,6 @@ import * as path from 'path'
 import { Template, TemplateVariable, RenderedActionArgument } from 'blis-models'
 import { BlisDebug } from './BlisDebug'
 
-//TODO - make this configurable
-const templateDirectory = path.join(process.cwd(), './cards')
-
 export class TemplateProvider {
     private static hasSumbitItem = false
 
@@ -96,14 +93,37 @@ export class TemplateProvider {
         return []
     }
 
+    public static TemplateDirectory(): string {
+        //TODO - make this configurable
+        let templateDirectory = path.join(process.cwd(), './cards')
+
+        // Try up a directory or two as could be in /lib or /dist folder depending on deployment
+        if (!fs.existsSync(templateDirectory)) {
+            templateDirectory = path.join(process.cwd(), '../cards')
+        }
+        if (!fs.existsSync(templateDirectory)) {
+            templateDirectory = path.join(process.cwd(), '../../cards')
+        }
+        return templateDirectory;
+    }
+
     public static GetTemplate(templateName: string): any {
+
+        const filename = path.join(this.TemplateDirectory(), `${templateName}.json`);
+        
         try {
-            const templateString = fs.readFileSync(path.join(templateDirectory, `${templateName}.json`), 'utf-8')
-            const template = JSON.parse(templateString)
-            return template
+            const templateString = fs.readFileSync(filename, 'utf-8')
+
+            try {
+                const template = JSON.parse(templateString)
+                return template
+            } catch {
+                BlisDebug.Error(`Invalid JSON: Failed to Parse template named "${templateName}"`)
+                return null
+            }
+
         } catch {
-            BlisDebug.Error(`Can't find template named: "${templateName}`)
-            return null
+            BlisDebug.Error(`Can't find template named: "${filename}"`)
         }
     }
 
