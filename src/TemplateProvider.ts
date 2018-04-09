@@ -129,7 +129,7 @@ export class TemplateProvider {
 
     public static GetTemplatesNames(): string[] {
         try {
-            let fileNames: string[] = fs.readdirSync(templateDirectory)
+            let fileNames: string[] = fs.readdirSync(this.TemplateDirectory())
             fileNames = fileNames.filter(fn => fn.endsWith('.json'))
             let templates = fileNames.map(f => f.slice(0, f.lastIndexOf('.')))
             return templates
