@@ -170,6 +170,14 @@ export class BlisRecognizer extends BB.IntentRecognizer {
 
             // Teach inputs are handled via API calls from the BLIS api
             if (!inTeach) {
+
+                // Was it a conversationUpdate message?
+                if (botContext.request.type == "conversationUpdate") {
+                    // Do nothing
+                    BlisDebug.Verbose(`Conversation update...  ${+JSON.stringify(botContext.request.membersAdded)} -${JSON.stringify(botContext.request.membersRemoved)}`);
+                    return null;
+                }
+
                 let entities: EntityBase[] = []
 
                 errComponent = 'SessionExtract'
