@@ -35,39 +35,30 @@ export class BlisRecognizer extends BB.IntentRecognizer {
         })
     }
 
+    // Add input queu
     private async AddInput(botContext: BotContext) : Promise<BB.Intent | null> {
 
         Blis.SetBot(botContext)
 
-        let conversationReference = botContext.conversationReference;
-        let request = botContext.request;
-
-        if (request.from === undefined || request.id == undefined) {
+        if (botContext.request.from === undefined || botContext.request.id == undefined) {
             return null;
         }
 
-        let blisContext = await BlisContext.CreateAsync(Blis.bot, request.from, conversationReference)
+        let blisContext = await BlisContext.CreateAsync(Blis.bot, botContext.request.from, botContext.conversationReference)
         let botState = blisContext.Memory().BotState;
-
         let addInputPromise = util.promisify(InputQueue.AddInput);
-        let isReady = await addInputPromise(botState, request, conversationReference);
+        let isReady = await addInputPromise(botState, botContext.request, botContext.conversationReference);
         
         if (isReady)
         {
-            let intents2 = await this.ProcessInput(request, conversationReference);
-            botState.InputQueuePop(request.id);
-            return intents2;
+            let intents = await this.ProcessInput(botContext.request, botContext.conversationReference);
+
+            // Remove message from queue
+            InputQueue.InputQueuePop(botState, botContext.request.id);
+            return intents;
         }
-
+        // Message has expired 
         return null;
-
-        /*
-                let intents = await addInputPromise(blisContext.Memory().BotState, botContext.request, botContext.conversationReference, (async () => 
-            {
-                let intents2 = await this.ProcessInput(botContext.request, botContext.conversationReference);
-                return intents2;
-            }))  
-        */
     }
 
     private async StartSessionAsync(user: BB.ChannelAccount | undefined, memory: BlisMemory, appId: string, saveToLog: boolean, packageId: string): Promise<string> {

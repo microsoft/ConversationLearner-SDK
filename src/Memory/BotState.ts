@@ -49,8 +49,8 @@ export class BotState {
     // Which packages are active for editing
     public editingPackages: { [appId: string]: string };  // appId: packageId
 
-    // Input queue
-    public messageQueue: QueuedInput[]
+    // Current message being processed
+    public messageProcessing: QueuedInput | undefined
 
     private constructor(init?: Partial<BotState>) {
         (<any>Object).assign(this, init)
@@ -89,7 +89,7 @@ export class BotState {
         this.onEndSessionCalled = json.onEndSessionCalled ? json.onEndSessionCalled : false
         this.conversationReference = json.conversationReference,
         this.editingPackages = json.activeApps,
-        this.messageQueue = json.messageQueue ? json.messageQueue : []
+        this.messageProcessing = json.messageProcessing
     }
 
     private Serialize(): string {
@@ -103,7 +103,7 @@ export class BotState {
             onEndSessionCalled: this.onEndSessionCalled ? this.onEndSessionCalled : false,
             conversationReference: this.conversationReference,
             activeApps: this.editingPackages,
-            messageQueue: this.messageQueue
+            messageProcessing: this.messageProcessing
         }
         return JSON.stringify(jsonObj)
     }
@@ -217,6 +217,7 @@ export class BotState {
         this.conversationId = conversationId;
         this.lastActive = new Date().getTime();
         this.inTeach = inTeach
+        this.messageProcessing = undefined
         await this.SetAsync()
     }
 
@@ -227,6 +228,7 @@ export class BotState {
         this.conversationId = null;
         this.lastActive = 0;
         this.inTeach = false
+        this.messageProcessing = undefined
         await this.SetAsync()
     }
 
@@ -264,62 +266,23 @@ export class BotState {
     }
     
     // ------------------------------------------------
-    public async InputQueueAdd(conversationId: string): Promise<void> {
-        const now = new Date().getTime();
-        const queuedInput = 
-        {
-            conversationId: conversationId, 
-            timestamp: now
-        } as QueuedInput
+    public async MessageProcessingAsync(): Promise<QueuedInput | undefined> {
         await this.Init()
-        this.messageQueue.push(queuedInput);
-        this.messageQueue = this.messageQueue.filter(mq => (now - mq.timestamp) < 10000 )
+        return this.messageProcessing;
+    }
+
+    public async MessageProcessingPopAsync(): Promise<QueuedInput | undefined> {
+        await this.Init()
+        let popVal = this.messageProcessing;
+        this.messageProcessing = undefined;
+        await this.SetAsync();
+        return popVal;
+    }
+
+    public async SetMessageProcessingAsync(queuedInput: QueuedInput | undefined): Promise<void> {
+        await this.Init()
+        this.messageProcessing = queuedInput
         await this.SetAsync()
-        console.log(`QUEUE: ${conversationId} ${JSON.stringify(this.messageQueue)}`)
-    }
-
-    public async InputQueueCanPop(conversationId: string): Promise<boolean> {
-        const now = new Date().getTime();
-        await this.Init()
-        // Remove expired items
-        const filteredQueue = this.messageQueue.filter(mq => (now - mq.timestamp) < 10000 )
-        if (filteredQueue.length < this.messageQueue.length) {
-            this.messageQueue = filteredQueue;
-            console.log(`CLEAN: ${conversationId} ${JSON.stringify(this.messageQueue)}`)
-            await this.SetAsync() 
-        }
-        if (filteredQueue.length > 0 && filteredQueue[0].conversationId === conversationId) {
-            console.log(`TRUE: ${conversationId} ${JSON.stringify(this.messageQueue)}`)
-            return true;
-        }
-        console.log(`FALSE: ${conversationId} ${JSON.stringify(this.messageQueue)}`)
-        return false;
-    }
-
-    public async InputQueuePop(conversationId: string): Promise<void> {
-
-        await this.Init()
-        if (this.messageQueue.length > 0 && this.messageQueue[0].conversationId === conversationId) {
-            this.messageQueue.shift();
-            await this.SetAsync() 
-            console.log(`POP: ${conversationId} ${JSON.stringify(this.messageQueue)}`)
-        }
-        else {
-            throw new Error("pop of item not on queue")
-        }
-    }
-
-    public async InputQueueContains(conversationId: string): Promise<boolean> {
-        const now = new Date().getTime();
-        await this.Init()
-        // Remove expired items
-        const filteredQueue = this.messageQueue.filter(mq => (now - mq.timestamp) < 10000 )
-        if (filteredQueue.length < this.messageQueue.length) {
-            console.log(`CLEAN2: ${conversationId} ${JSON.stringify(this.messageQueue)}`)
-            this.messageQueue = filteredQueue;
-            await this.SetAsync() 
-        }
-        return (this.messageQueue.find(fq => fq.conversationId === conversationId) !== undefined);
     }
 
     // -------------------------------------------------------------------
