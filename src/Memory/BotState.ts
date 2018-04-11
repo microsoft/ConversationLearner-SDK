@@ -4,6 +4,7 @@ import { BlisMemory } from '../BlisMemory'
 import { BlisAppBase } from 'blis-models'
 import { BlisIntent } from '../BlisIntent'
 import { BlisDebug } from '../BlisDebug'
+import { QueuedInput } from './InputQueue';
 
 export interface ConversationSession {
     sessionId: string | null
@@ -48,6 +49,9 @@ export class BotState {
     // Which packages are active for editing
     public editingPackages: { [appId: string]: string };  // appId: packageId
 
+    // Current message being processed
+    public messageProcessing: QueuedInput | undefined
+
     private constructor(init?: Partial<BotState>) {
         (<any>Object).assign(this, init)
     }
@@ -84,7 +88,8 @@ export class BotState {
         this.orgSessionId = json.orgSessionId,
         this.onEndSessionCalled = json.onEndSessionCalled ? json.onEndSessionCalled : false
         this.conversationReference = json.conversationReference,
-        this.editingPackages = json.activeApps
+        this.editingPackages = json.activeApps,
+        this.messageProcessing = json.messageProcessing
     }
 
     private Serialize(): string {
@@ -97,7 +102,8 @@ export class BotState {
             orgSessionId: this.orgSessionId,
             onEndSessionCalled: this.onEndSessionCalled ? this.onEndSessionCalled : false,
             conversationReference: this.conversationReference,
-            activeApps: this.editingPackages
+            activeApps: this.editingPackages,
+            messageProcessing: this.messageProcessing
         }
         return JSON.stringify(jsonObj)
     }
@@ -211,6 +217,7 @@ export class BotState {
         this.conversationId = conversationId;
         this.lastActive = new Date().getTime();
         this.inTeach = inTeach
+        this.messageProcessing = undefined
         await this.SetAsync()
     }
 
@@ -221,6 +228,7 @@ export class BotState {
         this.conversationId = null;
         this.lastActive = 0;
         this.inTeach = false
+        this.messageProcessing = undefined
         await this.SetAsync()
     }
 
@@ -241,6 +249,7 @@ export class BotState {
         this.SetConversationReferenceAsync(conversationReference)
     }
 
+    // --------------------------------------------
     public async SetConversationReferenceAsync(conversationReference: BB.ConversationReference): Promise<void> {
         await this.Init()
         this.conversationReference = conversationReference
@@ -255,7 +264,28 @@ export class BotState {
             return null
         }
     }
+    
+    // ------------------------------------------------
+    public async MessageProcessingAsync(): Promise<QueuedInput | undefined> {
+        await this.Init()
+        return this.messageProcessing;
+    }
 
+    public async MessageProcessingPopAsync(): Promise<QueuedInput | undefined> {
+        await this.Init()
+        let popVal = this.messageProcessing;
+        this.messageProcessing = undefined;
+        await this.SetAsync();
+        return popVal;
+    }
+
+    public async SetMessageProcessingAsync(queuedInput: QueuedInput | undefined): Promise<void> {
+        await this.Init()
+        this.messageProcessing = queuedInput
+        await this.SetAsync()
+    }
+
+    // -------------------------------------------------------------------
     public async SessionInfoAsync(): Promise<SessionInfo> {
         await this.Init()
         return {
