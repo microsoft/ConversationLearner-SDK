@@ -5,7 +5,7 @@ export class BlisDebug {
     public static cache: string = ''
     public static enabled: boolean
     public static verbose: boolean = true
-    public static logging: string = 'client' // OPTIONS: "client flow memory memverbose";
+    public static logging: string = '' // OPTIONS: "client flow memory memverbose";
 
     public static InitLogger(botContext: BotContext) {
         this.botContext = botContext

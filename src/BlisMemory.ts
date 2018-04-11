@@ -29,8 +29,7 @@ export class BlisMemory {
     }
 
     // Generate memory key from session
-    public static async InitMemory(botContext: BotContext): Promise<BlisMemory> {
-        let user = botContext.request.from
+    public static async InitMemory(user: BB.ChannelAccount, conversationReference: BB.ConversationReference): Promise<BlisMemory> {
         if (!user) {
             throw new Error(`Attempted to initialize memory, but cannot get memory key because current request did not have 'from'/user specified`)
         }
@@ -39,7 +38,7 @@ export class BlisMemory {
         }
         
         let memory = new BlisMemory(user.id)
-        await memory.BotState.SetConversationReferenceAsync(botContext.conversationReference)
+        await memory.BotState.SetConversationReferenceAsync(conversationReference)
         return memory
     }
 
