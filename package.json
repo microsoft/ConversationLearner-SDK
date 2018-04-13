@@ -1,7 +1,7 @@
 {
-  "name": "blis-sdk",
+  "name": "conversationlearner-sdk",
   "version": "0.0.0-development",
-  "description": "Node SDK for Blis",
+  "description": "Node SDK for Conversation Learner",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "scripts": {
@@ -15,14 +15,14 @@
     "test": "jest",
     "setpackageversion": "tsc -p ./scripts/tsconfig.json && node ./scripts/setpackageversion.js",
     "verifypackagelock": "tsc -p ./scripts/tsconfig.json && node ./scripts/verifypackagelock.js",
-    "ui": "node ./lib/blisUiRunner.js"
+    "ui": "node ./lib/clUiRunner.js"
   },
-  "author": "Microsoft BLIS Team",
+  "author": "Microsoft Conversation Learner Team",
   "license": "MIT",
   "dependencies": {
     "async-file": "^2.0.2",
-    "blis-models": "0.136.0",
-    "blis-ui": "0.189.0",
+    "conversationlearner-models": "0.141.0",
+    "conversationlearner-ui": "0.192.0",
     "botbuilder": "4.0.0-m1.4",
     "express": "^4.15.3",
     "filenamify": "^2.0.0",

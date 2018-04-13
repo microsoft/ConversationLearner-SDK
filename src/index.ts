@@ -1,11 +1,11 @@
-import * as models from 'blis-models'
-import { Blis } from './Blis'
-import { IBlisOptions } from './BlisOptions'
-import { BlisRecognizer } from './BlisRecognizer'
-import { BlisTemplateRenderer } from './BlisTemplateRenderer'
+import * as models from 'conversationlearner-models'
+import { ConversationLearner } from './ConversationLearner'
+import { ICLOptions } from './CLOptions'
+import { CLRecognizer } from './CLRecognizer'
+import { CLTemplateRenderer } from './CLTemplateRenderer'
 import { ClientMemoryManager } from './Memory/ClientMemoryManager'
 import { RedisStorage } from './RedisStorage'
 import { FileStorage } from './FileStorage'
-import startUiServer from './blisUi'
+import startUiServer from './clUi'
 
-export { startUiServer, Blis, IBlisOptions, BlisRecognizer, BlisTemplateRenderer, ClientMemoryManager, RedisStorage, FileStorage, models }
+export { startUiServer, ConversationLearner, ICLOptions, CLRecognizer, CLTemplateRenderer, ClientMemoryManager, RedisStorage, FileStorage, models }

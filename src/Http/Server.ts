@@ -1,14 +1,14 @@
 import * as restify from 'restify'
 import * as errors from 'restify-errors'
-import { BlisDebug } from '../BlisDebug'
-import { BlisClient } from '../BlisClient'
-import { Blis } from '../Blis'
-import { BlisMemory } from '../BlisMemory'
-import { BlisIntent } from '../BlisIntent'
+import { CLDebug } from '../CLDebug'
+import { CLClient } from '../CLClient'
+import { ConversationLearner } from '../ConversationLearner'
+import { CLMemory } from '../CLMemory'
+import { CLIntent } from '../CLIntent'
 import { TemplateProvider } from '../TemplateProvider'
-import { Utils, replace, BLIS_DEVELOPER } from '../Utils'
+import { Utils, replace, CL_DEVELOPER } from '../Utils'
 import * as XMLDom from 'xmldom'
-import * as models from 'blis-models'
+import * as models from 'conversationlearner-models'
 import * as corsMiddleware from 'restify-cors-middleware'
 
 const cors = corsMiddleware({
@@ -64,7 +64,7 @@ export const HandleError = (response: restify.Response, err: any): void => {
     response.send(statusCode, error)
 
     let log = `${error}\n${err.request ? 'BODY:' + err.request.body : null}`
-    BlisDebug.Error(log)
+    CLDebug.Error(log)
 }
 
 const memoryKeyHeaderName = 'x-blis-memory-key'
@@ -72,7 +72,7 @@ const defaultOptions: restify.ServerOptions = {
     name: `SDK Service`
 }
 
-export const createSdkServer = (client: BlisClient, options: restify.ServerOptions = {}): restify.Server => {
+export const createSdkServer = (client: CLClient, options: restify.ServerOptions = {}): restify.Server => {
     const server = restify.createServer({
         ...defaultOptions,
         ...options
@@ -88,7 +88,7 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
     server.use(cors.actual)
 
     server.on('restifyError', (req: any, res: any, err: any, cb: any) => {
-        BlisDebug.Error(err, 'ResiftyError')
+        CLDebug.Error(err, 'ResiftyError')
         req.log.error(err)
         return cb()
     })
@@ -100,9 +100,9 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
     server.put('state/app', async (req, res, next) => {
         try {
             const key = req.header(memoryKeyHeaderName)
-            let app: models.BlisAppBase = req.body
+            let app: models.AppBase = req.body
 
-            let memory = BlisMemory.GetMemory(key)
+            let memory = CLMemory.GetMemory(key)
             await memory.SetAppAsync(app)
             res.send(200)
         } catch (error) {
@@ -117,7 +117,7 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
             let conversationId = req.params.id
             let userName = req.params.username
 
-            let memory = BlisMemory.GetMemory(key)
+            let memory = CLMemory.GetMemory(key)
             await memory.BotState.CreateConversationReferenceAsync(userName, key, conversationId)
             res.send(200)
         } catch (error) {
@@ -135,10 +135,10 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
                 user: {
                     // We keep track that the editing  UI is running by putting this as the name of the user
                     // Can't check localhost as can be running localhost and not UI
-                    name: BLIS_DEVELOPER,
-                    id: Blis.options.luisAuthoringKey!
+                    name: CL_DEVELOPER,
+                    id: ConversationLearner.options.luisAuthoringKey!
                 },
-                callbacks: Blis.apiParams,
+                callbacks: ConversationLearner.apiParams,
                 templates: TemplateProvider.GetTemplates()
             }
             res.send(botInfo)
@@ -189,14 +189,14 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
         try {
             let query = req.getQuery()
             const key = req.header(memoryKeyHeaderName)
-            let app: models.BlisAppBase = req.body
+            let app: models.AppBase = req.body
 
             let appId = await client.AddApp(app, query)
             app = await client.GetApp(appId);
             res.send(app)
 
             // Initialize memory
-            await BlisMemory.GetMemory(key).SetAppAsync(app)
+            await CLMemory.GetMemory(key).SetAppAsync(app)
         } catch (error) {
             HandleError(res, error)
         }
@@ -207,7 +207,7 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
     server.put('/app/:appId', async (req, res, next) => {
         try {
             let query = req.getQuery()
-            let app: models.BlisAppBase = req.body
+            let app: models.AppBase = req.body
 
             if (!app.appId) {
                 app.appId = req.params.appId
@@ -230,7 +230,7 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
             await client.ArchiveApp(appId)
 
             // Did I delete my loaded app, if so clear my state
-            let memory = BlisMemory.GetMemory(key)
+            let memory = CLMemory.GetMemory(key)
             let app = await memory.BotState.AppAsync()
             if (app && app.appId === appId) {
                 await memory.SetAppAsync(null)
@@ -258,8 +258,8 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
     server.get('/archive/:appId', async (req, res, next) => {
         try {
             let appId = req.params.appId
-            let blisApp = await client.GetAppStatus(appId)
-            res.send(blisApp)
+            let app = await client.GetAppStatus(appId)
+            res.send(app)
         } catch (error) {
             HandleError(res, error)
         }
@@ -273,7 +273,7 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
             let apps = await client.GetApps(query)
 
             // Get lookup table for which apps packages are being edited
-            let memory = BlisMemory.GetMemory(key)
+            let memory = CLMemory.GetMemory(key)
             let activeApps = await memory.BotState.EditingPackagesAsync();
 
             let uiAppList = { appList: apps, activeApps: activeApps } as models.UIAppList;
@@ -379,7 +379,7 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
                 }
             }
 
-            let memory = BlisMemory.GetMemory(key)
+            let memory = CLMemory.GetMemory(key)
             let updatedPackageVersions = await memory.BotState.SetEditingPackageAsync(appId, packageId);
             res.send(updatedPackageVersions)
 
@@ -449,7 +449,7 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
             // Replace the action with new one
             appDefinition.actions = replace(appDefinition.actions, action, a => a.actionId)
 
-            let invalidTrainDialogIds = Blis.validateTrainDialogs(appDefinition);
+            let invalidTrainDialogIds = ConversationLearner.validateTrainDialogs(appDefinition);
             res.send(invalidTrainDialogIds)
         } catch (error) {
             HandleError(res, error)
@@ -480,7 +480,7 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
             // Remove the action
             appDefinition.actions = appDefinition.actions.filter(a => a.actionId != actionId);
 
-            let invalidTrainDialogIds = Blis.validateTrainDialogs(appDefinition);
+            let invalidTrainDialogIds = ConversationLearner.validateTrainDialogs(appDefinition);
             res.send(invalidTrainDialogIds)
         } catch (error) {
             HandleError(res, error)
@@ -583,7 +583,7 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
             // Replace the entity with new one
             appDefinition.entities = replace(appDefinition.entities, entity, e => e.entityId)
 
-            let invalidTrainDialogIds = Blis.validateTrainDialogs(appDefinition);
+            let invalidTrainDialogIds = ConversationLearner.validateTrainDialogs(appDefinition);
             res.send(invalidTrainDialogIds)
         } catch (error) {
             HandleError(res, error)
@@ -613,7 +613,7 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
             // Remove the action
             appDefinition.entities = appDefinition.entities.filter(e => e.entityId != entityId);
 
-            let invalidTrainDialogIds = Blis.validateTrainDialogs(appDefinition);
+            let invalidTrainDialogIds = ConversationLearner.validateTrainDialogs(appDefinition);
             res.send(invalidTrainDialogIds)
         } catch (error) {
             HandleError(res, error)
@@ -778,7 +778,7 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
             let userInput = req.body
             let extractResponse = await client.TrainDialogExtract(appId, trainDialogId, turnIndex, userInput)
 
-            let memory = BlisMemory.GetMemory(key)
+            let memory = CLMemory.GetMemory(key)
             let memories = await memory.BotMemory.DumpMemory()
             let uiExtractResponse: models.UIExtractResponse = { extractResponse, memories }
             res.send(uiExtractResponse)
@@ -804,8 +804,8 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
             trainDialog.rounds = trainDialog.rounds.slice(0, turnIndex)
 
             // Get history and replay to put bot into last round
-            let memory = BlisMemory.GetMemory(key)
-            let teachWithHistory = await Blis.GetHistory(appId, trainDialog, userName, userId, memory, true)
+            let memory = CLMemory.GetMemory(key)
+            let teachWithHistory = await ConversationLearner.GetHistory(appId, trainDialog, userName, userId, memory, true)
             if (!teachWithHistory) {
                 res.send(500, new Error(`Could not find teach session history for given train dialog`))
                 return
@@ -841,7 +841,7 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
             res.send(sessionResponse)
 
             // Update Memory
-            let memory = BlisMemory.GetMemory(key)
+            let memory = CLMemory.GetMemory(key)
             memory.StartSessionAsync(sessionResponse.sessionId, null, { inTeach: false, isContinued: false })
         } catch (error) {
             HandleError(res, error)
@@ -865,7 +865,7 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
         try {
             const key = req.header(memoryKeyHeaderName)
 
-            let memory = BlisMemory.GetMemory(key)
+            let memory = CLMemory.GetMemory(key)
             let conversationId = await memory.BotState.ConversationIdAsync();
             if (!conversationId) {
                 // If conversation is empty
@@ -894,7 +894,7 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
 
 
             // Session may be a replacement for an expired one
-            let memory = BlisMemory.GetMemory(key)
+            let memory = CLMemory.GetMemory(key)
             sessionId = await memory.BotState.OrgSessionIdAsync(sessionId)
 
             let response = await client.EndSession(appId, sessionId)
@@ -943,7 +943,7 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
             let teachResponse = await client.StartTeach(appId, null)
 
             // Update Memory
-            let memory = BlisMemory.GetMemory(key)
+            let memory = CLMemory.GetMemory(key)
             memory.StartSessionAsync(teachResponse.teachId, null, { inTeach: true, isContinued: false })
 
             // Include and persistent memories in the response
@@ -962,7 +962,7 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
             const key = req.header(memoryKeyHeaderName)
 
             // Update Memory
-            let memory = BlisMemory.GetMemory(key)
+            let memory = CLMemory.GetMemory(key)
             await memory.BotMemory.ClearAsync();
             res.send(200)
 
@@ -983,8 +983,8 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
             let trainDialog: models.TrainDialog = req.body
 
             // Get history and replay to put bot into last round
-            let memory = BlisMemory.GetMemory(key)
-            let teachWithHistory = await Blis.GetHistory(appId, trainDialog, userName, userId, memory, updateBotState, ignoreLastExtract)
+            let memory = CLMemory.GetMemory(key)
+            let teachWithHistory = await ConversationLearner.GetHistory(appId, trainDialog, userName, userId, memory, updateBotState, ignoreLastExtract)
             if (!teachWithHistory) {
                 res.send(500, new Error(`Could not find teach session history for given train dialog`))
                 return
@@ -1054,7 +1054,7 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
             }
             let extractResponse = await client.TeachExtract(appId, teachId, userInput)
 
-            let memory = BlisMemory.GetMemory(key)
+            let memory = CLMemory.GetMemory(key)
             let memories = await memory.BotMemory.DumpMemory()
             let uiExtractResponse: models.UIExtractResponse = { extractResponse, memories }
             res.send(uiExtractResponse)
@@ -1079,7 +1079,7 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
             let teachId = req.params.teachId
             let uiScoreInput: models.UIScoreInput = req.body
 
-            let memory = BlisMemory.GetMemory(key)
+            let memory = CLMemory.GetMemory(key)
 
             // There will be no extraction step if performing a 2nd scorer round after a non-termial action
             if (uiScoreInput.trainExtractorStep) {
@@ -1092,7 +1092,7 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
 
             // Call LUIS callback to get scoreInput
             let extractResponse = uiScoreInput.extractResponse
-            let scoreInput = await Blis.CallEntityDetectionCallback(
+            let scoreInput = await ConversationLearner.CallEntityDetectionCallback(
                 extractResponse.text,
                 extractResponse.predictedEntities,
                 memory,
@@ -1116,7 +1116,7 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
         try {
             const { key, appId, teachId } = req.params
             const scoreInput: models.ScoreInput = req.body
-            const memory = BlisMemory.GetMemory(key)
+            const memory = CLMemory.GetMemory(key)
 
             // Get new score response re-using scoreInput from previous score request
             const scoreResponse = await client.TeachScore(appId, teachId, scoreInput)
@@ -1153,19 +1153,19 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
 
             let teachResponse = await client.TeachScoreFeedback(appId, teachId, uiTrainScorerStep.trainScorerStep)
 
-            let memory = BlisMemory.GetMemory(key)
+            let memory = CLMemory.GetMemory(key)
 
             // Now send the trained intent
             let intent = {
                 name: scoredAction.actionId,
                 score: 1.0,
                 scoredAction: scoredAction,
-                blisEntities: uiTrainScorerStep.entities,
+                clEntities: uiTrainScorerStep.entities,
                 memory: memory,
                 inTeach: true
-            } as BlisIntent
+            } as CLIntent
 
-            await Blis.SendIntent(memory, intent)
+            await ConversationLearner.SendIntent(memory, intent)
 
             let memories = await memory.BotMemory.DumpMemory()
             let uiTeachResponse: models.UITeachResponse = { teachResponse, memories }
@@ -1189,7 +1189,7 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
             res.send(response)
 
             // Update Memory
-            let memory = BlisMemory.GetMemory(key)
+            let memory = CLMemory.GetMemory(key)
             memory.EndSessionAsync()
         } catch (error) {
             HandleError(res, error)
@@ -1232,8 +1232,8 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
             let userId = req.params.userid
             let trainDialog: models.TrainDialog = req.body
 
-            let memory = BlisMemory.GetMemory(key)
-            let teachWithHistory = await Blis.GetHistory(appId, trainDialog, userName, userId, memory)
+            let memory = CLMemory.GetMemory(key)
+            let teachWithHistory = await ConversationLearner.GetHistory(appId, trainDialog, userName, userId, memory)
             if (teachWithHistory) {
                 res.send(teachWithHistory)
             }
@@ -1263,11 +1263,11 @@ export const createSdkServer = (client: BlisClient, options: restify.ServerOptio
             }
 
             // Get memory and store a backup in case the undo fails
-            let memory = BlisMemory.GetMemory(key)
+            let memory = CLMemory.GetMemory(key)
             let memoryBackup = await memory.BotMemory.FilledEntityMap()
 
             // Get history and replay to put bot into last round
-            let teachWithHistory = await Blis.GetHistory(appId, trainDialog, userName, userId, memory, true)
+            let teachWithHistory = await ConversationLearner.GetHistory(appId, trainDialog, userName, userId, memory, true)
             if (!teachWithHistory) {
                 throw new Error(`Attempted to undo last action of teach session, but could not get session history`)
             }

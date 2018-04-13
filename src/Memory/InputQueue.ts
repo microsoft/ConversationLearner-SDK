@@ -1,6 +1,6 @@
 import * as BB from 'botbuilder'
 import { BotState } from './BotState'
-import { BlisDebug } from '../BlisDebug'
+import { CLDebug } from '../CLDebug'
 
 const MESSAGE_TIMEOUT = 10000
 
@@ -38,7 +38,7 @@ export class InputQueue {
         } as QueuedInput
 
         this.messageQueue.push(queuedInput);
-        BlisDebug.Log(`QUEUE: ${conversationId} ${this.messageQueue.length}`,`messagequeue`)
+        CLDebug.Log(`QUEUE: ${conversationId} ${this.messageQueue.length}`,`messagequeue`)
     }
 
     // Attempt to process next message in the queue
@@ -50,11 +50,11 @@ export class InputQueue {
         if (messageProcessing) {
 
             // Remove if it's been expired
-            BlisDebug.Log(`AGECHECK: ${messageProcessing.conversationId} ${this.messageQueue.length}`,`messagequeue`)
+            CLDebug.Log(`AGECHECK: ${messageProcessing.conversationId} ${this.messageQueue.length}`,`messagequeue`)
             const age = now - messageProcessing.timestamp;
 
             if (age > MESSAGE_TIMEOUT) {
-                BlisDebug.Log(`EXPIRED: ${messageProcessing.conversationId} ${this.messageQueue.length}`,`messagequeue`)
+                CLDebug.Log(`EXPIRED: ${messageProcessing.conversationId} ${this.messageQueue.length}`,`messagequeue`)
                 botState.MessageProcessingPopAsync();
                 let queuedInput = this.messageQueue.find(mq => mq.conversationId == messageProcessing.conversationId);
                 if (queuedInput) {
@@ -62,7 +62,7 @@ export class InputQueue {
                     queuedInput.callback(true, queuedInput.conversationId);
                 }
                 else {
-                    BlisDebug.Log(`WARNING: Couldn't find queud message`,`messagequeue`)
+                    CLDebug.Log(`WARNING: Couldn't find queud message`,`messagequeue`)
                 }
             }
         }
@@ -76,7 +76,7 @@ export class InputQueue {
     // Process next message
     private static async InputQueueProcessNext(botState: BotState): Promise<void> {
 
-        BlisDebug.Log(`PROCESS-NEXT:`,`messagequeue`)
+        CLDebug.Log(`PROCESS-NEXT:`,`messagequeue`)
         let messageProcessing = await botState.MessageProcessingAsync();
 
         // If no message being process, and item in queue, process teh next one
@@ -86,24 +86,24 @@ export class InputQueue {
 
             // Fire the callback with success
             if (messageProcessing) {
-                BlisDebug.Log(`CALLBACK: ${messageProcessing.conversationId} ${this.messageQueue.length}`,`messagequeue`)
+                CLDebug.Log(`CALLBACK: ${messageProcessing.conversationId} ${this.messageQueue.length}`,`messagequeue`)
                 messageProcessing.callback(false, messageProcessing.conversationId);
             }
         }
         else {
-            BlisDebug.Log(`PROCESS-NEXT: Empty`,`messagequeue`)
+            CLDebug.Log(`PROCESS-NEXT: Empty`,`messagequeue`)
         }
     }
 
     // Done processing message, remove from queue
     public static async InputQueuePop(botState: BotState, conversationId: string): Promise<void> {
 
-        BlisDebug.Log(`POP: ${conversationId} ${this.messageQueue.length}`,`messagequeue`)
+        CLDebug.Log(`POP: ${conversationId} ${this.messageQueue.length}`,`messagequeue`)
         let messageProcessing = await botState.MessageProcessingPopAsync();
 
         // Check for consistency
         if (!messageProcessing || messageProcessing.conversationId != conversationId) {
-            BlisDebug.Log(`WARNING: Unexpected conversation id`,`messagequeue`)
+            CLDebug.Log(`WARNING: Unexpected conversation id`,`messagequeue`)
         }
 
         // Process next message in the queue

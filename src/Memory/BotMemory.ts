@@ -1,14 +1,14 @@
-import { BlisMemory } from '../BlisMemory'
-import { BlisDebug } from '../BlisDebug'
+import { CLMemory } from '../CLMemory'
+import { CLDebug } from '../CLDebug'
 import { Utils } from '../Utils'
-import { Memory, FilledEntity, MemoryValue, FilledEntityMap } from 'blis-models'
+import { Memory, FilledEntity, MemoryValue, FilledEntityMap } from 'conversationlearner-models'
 
 const NEGATIVE_PREFIX = '~'
 
 export class BotMemory {
     private static _instance: BotMemory | null = null
     private static MEMKEY = 'BOTMEMORY'
-    private memory: BlisMemory
+    private memory: CLMemory
     public filledEntities: FilledEntityMap
 
     private constructor(init?: Partial<BotMemory>) {
@@ -16,11 +16,11 @@ export class BotMemory {
         ;(<any>Object).assign(this, init)
     }
 
-    public static Get(blisMemory: BlisMemory): BotMemory {
+    public static Get(clMemory: CLMemory): BotMemory {
         if (!BotMemory._instance) {
             BotMemory._instance = new BotMemory()
         }
-        BotMemory._instance.memory = blisMemory
+        BotMemory._instance.memory = clMemory
         return BotMemory._instance
     }
 
@@ -203,7 +203,7 @@ export class BotMemory {
             }
             await this.Set()
         } catch (error) {
-            BlisDebug.Error(error)
+            CLDebug.Error(error)
         }
     }
 

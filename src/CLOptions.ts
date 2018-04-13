@@ -1,8 +1,8 @@
-export interface IBlisOptions {
+export interface ICLOptions {
     luisAuthoringKey: string | undefined
     luisSubscriptionKey: string | undefined
     apimSubscriptionKey: string | undefined
-    // URL for BLIS service
+    // URL for Conversation Learner service
     serviceUri: string
     sdkPort: number
     uiPort: number
