@@ -1,9 +1,9 @@
 import * as BB from 'botbuilder'
-import { Blis } from '../Blis'
-import { BlisMemory } from '../BlisMemory'
-import { BlisAppBase } from 'blis-models'
-import { BlisIntent } from '../BlisIntent'
-import { BlisDebug } from '../BlisDebug'
+import { ConversationLearner } from '../ConversationLearner'
+import { CLMemory } from '../CLMemory'
+import { AppBase } from 'conversationlearner-models'
+import { CLIntent } from '../CLIntent'
+import { CLDebug } from '../CLDebug'
 import { QueuedInput } from './InputQueue';
 
 export interface ConversationSession {
@@ -20,10 +20,10 @@ export interface SessionInfo {
 export class BotState {
     private static _instance: BotState | null = null
     private static MEMKEY = 'BOTSTATE'
-    public memory: BlisMemory
+    public memory: CLMemory
 
     // Currently running application
-    public app: BlisAppBase | null = null
+    public app: AppBase | null = null
 
     // Currently active session
     public sessionId: string | null
@@ -56,11 +56,11 @@ export class BotState {
         (<any>Object).assign(this, init)
     }
 
-    public static Get(blisMemory: BlisMemory): BotState {
+    public static Get(clMemory: CLMemory): BotState {
         if (!BotState._instance) {
             BotState._instance = new BotState()
         }
-        BotState._instance.memory = blisMemory
+        BotState._instance.memory = clMemory
         return BotState._instance
     }
 
@@ -115,8 +115,8 @@ export class BotState {
         await this.memory.SetAsync(BotState.MEMKEY, this.Serialize())
     }
 
-    // NOTE: BlisMemory should be the only one to call this
-    public async _SetAppAsync(app: BlisAppBase | null): Promise<void> {
+    // NOTE: CLMemory should be the only one to call this
+    public async _SetAppAsync(app: AppBase | null): Promise<void> {
         this.app = app
         this.sessionId = null
         this.conversationId = null
@@ -128,7 +128,7 @@ export class BotState {
         await this.SetAsync()
     }
 
-    public async AppAsync(): Promise<BlisAppBase | null> {
+    public async AppAsync(): Promise<AppBase | null> {
         try {
             await this.Init()
             return this.app
@@ -244,7 +244,7 @@ export class BotState {
             conversation: { id: conversationId },
             channelId: 'emulator',
             // TODO: Refactor away from static coupling.  BotState needs to have access to options object through constructor
-            serviceUrl: Blis.options.dolServiceUrl
+            serviceUrl: ConversationLearner.options.dolServiceUrl
         }
         this.SetConversationReferenceAsync(conversationReference)
     }
@@ -299,7 +299,7 @@ export class BotState {
     public async SendMessage(bot: BB.Bot, message: string | BB.Activity): Promise<void> {
         let conversationReference = await this.ConversationReverenceAsync()
         if (!conversationReference) {
-            BlisDebug.Error('Missing ConversationReference')
+            CLDebug.Error('Missing ConversationReference')
             return
         }
 
@@ -312,10 +312,10 @@ export class BotState {
         })
     }
 
-    public async SendIntent(bot: BB.Bot, intent: BlisIntent): Promise<void> {
+    public async SendIntent(bot: BB.Bot, intent: CLIntent): Promise<void> {
         let conversationReference = await this.ConversationReverenceAsync()
         if (!conversationReference) {
-            BlisDebug.Error('Missing ConversationReference')
+            CLDebug.Error('Missing ConversationReference')
             return
         }
         bot.createContext(conversationReference, context => {

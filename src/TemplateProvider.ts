@@ -1,7 +1,7 @@
 import * as fs from 'fs'
 import * as path from 'path'
-import { Template, TemplateVariable, RenderedActionArgument } from 'blis-models'
-import { BlisDebug } from './BlisDebug'
+import { Template, TemplateVariable, RenderedActionArgument } from 'conversationlearner-models'
+import { CLDebug } from './CLDebug'
 
 export class TemplateProvider {
     private static hasSumbitItem = false
@@ -66,7 +66,7 @@ export class TemplateProvider {
             let existing = unique.find(i => i.key == tv.key)
             if (existing) {
                 if (existing.type != null && tv.type != null && existing.type != tv.type) {
-                    BlisDebug.Error(
+                    CLDebug.Error(
                         `Template variable "${tv.key}" used for two diffent types - "${tv.type}" and "${existing.type}".  Ignoring.`
                     )
                 } else {
@@ -118,12 +118,12 @@ export class TemplateProvider {
                 const template = JSON.parse(templateString)
                 return template
             } catch {
-                BlisDebug.Error(`Invalid JSON: Failed to Parse template named "${templateName}"`)
+                CLDebug.Error(`Invalid JSON: Failed to Parse template named "${templateName}"`)
                 return null
             }
 
         } catch {
-            BlisDebug.Error(`Can't find template named: "${filename}"`)
+            CLDebug.Error(`Can't find template named: "${filename}"`)
         }
     }
 
@@ -134,7 +134,7 @@ export class TemplateProvider {
             let templates = fileNames.map(f => f.slice(0, f.lastIndexOf('.')))
             return templates
         } catch {
-            BlisDebug.Log("No Card directory found")
+            CLDebug.Log("No Card directory found")
             return [];
         }
     }

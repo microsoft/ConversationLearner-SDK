@@ -1,8 +1,8 @@
 import { BotMemory } from '../Memory/BotMemory'
 import { SessionInfo } from '../Memory/BotState'
-import { BlisMemory } from '../BlisMemory'
-import { BlisDebug } from '../BlisDebug'
-import { EntityBase, MemoryValue, FilledEntity, FilledEntityMap } from 'blis-models'
+import { CLMemory } from '../CLMemory'
+import { CLDebug } from '../CLDebug'
+import { EntityBase, MemoryValue, FilledEntity, FilledEntityMap } from 'conversationlearner-models'
 
 export class ClientMemoryManager {
     public botMemory: BotMemory
@@ -10,10 +10,10 @@ export class ClientMemoryManager {
     private sessionInfo: SessionInfo
     private prevMemories: FilledEntityMap
 
-    public static async CreateAsync(blisMemory: BlisMemory, entities: EntityBase[]): Promise<ClientMemoryManager> {
-        let sessionInfo = await blisMemory.BotState.SessionInfoAsync()
-        let prevMemories = new FilledEntityMap(await blisMemory.BotMemory.FilledEntityMap());
-        return new ClientMemoryManager(blisMemory.BotMemory, prevMemories, entities, sessionInfo);
+    public static async CreateAsync(clMemory: CLMemory, entities: EntityBase[]): Promise<ClientMemoryManager> {
+        let sessionInfo = await clMemory.BotState.SessionInfoAsync()
+        let prevMemories = new FilledEntityMap(await clMemory.BotMemory.FilledEntityMap());
+        return new ClientMemoryManager(clMemory.BotMemory, prevMemories, entities, sessionInfo);
     }
 
     private constructor(botMemory: BotMemory, prevMemories: FilledEntityMap, entities: EntityBase[], sessionInfo: SessionInfo) {
@@ -32,7 +32,7 @@ export class ClientMemoryManager {
         let entity = this.FindEntity(entityName)
 
         if (!entity) {
-            BlisDebug.Error(`Can't find Entity named: ${entityName}`)
+            CLDebug.Error(`Can't find Entity named: ${entityName}`)
             return
         }
 
@@ -46,7 +46,7 @@ export class ClientMemoryManager {
         let entity = this.FindEntity(entityName)
 
         if (!entity) {
-            BlisDebug.Error(`Can't find Entity named: ${entityName}`)
+            CLDebug.Error(`Can't find Entity named: ${entityName}`)
             return
         }
 
@@ -57,7 +57,7 @@ export class ClientMemoryManager {
         let entity = this.FindEntity(entityName)
 
         if (!entity) {
-            BlisDebug.Error(`Can't find Entity named: ${entityName}`)
+            CLDebug.Error(`Can't find Entity named: ${entityName}`)
             return
         }
 
@@ -82,16 +82,16 @@ export class ClientMemoryManager {
         let entityTo = this.FindEntity(entityNameTo)
 
         if (!entityFrom) {
-            BlisDebug.Error(`Can't find Entity named: ${entityNameFrom}`)
+            CLDebug.Error(`Can't find Entity named: ${entityNameFrom}`)
             return
         }
         if (!entityTo) {
-            BlisDebug.Error(`Can't find Entity named: ${entityNameTo}`)
+            CLDebug.Error(`Can't find Entity named: ${entityNameTo}`)
             return
         }
 
         if (entityFrom.isMultivalue != entityTo.isMultivalue) {
-            BlisDebug.Error(`Can't copy between Bucket and Non-Bucket Entities`)
+            CLDebug.Error(`Can't copy between Bucket and Non-Bucket Entities`)
             return
         }
 

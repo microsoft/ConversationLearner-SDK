@@ -1,5 +1,5 @@
 import * as Request from 'request'
-import { BlisDebug } from './BlisDebug'
+import { CLDebug } from './CLDebug'
 
 export class AzureFunctions {
     public static Call(azureFunctionsUrl: string, azureFunctionsKey: string, funcName: string, args: string): Promise<string> {
@@ -27,7 +27,7 @@ export class AzureFunctions {
                     */
                 json: true
             }
-            BlisDebug.LogRequest('GET', apiPath, requestData)
+            CLDebug.LogRequest('GET', apiPath, requestData)
             Request.get(requestData, (error, response, body) => {
                 if (error) {
                     reject(error)

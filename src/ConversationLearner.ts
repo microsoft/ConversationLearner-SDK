@@ -1,11 +1,11 @@
 import * as BB from 'botbuilder'
-import { BlisRecognizer } from './BlisRecognizer'
-import { BlisTemplateRenderer } from './BlisTemplateRenderer'
-import { IBlisOptions } from './BlisOptions'
-import { BlisMemory } from './BlisMemory'
+import { CLRecognizer } from './CLRecognizer'
+import { CLTemplateRenderer } from './CLTemplateRenderer'
+import { ICLOptions } from './CLOptions'
+import { CLMemory } from './CLMemory'
 import { BotMemory } from './Memory/BotMemory'
-import { BlisDebug } from './BlisDebug'
-import { BlisClient } from './BlisClient'
+import { CLDebug } from './CLDebug'
+import { CLClient } from './CLClient'
 import createSdkServer from './Http/Server'
 import { startDirectOffLineServer } from './DOLRunner'
 import { TemplateProvider } from './TemplateProvider'
@@ -37,21 +37,22 @@ import {
     ReplayErrorMissingEntity,
     ReplayErrorActionUnavailable,
     ReplayErrorEntityDiscrepancy,
-    AppDefinition
-} from 'blis-models'
+    AppDefinition,
+    CL_USER_NAME_ID
+} from 'conversationlearner-models'
 import { ClientMemoryManager } from './Memory/ClientMemoryManager'
-import { BlisIntent } from './BlisIntent'
+import { CLIntent } from './CLIntent'
 
 const DEFAULT_MAX_SESSION_LENGTH = 20 * 60 * 1000;  // 20 minutes
 
-export class Blis {
-    public static options: IBlisOptions
+export class ConversationLearner {
+    public static options: ICLOptions
 
     // Mapping between user defined API names and functions
     public static apiCallbacks: { [name: string]: (memoryManager: ClientMemoryManager, ...args: string[]) => Promise<BB.Activity | string | undefined> } = {}
     public static apiParams: CallbackAPI[] = []
 
-    // Optional callback than runs after LUIS but before BLIS.  Allows Bot to substitute entities
+    // Optional callback than runs after LUIS but before Conversation Learner.  Allows Bot to substitute entities
     public static entityDetectionCallback: (
         text: string,
         memoryManager: ClientMemoryManager
@@ -68,50 +69,50 @@ export class Blis {
     ) => Promise<void>
 
     public static bot: BB.Bot
-    public static recognizer: BlisRecognizer
-    public static templateRenderer: BlisTemplateRenderer
+    public static recognizer: CLRecognizer
+    public static templateRenderer: CLTemplateRenderer
 
-    private static blisClient: BlisClient
+    private static clClient: CLClient
 
-    public static Init(options: IBlisOptions, storage: BB.Storage | null = null) {
+    public static Init(options: ICLOptions, storage: BB.Storage | null = null) {
         if (typeof options.sessionMaxTimeout !== 'number') {
             options.sessionMaxTimeout = DEFAULT_MAX_SESSION_LENGTH
         }
 
-        Blis.options = options
+        ConversationLearner.options = options
 
         try {
-            BlisDebug.Log('Creating BlisClient....')
-            this.blisClient = new BlisClient(options)
-            BlisMemory.Init(storage)
+            CLDebug.Log('Creating Conversation Learner Client....')
+            ConversationLearner.clClient = new CLClient(options)
+            CLMemory.Init(storage)
 
             // If app not set, assume running on localhost init DOL Runner
             if (options.localhost) {
                 startDirectOffLineServer(options.dolServiceUrl, options.dolBotUrl)
             }
 
-            const sdkServer = createSdkServer(this.blisClient)
+            const sdkServer = createSdkServer(ConversationLearner.clClient)
             sdkServer.listen(options.sdkPort, (err: any) => {
                 if (err) {
-                    BlisDebug.Error(err, 'Server/Init')
+                    CLDebug.Error(err, 'Server/Init')
                 } else {
-                    BlisDebug.Log(`${sdkServer.name} listening to ${sdkServer.url}`)
+                    CLDebug.Log(`${sdkServer.name} listening to ${sdkServer.url}`)
                 }
             })
 
-            BlisDebug.Log('Initialization complete.')
+            CLDebug.Log('Initialization complete.')
         } catch (error) {
-            BlisDebug.Error(error, 'Dialog Constructor')
+            CLDebug.Error(error, 'Dialog Constructor')
         }
 
-        Blis.recognizer = new BlisRecognizer(options, this.blisClient)
-        Blis.templateRenderer = new BlisTemplateRenderer()
+        ConversationLearner.recognizer = new CLRecognizer(options, ConversationLearner.clClient)
+        ConversationLearner.templateRenderer = new CLTemplateRenderer()
     }
 
     public static SetBot(botContext: BotContext) {
-        if (!Blis.bot) {
-            Blis.bot = botContext.bot
-            BlisDebug.InitLogger(botContext)
+        if (!ConversationLearner.bot) {
+            ConversationLearner.bot = botContext.bot
+            CLDebug.InitLogger(botContext)
         }
     }
 
@@ -119,57 +120,57 @@ export class Blis {
         name: string,
         target: (memoryManager: ClientMemoryManager, ...args: string[]) => Promise<BB.Activity | string | undefined>
     ) {
-        Blis.apiCallbacks[name] = target
-        Blis.apiParams.push({ name, arguments: this.GetArguments(target) })
+        ConversationLearner.apiCallbacks[name] = target
+        ConversationLearner.apiParams.push({ name, arguments: ConversationLearner.GetArguments(target) })
     }
 
     public static EntityDetectionCallback(
         target: (text: string, memoryManager: ClientMemoryManager) => Promise<void>
     ) {
-        Blis.entityDetectionCallback = target
+        ConversationLearner.entityDetectionCallback = target
     }
 
     public static OnSessionEndCallback(
         target: (memoryManager: ClientMemoryManager) => Promise<void>
     ) {
-        Blis.onSessionEndCallback = target
+        ConversationLearner.onSessionEndCallback = target
     }
 
     public static OnSessionStartCallback(
         target: (memoryManager: ClientMemoryManager) => Promise<void>
     ) {
-        Blis.onSessionStartCallback = target
+        ConversationLearner.onSessionStartCallback = target
     }
 
-    public static async SendIntent(memory: BlisMemory, intent: BlisIntent): Promise<void> {
-        await Utils.SendIntent(Blis.bot, memory, intent)
+    public static async SendIntent(memory: CLMemory, intent: CLIntent): Promise<void> {
+        await Utils.SendIntent(ConversationLearner.bot, memory, intent)
     }
 
-    public static async SendMessage(memory: BlisMemory, content: string | BB.Activity): Promise<void> {
-        await Utils.SendMessage(Blis.bot, memory, content)
+    public static async SendMessage(memory: CLMemory, content: string | BB.Activity): Promise<void> {
+        await Utils.SendMessage(ConversationLearner.bot, memory, content)
     }
 
     public static async CallEntityDetectionCallback(
         text: string,
         predictedEntities: PredictedEntity[],
-        memory: BlisMemory,
+        memory: CLMemory,
         allEntities: EntityBase[]
     ): Promise<ScoreInput> {
 
         let memoryManager = await ClientMemoryManager.CreateAsync(memory, allEntities)
 
         // Update memory with predicted entities
-        await Blis.ProcessPredictedEntities(text, memory.BotMemory, predictedEntities, allEntities)
+        await ConversationLearner.ProcessPredictedEntities(text, memory.BotMemory, predictedEntities, allEntities)
 
         // If bot has callback, call it
-        if (Blis.entityDetectionCallback) {
+        if (ConversationLearner.entityDetectionCallback) {
             try {
-                await Blis.entityDetectionCallback(text, memoryManager)
+                await ConversationLearner.entityDetectionCallback(text, memoryManager)
             }
             catch (err) {
-                await Blis.SendMessage(memory, "Exception hit in Bot's EntityDetectionCallback")
-                let errMsg = BlisDebug.Error(err);
-                Blis.SendMessage(memory, errMsg);
+                await ConversationLearner.SendMessage(memory, "Exception hit in Bot's EntityDetectionCallback")
+                let errMsg = CLDebug.Error(err);
+                ConversationLearner.SendMessage(memory, errMsg);
             }
         }
 
@@ -184,23 +185,23 @@ export class Blis {
         return scoreInput
     }
 
-    public static async CallSessionStartCallback(memory: BlisMemory, appId: string | null): Promise<void> {
+    public static async CallSessionStartCallback(memory: CLMemory, appId: string | null): Promise<void> {
 
         // If bot has callback, call it
-        if (appId && Blis.onSessionStartCallback) {
-            let entityList = await this.blisClient.GetEntities(appId)
+        if (appId && ConversationLearner.onSessionStartCallback) {
+            let entityList = await ConversationLearner.clClient.GetEntities(appId)
             let memoryManager = await ClientMemoryManager.CreateAsync(memory, entityList.entities)
-            await Blis.onSessionStartCallback(memoryManager)
+            await ConversationLearner.onSessionStartCallback(memoryManager)
         }
     }
 
-    public static async CallSessionEndCallback(memory: BlisMemory, appId: string | null): Promise<void> {
+    public static async CallSessionEndCallback(memory: CLMemory, appId: string | null): Promise<void> {
 
         // If bot has callback, call it to determine which entites to clear / edit
-        if (appId && Blis.onSessionEndCallback) {
-            let entityList = await this.blisClient.GetEntities(appId)
+        if (appId && ConversationLearner.onSessionEndCallback) {
+            let entityList = await ConversationLearner.clClient.GetEntities(appId)
             let memoryManager = await ClientMemoryManager.CreateAsync(memory, entityList.entities)
-            await Blis.onSessionEndCallback(memoryManager)
+            await ConversationLearner.onSessionEndCallback(memoryManager)
         } 
         // Otherwise just clear the memory
         else {
@@ -254,20 +255,20 @@ export class Blis {
     public static async TakeLocalAPIAction(
         apiAction: ApiAction,
         filledEntityMap: FilledEntityMap,
-        memory: BlisMemory,
+        memory: CLMemory,
         allEntities: EntityBase[]
     ): Promise<Partial<BB.Activity> | string | undefined> {
-        if (!Blis.apiCallbacks) {
-            BlisDebug.Error('No Local APIs defined.')
+        if (!ConversationLearner.apiCallbacks) {
+            CLDebug.Error('No Local APIs defined.')
             return undefined
         }
 
         // Extract API name and args
         const apiName = apiAction.name
-        const api = Blis.apiCallbacks[apiName]
-        const callbackParams = Blis.apiParams.find(apip => apip.name == apiName)
+        const api = ConversationLearner.apiCallbacks[apiName]
+        const callbackParams = ConversationLearner.apiParams.find(apip => apip.name == apiName)
         if (!api || !callbackParams) {
-            return BlisDebug.Error(`API "${apiName}" is undefined`)
+            return CLDebug.Error(`API "${apiName}" is undefined`)
         }
 
         // TODO: This issue arises because we only save non-null non-empty argument values on the actions
@@ -304,13 +305,13 @@ export class Blis {
                 return response;
             }
             catch (err) {
-                await Blis.SendMessage(memory, `Exception hit in Bot's API Callback: '${apiName}'`)
-                let errMsg = BlisDebug.Error(err);
+                await ConversationLearner.SendMessage(memory, `Exception hit in Bot's API Callback: '${apiName}'`)
+                let errMsg = CLDebug.Error(err);
                 return errMsg;
             }
         }
         catch (err) {
-            return BlisDebug.Error(err)
+            return CLDebug.Error(err)
         }
     }
 
@@ -337,14 +338,14 @@ export class Blis {
             const form = await TemplateProvider.RenderTemplate(cardAction.templateName, renderedArguments)
 
             if (form == null) {
-                return BlisDebug.Error(`Missing Template: ${cardAction.templateName}`)
+                return CLDebug.Error(`Missing Template: ${cardAction.templateName}`)
             }
             const attachment = BB.CardStyler.adaptiveCard(form)
             const message = BB.MessageStyler.attachment(attachment)
             message.text = undefined
             return message
         } catch (error) {
-            let msg = BlisDebug.Error(error, 'Failed to Render Template')
+            let msg = CLDebug.Error(error, 'Failed to Render Template')
             return msg
         }
     }
@@ -362,7 +363,7 @@ export class Blis {
     //     let entities = filledEntityMap.SubstituteEntities(args)
 
     //     // Call Azure function and send output (if any)
-    //     return await AzureFunctions.Call(this.blisClient.azureFunctionsUrl, this.blisClient.azureFunctionsKey, funcName, entities)
+    //     return await AzureFunctions.Call(this.clClient.azureFunctionsUrl, this.clClient.azureFunctionsKey, funcName, entities)
     // }
 
     /** Convert list of filled entities into a filled entity map lookup table */
@@ -380,7 +381,7 @@ export class Blis {
 
     // Validate that training round memory is the same as what in the bot's memory
     // This checks that API calls didn't change when restoring the bot's state
-    private static EntityDiscrepancy(userInput: string, round: TrainRound, memory: BlisMemory, entities: EntityBase[]): ReplayErrorEntityDiscrepancy | null {
+    private static EntityDiscrepancy(userInput: string, round: TrainRound, memory: CLMemory, entities: EntityBase[]): ReplayErrorEntityDiscrepancy | null {
         let isSame = true
         let oldEntities = round.scorerSteps[0] && round.scorerSteps[0].input ? round.scorerSteps[0].input.filledEntities : []
         let newEntities = Object.keys(memory.BotMemory.filledEntities.map).map(k => memory.BotMemory.filledEntities.map[k] as FilledEntity)
@@ -467,7 +468,7 @@ export class Blis {
         for (let trainDialog of appDefinition.trainDialogs) {
             // Ignore train dialogs that are already invalid
             if (!trainDialog.invalid) {
-                let validationErrors = Blis.DialogValidationErrors(trainDialog, appDefinition.entities, appDefinition.actions);
+                let validationErrors = ConversationLearner.DialogValidationErrors(trainDialog, appDefinition.entities, appDefinition.actions);
                 if (validationErrors.length > 0) {
                     invalidTrainDialogIds.push(trainDialog.trainDialogId);
                 }
@@ -507,7 +508,7 @@ export class Blis {
                 }
                 else {
                     // Check action availability
-                    if (!this.isActionAvailable(selectedAction, scorerStep.input.filledEntities)) {
+                    if (!ConversationLearner.isActionAvailable(selectedAction, scorerStep.input.filledEntities)) {
                         validationErrors.push(`Selected Action in unavailable in response to "${userText}"`);
                     }
                 }
@@ -526,7 +527,7 @@ export class Blis {
         trainDialog: TrainDialog,
         userName: string,
         userId: string,
-        memory: BlisMemory,
+        memory: CLMemory,
         updateBotState: boolean = false,
         ignoreLastExtract: boolean = false
     ): Promise<TeachWithHistory | null> {
@@ -565,13 +566,13 @@ export class Blis {
 
             // Generate activity
             let userActivity = {
-                id: this.generateGUID(),
+                id: ConversationLearner.generateGUID(),
                 from: { id: userId, name: userName },
                 channelData: { 
                     senderType: SenderType.User, 
                     roundIndex: roundNum, 
                     scoreIndex: 0, 
-                    clientActivityId: this.generateGUID(),
+                    clientActivityId: ConversationLearner.generateGUID(),
                     highlight: chatHighlight},  
                 type: 'message',
                 text: userText
@@ -587,12 +588,12 @@ export class Blis {
                 let textVariation = round.extractorStep.textVariations[0]
                 let predictedEntities = ModelUtils.ToPredictedEntities(textVariation.labelEntities)
 
-                await Blis.CallEntityDetectionCallback(textVariation.text, predictedEntities, memory, entities)
+                await ConversationLearner.CallEntityDetectionCallback(textVariation.text, predictedEntities, memory, entities)
 
                 // Look for discrenancies when replaying API calls
                 // Unless asked to ignore the last as user trigged an edit by editing last extract step
                 if (!ignoreLastExtract || roundNum != trainDialog.rounds.length - 1) {
-                    let discrepancyError = this.EntityDiscrepancy(userText, round, memory, entities)
+                    let discrepancyError = ConversationLearner.EntityDiscrepancy(userText, round, memory, entities)
                     if (discrepancyError) {
                         replayErrors.push(discrepancyError);
                     }
@@ -615,7 +616,7 @@ export class Blis {
                 }
                 else {
                     // Check action availability
-                    if (!this.isActionAvailable(selectedAction, scorerStep.input.filledEntities)) {
+                    if (!ConversationLearner.isActionAvailable(selectedAction, scorerStep.input.filledEntities)) {
                         chatHighlight = "error";
                         replayErrors.push(new ReplayErrorActionUnavailable(userText));
                     }
@@ -631,22 +632,22 @@ export class Blis {
                 // Generate bot response
                 let action = actions.filter((a: ActionBase) => a.actionId === labelAction)[0]
                 if (!action) {
-                    botResponse = BlisDebug.Error(`Can't find Action Id ${labelAction}`);
+                    botResponse = CLDebug.Error(`Can't find Action Id ${labelAction}`);
                 }
                 else {
                     isLastActionTerminal = action.isTerminal
 
-                    let filledEntityMap = this.CreateFilledEntityMap(scorerStep.input.filledEntities, entityList)
+                    let filledEntityMap = ConversationLearner.CreateFilledEntityMap(scorerStep.input.filledEntities, entityList)
 
                     if (action.actionType === ActionTypes.CARD) {
                         const cardAction = new CardAction(action)
-                        botResponse = await this.TakeCardAction(cardAction, filledEntityMap)
+                        botResponse = await ConversationLearner.TakeCardAction(cardAction, filledEntityMap)
                     } else if (action.actionType === ActionTypes.API_LOCAL) {
                         const apiAction = new ApiAction(action)
-                        botResponse = await this.TakeLocalAPIAction(apiAction, filledEntityMap, memory, entityList.entities)
+                        botResponse = await ConversationLearner.TakeLocalAPIAction(apiAction, filledEntityMap, memory, entityList.entities)
                     } else if (action.actionType === ActionTypes.TEXT) {
                         const textAction = new TextAction(action)
-                        botResponse = await Blis.TakeTextAction(textAction, filledEntityMap)
+                        botResponse = await ConversationLearner.TakeTextAction(textAction, filledEntityMap)
                     }
                     // TODO
                     //  TakeAzureAPIAction
@@ -658,16 +659,16 @@ export class Blis {
                 let botActivity: BB.Activity | null = null
                 if (typeof botResponse == 'string') {
                     botActivity = {
-                        id: this.generateGUID(),
-                        from: { id: 'BlisTrainer', name: 'BlisTrainer' },
+                        id: ConversationLearner.generateGUID(),
+                        from: { id: CL_USER_NAME_ID, name: CL_USER_NAME_ID },
                         type: 'message',
                         text: botResponse,
                         channelData: channelData
                     }
                 } else if (botResponse) {
                     botActivity = botResponse as BB.Activity
-                    botActivity.id = this.generateGUID()
-                    botActivity.from = { id: 'BlisTrainer', name: 'BlisTrainer' }
+                    botActivity.id = ConversationLearner.generateGUID()
+                    botActivity.from = { id: CL_USER_NAME_ID, name: CL_USER_NAME_ID }
                     botActivity.channelData = channelData
                 }
 
@@ -706,11 +707,11 @@ export class Blis {
 
     public static OptionsValidationErrors(): string {
         let errMsg = ''
-        if (!this.options.serviceUri) {
-            errMsg += 'Options missing serviceUrl. Set BLIS_SERVICE_URI Env value.\n\n'
+        if (!ConversationLearner.options.serviceUri) {
+            errMsg += 'Options missing serviceUrl. Set CONVERSATION_LEARNER_SERVICE_URI Env value.\n\n'
         }
-        if (!this.options.localhost && !this.options.appId) {
-            errMsg += 'Options must specify appId when not running on localhost. Set BLIS_APP_ID Env value.\n\n'
+        if (!ConversationLearner.options.localhost && !ConversationLearner.options.appId) {
+            errMsg += 'Options must specify appId when not running on localhost. Set CONVERSATION_LEARNER_APP_ID Env value.\n\n'
         }
         return errMsg
     }

@@ -1,23 +1,23 @@
 import * as BB from 'botbuilder'
-import { UserInput, PredictedEntity, EntityBase, ScoredAction, SessionCreateParams, BlisAppBase } from 'blis-models'
-import { BlisDebug } from './BlisDebug'
-import { BlisMemory } from './BlisMemory'
-import { BlisClient } from './BlisClient'
-import { BlisContext } from './BlisContext'
-import { BlisIntent } from './BlisIntent'
-import { Blis } from './Blis'
-import { IBlisOptions } from './BlisOptions'
-import { BLIS_DEVELOPER } from './Utils';
+import { UserInput, PredictedEntity, EntityBase, ScoredAction, SessionCreateParams, AppBase } from 'conversationlearner-models'
+import { CLDebug } from './CLDebug'
+import { CLMemory } from './CLMemory'
+import { CLClient } from './CLClient'
+import { CLContext } from './CLContext'
+import { CLIntent } from './CLIntent'
+import { ConversationLearner } from './ConversationLearner'
+import { ICLOptions } from './CLOptions'
+import { CL_DEVELOPER } from './Utils';
 import { InputQueue } from './Memory/InputQueue';
 const util = require('util');
 
-export const BLIS_INTENT_WRAPPER = 'BLIS_INTENT_WRAPPER'
+export const CL_INTENT_WRAPPER = 'CL_INTENT_WRAPPER'
 
-export class BlisRecognizer extends BB.IntentRecognizer {
-    private client: BlisClient
-    private options: IBlisOptions
+export class CLRecognizer extends BB.IntentRecognizer {
+    private client: CLClient
+    private options: ICLOptions
 
-    constructor(options: IBlisOptions, client: BlisClient) {
+    constructor(options: ICLOptions, client: CLClient) {
         super()
 
         this.options = options
@@ -38,14 +38,14 @@ export class BlisRecognizer extends BB.IntentRecognizer {
     // Add input queu
     private async AddInput(botContext: BotContext) : Promise<BB.Intent | null> {
 
-        Blis.SetBot(botContext)
+        ConversationLearner.SetBot(botContext)
 
         if (botContext.request.from === undefined || botContext.request.id == undefined) {
             return null;
         }
 
-        let blisContext = await BlisContext.CreateAsync(Blis.bot, botContext.request.from, botContext.conversationReference)
-        let botState = blisContext.Memory().BotState;
+        let clContext = await CLContext.CreateAsync(ConversationLearner.bot, botContext.request.from, botContext.conversationReference)
+        let botState = clContext.Memory().BotState;
         let addInputPromise = util.promisify(InputQueue.AddInput);
         let isReady = await addInputPromise(botState, botContext.request, botContext.conversationReference);
         
@@ -61,7 +61,7 @@ export class BlisRecognizer extends BB.IntentRecognizer {
         return null;
     }
 
-    private async StartSessionAsync(user: BB.ChannelAccount | undefined, memory: BlisMemory, appId: string, saveToLog: boolean, packageId: string): Promise<string> {
+    private async StartSessionAsync(user: BB.ChannelAccount | undefined, memory: CLMemory, appId: string, saveToLog: boolean, packageId: string): Promise<string> {
 
         let sessionCreateParams = {saveToLog, packageId} as SessionCreateParams
         let sessionResponse = await this.client.StartSession(appId, sessionCreateParams)
@@ -74,11 +74,11 @@ export class BlisRecognizer extends BB.IntentRecognizer {
         }
 
         await memory.StartSessionAsync(sessionResponse.sessionId, user.id, { inTeach: false, isContinued: false })
-        BlisDebug.Verbose(`Started Session: ${sessionResponse.sessionId} - ${user.id}`)
+        CLDebug.Verbose(`Started Session: ${sessionResponse.sessionId} - ${user.id}`)
         return sessionResponse.sessionId
     }
 
-    private async SetApp(memory: BlisMemory, inEditingUI: boolean) : Promise<BlisAppBase | null> {
+    private async SetApp(memory: CLMemory, inEditingUI: boolean) : Promise<AppBase | null> {
 
         let app = await memory.BotState.AppAsync()
 
@@ -87,14 +87,14 @@ export class BlisRecognizer extends BB.IntentRecognizer {
             if (!inEditingUI && app.appId != this.options.appId)
             {
                 // Use config value
-                BlisDebug.Log(`Switching to app specified in config: ${this.options.appId}`)
+                CLDebug.Log(`Switching to app specified in config: ${this.options.appId}`)
                 app = await this.client.GetApp(this.options.appId)
                 await memory.SetAppAsync(app)
             }
         }
         // If I don't have an app, attempt to use one set in config
         else if (this.options.appId) {
-            BlisDebug.Log(`Selecting app specified in config: ${this.options.appId}`)
+            CLDebug.Log(`Selecting app specified in config: ${this.options.appId}`)
             app = await this.client.GetApp(this.options.appId)
             await memory.SetAppAsync(app)
         }
@@ -104,36 +104,36 @@ export class BlisRecognizer extends BB.IntentRecognizer {
 
     private async ProcessInput(request: BB.Activity, conversationReference: BB.ConversationReference): Promise<BB.Intent | null> {
         let errComponent = 'ProcessInput'
-        let memory: BlisMemory | null = null
+        let memory: CLMemory | null = null
         try {
-            BlisDebug.Verbose(`Process Input...`)
+            CLDebug.Verbose(`Process Input...`)
 
             // Validate request
             if (!request.from || !request.from.id) {
                 throw new Error(`Attempted to get current session for user, but user was not defined on bot request.`)
             }
 
-            let blisContext = await BlisContext.CreateAsync(Blis.bot, request.from, conversationReference)
-            memory = blisContext.Memory()
+            let clContext = await CLContext.CreateAsync(ConversationLearner.bot, request.from, conversationReference)
+            memory = clContext.Memory()
 
             // Validate setup
-            let validationError = Blis.OptionsValidationErrors()
+            let validationError = ConversationLearner.OptionsValidationErrors()
             if (validationError) {
-                BlisDebug.Error(validationError)
-                await Blis.SendMessage(memory, validationError)
+                CLDebug.Error(validationError)
+                await ConversationLearner.SendMessage(memory, validationError)
                 return null
             }
 
             let inTeach = await memory.BotState.InTeachAsync()
             let inEditingUI = 
                 conversationReference.user &&
-                conversationReference.user.name === BLIS_DEVELOPER || false;
+                conversationReference.user.name === CL_DEVELOPER || false;
 
             let app = await this.SetApp(memory, inEditingUI);
             
             if (!app) {
-                let error = "ERROR: AppId not specified.  When running in a channel (i.e. Skype) or the Bot Framework Emulator, BLIS_APP_ID must be specified in your Bot's .env file or Application Settings on the server"
-                await Blis.SendMessage(memory, error)
+                let error = "ERROR: AppId not specified.  When running in a channel (i.e. Skype) or the Bot Framework Emulator, CONVERSATION_LEARNER_APP_ID must be specified in your Bot's .env file or Application Settings on the server"
+                await ConversationLearner.SendMessage(memory, error)
                 return null;
             }
 
@@ -157,6 +157,12 @@ export class BlisRecognizer extends BB.IntentRecognizer {
                     if (!inEditingUI) {
                         app = await this.client.GetApp(this.options.appId)
                         await memory.SetAppAsync(app)
+              
+                        if (!app) {
+                            let error = "ERROR: AppId not specified.  When running in a channel (i.e. Skype) or the Bot Framework Emulator, CONVERSATION_LEARNER_APP_ID must be specified in your Bot's .env file or Application Settings on the server"
+                            await ConversationLearner.SendMessage(memory, error)
+                            return null;
+                        }
                     }
                     
                     // Start a new session 
@@ -179,7 +185,7 @@ export class BlisRecognizer extends BB.IntentRecognizer {
             let packageId = (inEditingUI ? await memory.BotState.EditingPackageAsync(app.appId) : app.livePackageId) || app.devPackageId
             if (!packageId) {
                 let error = "ERROR: No PackageId has been set"
-                await Blis.SendMessage(memory, error)
+                await ConversationLearner.SendMessage(memory, error)
                 return null;
             }
 
@@ -191,13 +197,13 @@ export class BlisRecognizer extends BB.IntentRecognizer {
             // Process any form data
             let buttonResponse = await this.ProcessFormData(request, memory, app.appId)
 
-            // Teach inputs are handled via API calls from the BLIS api
+            // Teach inputs are handled via API calls from the Conversation Learner UI
             if (!inTeach) {
 
                 // Was it a conversationUpdate message?
                 if (request.type == "conversationUpdate") {
                     // Do nothing
-                    BlisDebug.Verbose(`Conversation update...  ${+JSON.stringify(request.membersAdded)} -${JSON.stringify(request.membersRemoved)}`);
+                    CLDebug.Verbose(`Conversation update...  ${+JSON.stringify(request.membersAdded)} -${JSON.stringify(request.membersRemoved)}`);
                     return null;
                 }
 
@@ -221,29 +227,29 @@ export class BlisRecognizer extends BB.IntentRecognizer {
                     name: scoredAction.actionId,
                     score: 1.0,
                     scoredAction: scoredAction,
-                    blisEntities: entities,
+                    clEntities: entities,
                     memory: memory,
                     inTeach: false
-                } as BlisIntent
+                } as CLIntent
             }
             return null
         } catch (error) {
-            BlisDebug.Log(`Error during ProcessInput: ${error.message}`)
+            CLDebug.Log(`Error during ProcessInput: ${error.message}`)
             // TODO: This code makes assumption about memory being assigned above, but memory would remain as null if it reached this point of catch statement.
             // Session is invalid
             if (memory) {
-                BlisDebug.Verbose('ProcessInput Failure. Clearing Session')
+                CLDebug.Verbose('ProcessInput Failure. Clearing Session')
                 // memory.EndSession()
             }
-            let msg = BlisDebug.Error(error, errComponent)
+            let msg = CLDebug.Error(error, errComponent)
             if (memory) {
-                await Blis.SendMessage(memory, msg)
+                await ConversationLearner.SendMessage(memory, msg)
             }
             return null
         }
     }
 
-    private async ProcessFormData(request: BB.Activity, blisMemory: BlisMemory, appId: string): Promise<string | null> {
+    private async ProcessFormData(request: BB.Activity, clMemory: CLMemory, appId: string): Promise<string | null> {
         const data = request.value as FormData
         if (data) {
             // Get list of all entities
@@ -260,18 +266,18 @@ export class BlisRecognizer extends BB.IntentRecognizer {
                 let entity = entityList.entities.find(e => e.entityName == entityName)
 
                 if (!entity) {
-                    BlisDebug.Error(`Form - Can't find Entity named: ${entityName}`)
+                    CLDebug.Error(`Form - Can't find Entity named: ${entityName}`)
                     return null
                 }
                 // Set it
-                await blisMemory.BotMemory.RememberEntity(entity.entityName, entity.entityId, data[entityName], entity.isMultivalue)
+                await clMemory.BotMemory.RememberEntity(entity.entityName, entity.entityId, data[entityName], entity.isMultivalue)
             }
 
             // If submit type return as a response
             if (data['submit']) {
                 return data['submit']
             } else {
-                BlisDebug.Error(`Adaptive Card has no Sumbit data`)
+                CLDebug.Error(`Adaptive Card has no Sumbit data`)
                 return null
             }
         }
@@ -281,14 +287,14 @@ export class BlisRecognizer extends BB.IntentRecognizer {
     public async Score(
         appId: string,
         sessionId: string,
-        memory: BlisMemory,
+        memory: CLMemory,
         text: string,
         predictedEntities: PredictedEntity[],
         allEntities: EntityBase[],
         inTeach: boolean
     ): Promise<ScoredAction> {
         // Call LUIS callback
-        let scoreInput = await Blis.CallEntityDetectionCallback(text, predictedEntities, memory, allEntities)
+        let scoreInput = await ConversationLearner.CallEntityDetectionCallback(text, predictedEntities, memory, allEntities)
 
         // Call the scorer
         let scoreResponse = null

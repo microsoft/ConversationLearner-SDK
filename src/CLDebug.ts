@@ -1,6 +1,6 @@
 import { Utils } from './Utils'
 
-export class BlisDebug {
+export class CLDebug {
     public static botContext: BotContext
     public static cache: string = ''
     public static enabled: boolean
@@ -8,31 +8,31 @@ export class BlisDebug {
     public static logging: string = 'client' // OPTIONS: "messagequeue client flow memory memverbose";
 
     public static InitLogger(botContext: BotContext) {
-        this.botContext = botContext
+        CLDebug.botContext = botContext
     }
 
     private static SendCache() {
-        if (this.botContext && this.cache) {
-            this.botContext.bot.createContext(this.botContext.conversationReference, context => {
+        if (CLDebug.botContext && CLDebug.cache) {
+            CLDebug.botContext.bot.createContext(CLDebug.botContext.conversationReference, context => {
                 context.reply(this.cache)
             })
-            this.cache = ''
+            CLDebug.cache = ''
         }
     }
 
     public static Log(text: string, filter?: string) {
-        if (!filter || this.logging.indexOf(filter) >= 0) {
+        if (!filter || CLDebug.logging.indexOf(filter) >= 0) {
             console.log(text)
 
-            if (this.enabled) {
-                this.cache += (this.cache ? '\n\n' : '') + text
+            if (CLDebug.enabled) {
+                CLDebug.cache += (CLDebug.cache ? '\n\n' : '') + text
             }
-            this.SendCache()
+            CLDebug.SendCache()
         }
     }
 
     public static LogRequest(method: string, path: string, payload: any) {
-        if (this.logging.includes('client')) {
+        if (CLDebug.logging.includes('client')) {
             let message = `${method} //${path}`
             const formattedBody = payload.body ? JSON.stringify(payload.body, null, '  ') : ''
             if (formattedBody.length > 0) {
@@ -44,26 +44,26 @@ ${formattedBody}
 
             console.log(message)
 
-            if (this.enabled) {
-                this.cache += (this.cache ? '\n\n' : '') + message
+            if (CLDebug.enabled) {
+                CLDebug.cache += (CLDebug.cache ? '\n\n' : '') + message
             }
-            this.SendCache()
+            CLDebug.SendCache()
         }
     }
 
     public static Error(error: any, context: string = ''): string {
         let text = `ERROR: ${error ? Utils.ErrorString(error, context) : 'No details'}`
-        BlisDebug.Log(text)
+        CLDebug.Log(text)
         return text
     }
 
     public static Verbose(text: string) {
-        if (this.verbose) {
-            BlisDebug.Log(`${text}`)
+        if (CLDebug.verbose) {
+            CLDebug.Log(`${text}`)
         }
     }
 
     public static LogObject(obj: any) {
-        this.Log(JSON.stringify(obj))
+        CLDebug.Log(JSON.stringify(obj))
     }
 }

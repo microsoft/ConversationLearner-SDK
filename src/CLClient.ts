@@ -1,8 +1,8 @@
-import * as models from 'blis-models'
-import { BlisDebug } from './BlisDebug'
+import * as models from 'conversationlearner-models'
+import { CLDebug } from './CLDebug'
 import * as NodeCache from 'node-cache'
 import * as Request from 'request'
-import { PackageReference } from 'blis-models';
+import { PackageReference } from 'conversationlearner-models';
 
 const apimSubscriptionKeyHeader = 'Ocp-Apim-Subscription-Key'
 const apimSubscriptionIdHeader = 'apim-subscription-id'
@@ -17,7 +17,7 @@ const requestMethodMap = new Map<HTTP_METHOD, typeof Request.get | typeof Reques
     ['DELETE', Request.delete]
 ])
 
-export interface IBlisClientOptions {
+export interface ICLClientOptions {
     serviceUri: string
     // This should only set when directly targeting cognitive services ppe environment.
     apimSubscriptionKey: string | undefined
@@ -25,7 +25,7 @@ export interface IBlisClientOptions {
     luisSubscriptionKey?: string
 }
 
-export class BlisClient {
+export class CLClient {
     private serviceUri: string
     private luisAuthoringKey: string
     private apimSubscriptionKey: string
@@ -34,7 +34,7 @@ export class BlisClient {
     private entityCache = new NodeCache({ stdTTL: 300, checkperiod: 600 })
     private exportCache = new NodeCache({ stdTTL: 300, checkperiod: 600 })
 
-    constructor(options: IBlisClientOptions) {
+    constructor(options: ICLClientOptions) {
         if (typeof options.serviceUri !== 'string' || options.serviceUri.length === 0) {
             throw new Error(`serviceUri must be a non-empty string. You passed: ${options.serviceUri}`)
         }
@@ -116,7 +116,7 @@ export class BlisClient {
                 body
             }
 
-            BlisDebug.LogRequest(method, url, requestData)
+            CLDebug.LogRequest(method, url, requestData)
             const requestMethod = requestMethodMap.get(method)
             if(!requestMethod) {
                 throw new Error(`Request method not found for http verb: ${method}`)
@@ -207,7 +207,7 @@ export class BlisClient {
      * If the app ID isn't found in the set of (non-archived) apps,
      * returns 404 error ("not found")
      */
-    public GetApp(appId: string): Promise<models.BlisAppBase> {
+    public GetApp(appId: string): Promise<models.AppBase> {
         let apiPath = `app/${appId}`
         return this.send('GET', this.MakeURL(apiPath))
     }
@@ -223,7 +223,7 @@ export class BlisClient {
     }
 
     /** Retrieve a list of (active) applications */
-    public GetApps(query: string): Promise<models.BlisAppList> {
+    public GetApps(query: string): Promise<models.AppList> {
         let apiPath = `apps`
         return this.send('GET', this.MakeURL(apiPath, query))
     }
@@ -238,7 +238,7 @@ export class BlisClient {
      * Rename an existing application or changes its LUIS key
      * Note: Renaming an application does not affect packages
      */
-    public EditApp(app: models.BlisAppBase, query: string): Promise<string> {
+    public EditApp(app: models.AppBase, query: string): Promise<string> {
         let apiPath = `app/${app.appId}`
         return this.send('PUT', this.MakeURL(apiPath, query), app)
     }
@@ -259,9 +259,9 @@ export class BlisClient {
      * Create a new application
      */
     // TODO: Fix API to return full object
-    public async AddApp(blisApp: models.BlisAppBase, query: string): Promise<string> {
+    public async AddApp(app: models.AppBase, query: string): Promise<string> {
         var apiPath = `app`
-        const appResponse = await this.send<models.BlisAppBase>('POST', this.MakeURL(apiPath, query), blisApp)
+        const appResponse = await this.send<models.AppBase>('POST', this.MakeURL(apiPath, query), app)
         return appResponse.appId
     }
 
@@ -275,7 +275,7 @@ export class BlisClient {
     }
 
     /** Retrieves details for a specific $appId*/
-    public GetAppStatus(appId: string): Promise<models.BlisAppBase> {
+    public GetAppStatus(appId: string): Promise<models.AppBase> {
         let apiPath = `archive/${appId}`
         return this.send('DELETE', this.MakeURL(apiPath))
     }
@@ -287,13 +287,13 @@ export class BlisClient {
     }
 
     /** Retrieves a list of application Ids in the archive for the given user */
-    public GetArchivedAppIds(query: string): Promise<models.BlisAppIdList> {
+    public GetArchivedAppIds(query: string): Promise<models.AppIdList> {
         let apiPath = `archive`
         return this.send('GET', this.MakeURL(apiPath, query))
     }
 
     /** Retrieves a list of full applications in the archive for the given user */
-    public GetArchivedApps(query: string): Promise<models.BlisAppList> {
+    public GetArchivedApps(query: string): Promise<models.AppList> {
         let apiPath = `archives`
         return this.send('GET', this.MakeURL(apiPath, query))
     }

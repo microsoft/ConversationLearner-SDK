@@ -1,8 +1,8 @@
 import * as BB from 'botbuilder'
 import * as request from 'request'
-import { BlisMemory } from './BlisMemory'
-import { TrainExtractorStep, TrainDialog, FilledEntityMap } from 'blis-models'
-import { BlisIntent } from './BlisIntent'
+import { CLMemory } from './CLMemory'
+import { TrainExtractorStep, TrainDialog, FilledEntityMap } from 'conversationlearner-models'
+import { CLIntent } from './CLIntent'
 
 export class Utils {
     public static SendTyping(bot: BB.Bot, address: any) {
@@ -42,14 +42,14 @@ export class Utils {
         }
     }
     /** Send a text message */
-    public static async SendMessage(bot: BB.Bot, memory: BlisMemory, content: string | BB.Activity) {
+    public static async SendMessage(bot: BB.Bot, memory: CLMemory, content: string | BB.Activity) {
         if (memory) {
             await memory.BotState.SendMessage(bot, content)
         }
     }
 
     /** Send an intent */
-    public static async SendIntent(bot: BB.Bot, memory: BlisMemory, intent: BlisIntent) {
+    public static async SendIntent(bot: BB.Bot, memory: CLMemory, intent: CLIntent) {
         if (memory) {
             await memory.BotState.SendIntent(bot, intent)
         }
@@ -206,4 +206,4 @@ export function replace<T>(xs: T[], updatedX: T, getId: (x: T) => any): T[] {
     return [...xs.slice(0, index), updatedX, ...xs.slice(index + 1)]
 }
 
-export const BLIS_DEVELOPER = 'BlisDeveloper';
+export const CL_DEVELOPER = 'ConversationLearnerDeveloper';
