@@ -4,7 +4,7 @@ import { CLDebug } from '../CLDebug'
 import { CLClient } from '../CLClient'
 import { ConversationLearner } from '../ConversationLearner'
 import { CLMemory } from '../CLMemory'
-import { CLIntent } from '../CLIntent'
+import { CLRecognizerResult } from '../CLIntent'
 import { TemplateProvider } from '../TemplateProvider'
 import { Utils, replace, CL_DEVELOPER } from '../Utils'
 import { MEMORY_KEY_HEADER_NAME } from 'conversationlearner-models'
@@ -1157,15 +1157,13 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
 
             // Now send the trained intent
             let intent = {
-                name: scoredAction.actionId,
-                score: 1.0,
                 scoredAction: scoredAction,
                 clEntities: uiTrainScorerStep.entities,
                 memory: memory,
                 inTeach: true
-            } as CLIntent
+            } as CLRecognizerResult
 
-            await ConversationLearner.SendIntent(memory, intent)
+            await ConversationLearner.SendIntent(intent)
 
             let memories = await memory.BotMemory.DumpMemory()
             let uiTeachResponse: models.UITeachResponse = { teachResponse, memories }

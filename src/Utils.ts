@@ -1,11 +1,9 @@
 import * as BB from 'botbuilder'
 import * as request from 'request'
-import { CLMemory } from './CLMemory'
 import { TrainExtractorStep, TrainDialog, FilledEntityMap } from 'conversationlearner-models'
-import { CLIntent } from './CLIntent'
 
 export class Utils {
-    public static SendTyping(bot: BB.Bot, address: any) {
+    public static SendTyping(adapter: BB.BotAdapter, address: any) {
         /* TODO
         let msg = <builder.IMessage>{ type: 'typing'};
         msg.address = address;
@@ -39,19 +37,6 @@ export class Utils {
                     return nle
                 })
             }))
-        }
-    }
-    /** Send a text message */
-    public static async SendMessage(bot: BB.Bot, memory: CLMemory, content: string | BB.Activity) {
-        if (memory) {
-            await memory.BotState.SendMessage(bot, content)
-        }
-    }
-
-    /** Send an intent */
-    public static async SendIntent(bot: BB.Bot, memory: CLMemory, intent: CLIntent) {
-        if (memory) {
-            await memory.BotState.SendIntent(bot, intent)
         }
     }
 

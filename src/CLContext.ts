@@ -2,7 +2,7 @@ import * as BB from 'botbuilder'
 import { CLMemory } from './CLMemory'
 
 export class CLContext {
-    public botContext: BotContext
+  //LARS - don't this this was ever used -  public botContext: BotContext
     public userAddress: BB.ChannelAccount
     private memory: CLMemory
 
@@ -10,7 +10,7 @@ export class CLContext {
         this.userAddress = userAddress
     }
 
-    public static async CreateAsync(bot: BB.Bot, userAddress: BB.ChannelAccount, conversationReference: BB.ConversationReference) {
+    public static async CreateAsync(userAddress: BB.ChannelAccount, conversationReference: Partial<BB.ConversationReference>) {
         let context = new CLContext(userAddress)
         context.memory = await CLMemory.InitMemory(userAddress, conversationReference)
         return context

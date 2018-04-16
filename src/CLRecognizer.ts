@@ -4,7 +4,7 @@ import { CLDebug } from './CLDebug'
 import { CLMemory } from './CLMemory'
 import { CLClient } from './CLClient'
 import { CLContext } from './CLContext'
-import { CLIntent } from './CLIntent'
+import { CLRecognizerResult } from './CLIntent'
 import { ConversationLearner } from './ConversationLearner'
 import { ICLOptions } from './CLOptions'
 import { CL_DEVELOPER } from './Utils';
@@ -13,48 +13,49 @@ const util = require('util');
 
 export const CL_INTENT_WRAPPER = 'CL_INTENT_WRAPPER'
 
-export class CLRecognizer extends BB.IntentRecognizer {
+export class CLRecognizer implements BB.Middleware {
     private client: CLClient
     private options: ICLOptions
 
     constructor(options: ICLOptions, client: CLClient) {
-        super()
-
         this.options = options
         this.client = client
+    }
 
-        this.onRecognize(botContext => {
+    public onTurn(turnContext: BB.TurnContext, next: () => Promise<void>): Promise<void> {
+        return this.recognize(turnContext, true)
+                   .then(() => next());
+    }
 
-            const intents: BB.Intent[] = []
-            return this.AddInput(botContext).then(res => {
-                if (res) {
-                    intents.push(res)
-                }
-                return intents
-            })
+    public recognize(turnContext: BB.TurnContext, force?: boolean): Promise<CLRecognizerResult | null> {
+
+        return this.AddInput(turnContext).then(res => {
+            return res;
         })
     }
 
     // Add input queu
-    private async AddInput(botContext: BotContext) : Promise<BB.Intent | null> {
+    private async AddInput(turnContext: BB.TurnContext) : Promise<CLRecognizerResult | null> {
 
-        ConversationLearner.SetBot(botContext)
-
-        if (botContext.request.from === undefined || botContext.request.id == undefined) {
+        if (turnContext.activity.from === undefined || turnContext.activity.id == undefined) {
             return null;
         }
 
-        let clContext = await CLContext.CreateAsync(ConversationLearner.bot, botContext.request.from, botContext.conversationReference)
+        let conversationReference = BB.TurnContext.getConversationReference(turnContext.activity);
+
+        ConversationLearner.SetAdapter(turnContext.adapter, conversationReference);
+
+        let clContext = await CLContext.CreateAsync(turnContext.activity.from, conversationReference)
         let botState = clContext.Memory().BotState;
         let addInputPromise = util.promisify(InputQueue.AddInput);
-        let isReady = await addInputPromise(botState, botContext.request, botContext.conversationReference);
+        let isReady = await addInputPromise(botState, turnContext.activity, conversationReference);
         
         if (isReady)
         {
-            let intents = await this.ProcessInput(botContext.request, botContext.conversationReference);
+            let intents = await this.ProcessInput(turnContext.activity, conversationReference);
 
             // Remove message from queue
-            InputQueue.InputQueuePop(botState, botContext.request.id);
+            InputQueue.InputQueuePop(botState, turnContext.activity.id);
             return intents;
         }
         // Message has expired 
@@ -102,7 +103,7 @@ export class CLRecognizer extends BB.IntentRecognizer {
         return app;
     }
 
-    private async ProcessInput(request: BB.Activity, conversationReference: BB.ConversationReference): Promise<BB.Intent | null> {
+    private async ProcessInput(request: BB.Activity, conversationReference: Partial<BB.ConversationReference>): Promise<CLRecognizerResult | null> {
         let errComponent = 'ProcessInput'
         let memory: CLMemory | null = null
         try {
@@ -113,7 +114,7 @@ export class CLRecognizer extends BB.IntentRecognizer {
                 throw new Error(`Attempted to get current session for user, but user was not defined on bot request.`)
             }
 
-            let clContext = await CLContext.CreateAsync(ConversationLearner.bot, request.from, conversationReference)
+            let clContext = await CLContext.CreateAsync(request.from, conversationReference)
             memory = clContext.Memory()
 
             // Validate setup
@@ -224,13 +225,11 @@ export class CLRecognizer extends BB.IntentRecognizer {
                     inTeach
                 )
                 return {
-                    name: scoredAction.actionId,
-                    score: 1.0,
                     scoredAction: scoredAction,
                     clEntities: entities,
                     memory: memory,
                     inTeach: false
-                } as CLIntent
+                } as CLRecognizerResult
             }
             return null
         } catch (error) {

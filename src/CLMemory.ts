@@ -29,7 +29,7 @@ export class CLMemory {
     }
 
     // Generate memory key from session
-    public static async InitMemory(user: BB.ChannelAccount, conversationReference: BB.ConversationReference): Promise<CLMemory> {
+    public static async InitMemory(user: BB.ChannelAccount, conversationReference: Partial<BB.ConversationReference>): Promise<CLMemory> {
         if (!user) {
             throw new Error(`Attempted to initialize memory, but cannot get memory key because current request did not have 'from'/user specified`)
         }
