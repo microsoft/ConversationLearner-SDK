@@ -1,9 +1,9 @@
 import * as BB from 'botbuilder'
-import { ConversationLearner } from './ConversationLearner'
 import { CLDebug } from './CLDebug'
 import { BotMemory } from './Memory/BotMemory'
 import { BotState } from './Memory/BotState'
 import { AppBase } from 'conversationlearner-models'
+import { CLRunner } from './CLRunner';
 
 export interface ISessionStartParams {
     inTeach: boolean
@@ -142,7 +142,8 @@ export class CLMemory {
         let app = await this.BotState.AppAsync()
 
         // Default callback will clear the bot memory
-        ConversationLearner.CallSessionEndCallback(this, app ? app.appId : null);
+        let clRunner = CLRunner.Get();
+        clRunner.CallSessionEndCallback(this, app ? app.appId : null);
 
         await this.BotState.EndSessionAsync();
     }
@@ -151,6 +152,7 @@ export class CLMemory {
     public async StartSessionAsync(sessionId: string, conversationId: string | null, params: ISessionStartParams, orgSessionId: string | null = null): Promise<void> {
  
         let app = await this.BotState.AppAsync()
+        let clRunner = CLRunner.Get();
 
         // If not continuing an edited session or restarting an expired session 
         if (!params.isContinued && !orgSessionId) {
@@ -160,10 +162,10 @@ export class CLMemory {
             if (!calledEndSession) {
 
                 // Default callback will clear the bot memory
-                await ConversationLearner.CallSessionEndCallback(this, app ? app.appId : null);
+                await clRunner.CallSessionEndCallback(this, app ? app.appId : null);
             }
         }
-        await ConversationLearner.CallSessionStartCallback(this, app ? app.appId : null);
+        await clRunner.CallSessionStartCallback(this, app ? app.appId : null);
         await this.BotState.SetSessionAsync(sessionId, conversationId, params.inTeach, orgSessionId)
     }
 
