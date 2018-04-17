@@ -242,7 +242,7 @@ export class BotState {
             conversation: { id: conversationId },
             channelId: 'emulator',
             // TODO: Refactor away from static coupling.  BotState needs to have access to options object through constructor
-            serviceUrl: ConversationLearner.options.dolServiceUrl
+            serviceUrl: ConversationLearner.options!.dolServiceUrl
         } as Partial<BB.ConversationReference>
         this.SetConversationReferenceAsync(conversationReference)
     }

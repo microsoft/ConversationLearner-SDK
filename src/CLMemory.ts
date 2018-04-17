@@ -3,12 +3,7 @@ import { CLDebug } from './CLDebug'
 import { BotMemory } from './Memory/BotMemory'
 import { BotState } from './Memory/BotState'
 import { AppBase } from 'conversationlearner-models'
-import { CLRunner } from './CLRunner';
 
-export interface ISessionStartParams {
-    inTeach: boolean
-    isContinued: boolean
-}
 export class CLMemory {
     private static memoryStorage: BB.Storage | null = null
     private memCache = {}
@@ -134,39 +129,6 @@ export class CLMemory {
         if (!app || !curApp || curApp.appId !== app.appId) {
             await this.BotMemory.ClearAsync()
         }
-    }
-
-    /** Update memory associated with a session */
-    public async EndSessionAsync(): Promise<void> {
-
-        let app = await this.BotState.AppAsync()
-
-        // Default callback will clear the bot memory
-        let clRunner = CLRunner.Get();
-        clRunner.CallSessionEndCallback(this, app ? app.appId : null);
-
-        await this.BotState.EndSessionAsync();
-    }
-
-    /** Init memory for a session */
-    public async StartSessionAsync(sessionId: string, conversationId: string | null, params: ISessionStartParams, orgSessionId: string | null = null): Promise<void> {
- 
-        let app = await this.BotState.AppAsync()
-        let clRunner = CLRunner.Get();
-
-        // If not continuing an edited session or restarting an expired session 
-        if (!params.isContinued && !orgSessionId) {
-
-            // If onEndSession hasn't been called yet, call it
-            let calledEndSession = await this.BotState.OnEndSessionCalledAsync();
-            if (!calledEndSession) {
-
-                // Default callback will clear the bot memory
-                await clRunner.CallSessionEndCallback(this, app ? app.appId : null);
-            }
-        }
-        await clRunner.CallSessionStartCallback(this, app ? app.appId : null);
-        await this.BotState.SetSessionAsync(sessionId, conversationId, params.inTeach, orgSessionId)
     }
 
     public get BotMemory(): BotMemory {

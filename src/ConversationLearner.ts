@@ -1,5 +1,4 @@
 import * as BB from 'botbuilder'
-import { CLRecognizer } from './CLRecognizer'
 import { CLRunner } from './CLRunner'
 import { ICLOptions } from './CLOptions'
 import { CLMemory } from './CLMemory'
@@ -13,20 +12,18 @@ import { CLRecognizerResult } from './CLRecognizeResult'
 const DEFAULT_MAX_SESSION_LENGTH = 20 * 60 * 1000;  // 20 minutes
 
 export class ConversationLearner {
-    public static options: ICLOptions
-    public static clRecognizer: CLRecognizer
-    public static clRunner: CLRunner
+    public static options: ICLOptions | null = null;
+    public static clClient: CLClient
+    public clRunner: CLRunner
+    public appId: string
 
     public static Init(options: ICLOptions, storage: BB.Storage | null = null) {
-        if (typeof options.sessionMaxTimeout !== 'number') {
-            options.sessionMaxTimeout = DEFAULT_MAX_SESSION_LENGTH
-        }
 
         ConversationLearner.options = options
 
         try {
             CLDebug.Log('Creating Conversation Learner Client....')
-            let clClient = new CLClient(options)
+            this.clClient = new CLClient(options)
             CLMemory.Init(storage)
 
             // If app not set, assume running on localhost init DOL Runner
@@ -34,7 +31,7 @@ export class ConversationLearner {
                 startDirectOffLineServer(options.dolServiceUrl, options.dolBotUrl)
             }
 
-            const sdkServer = createSdkServer(clClient)
+            const sdkServer = createSdkServer(this.clClient)
             sdkServer.listen(options.sdkPort, (err: any) => {
                 if (err) {
                     CLDebug.Error(err, 'Server/Init')
@@ -44,44 +41,54 @@ export class ConversationLearner {
             })
 
             CLDebug.Log('Initialization complete.')
-
-            ConversationLearner.clRecognizer = new CLRecognizer(options, clClient)
-            ConversationLearner.clRunner = CLRunner.Create(clClient, this.clRecognizer);
         } catch (error) {
             CLDebug.Error(error, 'Dialog Constructor')
         }
     }
 
-    public static async recognize(turnContext: BB.TurnContext, force?: boolean): Promise<CLRecognizerResult | null> {
-        return await ConversationLearner.clRecognizer.recognize(turnContext, force);
+    constructor(appId: string, maxTimeout?: number) {
+        if (!ConversationLearner.options) {
+            throw new Error("Init() must be called on ConversationLearner before instances are created")
+        }
+
+        if (typeof maxTimeout !== 'number') {
+            maxTimeout = DEFAULT_MAX_SESSION_LENGTH
+        }
+
+        this.appId = appId;
+        this.clRunner = CLRunner.Create(appId, maxTimeout, ConversationLearner.clClient)
     }
 
-    public static async SendResult(result: CLRecognizerResult): Promise<void> {
+    public async recognize(turnContext: BB.TurnContext, force?: boolean): Promise<CLRecognizerResult | null> {
+        return await this.clRunner.recognize(turnContext, force);
+    }
+
+    public async SendResult(result: CLRecognizerResult): Promise<void> {
         this.clRunner.SendIntent(result);
     }
 
-    public static AddAPICallback(
+    public AddAPICallback(
         name: string,
         target: (memoryManager: ClientMemoryManager, ...args: string[]) => Promise<BB.Activity | string | undefined>
     ) {
         this.clRunner.AddAPICallback(name, target);
     }
 
-    public static EntityDetectionCallback(
+    public EntityDetectionCallback(
         target: (text: string, memoryManager: ClientMemoryManager) => Promise<void>
     ) {
-        ConversationLearner.clRunner.entityDetectionCallback = target
+        this.clRunner.entityDetectionCallback = target
     }
 
-    public static OnSessionEndCallback(
+    public OnSessionEndCallback(
         target: (memoryManager: ClientMemoryManager) => Promise<void>
     ) {
-        ConversationLearner.clRunner.onSessionEndCallback = target
+        this.clRunner.onSessionEndCallback = target
     }
 
-    public static OnSessionStartCallback(
+    public OnSessionStartCallback(
         target: (memoryManager: ClientMemoryManager) => Promise<void>
     ) {
-        ConversationLearner.clRunner.onSessionStartCallback = target
+        this.clRunner.onSessionStartCallback = target
     }
 }
