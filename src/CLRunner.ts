@@ -6,7 +6,7 @@ import { CLClient } from './CLClient'
 import { TemplateProvider } from './TemplateProvider'
 import * as CLM from 'conversationlearner-models'
 import { ClientMemoryManager } from './Memory/ClientMemoryManager'
-import { addEntitiesById } from './Utils'
+import { addEntitiesById, generateGUID } from './Utils'
 import { CLRecognizerResult } from './CLRecognizeResult'
 import { ConversationLearner } from './ConversationLearner'
 import { InputQueue } from './Memory/InputQueue';
@@ -25,6 +25,7 @@ export interface ISessionStartParams {
 
 export class CLRunner {
 
+    // Lookup table for incoming calls from UI
     private static Runners: RunnerLookup = {}
     private static UIRunner: CLRunner;
 
@@ -48,6 +49,7 @@ export class CLRunner {
         return newRunner;
     }
 
+    // Get CLRunner for an app
     public static Get(appId: string) : CLRunner {
         if (!CLRunner.Runners[appId]) {
             if (CLRunner.UIRunner) {
@@ -65,7 +67,7 @@ export class CLRunner {
         this.clClient = client
     }
 
-    //-------------------------------------------
+
     public onTurn(turnContext: BB.TurnContext, next: () => Promise<void>): Promise<void> {
         return this.recognize(turnContext, true)
                    .then(() => next());
@@ -73,6 +75,7 @@ export class CLRunner {
 
     public recognize(turnContext: BB.TurnContext, force?: boolean): Promise<CLRecognizerResult | null> {
 
+        // Add input to queue
         return this.AddInput(turnContext).then(res => {
             return res;
         })
@@ -85,7 +88,7 @@ export class CLRunner {
         }
     }
 
-    // Add input to queue
+    // Add input to queue.  Allows CL to handle out-of-order messages
     private async AddInput(turnContext: BB.TurnContext) : Promise<CLRecognizerResult | null> {
 
         if (turnContext.activity.from === undefined || turnContext.activity.id == undefined) {
@@ -130,7 +133,8 @@ export class CLRunner {
         return sessionResponse.sessionId
     }
 
-    private async SetApp(memory: CLMemory, inEditingUI: boolean) : Promise<CLM.AppBase | null> {
+    // Get the currently runing app
+    private async GetApp(memory: CLMemory, inEditingUI: boolean) : Promise<CLM.AppBase | null> {
 
         let app = await memory.BotState.AppAsync()
 
@@ -155,7 +159,7 @@ export class CLRunner {
     }
 
 
-    /** Initialize a log or teach session */
+    // Initialize a log or teach session 
     public async InitSessionAsync(clMemory: CLMemory, sessionId: string, conversationId: string | null, params: ISessionStartParams, orgSessionId: string | null = null): Promise<void> {
     
         let app = await clMemory.BotState.AppAsync()
@@ -175,6 +179,7 @@ export class CLRunner {
         await clMemory.BotState.SetSessionAsync(sessionId, conversationId, params.inTeach, orgSessionId)
     }
 
+    // End a teach or log session
     public async EndSessionAsync(key: string): Promise<void> {
 
         let memory = CLMemory.GetMemory(key)
@@ -186,18 +191,19 @@ export class CLRunner {
         await memory.BotState.EndSessionAsync();
     }
 
+    // Proces user input
     private async ProcessInput(activity: BB.Activity, conversationReference: Partial<BB.ConversationReference>): Promise<CLRecognizerResult | null> {
         let errComponent = 'ProcessInput'
-        let memory: CLMemory | null = null
+
+        // Validate request
+        if (!activity.from || !activity.from.id) {
+            throw new Error(`Attempted to get current session for user, but user was not defined on bot request.`)
+        }
+
+        let memory = await CLMemory.InitMemory(activity.from, conversationReference)
+
         try {
             CLDebug.Verbose(`Process Input...`)
-
-            // Validate request
-            if (!activity.from || !activity.from.id) {
-                throw new Error(`Attempted to get current session for user, but user was not defined on bot request.`)
-            }
-
-            let memory = await CLMemory.InitMemory(activity.from, conversationReference)
 
             // Validate setup
             if (!ConversationLearner.options || (!ConversationLearner.options.localhost && !this.appId)) {
@@ -212,14 +218,13 @@ export class CLRunner {
                 conversationReference.user &&
                 conversationReference.user.name === CL_DEVELOPER || false;
 
-            let app = await this.SetApp(memory, inEditingUI);
+            let app = await this.GetApp(memory, inEditingUI);
             
             if (!app) {
                 let error = "ERROR: AppId not specified.  When running in a channel (i.e. Skype) or the Bot Framework Emulator, CONVERSATION_LEARNER_APP_ID must be specified in your Bot's .env file or Application Settings on the server"
                 await this.SendMessage(memory, error)
                 return null;
             }
-
 
             let sessionId = await memory.BotState.SessionIdAsync(activity.from.id)
 
@@ -315,12 +320,6 @@ export class CLRunner {
             return null
         } catch (error) {
             CLDebug.Log(`Error during ProcessInput: ${error.message}`)
-            // TODO: This code makes assumption about memory being assigned above, but memory would remain as null if it reached this point of catch statement.
-            // Session is invalid
-            if (memory) {
-                CLDebug.Verbose('ProcessInput Failure. Clearing Session')
-                // memory.EndSession()
-            }
             let msg = CLDebug.Error(error, errComponent)
             if (memory) {
                 await this.SendMessage(memory, msg)
@@ -390,6 +389,7 @@ export class CLRunner {
         // Return the action
         return bestAction
     }
+
     //-------------------------------------------
     // Optional callback than runs after LUIS but before Conversation Learner.  Allows Bot to substitute entities
     public entityDetectionCallback: (text: string,memoryManager: ClientMemoryManager) => Promise<void>
@@ -420,7 +420,6 @@ export class CLRunner {
 
     private async ProcessPredictedEntities(text: string, memory: BotMemory, predictedEntities: CLM.PredictedEntity[], allEntities: CLM.EntityBase[]): Promise<void> {
 
-        // Get previous filled entities
         // Update entities in my memory
         for (var predictedEntity of predictedEntities) {
             let entity = allEntities.find(e => e.entityId == predictedEntity.entityId)
@@ -440,19 +439,6 @@ export class CLRunner {
                     predictedEntity.resolution
                 )
             }
-
-            // If entity is associated with a task, make sure task is active
-            /*
-            if (predictedEntity.metadata && predictedEntity.metadata.task)
-            {
-                // If task is no longer active, clear the memory
-                let remembered = await memory.BotMemory.WasRemembered(predictedEntity.metadata.task);
-                if (!remembered)
-                {
-                    await memory.BotMemory.ForgetByLabel(predictedEntity);
-                }
-            }
-            */
         }
     }
 
@@ -524,11 +510,6 @@ export class CLRunner {
                 const textAction = new CLM.TextAction(clRecognizeResult.scoredAction as any)
                 message = await this.TakeTextAction(textAction, filledEntityMap)
                 break
-            /* TODO
-            case ActionTypes.API_AZURE:
-                message = await this.TakeAzureAPIAction(clRecognizeResult.scoredAction, clRecognizeResult.memory, clRecognizeResult.clEntities);
-                break;
-            */
             case CLM.ActionTypes.API_LOCAL:
                 const apiAction = new CLM.ApiAction(clRecognizeResult.scoredAction as any)
                 message = await this.TakeLocalAPIAction(
@@ -634,7 +615,6 @@ export class CLRunner {
         // which means callback may accept more arguments than is actually available on the action.arguments
         // To me, it seeems it would make more sense to always have these be same length, but perhaps there is
         // dependency on action not being defined somewhere else in the application like AcionCreatorEditor
-        ;
         let missingEntities: string[] = []
         // Get arguments in order specified by the API
         const argArray = callbackParams.arguments.map((param: string) => {
@@ -703,24 +683,7 @@ export class CLRunner {
         }
     }
 
-    // public static async TakeAzureAPIAction(
-    //     actionPayload: ActionPayload,
-    //     filledEntityMap: FilledEntityMap
-    // ): Promise<Partial<BB.Activity> | string | undefined> {
-    //     // Extract API name and entities
-    //     let apiString = actionPayload.payload
-    //     let [funcName] = apiString.split(' ')
-    //     let args = ModelUtils.RemoveWords(apiString, 1)
-
-    //     // Make any entity substitutions
-    //     let entities = filledEntityMap.SubstituteEntities(args)
-
-    //     // Call Azure function and send output (if any)
-    //     return await AzureFunctions.Call(this.clClient.azureFunctionsUrl, this.clClient.azureFunctionsKey, funcName, entities)
-    // }
-
-
-        // Validate that training round memory is the same as what in the bot's memory
+    // Validate that training round memory is the same as what in the bot's memory
     // This checks that API calls didn't change when restoring the bot's state
     private EntityDiscrepancy(userInput: string, round: CLM.TrainRound, memory: CLMemory, entities: CLM.EntityBase[]): CLM.ReplayErrorEntityDiscrepancy | null {
         let isSame = true
@@ -909,13 +872,13 @@ export class CLRunner {
 
             // Generate activity
             let userActivity = {
-                id: this.generateGUID(),
+                id: generateGUID(),
                 from: { id: userId, name: userName },
                 channelData: { 
                     senderType: CLM.SenderType.User, 
                     roundIndex: roundNum, 
                     scoreIndex: 0, 
-                    clientActivityId: this.generateGUID(),
+                    clientActivityId: generateGUID(),
                     highlight: chatHighlight},  
                 type: 'message',
                 text: userText
@@ -1002,7 +965,7 @@ export class CLRunner {
                 let botActivity: Partial<BB.Activity> | null = null
                 if (typeof botResponse == 'string') {
                     botActivity = {
-                        id: this.generateGUID(),
+                        id: generateGUID(),
                         from: { id: CLM.CL_USER_NAME_ID, name: CLM.CL_USER_NAME_ID },
                         type: 'message',
                         text: botResponse,
@@ -1010,7 +973,7 @@ export class CLRunner {
                     }
                 } else if (botResponse) {
                     botActivity = botResponse as BB.Activity
-                    botActivity.id = this.generateGUID()
+                    botActivity.id = generateGUID()
                     botActivity.from = { id: CLM.CL_USER_NAME_ID, name: CLM.CL_USER_NAME_ID }
                     botActivity.channelData = channelData
                 }
@@ -1032,7 +995,7 @@ export class CLRunner {
         let hasScorerRound = (hasRounds && trainDialog.rounds[trainDialog.rounds.length-1].scorerSteps.length > 0)
         let dialogMode = (isLastActionTerminal && hasScorerRound) || !hasRounds ? CLM.DialogMode.Wait : CLM.DialogMode.Scorer
 
-        // Make errors unique using Set operator  LARS CHECK
+        // Make errors unique using Set operator 
         replayErrors = [...new Set(replayErrors)]
 
         let teachWithHistory: CLM.TeachWithHistory = {
@@ -1046,16 +1009,5 @@ export class CLRunner {
             replayErrors: replayErrors
         }
         return teachWithHistory
-    }
-
-    // LARS - temp. move to shared utils after branch merge
-    private generateGUID(): string {
-        let d = new Date().getTime()
-        let guid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, char => {
-            let r = ((d + Math.random() * 16) % 16) | 0
-            d = Math.floor(d / 16)
-            return (char == 'x' ? r : (r & 0x3) | 0x8).toString(16)
-        })
-        return guid
     }
 }

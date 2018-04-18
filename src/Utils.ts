@@ -191,4 +191,18 @@ export function replace<T>(xs: T[], updatedX: T, getId: (x: T) => any): T[] {
     return [...xs.slice(0, index), updatedX, ...xs.slice(index + 1)]
 }
 
+
+export function generateGUID(): string {
+    let d = new Date().getTime()
+    let guid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, char => {
+        let r = ((d + Math.random() * 16) % 16) | 0
+        d = Math.floor(d / 16)
+        return (char == 'x' ? r : (r & 0x3) | 0x8).toString(16)
+    })
+    return guid
+}
+
 export const CL_DEVELOPER = 'ConversationLearnerDeveloper';
+export const DEFAULT_MAX_SESSION_LENGTH = 20 * 60 * 1000;  // 20 minutes
+
+

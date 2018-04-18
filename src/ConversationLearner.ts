@@ -4,12 +4,13 @@ import { ICLOptions } from './CLOptions'
 import { CLMemory } from './CLMemory'
 import { CLDebug } from './CLDebug'
 import { CLClient } from './CLClient'
+import { Activity } from 'botbuilder'
 import createSdkServer from './Http/Server'
 import { startDirectOffLineServer } from './DOLRunner'
+import { CL_DEVELOPER } from './Utils';
 import { ClientMemoryManager } from './Memory/ClientMemoryManager'
 import { CLRecognizerResult } from './CLRecognizeResult'
-
-const DEFAULT_MAX_SESSION_LENGTH = 20 * 60 * 1000;  // 20 minutes
+import { DEFAULT_MAX_SESSION_LENGTH } from './Utils'
 
 export class ConversationLearner {
     public static options: ICLOptions | null = null;
@@ -65,6 +66,11 @@ export class ConversationLearner {
 
     public async SendResult(result: CLRecognizerResult): Promise<void> {
         this.clRunner.SendIntent(result);
+    }
+
+    // Returns true is bot is running in the Training UI
+    public inTrainingUI(activity: Activity): boolean {
+        return (activity.from.name === CL_DEVELOPER);
     }
 
     public AddAPICallback(
