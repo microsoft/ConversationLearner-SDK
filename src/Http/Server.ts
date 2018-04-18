@@ -2,9 +2,10 @@ import * as restify from 'restify'
 import * as errors from 'restify-errors'
 import { CLDebug } from '../CLDebug'
 import { CLClient } from '../CLClient'
+import { CLRunner } from '../CLRunner'
 import { ConversationLearner } from '../ConversationLearner'
 import { CLMemory } from '../CLMemory'
-import { CLIntent } from '../CLIntent'
+import { CLRecognizerResult } from '../CLRecognizeResult'
 import { TemplateProvider } from '../TemplateProvider'
 import { Utils, replace, CL_DEVELOPER } from '../Utils'
 import { MEMORY_KEY_HEADER_NAME } from 'conversationlearner-models'
@@ -131,14 +132,18 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
     /** Retrieves information about the running bot */
     server.get('/bot', async (req, res, next) => {
         try {
+            let appId = req.params.appId
+            let clRunner = CLRunner.Get(appId);
+            let apiParams = clRunner.apiParams;
+
             const botInfo: models.BotInfo = {
                 user: {
                     // We keep track that the editing  UI is running by putting this as the name of the user
                     // Can't check localhost as can be running localhost and not UI
                     name: CL_DEVELOPER,
-                    id: ConversationLearner.options.luisAuthoringKey!
+                    id: ConversationLearner.options!.luisAuthoringKey!
                 },
-                callbacks: ConversationLearner.apiParams,
+                callbacks: apiParams,
                 templates: TemplateProvider.GetTemplates()
             }
             res.send(botInfo)
@@ -234,7 +239,9 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
             let app = await memory.BotState.AppAsync()
             if (app && app.appId === appId) {
                 await memory.SetAppAsync(null)
-                await memory.EndSessionAsync();
+
+                let clRunner = CLRunner.Get(appId);
+                await clRunner.EndSessionAsync(key);
             }
             res.send(200)
         } catch (error) {
@@ -449,7 +456,9 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
             // Replace the action with new one
             appDefinition.actions = replace(appDefinition.actions, action, a => a.actionId)
 
-            let invalidTrainDialogIds = ConversationLearner.validateTrainDialogs(appDefinition);
+            let clRunner = CLRunner.Get(appId);
+            let invalidTrainDialogIds = clRunner.validateTrainDialogs(appDefinition);
+
             res.send(invalidTrainDialogIds)
         } catch (error) {
             HandleError(res, error)
@@ -480,7 +489,8 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
             // Remove the action
             appDefinition.actions = appDefinition.actions.filter(a => a.actionId != actionId);
 
-            let invalidTrainDialogIds = ConversationLearner.validateTrainDialogs(appDefinition);
+            let clRunner = CLRunner.Get(appId);
+            let invalidTrainDialogIds = clRunner.validateTrainDialogs(appDefinition);
             res.send(invalidTrainDialogIds)
         } catch (error) {
             HandleError(res, error)
@@ -583,7 +593,8 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
             // Replace the entity with new one
             appDefinition.entities = replace(appDefinition.entities, entity, e => e.entityId)
 
-            let invalidTrainDialogIds = ConversationLearner.validateTrainDialogs(appDefinition);
+            let clRunner = CLRunner.Get(appId);
+            let invalidTrainDialogIds = clRunner.validateTrainDialogs(appDefinition);
             res.send(invalidTrainDialogIds)
         } catch (error) {
             HandleError(res, error)
@@ -613,7 +624,8 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
             // Remove the action
             appDefinition.entities = appDefinition.entities.filter(e => e.entityId != entityId);
 
-            let invalidTrainDialogIds = ConversationLearner.validateTrainDialogs(appDefinition);
+            let clRunner = CLRunner.Get(appId);
+            let invalidTrainDialogIds = clRunner.validateTrainDialogs(appDefinition);
             res.send(invalidTrainDialogIds)
         } catch (error) {
             HandleError(res, error)
@@ -805,7 +817,9 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
 
             // Get history and replay to put bot into last round
             let memory = CLMemory.GetMemory(key)
-            let teachWithHistory = await ConversationLearner.GetHistory(appId, trainDialog, userName, userId, memory, true)
+
+            let clRunner = CLRunner.Get(appId);
+            let teachWithHistory = await clRunner.GetHistory(appId, trainDialog, userName, userId, memory, true)
             if (!teachWithHistory) {
                 res.send(500, new Error(`Could not find teach session history for given train dialog`))
                 return
@@ -818,7 +832,7 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
                 let teachResponse = await client.StartTeach(appId, contextDialog)
 
                 // Start Sesion - with "true" to save the memory from the History
-                await memory.StartSessionAsync(teachResponse.teachId, null, { inTeach: true, isContinued: true })
+                await clRunner.InitSessionAsync(memory, teachResponse.teachId, null, { inTeach: true, isContinued: true })
                 teachWithHistory.teach = models.ModelUtils.ToTeach(teachResponse)
             }
             res.send(teachWithHistory)
@@ -840,9 +854,9 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
             let sessionResponse = await client.StartSession(appId, sessionCreateParams)
             res.send(sessionResponse)
 
-            // Update Memory
+            let clRunner = CLRunner.Get(appId);
             let memory = CLMemory.GetMemory(key)
-            memory.StartSessionAsync(sessionResponse.sessionId, null, { inTeach: false, isContinued: false })
+            clRunner.InitSessionAsync(memory, sessionResponse.sessionId, null, { inTeach: false, isContinued: false })
         } catch (error) {
             HandleError(res, error)
         }
@@ -900,8 +914,8 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
             let response = await client.EndSession(appId, sessionId)
             res.send(response)
 
-            // Update Memory
-            memory.EndSessionAsync()
+            let clRunner = CLRunner.Get(appId);
+            clRunner.EndSessionAsync(key)
         } catch (error) {
             HandleError(res, error)
         }
@@ -942,9 +956,9 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
             let appId = req.params.appId
             let teachResponse = await client.StartTeach(appId, null)
 
-            // Update Memory
+            let clRunner = CLRunner.Get(appId);
             let memory = CLMemory.GetMemory(key)
-            memory.StartSessionAsync(teachResponse.teachId, null, { inTeach: true, isContinued: false })
+            clRunner.InitSessionAsync(memory, teachResponse.teachId, null, { inTeach: true, isContinued: false })
 
             // Include and persistent memories in the response
             let memories = await memory.BotMemory.DumpMemory()
@@ -984,7 +998,9 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
 
             // Get history and replay to put bot into last round
             let memory = CLMemory.GetMemory(key)
-            let teachWithHistory = await ConversationLearner.GetHistory(appId, trainDialog, userName, userId, memory, updateBotState, ignoreLastExtract)
+
+            let clRunner = CLRunner.Get(appId);
+            let teachWithHistory = await clRunner.GetHistory(appId, trainDialog, userName, userId, memory, updateBotState, ignoreLastExtract)
             if (!teachWithHistory) {
                 res.send(500, new Error(`Could not find teach session history for given train dialog`))
                 return
@@ -997,7 +1013,7 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
                 let teachResponse = await client.StartTeach(appId, contextDialog)
 
                 // Start Sesion - with "true" to save the memory from the History
-                await memory.StartSessionAsync(teachResponse.teachId, null, { inTeach: true, isContinued: true })
+                await clRunner.InitSessionAsync(memory, teachResponse.teachId, null, { inTeach: true, isContinued: true })
                 teachWithHistory.teach = models.ModelUtils.ToTeach(teachResponse)
 
                 // If last action wasn't terminal need to score
@@ -1092,7 +1108,8 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
 
             // Call LUIS callback to get scoreInput
             let extractResponse = uiScoreInput.extractResponse
-            let scoreInput = await ConversationLearner.CallEntityDetectionCallback(
+            let clRunner = CLRunner.Get(appId);
+            let scoreInput = await clRunner.CallEntityDetectionCallback(
                 extractResponse.text,
                 extractResponse.predictedEntities,
                 memory,
@@ -1157,15 +1174,14 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
 
             // Now send the trained intent
             let intent = {
-                name: scoredAction.actionId,
-                score: 1.0,
                 scoredAction: scoredAction,
                 clEntities: uiTrainScorerStep.entities,
                 memory: memory,
                 inTeach: true
-            } as CLIntent
+            } as CLRecognizerResult
 
-            await ConversationLearner.SendIntent(memory, intent)
+            let clRunner = CLRunner.Get(appId);
+            await clRunner.SendIntent(intent)
 
             let memories = await memory.BotMemory.DumpMemory()
             let uiTeachResponse: models.UITeachResponse = { teachResponse, memories }
@@ -1188,9 +1204,8 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
             let response = await client.EndTeach(appId, teachId, save)
             res.send(response)
 
-            // Update Memory
-            let memory = CLMemory.GetMemory(key)
-            memory.EndSessionAsync()
+            let clRunner = CLRunner.Get(appId);
+            clRunner.EndSessionAsync(key)
         } catch (error) {
             HandleError(res, error)
         }
@@ -1233,7 +1248,8 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
             let trainDialog: models.TrainDialog = req.body
 
             let memory = CLMemory.GetMemory(key)
-            let teachWithHistory = await ConversationLearner.GetHistory(appId, trainDialog, userName, userId, memory)
+            let clRunner = CLRunner.Get(appId);
+            let teachWithHistory = await clRunner.GetHistory(appId, trainDialog, userName, userId, memory)
             if (teachWithHistory) {
                 res.send(teachWithHistory)
             }
@@ -1267,7 +1283,8 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
             let memoryBackup = await memory.BotMemory.FilledEntityMap()
 
             // Get history and replay to put bot into last round
-            let teachWithHistory = await ConversationLearner.GetHistory(appId, trainDialog, userName, userId, memory, true)
+            let clRunner = CLRunner.Get(appId);
+            let teachWithHistory = await clRunner.GetHistory(appId, trainDialog, userName, userId, memory, true)
             if (!teachWithHistory) {
                 throw new Error(`Attempted to undo last action of teach session, but could not get session history`)
             }
@@ -1282,8 +1299,8 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
                 let teachResponse = await client.StartTeach(appId, contextDialog)
 
                 // Start Sesion - with "true" to save the memory from the History
-                await memory.StartSessionAsync(teachResponse.teachId, null, { inTeach: true, isContinued: true })
-                teachWithHistory.teach = models.ModelUtils.ToTeach(teachResponse)
+                await clRunner.InitSessionAsync(memory, teachResponse.teachId, null, { inTeach: true, isContinued: true })
+                 teachWithHistory.teach = models.ModelUtils.ToTeach(teachResponse)
             } else {
                 // Failed, so restore the old memory
                 await memory.BotMemory.RestoreFromMap(memoryBackup)

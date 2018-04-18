@@ -1,8 +1,8 @@
-import { Storage, StorageSettings, StoreItems, StoreItem, StorageMiddleware } from 'botbuilder'
+import { Storage, StoreItems, StoreItem } from 'botbuilder'
 import * as Redis from 'redis'
 
 /** Additional settings for configuring an instance of RedisStorage */
-export interface RedisStorageSettings extends StorageSettings {
+export interface RedisStorageSettings {
     /** Redis server. */
     server: string
 
@@ -13,14 +13,13 @@ export interface RedisStorageSettings extends StorageSettings {
     port?: number
 }
 
-export class RedisStorage extends StorageMiddleware<RedisStorageSettings> implements Storage {
+export class RedisStorage implements Storage {
     private redisClient: Redis.RedisClient
     private _get: (...args: any[]) => Promise<any>
     private _set: (...args: any[]) => Promise<any>
     private _del: (...args: any[]) => Promise<any>
 
     constructor(settings: RedisStorageSettings) {
-        super(settings)
 
         this.redisClient = Redis.createClient(settings.port ? settings.port : 6380, settings.server, {
             auth_pass: settings.key,
@@ -72,12 +71,7 @@ export class RedisStorage extends StorageMiddleware<RedisStorageSettings> implem
             await this._del(key)
         }
     }
-
-    /** INTERNAL method that returns the storage instance to be added to the context object. */
-    protected getStorage(context: BotContext): Storage {
-        return this
-    }
-
+    
     private promisify(func: Function) {
         return (...args: any[]) =>
             new Promise<any>((resolve, reject) => {

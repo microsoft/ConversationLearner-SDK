@@ -1,11 +1,9 @@
 import * as BB from 'botbuilder'
 import * as request from 'request'
-import { CLMemory } from './CLMemory'
 import { TrainExtractorStep, TrainDialog, FilledEntityMap } from 'conversationlearner-models'
-import { CLIntent } from './CLIntent'
 
 export class Utils {
-    public static SendTyping(bot: BB.Bot, address: any) {
+    public static SendTyping(adapter: BB.BotAdapter, address: any) {
         /* TODO
         let msg = <builder.IMessage>{ type: 'typing'};
         msg.address = address;
@@ -39,19 +37,6 @@ export class Utils {
                     return nle
                 })
             }))
-        }
-    }
-    /** Send a text message */
-    public static async SendMessage(bot: BB.Bot, memory: CLMemory, content: string | BB.Activity) {
-        if (memory) {
-            await memory.BotState.SendMessage(bot, content)
-        }
-    }
-
-    /** Send an intent */
-    public static async SendIntent(bot: BB.Bot, memory: CLMemory, intent: CLIntent) {
-        if (memory) {
-            await memory.BotState.SendIntent(bot, intent)
         }
     }
 
@@ -206,4 +191,18 @@ export function replace<T>(xs: T[], updatedX: T, getId: (x: T) => any): T[] {
     return [...xs.slice(0, index), updatedX, ...xs.slice(index + 1)]
 }
 
+
+export function generateGUID(): string {
+    let d = new Date().getTime()
+    let guid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, char => {
+        let r = ((d + Math.random() * 16) % 16) | 0
+        d = Math.floor(d / 16)
+        return (char == 'x' ? r : (r & 0x3) | 0x8).toString(16)
+    })
+    return guid
+}
+
 export const CL_DEVELOPER = 'ConversationLearnerDeveloper';
+export const DEFAULT_MAX_SESSION_LENGTH = 20 * 60 * 1000;  // 20 minutes
+
+

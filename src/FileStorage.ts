@@ -1,91 +1,59 @@
 /**
+ * @module botbuilder-node
+ */
+/**
  * Copyright (c) Microsoft Corporation. All rights reserved.  
  * Licensed under the MIT License.
  */
-import { Storage, StorageMiddleware, StorageSettings, StoreItems, StoreItem } from 'botbuilder';
+import { Storage, StoreItems, StoreItem } from 'botbuilder-core-extensions';
 import * as path from 'path';
-import * as fs from 'async-file';
+import * as fs from 'async-file';
 import * as file from 'fs';
-import * as os from 'os';
 import * as filenamify from 'filenamify';
 
-/** Additional settings for configuring an instance of [FileStorage](../classes/botbuilder_node.filestorage.html). */
-export interface FileStorageSettings extends StorageSettings {
-    /** 
-     * (Optional) path to the backing folder. The default is to use a `storage` folder off
-     * the systems temporary directory. 
-     */
-    path?: string;
-}
-
 /**
- * Middleware that implements a file based storage provider for a bot.
+ * :package: **botbuilder**
  * 
- * __Extends BotContext:__
- * * context.storage - Storage provider for storing and retrieving objects.
+ * A file based storage provider. Items will be persisted to a folder on disk.
  *
  * **Usage Example**
  *
- * ```js
- * bot.use(new FileStorage({
- *      path: path.join(__dirname, 'storage')
- * }));
+ * ```JavaScript
+ * const { FileStorage } = require('botbuilder');
+ * const path = require('path');
+ *  
+ * const storage = new FileStorage(path.join(__dirname, './state'));
  * ```
  */
-export class FileStorage extends StorageMiddleware<FileStorageSettings> implements Storage {
-    private checked: boolean;
+export class FileStorage implements Storage {
+    static nextTag = 0;
+    private pEnsureFolder: Promise<void>|undefined;
 
     /**
-     * Creates a new instance of the storage provider.
-     *
-     * @param settings (Optional) setting to configure the provider.
+     * Creates a new FileStorage instance.
+     * @param path Root filesystem path for where the provider should store its items.
      */
-    public constructor(settings?: FileStorageSettings) {
-        super(settings || {});
-        this.checked = false;
-        if (!this.settings.path) {
-            this.settings.path = path.join(os.tmpdir(), 'storage');
-        }
+    public constructor(protected readonly path: string) { }
+
+    public read(keys: string[]): Promise<StoreItems> {
+        return this.ensureFolder().then(() => {
+            const data: StoreItems = {};
+            const promises: Promise<any>[] = [];
+            for (const iKey in keys) {
+                const key = keys[iKey];
+                const filePath = this.getFilePath(key);
+                const p = parseFile(filePath).then((obj) => {
+                    if (obj) {
+                        data[key] = obj;
+                    }
+                });
+                promises.push(p);
+            }
+
+            return Promise.all(promises).then(() => data);
+        });
     }
 
-    /** 
-     * Loads store items from storage
-     *
-     * @param keys Array of item keys to read from the store. 
-     **/
-    public read(keys: string[]): Promise<StoreItems> {
-        return this.ensureFolder()
-            .then(() => {
-                let data: StoreItems = {};
-                let promises: Promise<any>[] = [];
-                for (const iKey in keys) {
-                    let key = keys[iKey];
-                    let filePath = this.getFilePath(key);
-                    promises.push(
-                        fs.exists(filePath)
-                            .then((exists : any) => {
-                                if (exists) {
-                                    return fs.readTextFile(filePath)
-                                        .catch(() => { })
-                                        .then((json : any) => {
-                                            if (json)
-                                                data[key] = JSON.parse(json);
-                                        });
-                                }
-                                return;
-                            })
-                    );
-                }
-
-                return Promise.all(promises).then(() => data);
-            });
-    };
-
-    /** 
-     * Saves store items to storage.
-     *
-     * @param changes Map of items to write to storage.  
-     **/
     public write(changes: StoreItems): Promise<void> {
         return this.ensureFolder()
             .then(() => {
@@ -105,45 +73,33 @@ export class FileStorage extends StorageMiddleware<FileStorageSettings> implemen
             });
     };
 
-    /** 
-     * Removes store items from storage
-     *
-     * @param keys Array of item keys to remove from the store. 
-     **/
     public delete(keys: string[]): Promise<void> {
-        return this.ensureFolder()
-            .then(() => {
-                let tasks = [];
+        return this.ensureFolder().then(() => {
+                const promises = [];
                 for (let iKey in keys) {
-                    let key = keys[iKey];
-                    let filePath = this.getFilePath(key);
-                    tasks.push(fs.exists(filePath)
-                        .then((exists) => {
-                            if (exists)
+                    const key = keys[iKey];
+                    const filePath = this.getFilePath(key);
+                    const p = fs.exists(filePath).then((exists) => {
+                            if (exists) {
                                 file.unlinkSync(filePath);
-                        }));
+                            }
+                        });
+                    promises.push(p);
                 }
-                Promise.all(tasks).then(() => { });
+                Promise.all(promises).then(() => { });
             });
     }
 
-    /** INTERNAL method that returns the storage instance to be added to the context object. */
-    protected getStorage(context: BotContext): Storage {
-        return this;
-    }
-
     private ensureFolder(): Promise<void> {
-        if (!this.checked) {
-            return fs.exists(<string>this.settings.path)
-                .then((exists) => {
-                    if (!exists) {
-                        return fs.mkdirp(<string>this.settings.path)
-                            .then(() => { this.checked = true; });
-                    }
-                    return Promise.resolve();
-                });
+        if (!this.pEnsureFolder) {
+            this.pEnsureFolder = fs.exists(this.path).then((exists) => {
+                if (!exists) {
+                    return fs.mkdirp(this.path);
+                }
+                return;
+            });
         }
-        return Promise.resolve();
+        return this.pEnsureFolder;
     }
 
     private getFileName(key: string): string {
@@ -151,6 +107,25 @@ export class FileStorage extends StorageMiddleware<FileStorageSettings> implemen
     }
 
     private getFilePath(key: string): string {
-        return path.join(<string>this.settings.path, this.getFileName(key));
+        return path.join(this.path, this.getFileName(key));
     }
+}
+
+function parseFile(filePath: string): Promise<Object|undefined> {
+    return fs.exists(filePath)
+        .then((exists) => exists ? fs.readTextFile(filePath) : Promise.resolve(undefined))
+        .then((data) => {
+            try {
+                if (data) {
+                    return JSON.parse(data);
+                }
+            } catch (err) {
+                console.warn(`FileStorage: error parsing "${filePath}": ${err.toString()}`);
+            }
+            return undefined;
+        })
+        .catch((err) => {
+            console.warn(`FileStorage: error reading "${filePath}": ${err.toString()}`);
+            return undefined;
+        });
 }

@@ -6,8 +6,6 @@ export interface ICLOptions {
     serviceUri: string
     sdkPort: number
     uiPort: number
-    // Application to start
-    appId: string
     // Application settings
     sessionMaxTimeout?: number
     // Running on localhost

@@ -1,22 +1,26 @@
 import { Utils } from './Utils'
+import * as BB from 'botbuilder'
 
 export class CLDebug {
-    public static botContext: BotContext
+    public static adapter: BB.BotAdapter
+    public static conversationReference: Partial<BB.ConversationReference>
     public static cache: string = ''
     public static enabled: boolean
     public static verbose: boolean = true
     public static logging: string = 'client' // OPTIONS: "messagequeue client flow memory memverbose";
 
-    public static InitLogger(botContext: BotContext) {
-        CLDebug.botContext = botContext
+    public static InitLogger(adapter: BB.BotAdapter, conversationReference: Partial<BB.ConversationReference>) {
+        CLDebug.adapter = adapter
+        CLDebug.conversationReference = conversationReference;
     }
 
-    private static SendCache() {
-        if (CLDebug.botContext && CLDebug.cache) {
-            CLDebug.botContext.bot.createContext(CLDebug.botContext.conversationReference, context => {
-                context.reply(this.cache)
-            })
-            CLDebug.cache = ''
+    private static async SendCache() {
+        if (CLDebug.adapter && CLDebug.cache) {
+
+            await CLDebug.adapter.continueConversation(CLDebug.conversationReference, async (context) => {
+                context.sendActivity(this.cache)
+            });
+            CLDebug.cache = '';
         }
     }
 

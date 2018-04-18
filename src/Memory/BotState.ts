@@ -2,8 +2,6 @@ import * as BB from 'botbuilder'
 import { ConversationLearner } from '../ConversationLearner'
 import { CLMemory } from '../CLMemory'
 import { AppBase } from 'conversationlearner-models'
-import { CLIntent } from '../CLIntent'
-import { CLDebug } from '../CLDebug'
 import { QueuedInput } from './InputQueue';
 
 export interface ConversationSession {
@@ -44,7 +42,7 @@ export class BotState {
     public onEndSessionCalled: boolean
 
     // BotBuilder conversation reference
-    public conversationReference: BB.ConversationReference | null = null
+    public conversationReference: Partial<BB.ConversationReference> | null = null
 
     // Which packages are active for editing
     public editingPackages: { [appId: string]: string };  // appId: packageId
@@ -244,19 +242,19 @@ export class BotState {
             conversation: { id: conversationId },
             channelId: 'emulator',
             // TODO: Refactor away from static coupling.  BotState needs to have access to options object through constructor
-            serviceUrl: ConversationLearner.options.dolServiceUrl
-        }
+            serviceUrl: ConversationLearner.options!.dolServiceUrl
+        } as Partial<BB.ConversationReference>
         this.SetConversationReferenceAsync(conversationReference)
     }
 
     // --------------------------------------------
-    public async SetConversationReferenceAsync(conversationReference: BB.ConversationReference): Promise<void> {
+    public async SetConversationReferenceAsync(conversationReference: Partial<BB.ConversationReference>): Promise<void> {
         await this.Init()
         this.conversationReference = conversationReference
         await this.SetAsync()
     }
 
-    public async ConversationReverenceAsync(): Promise<BB.ConversationReference | null> {
+    public async ConversationReverenceAsync(): Promise<Partial<BB.ConversationReference> | null> {
         try {
             await this.Init()
             return this.conversationReference
@@ -293,33 +291,5 @@ export class BotState {
             userId : this.conversationReference && this.conversationReference.user && this.conversationReference.user.id,
             sessionId: this.sessionId
         } as SessionInfo
-    }
-
-    //------------------------------------------------------------------
-    public async SendMessage(bot: BB.Bot, message: string | BB.Activity): Promise<void> {
-        let conversationReference = await this.ConversationReverenceAsync()
-        if (!conversationReference) {
-            CLDebug.Error('Missing ConversationReference')
-            return
-        }
-
-        bot.createContext(conversationReference, context => {
-            if (typeof message == 'string') {
-                context.reply(message)
-            } else {
-                context.reply('', message)
-            }
-        })
-    }
-
-    public async SendIntent(bot: BB.Bot, intent: CLIntent): Promise<void> {
-        let conversationReference = await this.ConversationReverenceAsync()
-        if (!conversationReference) {
-            CLDebug.Error('Missing ConversationReference')
-            return
-        }
-        bot.createContext(conversationReference, context => {
-            context.replyWith(intent.scoredAction.actionId, intent)
-        })
     }
 }

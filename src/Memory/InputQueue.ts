@@ -14,7 +14,7 @@ export class InputQueue {
 
     private static messageQueue: QueuedInput[] = [];
 
-    public static async AddInput(botState: BotState, request: BB.Activity, conversationReference: BB.ConversationReference, callback: Function) : Promise<any> {
+    public static async AddInput(botState: BotState, request: BB.Activity, conversationReference: Partial<BB.ConversationReference>, callback: Function) : Promise<any> {
 
         if (!request.id) {
             return null;    
