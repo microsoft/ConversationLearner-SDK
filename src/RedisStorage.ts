@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) Microsoft Corporation. All rights reserved.  
+ * Licensed under the MIT License.
+ */
 import { Storage, StoreItems, StoreItem } from 'botbuilder'
 import * as Redis from 'redis'
 

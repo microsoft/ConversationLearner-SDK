@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) Microsoft Corporation. All rights reserved.  
+ * Licensed under the MIT License.
+ */
 import * as BB from 'botbuilder'
 import * as request from 'request'
 import { TrainExtractorStep, TrainDialog, FilledEntityMap } from 'conversationlearner-models'

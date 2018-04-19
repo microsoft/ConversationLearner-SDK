@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) Microsoft Corporation. All rights reserved.  
+ * Licensed under the MIT License.
+ */
 import * as BB from 'botbuilder'
 import { BotState } from './BotState'
 import { CLDebug } from '../CLDebug'

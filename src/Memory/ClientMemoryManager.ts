@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) Microsoft Corporation. All rights reserved.  
+ * Licensed under the MIT License.
+ */
 import { BotMemory } from '../Memory/BotMemory'
 import { SessionInfo } from '../Memory/BotState'
 import { CLMemory } from '../CLMemory'
