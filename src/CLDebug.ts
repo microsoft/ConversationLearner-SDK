@@ -22,7 +22,7 @@ export class CLDebug {
         if (CLDebug.adapter && CLDebug.cache) {
 
             await CLDebug.adapter.continueConversation(CLDebug.conversationReference, async (context) => {
-                context.sendActivity(this.cache)
+                await context.sendActivity(this.cache)
             });
             CLDebug.cache = '';
         }
