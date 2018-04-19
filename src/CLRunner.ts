@@ -584,7 +584,7 @@ export class CLRunner {
         let message = await this.RenderTemplateAsync(conversationReference, intent)
     
         await this.adapter.continueConversation(conversationReference, async (context) => {
-            context.sendActivity(message)
+            await context.sendActivity(message)
         });
     }
 
@@ -597,7 +597,7 @@ export class CLRunner {
         }
 
         await this.adapter.continueConversation(conversationReference, async (context) => {
-            context.sendActivity(message)
+            await context.sendActivity(message)
         });
     }
 
