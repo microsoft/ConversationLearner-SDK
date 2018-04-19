@@ -190,7 +190,7 @@ export class CLRunner {
         let app = await memory.BotState.AppAsync()
 
         // Default callback will clear the bot memory
-        this.CallSessionEndCallback(memory, app!.appId);
+        await this.CallSessionEndCallback(memory, app ? app.appId : null);
 
         await memory.BotState.EndSessionAsync();
     }
