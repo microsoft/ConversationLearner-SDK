@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) Microsoft Corporation. All rights reserved.  
+ * Licensed under the MIT License.
+ */
 import * as express from 'express'
 import * as http from 'http'
 import * as clUI from 'conversationlearner-ui'
