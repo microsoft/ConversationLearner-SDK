@@ -72,7 +72,7 @@ export class ClientMemoryManager {
     /** Clear all entity values apart from any included in the list of saveEntityNames
      * Useful in the "onSessionEndCallback" to preserve a subset of entities for the next session
      */
-    public async ClearAllEntitiesAsync(saveEntityNames: string[]): Promise<void> {
+    public async ForgetAllEntitiesAsync(saveEntityNames: string[]): Promise<void> {
         
         for (let entity of this.entities) {
             if (saveEntityNames.indexOf(entity.entityName) < 0) {
@@ -123,7 +123,7 @@ export class ClientMemoryManager {
         return await this.botMemory.ValueAsList(entityName)
     }
 
-    public async EntityValueAsObject<T>(entityName: string): Promise<T | null> {
+    public async EntityValueAsObjectAsync<T>(entityName: string): Promise<T | null> {
         const textObj = await this.botMemory.Value(entityName)
         if (textObj) {
             return JSON.parse(textObj) as T;
@@ -146,7 +146,7 @@ export class ClientMemoryManager {
         return this.prevMemories.EntityValueAsList(entityName)
     }
 
-    public PrevValueAsObject<T>(entityName: string): (T | null) {
+    public PrevEntityValueAsObjectAsync<T>(entityName: string): (T | null) {
         const textObj = this.prevMemories.EntityValueAsString(entityName)
         if (textObj) {
             return JSON.parse(textObj) as T;
