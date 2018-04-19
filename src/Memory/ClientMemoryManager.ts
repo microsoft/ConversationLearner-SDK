@@ -146,7 +146,7 @@ export class ClientMemoryManager {
         return this.prevMemories.EntityValueAsList(entityName)
     }
 
-    public PrevEntityValueAsObjectAsync<T>(entityName: string): (T | null) {
+    public PrevEntityValueAsObject<T>(entityName: string): (T | null) {
         const textObj = this.prevMemories.EntityValueAsString(entityName)
         if (textObj) {
             return JSON.parse(textObj) as T;
