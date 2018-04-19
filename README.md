@@ -1,10 +1,10 @@
 # ConversationLearner-SKD
 
-Bot Learning Intelligent Service Software Development Kit
+Conversation Learner Software Development Kit
 
-This repos is intended to be consumed by your bot.  The library exposes middleware which can be used within BotBuilder message pipeline.  The SDK runs a server and the middleware communicates with it while processing messages which enables the Conversation Learner track the bot's state/memory and reply with messages, adaptive cards, and more.
+This repo is intended to be consumed by your bot. The library exposes middleware which can be used within [BotBuilder](https://github.com/Microsoft/botbuilder-js) message pipeline.  The SDK runs a server and the middleware communicates with it while processing messages which enables the Conversation Learner track the bot's state/memory and reply with messages, adaptive cards, and more.
 
-This repos also includes a way to host the Conversation Learner adminstration website which provides graphical interface to manage, traind, and test your bot.
+This repo also includes a way to host the Conversation Learner adminstration website which provides graphical interface to manage, traind, and test your bot.
 
 # Getting started
 
@@ -25,17 +25,24 @@ ConversationLearner.Init({
     serviceUri: process.env.CONVERSATION_LEARNER_SERVICE_URI,
     appId: process.env.CONVERSATION_LEARNER_APP_ID,
     redisServer: process.env.CONVERSATION_LEARNER_REDIS_SERVER,  (Optional)
-    redisKey: process.env.CONVERSATION_LEARNER_REDIS_KEY,        (Opional)
+    redisKey: process.env.CONVERSATION_LEARNER_REDIS_KEY,        (Optional)
     localhost: process.env.CONVERSATION_LEARNER_LOCALHOST ? process.env.CONVERSATION_LEARNER_LOCALHOST.toLowerCase() === 'true' : true,
     user: process.env.CONVERSATION_LEARNER_USER,
     secret: process.env.CONVERSATION_LEARNER_SECRET
 });
 
 ...
+let cl = new ConversationLearner(appId);
 
-const bot = new BB.Bot(connector)
-    .use(ConversationLearner.recognizer)
-    .use(ConversationLearner.templateManager)
+server.post('/api/messages', (req, res) => {
+    adapter.processActivity(req, res, async context => {
+        let result = await cl.recognize(context)
+        
+        if (result) {
+            cl.SendResult(result);
+        }
+    })
+})
 ```
 
 Starting the UI server:
