@@ -217,6 +217,14 @@ export class CLRunner {
                 return null
             }
 
+            if (!ConversationLearner.options || !ConversationLearner.options.luisAuthoringKey) {
+                // TODO: Remove mention of environment variables. They are not guaranteed and are part of different repository.
+                let msg =  'Options must specify luisAuthoringKey.  Set the LUIS_AUTHORING_KEY environment variable.\n\n'
+                CLDebug.Error(msg)
+                await this.SendMessage(memory, msg)
+                return null
+            }
+
             let inTeach = await memory.BotState.InTeachAsync()
             let inEditingUI = 
                 conversationReference.user &&
