@@ -561,7 +561,7 @@ export class CLRunner {
                 if (!clRecognizeResult.inTeach) {
                     clRecognizeResult.scoredAction = bestAction
                     let message = await this.RenderTemplateAsync(conversationReference, clRecognizeResult)
-                    if (message) {
+                    if (message != null) {
                         this.SendMessage(clRecognizeResult.memory, message)
                     }
                 }
@@ -583,7 +583,7 @@ export class CLRunner {
     
         if (message != null) {
             await this.adapter.continueConversation(conversationReference, async (context) => {
-                // Have to repeat null check for strictNullChecks
+                // Need to repeat null check as compiler is catching one above for explicit null
                 if (message != null) {
                     await context.sendActivity(message)
                 }
@@ -648,10 +648,7 @@ export class CLRunner {
         try {
             try {
                 let response = await api(memoryManager, ...argArray)
-                if (response) {
-                    return response
-                }
-                return null;
+                return response ? response : null;
             }
             catch (err) {
                 await this.SendMessage(memory, `Exception hit in Bot's API Callback: '${apiName}'`)
