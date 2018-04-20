@@ -39,7 +39,7 @@ export class CLRunner {
     private maxTimeout: number | undefined;  // TODO: Move timeout to app settings
 
     // Mapping between user defined API names and functions
-    public apiCallbacks: { [name: string]: (memoryManager: ClientMemoryManager, ...args: string[]) => Promise<BB.Activity | string | undefined> } = {}
+    public apiCallbacks: { [name: string]: (memoryManager: ClientMemoryManager, ...args: string[]) => Promise<BB.Activity | string | void> } = {}
     public apiParams: CLM.CallbackAPI[] = []   
 
     public static Create(appId: string, maxTimeout: number | undefined, client: CLClient): CLRunner {
@@ -406,7 +406,7 @@ export class CLRunner {
   
     public AddAPICallback(
         name: string,
-        target: (memoryManager: ClientMemoryManager, ...args: string[]) => Promise<BB.Activity | string | undefined>
+        target: (memoryManager: ClientMemoryManager, ...args: string[]) => Promise<BB.Activity | string | void>
     ) {
         this.apiCallbacks[name] = target
         this.apiParams.push({ name, arguments: this.GetArguments(target) })
@@ -500,7 +500,7 @@ export class CLRunner {
         }
     }
 
-    public async RenderTemplateAsync(conversationReference: Partial<BB.ConversationReference>, clRecognizeResult: CLRecognizerResult): Promise<Partial<BB.Activity> | string> {
+    public async RenderTemplateAsync(conversationReference: Partial<BB.ConversationReference>, clRecognizeResult: CLRecognizerResult): Promise<Partial<BB.Activity> | string | null> {
         // Get filled entities from memory
         let filledEntityMap = await clRecognizeResult.memory.BotMemory.FilledEntityMap()
         filledEntityMap = addEntitiesById(filledEntityMap)
@@ -561,15 +561,13 @@ export class CLRunner {
                 if (!clRecognizeResult.inTeach) {
                     clRecognizeResult.scoredAction = bestAction
                     let message = await this.RenderTemplateAsync(conversationReference, clRecognizeResult)
-                    if (message === undefined) {
-                        throw new Error(`Attempted to send message, but resulting message was undefined`)
+                    if (message) {
+                        this.SendMessage(clRecognizeResult.memory, message)
                     }
-
-                    this.SendMessage(clRecognizeResult.memory, message)
                 }
             }, 100)
         }
-        return message ? message : ' '
+        return message
     }
 
     public async SendIntent(intent: CLRecognizerResult): Promise<void> {
@@ -583,9 +581,14 @@ export class CLRunner {
 
         let message = await this.RenderTemplateAsync(conversationReference, intent)
     
-        await this.adapter.continueConversation(conversationReference, async (context) => {
-            await context.sendActivity(message)
-        });
+        if (message != null) {
+            await this.adapter.continueConversation(conversationReference, async (context) => {
+                // Have to repeat null check for strictNullChecks
+                if (message != null) {
+                    await context.sendActivity(message)
+                }
+            });
+        }
     }
 
     public async SendMessage(memory: CLMemory, message: string | Partial<BB.Activity>): Promise<void> {
@@ -601,10 +604,10 @@ export class CLRunner {
         });
     }
 
-    public async TakeLocalAPIAction(apiAction: CLM.ApiAction, filledEntityMap: CLM.FilledEntityMap, memory: CLMemory, allEntities: CLM.EntityBase[]): Promise<Partial<BB.Activity> | string | undefined> {
+    public async TakeLocalAPIAction(apiAction: CLM.ApiAction, filledEntityMap: CLM.FilledEntityMap, memory: CLMemory, allEntities: CLM.EntityBase[]): Promise<Partial<BB.Activity> | string | null> {
         if (!this.apiCallbacks) {
             CLDebug.Error('No Local APIs defined.')
-            return undefined
+            return null
         }
 
         // Extract API name and args
@@ -645,7 +648,10 @@ export class CLRunner {
         try {
             try {
                 let response = await api(memoryManager, ...argArray)
-                return response;
+                if (response) {
+                    return response
+                }
+                return null;
             }
             catch (err) {
                 await this.SendMessage(memory, `Exception hit in Bot's API Callback: '${apiName}'`)

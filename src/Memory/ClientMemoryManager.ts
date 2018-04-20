@@ -32,7 +32,7 @@ export class ClientMemoryManager {
         return match
     }
 
-    public async RememberEntityAsync(entityName: string, entityValue: string | object): Promise<void> {
+    public async RememberEntityAsync(entityName: string, entityValue: string | number | object): Promise<void> {
         let entity = this.FindEntity(entityName)
 
         if (!entity) {
@@ -42,6 +42,10 @@ export class ClientMemoryManager {
 
         if (typeof entityValue == 'object') {
             entityValue = JSON.stringify(entityValue);
+        }
+        else if (typeof entityValue == 'number' )
+        {
+            entityValue = entityValue.toString();
         }
         await this.botMemory.RememberEntity(entity.entityName, entity.entityId, entityValue, entity.isMultivalue)
     }
@@ -123,11 +127,22 @@ export class ClientMemoryManager {
         return await this.botMemory.ValueAsList(entityName)
     }
 
+    public async EntityValueAsNumberAsync(entityName: string): Promise<number | null> {
+        const textObj = await this.botMemory.Value(entityName)
+        let number = Number(textObj);
+        if (isNaN(number)) {
+            CLDebug.Error(`EntityValueAsNumberAsync: Entity value "${textObj}" is not number`)
+            return null;
+        }
+        return number;
+    }
+
     public async EntityValueAsObjectAsync<T>(entityName: string): Promise<T | null> {
         const textObj = await this.botMemory.Value(entityName)
         if (textObj) {
             return JSON.parse(textObj) as T;
         }
+        CLDebug.Error(`EntityValueAsObjectAsync: Entity value "${textObj}" is not an object`)
         return null;
     }
 

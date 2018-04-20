@@ -79,7 +79,7 @@ export class ConversationLearner {
 
     public AddAPICallback(
         name: string,
-        target: (memoryManager: ClientMemoryManager, ...args: string[]) => Promise<BB.Activity | string | undefined>
+        target: (memoryManager: ClientMemoryManager, ...args: string[]) => Promise<BB.Activity | string | void>
     ) {
         this.clRunner.AddAPICallback(name, target);
     }
