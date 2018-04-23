@@ -8,7 +8,7 @@ import { Template, TemplateVariable, RenderedActionArgument } from 'conversation
 import { CLDebug } from './CLDebug'
 
 export class TemplateProvider {
-    private static hasSumbitItem = false
+    private static hasSubmitError = false
 
     // TODO: Decouple template renderer from types from Action classes
     // E.g. use generic key,value object instead of RenderedActionArgument
@@ -39,13 +39,12 @@ export class TemplateProvider {
             let fileContent = this.GetTemplate(file)
 
             // Clear submit check (will the set by extracting template variables)
-            this.hasSumbitItem = false
+            this.hasSubmitError = false
             let tvs = this.UniqueTemplateVariables(fileContent)
 
             // Make sure template has submit item
-            let validationError = this.hasSumbitItem
-                ? null
-                : `Template "${file}" does not have an action with a "submit" item in the data.  At least on action item must be of the form: "type": "Action.Submit", "data": { "submit": "{SUBMIT PAYLOAD"}`
+            let validationError = this.hasSubmitError
+                ? `Template "${file}" has an "Action.Submit" item but no submit data.  Submit item must be of the form: "type": "Action.Submit", "data": { "submit": "{SUBMIT PAYLOAD"}` : null
 
             let templateBody = JSON.stringify(fileContent)
             let template: Template = {
@@ -159,8 +158,8 @@ export class TemplateProvider {
 
     private static GetTemplateVariables(template: any): TemplateVariable[] {
         var tvs: TemplateVariable[] = []
-        if (template.data && template.data.submit) {
-            this.hasSumbitItem = true
+        if (template && template.type === "Action.Submit" && (!template.data || !template.data.submit)) {
+            this.hasSubmitError = true
         }
 
         // Get variable names
