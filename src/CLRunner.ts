@@ -15,7 +15,7 @@ import { CLRecognizerResult } from './CLRecognizeResult'
 import { ConversationLearner } from './ConversationLearner'
 import { InputQueue } from './Memory/InputQueue';
 import { CL_DEVELOPER } from './Utils';
-import { SessionCreateParams } from 'conversationlearner-models';
+import { SessionCreateParams, ApiAction } from 'conversationlearner-models';
 const util = require('util');
 
 interface RunnerLookup {
@@ -39,7 +39,7 @@ export class CLRunner {
     private maxTimeout: number | undefined;  // TODO: Move timeout to app settings
 
     // Mapping between user defined API names and functions
-    public apiCallbacks: { [name: string]: (memoryManager: ClientMemoryManager, ...args: string[]) => Promise<BB.Activity | string | void> } = {}
+    public apiCallbacks: { [name: string]: (memoryManager: ClientMemoryManager, ...args: string[]) => Promise<Partial<BB.Activity> | string | void> } = {}
     public apiParams: CLM.CallbackAPI[] = []   
 
     public static Create(appId: string, maxTimeout: number | undefined, client: CLClient): CLRunner {
@@ -414,7 +414,7 @@ export class CLRunner {
   
     public AddAPICallback(
         name: string,
-        target: (memoryManager: ClientMemoryManager, ...args: string[]) => Promise<BB.Activity | string | void>
+        target: (memoryManager: ClientMemoryManager, ...args: string[]) => Promise<Partial<BB.Activity> | string | void>
     ) {
         this.apiCallbacks[name] = target
         this.apiParams.push({ name, arguments: this.GetArguments(target) })
@@ -966,6 +966,10 @@ export class CLRunner {
                     } else if (action.actionType === CLM.ActionTypes.API_LOCAL) {
                         const apiAction = new CLM.ApiAction(action)
                         botResponse = await this.TakeLocalAPIAction(apiAction, filledEntityMap, memory, entityList.entities)
+                        // API may not have output, but need to show something to user in WebChat do they can edit
+                        if (!botResponse) {
+                            botResponse = this.APICard(apiAction);
+                        }
                     } else if (action.actionType === CLM.ActionTypes.TEXT) {
                         const textAction = new CLM.TextAction(action)
                         botResponse = await this.TakeTextAction(textAction, filledEntityMap)
@@ -1024,5 +1028,22 @@ export class CLRunner {
             replayErrors: replayErrors
         }
         return teachWithHistory
+    }
+
+    // Generate a card to show for an API action w/o output
+    private APICard(apiAction: ApiAction): Partial<BB.Activity> {
+        let card = {
+            type: "AdaptiveCard",
+            version: "1.0",
+            body: [
+                {
+                    type: "TextBlock",
+                    text: `API Call: *${apiAction.name}*`
+                }
+            ]
+        }
+        const attachment = BB.CardFactory.adaptiveCard(card)
+        const message = BB.MessageFactory.attachment(attachment)
+        return message;
     }
 }
