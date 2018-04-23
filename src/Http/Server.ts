@@ -823,7 +823,7 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
             let memory = CLMemory.GetMemory(key)
 
             let clRunner = CLRunner.Get(appId);
-            let teachWithHistory = await clRunner.GetHistory(appId, trainDialog, userName, userId, memory, true)
+            let teachWithHistory = await clRunner.GetHistory(appId, trainDialog, userName, userId, memory)
             if (!teachWithHistory) {
                 res.send(500, new Error(`Could not find teach session history for given train dialog`))
                 return
@@ -997,14 +997,13 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
             let userName = req.params.username
             let userId = req.params.userid
             let ignoreLastExtract = req.params.ignoreLastExtract === 'true'
-            let updateBotState = true
             let trainDialog: models.TrainDialog = req.body
 
             // Get history and replay to put bot into last round
             let memory = CLMemory.GetMemory(key)
 
             let clRunner = CLRunner.Get(appId);
-            let teachWithHistory = await clRunner.GetHistory(appId, trainDialog, userName, userId, memory, updateBotState, ignoreLastExtract)
+            let teachWithHistory = await clRunner.GetHistory(appId, trainDialog, userName, userId, memory, ignoreLastExtract)
             if (!teachWithHistory) {
                 res.send(500, new Error(`Could not find teach session history for given train dialog`))
                 return
@@ -1288,7 +1287,7 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
 
             // Get history and replay to put bot into last round
             let clRunner = CLRunner.Get(appId);
-            let teachWithHistory = await clRunner.GetHistory(appId, trainDialog, userName, userId, memory, true)
+            let teachWithHistory = await clRunner.GetHistory(appId, trainDialog, userName, userId, memory)
             if (!teachWithHistory) {
                 throw new Error(`Attempted to undo last action of teach session, but could not get session history`)
             }
