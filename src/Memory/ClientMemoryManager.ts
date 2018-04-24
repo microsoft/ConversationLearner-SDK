@@ -137,6 +137,20 @@ export class ClientMemoryManager {
         return number;
     }
 
+    public async EntityValueAsBooleanAsync(entityName: string): Promise<boolean | null> {
+        const textObj = await this.botMemory.Value(entityName)
+        if (textObj) {
+            if (textObj.toLowerCase() === 'true') {
+                return true;
+            }
+            if (textObj.toLowerCase() === 'fasle') {
+                return false;
+            }
+        }
+        CLDebug.Error(`EntityValueAsBooleanAsync: Entity value "${textObj}" is not boolean`)
+        return null;
+    }
+
     public async EntityValueAsObjectAsync<T>(entityName: string): Promise<T | null> {
         const textObj = await this.botMemory.Value(entityName)
         if (textObj) {
