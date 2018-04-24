@@ -57,6 +57,9 @@ export class ClientMemoryManager {
             CLDebug.Error(`Can't find Entity named: ${entityName}`)
             return
         }
+        if (!entity.isMultivalue) {
+            CLDebug.Error(`RememberEntitiesAsync called on entity (${entityName}) that isn't Multi-Value.  Only the last value will be remembered`)
+        }
 
         await this.botMemory.RememberMany(entity.entityName, entity.entityId, entityValues, entity.isMultivalue)
     }
