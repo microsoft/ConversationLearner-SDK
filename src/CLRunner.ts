@@ -849,7 +849,6 @@ export class CLRunner {
         userName: string,
         userId: string,
         memory: CLMemory,
-        updateBotState: boolean = false,
         ignoreLastExtract: boolean = false
     ): Promise<CLM.TeachWithHistory | null> {
         let entities: CLM.EntityBase[] = trainDialog.definitions ? trainDialog.definitions.entities : []
@@ -858,9 +857,7 @@ export class CLRunner {
         let prevMemories: CLM.Memory[] = []
 
         // Reset the memory
-        if (updateBotState) {
-            await memory.BotMemory.ClearAsync()
-        }
+        await memory.BotMemory.ClearAsync()
 
         if (!trainDialog || !trainDialog.rounds) {
             return null
@@ -900,24 +897,21 @@ export class CLRunner {
             } as BB.Activity
             activities.push(userActivity)
 
-            // If I'm updating the bot's state (rather than just returning activities)
-            if (updateBotState) {
-                // If I'm updating the bot's state, save memory before this step (used to show changes in UI)
-                prevMemories = await memory.BotMemory.DumpMemory()
+            // If I'm updating the bot's state, save memory before this step (used to show changes in UI)
+            prevMemories = await memory.BotMemory.DumpMemory()
 
-                // Call entity detection callback
-                let textVariation = round.extractorStep.textVariations[0]
-                let predictedEntities = CLM.ModelUtils.ToPredictedEntities(textVariation.labelEntities)
+            // Call entity detection callback
+            let textVariation = round.extractorStep.textVariations[0]
+            let predictedEntities = CLM.ModelUtils.ToPredictedEntities(textVariation.labelEntities)
 
-                await this.CallEntityDetectionCallback(textVariation.text, predictedEntities, memory, entities)
+            await this.CallEntityDetectionCallback(textVariation.text, predictedEntities, memory, entities)
 
-                // Look for discrenancies when replaying API calls
-                // Unless asked to ignore the last as user trigged an edit by editing last extract step
-                if (!ignoreLastExtract || roundNum != trainDialog.rounds.length - 1) {
-                    let discrepancyError = this.EntityDiscrepancy(userText, round, memory, entities)
-                    if (discrepancyError) {
-                        replayErrors.push(discrepancyError);
-                    }
+            // Look for discrenancies when replaying API calls
+            // Unless asked to ignore the last as user trigged an edit by editing last extract step
+            if (!ignoreLastExtract || roundNum != trainDialog.rounds.length - 1) {
+                let discrepancyError = this.EntityDiscrepancy(userText, round, memory, entities)
+                if (discrepancyError) {
+                    replayErrors.push(discrepancyError);
                 }
             }
 
@@ -1005,10 +999,7 @@ export class CLRunner {
             roundNum++
         }
 
-        let memories: CLM.Memory[] = []
-        if (updateBotState) {
-            memories = await memory.BotMemory.DumpMemory()
-        }
+        let memories = await memory.BotMemory.DumpMemory()
 
         let hasRounds = trainDialog.rounds.length > 0;
         let hasScorerRound = (hasRounds && trainDialog.rounds[trainDialog.rounds.length-1].scorerSteps.length > 0)
