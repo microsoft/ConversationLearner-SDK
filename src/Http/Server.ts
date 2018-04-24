@@ -16,6 +16,7 @@ import { MEMORY_KEY_HEADER_NAME } from 'conversationlearner-models'
 import * as XMLDom from 'xmldom'
 import * as models from 'conversationlearner-models'
 import * as corsMiddleware from 'restify-cors-middleware'
+import * as crypto from 'crypto'
 
 const cors = corsMiddleware({
     origins: ['*'],
@@ -140,12 +141,14 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
             let clRunner = CLRunner.Get(appId);
             let apiParams = clRunner.apiParams;
 
+            const key = ConversationLearner.options!.luisAuthoringKey!
+            const hashedKey = crypto.createHash('sha256').update(key).digest('hex')
             const botInfo: models.BotInfo = {
                 user: {
                     // We keep track that the editing  UI is running by putting this as the name of the user
                     // Can't check localhost as can be running localhost and not UI
                     name: CL_DEVELOPER,
-                    id: ConversationLearner.options!.luisAuthoringKey!
+                    id: hashedKey
                 },
                 callbacks: apiParams,
                 templates: TemplateProvider.GetTemplates()
