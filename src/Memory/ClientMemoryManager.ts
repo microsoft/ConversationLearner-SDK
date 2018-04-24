@@ -143,7 +143,7 @@ export class ClientMemoryManager {
             if (textObj.toLowerCase() === 'true') {
                 return true;
             }
-            if (textObj.toLowerCase() === 'fasle') {
+            if (textObj.toLowerCase() === 'false') {
                 return false;
             }
         }
@@ -173,6 +173,30 @@ export class ClientMemoryManager {
 
     public PrevEntityValueAsList(entityName: string): string[] {
         return this.prevMemories.EntityValueAsList(entityName)
+    }
+
+    public PrevValueAsNumber(entityName: string): number | null {
+        const textObj = this.prevMemories.EntityValueAsString(entityName)
+        let number = Number(textObj);
+        if (isNaN(number)) {
+            CLDebug.Error(`PrevValueAsNumber: Entity value "${textObj}" is not number`)
+            return null;
+        }
+        return number;
+    }
+
+    public PrevValueAsBoolean(entityName: string): boolean | null {
+        const textObj = this.prevMemories.EntityValueAsString(entityName)
+        if (textObj) {
+            if (textObj.toLowerCase() === 'true') {
+                return true;
+            }
+            if (textObj.toLowerCase() === 'false') {
+                return false;
+            }
+        }
+        CLDebug.Error(`PrevValueAsBoolean: Entity value "${textObj}" is not boolean`)
+        return null;
     }
 
     public PrevEntityValueAsObject<T>(entityName: string): (T | null) {
