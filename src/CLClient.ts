@@ -22,40 +22,41 @@ const requestMethodMap = new Map<HTTP_METHOD, typeof Request.get | typeof Reques
 ])
 
 export interface ICLClientOptions {
-    serviceUri: string
+    CONVERSATION_LEARNER_SERVICE_URI: string
     // This should only set when directly targeting cognitive services ppe environment.
-    apimSubscriptionKey: string | undefined
-    luisAuthoringKey: string | undefined
-    luisSubscriptionKey?: string
+    APIM_SUBSCRIPTION_KEY: string | undefined
+    LUIS_AUTHORING_KEY: string | undefined
+    LUIS_SUBSCRIPTION_KEY?: string
 }
 
 export class CLClient {
-    private serviceUri: string
-    private luisAuthoringKey: string
-    private apimSubscriptionKey: string
-    private luisSubscriptionKey: string | undefined
+    private options: ICLClientOptions
     private actionCache = new NodeCache({ stdTTL: 300, checkperiod: 600 })
     private entityCache = new NodeCache({ stdTTL: 300, checkperiod: 600 })
     private exportCache = new NodeCache({ stdTTL: 300, checkperiod: 600 })
 
     constructor(options: ICLClientOptions) {
-        if (typeof options.serviceUri !== 'string' || options.serviceUri.length === 0) {
-            throw new Error(`serviceUri must be a non-empty string. You passed: ${options.serviceUri}`)
+        this.options = options;
+
+        if (options.APIM_SUBSCRIPTION_KEY === undefined) {
+            options.APIM_SUBSCRIPTION_KEY = options.LUIS_AUTHORING_KEY;
+        }
+    }
+
+    public ValidationErrors(): string[] {
+        let errors: string[] = []
+        if (typeof this.options.CONVERSATION_LEARNER_SERVICE_URI !== 'string' || this.options.CONVERSATION_LEARNER_SERVICE_URI.length === 0) {
+            errors.push(`CONVERSATION_LEARNER_SERVICE_URI must be a non-empty string. You passed: ${this.options.CONVERSATION_LEARNER_SERVICE_URI}`)
         }
 
-        if (typeof options.luisAuthoringKey !== 'string' || options.luisAuthoringKey.length === 0) {
-            throw new Error(`luisAuthoringKey must be a non-empty string. You passed: ${options.luisAuthoringKey}`)
+        if (typeof this.options.LUIS_AUTHORING_KEY !== 'string' || this.options.LUIS_AUTHORING_KEY.length === 0) {
+            errors.push(`LUIS_AUTHORING_KEY must be a non-empty string. You passed: ${this.options.LUIS_AUTHORING_KEY}`)
         }
+        return errors;
+    }
 
-        if (options.apimSubscriptionKey === undefined) {
-            this.apimSubscriptionKey = options.luisAuthoringKey;
-        } else {
-            this.apimSubscriptionKey = options.apimSubscriptionKey;
-        }
-
-        this.serviceUri = options.serviceUri
-        this.luisAuthoringKey = options.luisAuthoringKey
-        this.luisSubscriptionKey = options.luisSubscriptionKey
+    public LuisAuthoringKey(): string | undefined {
+        return this.options.LUIS_AUTHORING_KEY;
     }
 
     private BuildURL(baseUri: string, apiPath: string, query?: string)
@@ -66,12 +67,12 @@ export class CLClient {
     }
 
     private MakeURL(apiPath: string, query?: string) {
-        return this.BuildURL(this.serviceUri, apiPath, query)
+        return this.BuildURL(this.options.CONVERSATION_LEARNER_SERVICE_URI, apiPath, query)
     }
 
     private MakeSessionURL(apiPath: string, query?: string) {
         // check if request is bypassing cognitive services APIM
-        if(!this.serviceUri.includes('api.cognitive.microsoft.com'))
+        if(!this.options.CONVERSATION_LEARNER_SERVICE_URI.includes('api.cognitive.microsoft.com'))
         {
             // In this case we are not chaning the serviceUrl and it stays the same, 
             // for example: https://localhost:37936/api/v1/ -> https://localhost:37936/api/v1/
@@ -84,7 +85,9 @@ export class CLClient {
         //  2) PUT /app/<appId>/session/extract
         //  3) PUT /app/<appId>/session/score
         //  4) DELETE /app/<appId>/session
-        var baseUri = this.serviceUri.endsWith('/') ? this.serviceUri : `${this.serviceUri}/`
+        var baseUri = this.options.CONVERSATION_LEARNER_SERVICE_URI.endsWith('/') ? 
+            this.options.CONVERSATION_LEARNER_SERVICE_URI : 
+            `${this.options.CONVERSATION_LEARNER_SERVICE_URI}/`
         if(baseUri.endsWith('/api/v1/'))
         {
             // In this case, serviceurl has api version information in it; "session" will be inserted before /api/v1
@@ -110,11 +113,11 @@ export class CLClient {
             const requestData = {
                 url,
                 headers: {
-                    [luisAuthoringKeyHeader]: this.luisAuthoringKey,
-                    [luisSubscriptionKeyHeader]: this.luisSubscriptionKey,
+                    [luisAuthoringKeyHeader]: this.options.LUIS_AUTHORING_KEY,
+                    [luisSubscriptionKeyHeader]: this.options.LUIS_SUBSCRIPTION_KEY,
                     // This is only used when directly targeting service.  In future APIM will provide user/subscription id associated from LUIS key
-                    [apimSubscriptionIdHeader]: this.luisAuthoringKey,
-                    [apimSubscriptionKeyHeader]: this.apimSubscriptionKey
+                    [apimSubscriptionIdHeader]: this.options.LUIS_AUTHORING_KEY,
+                    [apimSubscriptionKeyHeader]: this.options.APIM_SUBSCRIPTION_KEY
                 },
                 json: true,
                 body
@@ -233,8 +236,8 @@ export class CLClient {
     }
 
     /** Create a new application */
-    public CopyApps(srcUserId: string, destUserId: string, luisSubscriptionKey: string): Promise<string> {
-        var apiPath = `apps/copy?srcUserId=${srcUserId}&destUserId=${destUserId}&luisSubscriptionKey=${luisSubscriptionKey}`
+    public CopyApps(srcUserId: string, destUserId: string, appId: string, luisSubscriptionKey: string): Promise<string> {
+        var apiPath = `apps/copy?srcUserId=${srcUserId}&destUserId=${destUserId}&appId=${appId}&luisSubscriptionKey=${luisSubscriptionKey}`
         return this.send('POST', this.MakeURL(apiPath))
     }
 
