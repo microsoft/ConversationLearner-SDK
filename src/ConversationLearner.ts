@@ -31,13 +31,13 @@ export class ConversationLearner {
             this.clClient = new CLClient(options)
             CLMemory.Init(storage)
 
-            // If app not set, assume running on localhost init DOL Runner
-            if (options.localhost) {
-                startDirectOffLineServer(options.dolServiceUrl, options.dolBotUrl)
+            // Should we start DirectOffline server (for Editing UI)
+            if (options.DOL_START) {
+                startDirectOffLineServer(options.DOL_SERVICE_URL, options.DOL_BOT_URL)
             }
 
             const sdkServer = createSdkServer(this.clClient)
-            sdkServer.listen(options.sdkPort, (err: any) => {
+            sdkServer.listen(options.CONVERSATION_LEARNER_SDK_PORT, (err: any) => {
                 if (err) {
                     CLDebug.Error(err, 'Server/Init')
                 } else {

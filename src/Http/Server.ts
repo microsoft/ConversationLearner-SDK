@@ -140,15 +140,18 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
             let clRunner = CLRunner.Get(appId);
             let apiParams = clRunner.apiParams;
 
+            let validationErrors = clRunner.clClient.ValidationErrors();
+
             const botInfo: models.BotInfo = {
                 user: {
                     // We keep track that the editing  UI is running by putting this as the name of the user
                     // Can't check localhost as can be running localhost and not UI
                     name: CL_DEVELOPER,
-                    id: ConversationLearner.options!.luisAuthoringKey!
+                    id: ConversationLearner.options!.LUIS_AUTHORING_KEY!
                 },
                 callbacks: apiParams,
-                templates: TemplateProvider.GetTemplates()
+                templates: TemplateProvider.GetTemplates(),
+                validationErrors: validationErrors
             }
             res.send(botInfo)
         } catch (error) {
@@ -298,9 +301,17 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
     server.post('/apps/copy', async (req, res, next) => {
         let srcUserId = req.params.srcUserId
         let destUserId = req.params.destUserId
-        let luisSubscriptionKey = req.params.luisSubscriptionKey
+        let appId = req.params.appId
+
+        let clRunner = CLRunner.Get(appId);
+        let luisSubscriptionKey = clRunner.clClient.LuisAuthoringKey()
+
+        if (luisSubscriptionKey == undefined) {
+            throw new Error(`LUIS_AUTHORING_KEY undefined`);
+        }
+
         try {
-            let appIds = await client.CopyApps(srcUserId, destUserId, luisSubscriptionKey)
+            let appIds = await client.CopyApps(srcUserId, destUserId, appId, luisSubscriptionKey)
             res.send(appIds)
         } catch (error) {
             HandleError(res, error)

@@ -209,26 +209,26 @@ export class CLRunner {
         try {
             CLDebug.Verbose(`Process Input...`)
 
-            // Validate setup
-            if (!ConversationLearner.options || (!ConversationLearner.options.localhost && !this.appId)) {
-                let msg =  'Options must specify appId when not running on localhost. Set CONVERSATION_LEARNER_APP_ID Env value.\n\n'
-                CLDebug.Error(msg)
-                await this.SendMessage(memory, msg)
-                return null
-            }
-
-            if (!ConversationLearner.options || !ConversationLearner.options.luisAuthoringKey) {
-                // TODO: Remove mention of environment variables. They are not guaranteed and are part of different repository.
-                let msg =  'Options must specify luisAuthoringKey.  Set the LUIS_AUTHORING_KEY environment variable.\n\n'
-                CLDebug.Error(msg)
-                await this.SendMessage(memory, msg)
-                return null
-            }
-
             let inTeach = await memory.BotState.InTeachAsync()
             let inEditingUI = 
                 conversationReference.user &&
                 conversationReference.user.name === CL_DEVELOPER || false;
+
+            // Validate setup
+            if (!inEditingUI && !this.appId) {
+                let msg =  'Must specify appId when not running bot in Editing UI\n\n'
+                CLDebug.Error(msg)
+                await this.SendMessage(memory, msg)
+                return null
+            }
+
+            if (!ConversationLearner.options || !ConversationLearner.options.LUIS_AUTHORING_KEY) {
+                // TODO: Remove mention of environment variables. They are not guaranteed and are part of different repository.
+                let msg =  'Options must specify luisAuthoringKey.  Set the LUIS_AUTHORING_KEY.\n\n'
+                CLDebug.Error(msg)
+                await this.SendMessage(memory, msg)
+                return null
+            }
 
             let app = await this.GetApp(memory, inEditingUI);
             
