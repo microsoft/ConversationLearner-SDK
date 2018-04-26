@@ -111,9 +111,6 @@ export class CLRunner {
         if (isReady)
         {
             let intents = await this.ProcessInput(turnContext.activity, conversationReference);
-
-            // Remove message from queue
-            InputQueue.InputQueuePop(botState, turnContext.activity.id);
             return intents;
         }
         // Message has expired 
@@ -216,9 +213,9 @@ export class CLRunner {
 
             // Validate setup
             if (!inEditingUI && !this.appId) {
-                let msg =  'Must specify appId when not running bot in Editing UI\n\n'
+                let msg =  'Must specify appId in CL constructor when not running bot in Editing UI\n\n'
                 CLDebug.Error(msg)
-                await this.SendMessage(memory, msg)
+                await this.SendMessage(memory, msg, activity.id)
                 return null
             }
 
@@ -226,7 +223,7 @@ export class CLRunner {
                 // TODO: Remove mention of environment variables. They are not guaranteed and are part of different repository.
                 let msg =  'Options must specify luisAuthoringKey.  Set the LUIS_AUTHORING_KEY.\n\n'
                 CLDebug.Error(msg)
-                await this.SendMessage(memory, msg)
+                await this.SendMessage(memory, msg, activity.id)
                 return null
             }
 
@@ -234,7 +231,7 @@ export class CLRunner {
             
             if (!app) {
                 let error = "ERROR: AppId not specified.  When running in a channel (i.e. Skype) or the Bot Framework Emulator, CONVERSATION_LEARNER_APP_ID must be specified in your Bot's .env file or Application Settings on the server"
-                await this.SendMessage(memory, error)
+                await this.SendMessage(memory, error, activity.id)
                 return null;
             }
 
@@ -260,8 +257,8 @@ export class CLRunner {
               
                         if (!app) {
                             let error = "ERROR: AppId not specified.  When running in a channel (i.e. Skype) or the Bot Framework Emulator, CONVERSATION_LEARNER_APP_ID must be specified in your Bot's .env file or Application Settings on the server"
-                            await this.SendMessage(memory, error)
-                            return null;
+                            await this.SendMessage(memory, error, activity.id)
+                            return null
                         }
                     }
                     
@@ -284,7 +281,7 @@ export class CLRunner {
             // PackageId: Use live package id if not in editing UI, default to devPackage if no active package set
             let packageId = (inEditingUI ? await memory.BotState.EditingPackageAsync(app.appId) : app.livePackageId) || app.devPackageId
             if (!packageId) {
-                await this.SendMessage(memory, "ERROR: No PackageId has been set")
+                await this.SendMessage(memory, "ERROR: No PackageId has been set", activity.id)
                 return null;
             }
 
@@ -301,8 +298,9 @@ export class CLRunner {
 
                 // Was it a conversationUpdate message?
                 if (activity.type == "conversationUpdate") {
-                    // Do nothing
-                    CLDebug.Verbose(`Conversation update...  ${+JSON.stringify(activity.membersAdded)} -${JSON.stringify(activity.membersRemoved)}`);
+                    // Do nothing for now.  Support for this to be added in near future
+                    CLDebug.Verbose(`Conversation update...  +${JSON.stringify(activity.membersAdded)} -${JSON.stringify(activity.membersRemoved)}`);
+                    InputQueue.MessageHandled(memory.BotState, activity.id);
                     return null;
                 }
 
@@ -326,7 +324,8 @@ export class CLRunner {
                     scoredAction: scoredAction,
                     clEntities: entities,
                     memory: memory,
-                    inTeach: false
+                    inTeach: false,
+                    activity: activity
                 } as CLRecognizerResult
             }
             return null
@@ -334,7 +333,7 @@ export class CLRunner {
             CLDebug.Log(`Error during ProcessInput: ${error.message}`)
             let msg = CLDebug.Error(error, errComponent)
             if (memory) {
-                await this.SendMessage(memory, msg)
+                await this.SendMessage(memory, msg, activity.id)
             }
             return null
         }
@@ -513,6 +512,11 @@ export class CLRunner {
         let filledEntityMap = await clRecognizeResult.memory.BotMemory.FilledEntityMap()
         filledEntityMap = addEntitiesById(filledEntityMap)
 
+        // If the action was terminal, free up the mutex allowing queued messages to be processed
+        if (clRecognizeResult.scoredAction.isTerminal) {
+            InputQueue.MessageHandled(clRecognizeResult.memory.BotState, clRecognizeResult.activity.id);
+        }
+
         let message = null
         switch (clRecognizeResult.scoredAction.actionType) {
             case CLM.ActionTypes.TEXT:
@@ -599,8 +603,13 @@ export class CLRunner {
         }
     }
 
-    public async SendMessage(memory: CLMemory, message: string | Partial<BB.Activity>): Promise<void> {
+    public async SendMessage(memory: CLMemory, message: string | Partial<BB.Activity>, incomingActivityId?: string | undefined): Promise<void> {
 
+        // If requested, pop incoming acitivty from message queue
+        if (incomingActivityId) {
+            InputQueue.MessageHandled(memory.BotState, incomingActivityId);
+        }
+                
         let conversationReference = await memory.BotState.ConversationReverenceAsync()
         if (!conversationReference) {
             CLDebug.Error('Missing ConversationReference')

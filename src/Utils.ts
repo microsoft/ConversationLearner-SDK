@@ -19,6 +19,7 @@ export class Utils {
     public static StripPrebuiltInfoFromTrain(trainDialog: TrainDialog): TrainDialog {
         return {
             trainDialogId: trainDialog.trainDialogId,
+            sourceLogDialogId: trainDialog.sourceLogDialogId,
             version: trainDialog.version,
             packageCreationId: trainDialog.packageCreationId,
             packageDeletionId: trainDialog.packageDeletionId,

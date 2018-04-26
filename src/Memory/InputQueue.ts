@@ -42,7 +42,7 @@ export class InputQueue {
         } as QueuedInput
 
         this.messageQueue.push(queuedInput);
-        CLDebug.Log(`QUEUE: ${conversationId} ${this.messageQueue.length}`,`messagequeue`)
+        CLDebug.Log(`ADD QUEUE: ${conversationId} ${this.messageQueue.length}`,`messagequeue`)
     }
 
     // Attempt to process next message in the queue
@@ -54,7 +54,6 @@ export class InputQueue {
         if (messageProcessing) {
 
             // Remove if it's been expired
-            CLDebug.Log(`AGECHECK: ${messageProcessing.conversationId} ${this.messageQueue.length}`,`messagequeue`)
             const age = now - messageProcessing.timestamp;
 
             if (age > MESSAGE_TIMEOUT) {
@@ -66,8 +65,9 @@ export class InputQueue {
                     queuedInput.callback(true, queuedInput.conversationId);
                 }
                 else {
-                    CLDebug.Log(`WARNING: Couldn't find queud message`,`messagequeue`)
+                    CLDebug.Log(`EXPIRE-WARNING: Couldn't find queud message`,`messagequeue`)
                 }
+                CLDebug.Log(`EXPIRE-POP: ${messageProcessing.conversationId} ${this.messageQueue.length}`,`messagequeue`)
             }
         }
 
@@ -80,7 +80,6 @@ export class InputQueue {
     // Process next message
     private static async InputQueueProcessNext(botState: BotState): Promise<void> {
 
-        CLDebug.Log(`PROCESS-NEXT:`,`messagequeue`)
         let messageProcessing = await botState.MessageProcessingAsync();
 
         // If no message being process, and item in queue, process teh next one
@@ -90,8 +89,11 @@ export class InputQueue {
 
             // Fire the callback with success
             if (messageProcessing) {
-                CLDebug.Log(`CALLBACK: ${messageProcessing.conversationId} ${this.messageQueue.length}`,`messagequeue`)
+                CLDebug.Log(`PROCESS-CALLBACK: ${messageProcessing.conversationId} ${this.messageQueue.length}`,`messagequeue`)
                 messageProcessing.callback(false, messageProcessing.conversationId);
+            }
+            else {
+                CLDebug.Log(`PROCESS-ERR: No Message`,`messagequeue`)
             }
         }
         else {
@@ -100,14 +102,19 @@ export class InputQueue {
     }
 
     // Done processing message, remove from queue
-    public static async InputQueuePop(botState: BotState, conversationId: string): Promise<void> {
+    public static async MessageHandled(botState: BotState, conversationId: string | undefined): Promise<void> {
 
-        CLDebug.Log(`POP: ${conversationId} ${this.messageQueue.length}`,`messagequeue`)
+        if (!conversationId)  {
+            CLDebug.Log(`HANDLE: Missing conversation id`,`messagequeue`)
+        }
         let messageProcessing = await botState.MessageProcessingPopAsync();
 
         // Check for consistency
         if (!messageProcessing || messageProcessing.conversationId != conversationId) {
-            CLDebug.Log(`WARNING: Unexpected conversation id`,`messagequeue`)
+            CLDebug.Log(`HANDLE: Unexpected conversation id`,`messagequeue`)
+        }
+        else {
+            CLDebug.Log(`HANDLE-POP: ${messageProcessing.conversationId} ${this.messageQueue.length}`,`messagequeue`)
         }
 
         // Process next message in the queue

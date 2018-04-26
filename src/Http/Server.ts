@@ -846,8 +846,8 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
             // Start teach session if replay of API was consistent
             if (teachWithHistory.replayErrors.length === 0) {
                 // Start new teach session from the old train dialog
-                let contextDialog = models.ModelUtils.ToContextDialog(trainDialog)
-                let teachResponse = await client.StartTeach(appId, contextDialog)
+                let createTeachParams = models.ModelUtils.ToCreateTeachParams(trainDialog)
+                let teachResponse = await client.StartTeach(appId, createTeachParams)
 
                 // Start Sesion - with "true" to save the memory from the History
                 await clRunner.InitSessionAsync(memory, teachResponse.teachId, null, { inTeach: true, isContinued: true })
@@ -1026,8 +1026,8 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
             // Start session if API returned consistent results during replay
             if (teachWithHistory.replayErrors.length === 0) {
                 // Start new teach session from the old train dialog
-                let contextDialog = models.ModelUtils.ToContextDialog(trainDialog)
-                let teachResponse = await client.StartTeach(appId, contextDialog)
+                let createTeachParams = models.ModelUtils.ToCreateTeachParams(trainDialog)
+                let teachResponse = await client.StartTeach(appId, createTeachParams)
 
                 // Start Sesion - with "true" to save the memory from the History
                 await clRunner.InitSessionAsync(memory, teachResponse.teachId, null, { inTeach: true, isContinued: true })
@@ -1312,8 +1312,8 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
                 client.EndTeach(appId, teach.teachId, `saveDialog=false`)
 
                 // Start new teach session from the previous trainDialog
-                let contextDialog = models.ModelUtils.ToContextDialog(trainDialog)
-                let teachResponse = await client.StartTeach(appId, contextDialog)
+                let createTeachParams = models.ModelUtils.ToCreateTeachParams(trainDialog)
+                let teachResponse = await client.StartTeach(appId, createTeachParams)
 
                 // Start Sesion - with "true" to save the memory from the History
                 await clRunner.InitSessionAsync(memory, teachResponse.teachId, null, { inTeach: true, isContinued: true })
