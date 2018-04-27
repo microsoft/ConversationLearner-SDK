@@ -21,7 +21,7 @@
   "license": "MIT",
   "dependencies": {
     "async-file": "^2.0.2",
-    "botbuilder": "4.0.0-m3.0",
+    "botbuilder": "4.0.0-m4.0",
     "conversationlearner-models": "0.148.0",
     "conversationlearner-ui": "0.222.0",
     "express": "^4.15.3",
