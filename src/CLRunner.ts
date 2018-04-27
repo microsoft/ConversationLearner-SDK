@@ -521,7 +521,8 @@ export class CLRunner {
         filledEntityMap = addEntitiesById(filledEntityMap)
 
         // If the action was terminal, free up the mutex allowing queued messages to be processed
-        if (clRecognizeResult.scoredAction.isTerminal) {
+        // Activity won't be present if running in training as messages aren't queued
+        if (clRecognizeResult.scoredAction.isTerminal && clRecognizeResult.activity) {
             InputQueue.MessageHandled(clRecognizeResult.memory.BotState, clRecognizeResult.activity.id);
         }
 
