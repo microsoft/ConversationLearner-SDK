@@ -20,7 +20,7 @@ export class ConversationLearner {
     public static options: ICLOptions | null = null;
     public static clClient: CLClient
     public clRunner: CLRunner
-    public appId: string
+    public appId: string | undefined
 
     public static Init(options: ICLOptions, storage: BB.Storage | null = null) {
 
@@ -51,7 +51,7 @@ export class ConversationLearner {
         }
     }
 
-    constructor(appId: string, maxTimeout?: number) {
+    constructor(appId: string | undefined, maxTimeout?: number) {
         if (!ConversationLearner.options) {
             throw new Error("Init() must be called on ConversationLearner before instances are created")
         }
