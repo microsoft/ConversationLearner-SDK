@@ -4,6 +4,7 @@
  */
 import { Storage, StoreItems, StoreItem } from 'botbuilder'
 import * as Redis from 'redis'
+import { CLDebug } from './CLDebug';
 
 /** Additional settings for configuring an instance of RedisStorage */
 export interface RedisStorageSettings {
@@ -28,6 +29,10 @@ export class RedisStorage implements Storage {
         this.redisClient = Redis.createClient(settings.port ? settings.port : 6380, settings.server, {
             auth_pass: settings.key,
             tls: { servername: settings.server }
+        })
+
+        this.redisClient.on('error', (err) => {
+            CLDebug.Error(err, "RedisStorage")
         })
 
         this._get = this.promisify(this.redisClient.get)
