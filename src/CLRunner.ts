@@ -42,7 +42,13 @@ export class CLRunner {
     public apiCallbacks: { [name: string]: (memoryManager: ClientMemoryManager, ...args: string[]) => Promise<Partial<BB.Activity> | string | void> } = {}
     public apiParams: CLM.CallbackAPI[] = []   
 
-    public static Create(appId: string, maxTimeout: number | undefined, client: CLClient): CLRunner {
+    public static Create(appId: string | undefined, maxTimeout: number | undefined, client: CLClient): CLRunner {
+
+        // Ok to not provide appId when just running in training UI 
+        if (!appId) {
+            appId = "UIRunner";
+        }
+
         let newRunner = new CLRunner(appId, maxTimeout, client);
         CLRunner.Runners[appId] = newRunner;
 
@@ -55,6 +61,8 @@ export class CLRunner {
 
     // Get CLRunner for an app
     public static Get(appId: string) : CLRunner {
+
+        // If runner with the appId doesn't exist, use the UI Runner
         if (!CLRunner.Runners[appId]) {
             if (CLRunner.UIRunner) {
                 return CLRunner.UIRunner;
