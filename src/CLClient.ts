@@ -79,7 +79,7 @@ export class CLClient {
             return this.MakeURL(apiPath, query)
         }
         
-        // The base uri for session API in cognitive services APIM is in the form of '<service url>/blis/session/api/v1'
+        // The base uri for session API in cognitive services APIM is in the form of '<service url>/blis/session/v1.0/'
         // Session API are the following api: 
         //  1) POST /app/<appId>/session
         //  2) PUT /app/<appId>/session/extract
@@ -88,12 +88,13 @@ export class CLClient {
         var baseUri = this.options.CONVERSATION_LEARNER_SERVICE_URI.endsWith('/') ? 
             this.options.CONVERSATION_LEARNER_SERVICE_URI : 
             `${this.options.CONVERSATION_LEARNER_SERVICE_URI}/`
-        if(baseUri.endsWith('/api/v1/'))
+        var apimVersionSuffix = '/v1.0/'
+        if(baseUri.endsWith(apimVersionSuffix))
         {
-            // In this case, serviceurl has api version information in it; "session" will be inserted before /api/v1
-            // this means that https://westus.api.cognitive.microsoft.com/blis/api/v1/ becomes 
-            // https://westus.api.cognitive.microsoft.com/blis/session/api/v1/
-            baseUri = `${baseUri.substring(0, baseUri.lastIndexOf('/api/v1/'))}/session/api/v1/`
+            // In this case, serviceurl has api version information in it; "session" will be inserted before /v1.0
+            // this means that https://westus.api.cognitive.microsoft.com/conversationlearner/v1.0/ becomes 
+            // https://westus.api.cognitive.microsoft.com/conversationlearner/session/v1.0/
+            baseUri = `${baseUri.substring(0, baseUri.lastIndexOf(apimVersionSuffix))}/session${apimVersionSuffix}`
         }
         else
         {
