@@ -1267,6 +1267,10 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
             let memory = CLMemory.GetMemory(key)
             let clRunner = CLRunner.Get(appId);
             let teachWithHistory = await clRunner.GetHistory(appId, trainDialog, userName, userId, memory)
+
+            // Clear bot memory geneated with his
+            memory.BotMemory.ClearAsync();
+            
             if (teachWithHistory) {
                 res.send(teachWithHistory)
             }
