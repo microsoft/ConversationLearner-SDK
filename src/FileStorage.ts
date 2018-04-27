@@ -9,7 +9,7 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.  
  * Licensed under the MIT License.
  */
-import { Storage, StoreItems, StoreItem } from 'botbuilder-core-extensions';
+import { Storage, StoreItems, StoreItem } from 'botbuilder';
 import * as path from 'path';
 import * as fs from 'async-file';
 import * as file from 'fs';
