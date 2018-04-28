@@ -1,0 +1,24 @@
+{
+    "compileOnSave": true,
+    "compilerOptions": {
+        "noUnusedLocals": true,
+        "forceConsistentCasingInFileNames": true,  
+        "noImplicitReturns": true,
+        "noImplicitThis": true,
+        "noImplicitAny": true,
+        "strictNullChecks": true,
+        "suppressImplicitAnyIndexErrors": true,
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
+        "importHelpers": true,
+        "module": "commonjs",
+        "target": "ES2015",
+        "sourceMap": true,
+        "outDir": "lib",
+        "rootDir" : "src",
+        "declaration": true
+    },
+    "include": [
+        "src"
+    ]
+}
