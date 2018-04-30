@@ -111,16 +111,26 @@ export class CLRunner {
 
         let clMemory = await CLMemory.InitMemory(turnContext.activity.from, conversationReference)
         let botState = clMemory.BotState;
-        let addInputPromise = util.promisify(InputQueue.AddInput);
-        let isReady = await addInputPromise(botState, turnContext.activity, conversationReference);
-        
-        if (isReady)
-        {
-            let intents = await this.ProcessInput(turnContext.activity, conversationReference);
-            return intents;
+
+        // If I'm in teach mode process message right away
+        let inTeach = await botState.GetInTeach();
+        if (inTeach) {
+            return await this.ProcessInput(turnContext.activity, conversationReference);
         }
-        // Message has expired 
-        return null;
+
+        // Otherwise I have to queue up messages as user may input them faster than bot reponds
+        else {
+            let addInputPromise = util.promisify(InputQueue.AddInput);
+            let isReady = await addInputPromise(botState, turnContext.activity, conversationReference);
+            
+            if (isReady)
+            {
+                let intents = await this.ProcessInput(turnContext.activity, conversationReference);
+                return intents;
+            }
+            // Message has expired 
+            return null;
+        }
     }
 
     private async StartSessionAsync(memory: CLMemory, user: BB.ChannelAccount | undefined, appId: string, saveToLog: boolean, packageId: string): Promise<string> {
