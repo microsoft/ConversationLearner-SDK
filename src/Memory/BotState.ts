@@ -19,7 +19,7 @@ export interface SessionInfo {
     sessionId: string
 }
 
-// LARS - move to models
+// TODO - move to models
 export interface ActiveApps {
     [appId: string]: string 
 }
