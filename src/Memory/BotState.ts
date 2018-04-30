@@ -75,7 +75,7 @@ export class BotState {
 
     private async GetStateAsync<T>(botStateType: BotStateType): Promise<T> {
         if (!this.memory) {
-            throw 'BotState called without initializing memory'
+            throw new Error('BotState called without initializing memory')
         }
         
         try {
@@ -92,7 +92,7 @@ export class BotState {
 
     private async SetStateAsync<T>(botStateType: BotStateType, value: T): Promise<void> {
         if (!this.memory) {
-            throw 'BotState called without initialzing memory'
+            throw new Error('BotState called without initialzing memory')
         }
         const json = JSON.stringify(value) 
         await this.memory.SetAsync(botStateType, json)

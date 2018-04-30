@@ -11,6 +11,7 @@ import { AppBase } from 'conversationlearner-models'
 export class CLMemory {
     private static memoryStorage: BB.Storage | null = null
     private memCache = {}
+    private userkey: string
 
     public static Init(memoryStorage: BB.Storage | null): void {
         CLMemory.memoryStorage = memoryStorage
@@ -21,7 +22,9 @@ export class CLMemory {
         }
     }
 
-    private constructor(private userkey: string) {}
+    private constructor(userkey: string) {
+        this.userkey = userkey
+    }
 
     public static GetMemory(key: string): CLMemory {
         return new CLMemory(key)
@@ -47,9 +50,9 @@ export class CLMemory {
 
     public async GetAsync(datakey: string): Promise<any> {
         if (!CLMemory.memoryStorage) {
-            throw 'Memory storage not found'
+            throw new Error('Memory storage not found')
         }
-        let that = this
+        
         let key = this.Key(datakey)
         let cacheData = this.memCache[key]
         if (cacheData) {
@@ -59,12 +62,12 @@ export class CLMemory {
             try {
                 let data = await CLMemory.memoryStorage.read([key])
                 if (data[key]) {
-                    that.memCache[key] = data[key].value
+                    this.memCache[key] = data[key].value
                 } else {
-                    that.memCache[key] = null
+                    this.memCache[key] = null
                 }
-                CLDebug.Log(`R< ${key} : ${that.memCache[key]}`, 'memory')
-                return that.memCache[key]
+                CLDebug.Log(`R< ${key} : ${this.memCache[key]}`, 'memory')
+                return this.memCache[key]
             }
             catch (err) {
                 CLDebug.Error(err);
@@ -75,7 +78,7 @@ export class CLMemory {
 
     public async SetAsync(datakey: string, value: any): Promise<void> {
         if (!CLMemory.memoryStorage) {
-            throw 'Memory storage not found'
+            throw new Error('Memory storage not found')
         }
 
         if (value == null) {
@@ -101,12 +104,11 @@ export class CLMemory {
     }
 
     public async DeleteAsync(datakey: string): Promise<void> {
-        let that = this
         let key = this.Key(datakey)
 
         try {
             // First check mem cache to see if already null, if not, can skip write
-            let cacheData = that.memCache[key]
+            let cacheData = this.memCache[key]
             if (!cacheData) {
                 CLDebug.Log(`-> ${key} : -----`, 'memverbose')
             } else {

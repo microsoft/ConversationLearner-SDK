@@ -8,13 +8,11 @@ import { ICLOptions } from './CLOptions'
 import { CLMemory } from './CLMemory'
 import { CLDebug } from './CLDebug'
 import { CLClient } from './CLClient'
-import { Activity } from 'botbuilder'
 import createSdkServer from './Http/Server'
 import { startDirectOffLineServer } from './DOLRunner'
-import { CL_DEVELOPER } from './Utils';
+import { CL_DEVELOPER, DEFAULT_MAX_SESSION_LENGTH } from './Utils'
 import { ClientMemoryManager } from './Memory/ClientMemoryManager'
 import { CLRecognizerResult } from './CLRecognizeResult'
-import { DEFAULT_MAX_SESSION_LENGTH } from './Utils'
 
 export class ConversationLearner {
     public static options: ICLOptions | null = null;
@@ -73,7 +71,7 @@ export class ConversationLearner {
     }
 
     // Returns true is bot is running in the Training UI
-    public inTrainingUI(activity: Activity): boolean {
+    public inTrainingUI(activity: BB.Activity): boolean {
         return (activity.from.name === CL_DEVELOPER);
     }
 

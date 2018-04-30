@@ -35,7 +35,7 @@ export class BotMemory {
 
     private async Init(): Promise<void> {
         if (!this.memory) {
-            throw 'BotMemory called without initialzing memory'
+            throw new Error('BotMemory called without initialzing memory')
         }
 
         let data = await this.memory.GetAsync(BotMemory.MEMKEY)
@@ -51,14 +51,16 @@ export class BotMemory {
     }
 
     private Deserialize(text: string): void {
-        if (!text) return
+        if (!text) {
+            return
+        }
         let json = JSON.parse(text)
         this.filledEntities.map = json ? json : {}
     }
 
     private async Set(): Promise<void> {
         if (!this.memory) {
-            throw 'BotMemory called without initialzing memory'
+            throw new Error('BotMemory called without initialzing memory')
         }
         await this.memory.SetAsync(BotMemory.MEMKEY, this.Serialize())
     }
@@ -156,7 +158,7 @@ export class BotMemory {
         })
     }
 
-    /** Given negative entity name, return positive version **/
+    /** Given negative entity name, return positive version */
 
     private PositiveName(negativeName: string): string | null {
         if (negativeName.startsWith(NEGATIVE_PREFIX)) {
