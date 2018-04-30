@@ -11,7 +11,7 @@ export class CLDebug {
     public static cache: string = ''
     public static enabled: boolean
     public static verbose: boolean = true
-    public static logging: string = '' // OPTIONS: "messagequeue client flow memory memverbose";
+    public static logging: string = 'messagequeue' // OPTIONS: "messagequeue client flow memory memverbose";
 
     public static InitLogger(adapter: BB.BotAdapter, conversationReference: Partial<BB.ConversationReference>) {
         CLDebug.adapter = adapter
