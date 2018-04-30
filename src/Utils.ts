@@ -48,10 +48,10 @@ export class Utils {
     /** Trick to get errors to render on Azure */
     private static ReplaceErrors(key: any, value: any) {
         if (value instanceof Error) {
-            var error = {}
+            const error = {}
 
-            Object.getOwnPropertyNames(value).forEach(function(key) {
-                error[key] = value[key]
+            Object.getOwnPropertyNames(value).forEach(k => {
+                error[k] = value[k]
             })
 
             return error

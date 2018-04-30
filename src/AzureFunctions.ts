@@ -7,7 +7,7 @@ import { CLDebug } from './CLDebug'
 
 export class AzureFunctions {
     public static Call(azureFunctionsUrl: string, azureFunctionsKey: string, funcName: string, args: string): Promise<string> {
-        var apiPath = 'app'
+        let apiPath = 'app'
 
         if (azureFunctionsKey) {
             if (args) {

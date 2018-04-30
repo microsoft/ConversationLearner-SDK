@@ -68,7 +68,7 @@ export class BotState {
 
     private async Init(): Promise<void> {
         if (!this.memory) {
-            throw 'BotState called without initializing memory'
+            throw new Error('BotState called without initializing memory')
         }
         // Load bot state
         let data = await this.memory.GetAsync(BotState.MEMKEY)
@@ -80,17 +80,20 @@ export class BotState {
     }
 
     private Deserialize(text: string): void {
-        if (!text) return
+        if (!text) {
+            return
+        }
+
         let json = JSON.parse(text)
         this.app = json.app
         this.sessionId = json.sessionId
         this.inTeach = json.inTeach ? json.inTeach : false
-        this.lastActive = json.lastActive,
-        this.conversationId = json.conversationId,
-        this.orgSessionId = json.orgSessionId,
+        this.lastActive = json.lastActive
+        this.conversationId = json.conversationId
+        this.orgSessionId = json.orgSessionId
         this.onEndSessionCalled = json.onEndSessionCalled ? json.onEndSessionCalled : false
-        this.conversationReference = json.conversationReference,
-        this.editingPackages = json.activeApps,
+        this.conversationReference = json.conversationReference
+        this.editingPackages = json.activeApps
         this.messageProcessing = json.messageProcessing
     }
 
@@ -112,7 +115,7 @@ export class BotState {
 
     private async SetAsync(): Promise<void> {
         if (!this.memory) {
-            throw 'BotState called without initialzing memory'
+            throw new Error('BotState called without initialzing memory')
         }
         await this.memory.SetAsync(BotState.MEMKEY, this.Serialize())
     }
