@@ -184,8 +184,8 @@ export class BotState {
 
         // If session expired and was replaced with a more recent one, return the new sessionId
         if (origSessionId === sessionId) {
-            const sessionId = await this.GetStateAsync<string | null>(BotStateType.SESSION_ID)
-            return sessionId;
+            const curSessionId = await this.GetStateAsync<string | null>(BotStateType.SESSION_ID)
+            return curSessionId;
         }
         return sessionId;
     }
