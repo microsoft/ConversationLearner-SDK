@@ -19,40 +19,47 @@ export interface SessionInfo {
     sessionId: string
 }
 
-export class BotState {
-    private static _instance: BotState | null = null
-    private static MEMKEY = 'BOTSTATE'
-    public memory: CLMemory
+// TODO - move to models
+export interface ActiveApps {
+    [appId: string]: string 
+}
+
+export enum BotStateType {
 
     // Currently running application
-    public app: AppBase | null = null
-
-    // Currently active session
-    public sessionId: string | null
-
-    // Is current session a teach session
-    public inTeach: boolean = false
-
-    // Last time active session was used (in ticks)
-    public lastActive: number
-
+    APP = 'APP',  //public app: AppBase | null = null
+    
     // Conversation Id associated with this sesssion
-    public conversationId: string | null
-
-    // If session is continuation of times out session, what was the original sessionId
-    public orgSessionId: string | null
-
-    // True if onEndSession has been
-    public onEndSessionCalled: boolean
+    CONVERSTAION_ID = 'CONVERSATION_ID',
 
     // BotBuilder conversation reference
-    public conversationReference: Partial<BB.ConversationReference> | null = null
+    CONVERSATION_REFERENCE = 'CONVERSATION_REFERENCE',
 
     // Which packages are active for editing
-    public editingPackages: { [appId: string]: string };  // appId: packageId
+    EDITING_PACKAGE = 'EDITING_PACKAGE',
+    
+    // Is current session a teach session
+    IN_TEACH = 'IN_TEACH', 
+
+    // Last time active session was used (in ticks)
+    LAST_ACTIVE = 'LAST_ACTIVE', 
 
     // Current message being processed
-    public messageProcessing: QueuedInput | undefined
+    MESSAGE_MUTEX = 'MESSAGE_MUTEX',
+
+    // True if onEndSession has been
+    ON_ENDSESSION_CALLED = 'ON_ENDSESSION_CALLED', 
+
+    // If session is continuation of times out session, what was the original sessionId
+    ORIG_SESSION = 'ORIG_SESSION',
+
+    // Currently active session
+    SESSION_ID = 'SESSION_ID'  
+}
+
+export class BotState {
+    private static _instance: BotState | null = null
+    public memory: CLMemory
 
     private constructor(init?: Partial<BotState>) {
         (<any>Object).assign(this, init)
@@ -66,184 +73,229 @@ export class BotState {
         return BotState._instance
     }
 
-    private async Init(): Promise<void> {
+    private async GetStateAsync<T>(botStateType: BotStateType): Promise<T> {
         if (!this.memory) {
             throw new Error('BotState called without initializing memory')
         }
-        // Load bot state
-        let data = await this.memory.GetAsync(BotState.MEMKEY)
-        if (data) {
-            this.Deserialize(data)
-        } else {
-            this._SetAppAsync(null)
+        
+        try {
+            let data = await this.memory.GetAsync(botStateType);
+            return JSON.parse(data) as T;
+        }
+        catch {
+            // If brand new use, need to initialize
+            await this._SetAppAsync(null)
+            let data = await this.memory.GetAsync(botStateType)
+            return JSON.parse(data) as T;
         }
     }
 
-    private Deserialize(text: string): void {
-        if (!text) {
-            return
-        }
-
-        let json = JSON.parse(text)
-        this.app = json.app
-        this.sessionId = json.sessionId
-        this.inTeach = json.inTeach ? json.inTeach : false
-        this.lastActive = json.lastActive
-        this.conversationId = json.conversationId
-        this.orgSessionId = json.orgSessionId
-        this.onEndSessionCalled = json.onEndSessionCalled ? json.onEndSessionCalled : false
-        this.conversationReference = json.conversationReference
-        this.editingPackages = json.activeApps
-        this.messageProcessing = json.messageProcessing
-    }
-
-    private Serialize(): string {
-        let jsonObj = {
-            app: this.app,
-            sessionId: this.sessionId,
-            inTeach: this.inTeach ? this.inTeach : false,
-            lastActive: this.lastActive,
-            conversationId: this.conversationId,
-            orgSessionId: this.orgSessionId,
-            onEndSessionCalled: this.onEndSessionCalled ? this.onEndSessionCalled : false,
-            conversationReference: this.conversationReference,
-            activeApps: this.editingPackages,
-            messageProcessing: this.messageProcessing
-        }
-        return JSON.stringify(jsonObj)
-    }
-
-    private async SetAsync(): Promise<void> {
+    private async SetStateAsync<T>(botStateType: BotStateType, value: T): Promise<void> {
         if (!this.memory) {
             throw new Error('BotState called without initialzing memory')
         }
-        await this.memory.SetAsync(BotState.MEMKEY, this.Serialize())
+        const json = JSON.stringify(value) 
+        await this.memory.SetAsync(botStateType, json)
     }
 
     // NOTE: CLMemory should be the only one to call this
     public async _SetAppAsync(app: AppBase | null): Promise<void> {
-        this.app = app
-        this.sessionId = null
-        this.conversationId = null
-        this.lastActive = 0
-        this.orgSessionId = null
-        this.onEndSessionCalled = false
-        this.inTeach = false
-        this.editingPackages = {}
-        await this.SetAsync()
+        await this.SetApp(app)
+        await this.SetConversationId(null)
+        await this.SetConversationReference(null)
+        await this.SetLastActive(0);
+        await this.SetMessageProcessing(null);
+        await this.SetOrgSessionId(null)
+        await this.SetOnEndSessionCalled(false)
+        await this.SetInTeach(false)
+        await this.SetSessionId(null)
+        await this.ClearEditingPackageAsync();
     }
 
-    public async AppAsync(): Promise<AppBase | null> {
+    // ------------------------------------------------
+    //  APP
+    // ------------------------------------------------
+    public async GetApp(): Promise<AppBase | null> {
         try {
-            await this.Init()
-            return this.app
+            return await this.GetStateAsync<AppBase | null>(BotStateType.APP)
         } catch (err) {
             return null
         }
     }
 
-    public async ConversationIdAsync(): Promise<string | null> {
-        await this.Init()
-        return this.conversationId
+    public async SetApp(app: AppBase | null): Promise<void> {
+        if (!app) {
+            await this.SetStateAsync(BotStateType.APP, null)
+        }
+        else {
+            // Store only needed data
+            let smallApp = {
+                appId: app.appId, 
+                appName: app.appName,
+                livePackageId: app.livePackageId,
+                devPackageId: app.devPackageId,
+                metadata: {
+                    isLoggingOn: app.metadata.isLoggingOn
+                }}
+
+            await this.SetStateAsync(BotStateType.APP, smallApp)
+        }
     }
 
-    public async EditingPackagesAsync(): Promise<{ [appId: string]: string }> {
-        await this.Init()
-        return this.editingPackages
+    // ------------------------------------------------
+    //  CONVERSATION_ID
+    // ------------------------------------------------
+    public async GetConversationId(): Promise<string | null> {
+        return await this.GetStateAsync<string | null>(BotStateType.CONVERSTAION_ID)
     }
 
-    public async SetEditingPackageAsync(appId: string, packageId: string): Promise<{ [appId: string]: string }> {
-        await this.Init()
-        this.editingPackages[appId] = packageId;
-        await this.SetAsync();
-        return this.editingPackages;
+    public async SetConversationId(conversationId : string | null): Promise<void> {
+        await this.SetStateAsync(BotStateType.CONVERSTAION_ID, conversationId)
     }
 
-    public async EditingPackageAsync(appId: string): Promise<string> {
-        await this.Init()
-        return this.editingPackages[appId];
+    // ------------------------------------------------
+    //  EDITING_PACKAGE
+    // ------------------------------------------------
+    public async GetEditingPackages(): Promise<ActiveApps> {
+        return await this.GetStateAsync<ActiveApps>(BotStateType.EDITING_PACKAGE);
     }
 
+    public async SetEditingPackage(appId: string, packageId: string): Promise<{ [appId: string]: string }> {
+        let activeApps = await this.GetStateAsync<ActiveApps>(BotStateType.EDITING_PACKAGE);
+        activeApps[appId] = packageId;
+        await this.SetStateAsync<ActiveApps>(BotStateType.EDITING_PACKAGE, activeApps);
+        return activeApps;
+    }
+
+    public async GetEditingPackageForApp(appId: string): Promise<string> {
+        let activeApps = await this.GetStateAsync<ActiveApps>(BotStateType.EDITING_PACKAGE);
+        return activeApps[appId];
+    }
+
+    public async ClearEditingPackageAsync(): Promise<void> {
+        await this.SetStateAsync<ActiveApps>(BotStateType.EDITING_PACKAGE, {});
+    }
+
+    // ------------------------------------------------
+    //  ORIG_SESSION
+    // ------------------------------------------------
     public async OrgSessionIdAsync(sessionId: string): Promise<string | null> {
-        await this.Init()
+        const origSessionId = await this.GetStateAsync<string | null>(BotStateType.ORIG_SESSION)
 
         // If session expired and was replaced with a more recent one, return the new sessionId
-        if (this.orgSessionId == sessionId) {
-            return this.sessionId;
+        if (origSessionId === sessionId) {
+            const curSessionId = await this.GetStateAsync<string | null>(BotStateType.SESSION_ID)
+            return curSessionId;
         }
         return sessionId;
     }
 
-    public async OnEndSessionCalledAsync(): Promise<boolean> {
-        await this.Init()
-        return this.onEndSessionCalled;
+    public async GetOrgSessionIdAsync(): Promise<string | null> {
+        return await this.GetStateAsync<string|null>(BotStateType.ORIG_SESSION)
     }
 
-    public async SetOnEndSessionCalledAsync(called: boolean): Promise<void> {
-        this.onEndSessionCalled = called;
-        await this.SetAsync();
+    public async SetOrgSessionId(sessionId: string | null): Promise<void> {
+        await this.SetStateAsync(BotStateType.ORIG_SESSION, sessionId)
     }
 
-    public async LastActiveAsync(): Promise<number> {
-        await this.Init()
-        return this.lastActive
+    // ------------------------------------------------
+    // ON_ENDSESSION_CALLED
+    // ------------------------------------------------
+    public async GetEndSessionCalled(): Promise<boolean> {
+        const called = await this.GetStateAsync<boolean>(BotStateType.ON_ENDSESSION_CALLED)
+        return (called ? called : false);
     }
 
-    public async SetLastActiveAsync(lastActive: number): Promise<void> {
-        this.lastActive = lastActive;
-        await this.SetAsync()
+    public async SetOnEndSessionCalled(called: boolean): Promise<void> {
+        called = called ? called : false;
+        await this.SetStateAsync(BotStateType.ON_ENDSESSION_CALLED, called)
     }
 
-    public async SessionIdAsync(conversationId: string): Promise<string | null> {
-        await this.Init()
+    // ------------------------------------------------
+    // LAST_ACTIVE
+    // ------------------------------------------------
+    public async GetLastActive(): Promise<number> {
+        return await this.GetStateAsync<number>(BotStateType.LAST_ACTIVE)
+    }
+
+    public async SetLastActive(lastActive: number): Promise<void> {
+        await this.SetStateAsync(BotStateType.LAST_ACTIVE, lastActive)
+    }
+
+    // ------------------------------------------------
+    // SESSION_ID
+    // ------------------------------------------------
+    public async GetSessionId(conversationId: string): Promise<string | null> {
 
         // If convId not set yet, use the session and set it
-        if (!this.conversationId) {
-            this.conversationId = conversationId
-            await this.SetAsync()
-            return this.sessionId
+        let existingConversationId = await this.GetConversationId();
+        if (!existingConversationId) {
+            await this.SetConversationId(conversationId)
+            return await this.GetStateAsync<string | null>(BotStateType.SESSION_ID)
         } 
         // If conversation Id matches return the sessionId
-        else if (this.conversationId == conversationId) {
-            return this.sessionId
+        else if (existingConversationId == conversationId) {
+            return await this.GetStateAsync<string | null>(BotStateType.SESSION_ID)
         }
         // Otherwise session is for another conversation
         return null
     }
 
+    public async SetSessionId(sessionId: string | null): Promise<void> {
+        await this.SetStateAsync(BotStateType.SESSION_ID, sessionId)
+    }
+
     public async SetSessionAsync(sessionId: string | null, conversationId: string | null, inTeach: boolean, orgSessionId: string | null): Promise<void> {
-        await this.Init()
-        this.sessionId = sessionId;
+        await this.SetSessionId(sessionId);
+
         // Only update original sessionId, if one hasn't already been set (could be multiple restarts)
-        if (!this.orgSessionId) {
-            this.orgSessionId = orgSessionId;
+        let existingOrigSesionId = await this.GetOrgSessionIdAsync()
+        if (!existingOrigSesionId) {
+            await this.SetOrgSessionId(orgSessionId)
         }
-        this.onEndSessionCalled = false;
-        this.conversationId = conversationId;
-        this.lastActive = new Date().getTime();
-        this.inTeach = inTeach
-        this.messageProcessing = undefined
-        await this.SetAsync()
+        await this.SetOnEndSessionCalled(false)
+        await this.SetConversationId(conversationId)
+        await this.SetLastActive(new Date().getTime())
+        await this.SetInTeach(inTeach)
+        await this.SetMessageProcessing(null)
     }
 
     public async EndSessionAsync(): Promise<void> {
-        this.sessionId = null;
-        this.orgSessionId = null;
-        this.onEndSessionCalled = false;
-        this.conversationId = null;
-        this.lastActive = 0;
-        this.inTeach = false
-        this.messageProcessing = undefined
-        await this.SetAsync()
+        await this.SetSessionId(null);
+        await this.SetOrgSessionId(null);
+        await this.SetOnEndSessionCalled(false);
+        await this.SetConversationId(null);
+        await this.SetLastActive(0);
+        await this.SetInTeach(false);
+        await this.SetMessageProcessing(null);
     }
 
-    public async InTeachAsync(): Promise<boolean> {
-        await this.Init()
-        return this.inTeach
+    // ------------------------------------------------
+    //  IN_TEACH
+    // ------------------------------------------------
+    public async GetInTeach(): Promise<boolean> {
+        const inTeach = await this.GetStateAsync<boolean>(BotStateType.IN_TEACH)
+        return inTeach ? inTeach : false;
+    }
+
+    public async SetInTeach(inTeach: boolean): Promise<void> {
+        inTeach = inTeach ? inTeach : false;
+        await this.SetStateAsync(BotStateType.IN_TEACH, inTeach)
+    }
+
+    // ------------------------------------------------
+    //  CONVERSATION_REFERENCE
+    // ------------------------------------------------
+    public async SetConversationReference(conversationReference: Partial<BB.ConversationReference> | null): Promise<void> {
+        await this.SetStateAsync(BotStateType.CONVERSATION_REFERENCE, conversationReference)
+    }
+
+    public async GetConversationReverence(): Promise<Partial<BB.ConversationReference> | null> {
+        return await this.GetStateAsync<BB.ConversationReference | null>(BotStateType.CONVERSATION_REFERENCE)
     }
 
     // For initial pro-active message need to build conversation reference from scratch
-    public async CreateConversationReferenceAsync(userName: string, userId: string, conversationId: string): Promise<void> {
+    public async CreateConversationReference(userName: string, userId: string, conversationId: string): Promise<void> {
         let conversationReference = {
             user: { name: userName, id: userId },
             conversation: { id: conversationId },
@@ -251,52 +303,42 @@ export class BotState {
             // TODO: Refactor away from static coupling.  BotState needs to have access to options object through constructor
             serviceUrl: ConversationLearner.options!.DOL_SERVICE_URL
         } as Partial<BB.ConversationReference>
-        this.SetConversationReferenceAsync(conversationReference)
-    }
-
-    // --------------------------------------------
-    public async SetConversationReferenceAsync(conversationReference: Partial<BB.ConversationReference>): Promise<void> {
-        await this.Init()
-        this.conversationReference = conversationReference
-        await this.SetAsync()
-    }
-
-    public async ConversationReverenceAsync(): Promise<Partial<BB.ConversationReference> | null> {
-        try {
-            await this.Init()
-            return this.conversationReference
-        } catch (err) {
-            return null
-        }
+        this.SetConversationReference(conversationReference)
     }
     
     // ------------------------------------------------
-    public async MessageProcessingAsync(): Promise<QueuedInput | undefined> {
-        await this.Init()
-        return this.messageProcessing;
+    //  MESSAGE_MUTEX
+    // ------------------------------------------------
+    public async GetMessageProcessing(): Promise<QueuedInput | null> {
+        return await this.GetStateAsync<QueuedInput>(BotStateType.MESSAGE_MUTEX)
     }
 
-    public async MessageProcessingPopAsync(): Promise<QueuedInput | undefined> {
-        await this.Init()
-        let popVal = this.messageProcessing;
-        this.messageProcessing = undefined;
-        await this.SetAsync();
+    public async MessageProcessingPopAsync(): Promise<QueuedInput | null> {
+        let popVal = await this.GetStateAsync<QueuedInput>(BotStateType.MESSAGE_MUTEX)
+        await this.SetStateAsync(BotStateType.MESSAGE_MUTEX, null);
         return popVal;
     }
 
-    public async SetMessageProcessingAsync(queuedInput: QueuedInput | undefined): Promise<void> {
-        await this.Init()
-        this.messageProcessing = queuedInput
-        await this.SetAsync()
+    public async SetMessageProcessing(queuedInput: QueuedInput | null): Promise<void> {
+        await this.SetStateAsync(BotStateType.MESSAGE_MUTEX, queuedInput)
     }
 
     // -------------------------------------------------------------------
     public async SessionInfoAsync(): Promise<SessionInfo> {
-        await this.Init()
+        const conversationReference = await this.GetConversationReverence();
+
+        if (conversationReference && conversationReference.conversation) {
+            const sessionId = await this.GetSessionId(conversationReference.conversation.id);
+            return {
+                userName : conversationReference.user && conversationReference.user.name,
+                userId : conversationReference.user && conversationReference.user.id,
+                sessionId: sessionId
+            } as SessionInfo
+        }
         return {
-            userName : this.conversationReference && this.conversationReference.user && this.conversationReference.user.name,
-            userId : this.conversationReference && this.conversationReference.user && this.conversationReference.user.id,
-            sessionId: this.sessionId
+            userName: '',
+            userId: '',
+            sessionId: ''
         } as SessionInfo
     }
 }

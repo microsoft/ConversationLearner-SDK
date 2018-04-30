@@ -40,7 +40,7 @@ export class CLMemory {
         }
         
         let memory = new CLMemory(user.id)
-        await memory.BotState.SetConversationReferenceAsync(conversationReference)
+        await memory.BotState.SetConversationReference(conversationReference)
         return memory
     }
 
@@ -129,7 +129,7 @@ export class CLMemory {
     }
 
     public async SetAppAsync(app: AppBase | null): Promise<void> {
-        const curApp = await this.BotState.AppAsync();
+        const curApp = await this.BotState.GetApp();
         await this.BotState._SetAppAsync(app)
 
         if (!app || !curApp || curApp.appId !== app.appId) {

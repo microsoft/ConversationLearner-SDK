@@ -143,7 +143,7 @@ export class CLRunner {
     // Get the currently runing app
     private async GetApp(memory: CLMemory, inEditingUI: boolean) : Promise<CLM.AppBase | null> {
 
-        let app = await memory.BotState.AppAsync()
+        let app = await memory.BotState.GetApp()
 
         // If I'm not in the editing UI, always use app specified by options
         if (app) {         
@@ -169,13 +169,13 @@ export class CLRunner {
     // Initialize a log or teach session 
     public async InitSessionAsync(clMemory: CLMemory, sessionId: string, conversationId: string | null, params: ISessionStartParams, orgSessionId: string | null = null): Promise<void> {
     
-        let app = await clMemory.BotState.AppAsync()
+        let app = await clMemory.BotState.GetApp()
 
         // If not continuing an edited session or restarting an expired session 
         if (!params.isContinued && !orgSessionId) {
 
             // If onEndSession hasn't been called yet, call it
-            let calledEndSession = await clMemory.BotState.OnEndSessionCalledAsync();
+            let calledEndSession = await clMemory.BotState.GetEndSessionCalled();
             if (!calledEndSession) {
 
                 // Default callback will clear the bot memory
@@ -190,7 +190,7 @@ export class CLRunner {
     public async EndSessionAsync(key: string): Promise<void> {
 
         let memory = CLMemory.GetMemory(key)
-        let app = await memory.BotState.AppAsync()
+        let app = await memory.BotState.GetApp()
 
         // Default callback will clear the bot memory
         await this.CallSessionEndCallback(memory, app ? app.appId : null);
@@ -212,7 +212,7 @@ export class CLRunner {
         try {
             CLDebug.Verbose(`Process Input...`)
 
-            let inTeach = await memory.BotState.InTeachAsync()
+            let inTeach = await memory.BotState.GetInTeach()
             let inEditingUI = 
                 conversationReference.user &&
                 conversationReference.user.name === CL_DEVELOPER || false;
@@ -241,20 +241,36 @@ export class CLRunner {
                 return null;
             }
 
-            let sessionId = await memory.BotState.SessionIdAsync(activity.from.id)
+            let sessionId = await memory.BotState.GetSessionId(activity.from.id)
 
             // Make sure session hasn't expired
             if (!inTeach && sessionId) {
-                const currentTicks = new Date().getTime();
-                let lastActive = await memory.BotState.LastActiveAsync()
-                let passedTicks = currentTicks - lastActive;
 
+
+                if (activity.type == "conversationUpdate")  {
+                    
+                    CLDebug.Verbose(`Conversation update...  +${JSON.stringify(activity.membersAdded)} -${JSON.stringify(activity.membersRemoved)}`);
+
+                    // End the current session for user joining the conversation
+                    if (activity.membersAdded &&
+                        activity.from.id === activity.membersAdded[0].id) {
+                        await this.clClient.EndSession(app.appId, sessionId);
+                        await this.EndSessionAsync(activity.from.id)
+                    }
+
+                    await InputQueue.MessageHandled(memory.BotState, activity.id);
+                    return null;
+                }
+                
                 // If session expired, create a new one
+                const currentTicks = new Date().getTime();
+                let lastActive = await memory.BotState.GetLastActive()
+                let passedTicks = currentTicks - lastActive;
                 if (passedTicks > this.maxTimeout!) { 
 
                     // End the current session, clear the memory
                     await this.clClient.EndSession(app.appId, sessionId);
-                    this.EndSessionAsync(activity.from.id)
+                    await this.EndSessionAsync(activity.from.id)
 
                     // If I'm not in the UI, reload the App to get any changes (live package version may have been updated)
                     if (!inEditingUI) {
@@ -272,7 +288,7 @@ export class CLRunner {
                     let sessionResponse = await this.clClient.StartSession(app.appId, {saveToLog: app.metadata.isLoggingOn})
         
                     // Update Memory, passing in original sessionId for reference
-                    let conversationId = await memory.BotState.ConversationIdAsync()
+                    let conversationId = await memory.BotState.GetConversationId()
                     this.InitSessionAsync(memory, sessionResponse.sessionId, conversationId, { inTeach: inTeach, isContinued: false }, sessionId)
 
                     // Set new sessionId
@@ -280,12 +296,12 @@ export class CLRunner {
                 }
                 // Otherwise update last access time
                 else {
-                    await memory.BotState.SetLastActiveAsync(currentTicks);
+                    await memory.BotState.SetLastActive(currentTicks);
                 }
             }
 
             // PackageId: Use live package id if not in editing UI, default to devPackage if no active package set
-            let packageId = (inEditingUI ? await memory.BotState.EditingPackageAsync(app.appId) : app.livePackageId) || app.devPackageId
+            let packageId = (inEditingUI ? await memory.BotState.GetEditingPackageForApp(app.appId) : app.livePackageId) || app.devPackageId
             if (!packageId) {
                 await this.SendMessage(memory, "ERROR: No PackageId has been set", activity.id)
                 return null;
@@ -301,14 +317,6 @@ export class CLRunner {
 
             // Teach inputs are handled via API calls from the Conversation Learner UI
             if (!inTeach) {
-
-                // Was it a conversationUpdate message?
-                if (activity.type == "conversationUpdate") {
-                    // Do nothing for now.  Support for this to be added in near future
-                    CLDebug.Verbose(`Conversation update...  +${JSON.stringify(activity.membersAdded)} -${JSON.stringify(activity.membersRemoved)}`);
-                    InputQueue.MessageHandled(memory.BotState, activity.id);
-                    return null;
-                }
 
                 let entities: CLM.EntityBase[] = []
 
@@ -337,6 +345,10 @@ export class CLRunner {
             return null
         } catch (error) {
             CLDebug.Log(`Error during ProcessInput: ${error.message}`)
+
+            // End the session, so use can potentially recover
+            await this.EndSessionAsync(activity.from.id)
+
             let msg = CLDebug.Error(error, errComponent)
             if (memory) {
                 await this.SendMessage(memory, msg, activity.id)
@@ -523,7 +535,7 @@ export class CLRunner {
         // If the action was terminal, free up the mutex allowing queued messages to be processed
         // Activity won't be present if running in training as messages aren't queued
         if (clRecognizeResult.scoredAction.isTerminal && clRecognizeResult.activity) {
-            InputQueue.MessageHandled(clRecognizeResult.memory.BotState, clRecognizeResult.activity.id);
+            await InputQueue.MessageHandled(clRecognizeResult.memory.BotState, clRecognizeResult.activity.id);
         }
 
         let message = null
@@ -555,7 +567,7 @@ export class CLRunner {
         // If action wasn't terminal loop, through Conversation Learner again after a short delay
         if (!clRecognizeResult.scoredAction.isTerminal) {
             setTimeout(async () => {
-                let app = await clRecognizeResult.memory.BotState.AppAsync()
+                let app = await clRecognizeResult.memory.BotState.GetApp()
                 if (!app) {
                     throw new Error(`Attempted to get current app before app was set.`)
                 }
@@ -565,7 +577,7 @@ export class CLRunner {
                     throw new Error(`Attempted to get session by user id, but user was not defined on current conversation`)
                 }
 
-                let sessionId = await clRecognizeResult.memory.BotState.SessionIdAsync(user.id)
+                let sessionId = await clRecognizeResult.memory.BotState.GetSessionId(user.id)
                 if (!sessionId) {
                     throw new Error(`Attempted to get session by user id: ${user.id} but session was not found`)
                 }
@@ -595,7 +607,7 @@ export class CLRunner {
 
     public async SendIntent(intent: CLRecognizerResult): Promise<void> {
 
-        let conversationReference = await intent.memory.BotState.ConversationReverenceAsync();
+        let conversationReference = await intent.memory.BotState.GetConversationReverence();
 
         if (!conversationReference) {
             CLDebug.Error('Missing ConversationReference')
@@ -618,10 +630,10 @@ export class CLRunner {
 
         // If requested, pop incoming acitivty from message queue
         if (incomingActivityId) {
-            InputQueue.MessageHandled(memory.BotState, incomingActivityId);
+            await InputQueue.MessageHandled(memory.BotState, incomingActivityId);
         }
                 
-        let conversationReference = await memory.BotState.ConversationReverenceAsync()
+        let conversationReference = await memory.BotState.GetConversationReverence()
         if (!conversationReference) {
             CLDebug.Error('Missing ConversationReference')
             return

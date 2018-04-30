@@ -28,7 +28,7 @@ export class InputQueue {
         await InputQueue.InputQueueAdd(request.id, callback);
 
         // Process queue
-        InputQueue.InputQueueProcess(botState)
+        await InputQueue.InputQueueProcess(botState)
     }
 
     // Add message to queue
@@ -48,7 +48,7 @@ export class InputQueue {
     // Attempt to process next message in the queue
     private static async InputQueueProcess(botState: BotState) : Promise<void> {
         const now = new Date().getTime();
-        const messageProcessing = await botState.MessageProcessingAsync();
+        const messageProcessing = await botState.GetMessageProcessing();
 
         // Is a message being processed
         if (messageProcessing) {
@@ -58,7 +58,7 @@ export class InputQueue {
 
             if (age > MESSAGE_TIMEOUT) {
                 CLDebug.Log(`EXPIRED: ${messageProcessing.conversationId} ${this.messageQueue.length}`,`messagequeue`)
-                botState.MessageProcessingPopAsync();
+                await botState.MessageProcessingPopAsync();
                 let queuedInput = this.messageQueue.find(mq => mq.conversationId == messageProcessing.conversationId);
                 if (queuedInput) {
                     // Fire the callback with failure
@@ -80,15 +80,16 @@ export class InputQueue {
     // Process next message
     private static async InputQueueProcessNext(botState: BotState): Promise<void> {
 
-        let messageProcessing = await botState.MessageProcessingAsync();
+        let curProcessing = await botState.GetMessageProcessing();
 
         // If no message being process, and item in queue, process teh next one
-        if (!messageProcessing && this.messageQueue.length > 0) {
-            messageProcessing = this.messageQueue.shift();
-            await botState.SetMessageProcessingAsync(messageProcessing);
+        if (!curProcessing && this.messageQueue.length > 0) {
+            let messageProcessing = this.messageQueue.shift();
 
-            // Fire the callback with success
             if (messageProcessing) {
+                await botState.SetMessageProcessing(messageProcessing);
+
+                // Fire the callback with success
                 CLDebug.Log(`PROCESS-CALLBACK: ${messageProcessing.conversationId} ${this.messageQueue.length}`,`messagequeue`)
                 messageProcessing.callback(false, messageProcessing.conversationId);
             }
@@ -110,10 +111,7 @@ export class InputQueue {
         let messageProcessing = await botState.MessageProcessingPopAsync();
 
         // Check for consistency
-        if (!messageProcessing || messageProcessing.conversationId != conversationId) {
-            CLDebug.Log(`HANDLE: Unexpected conversation id`,`messagequeue`)
-        }
-        else {
+        if (messageProcessing && messageProcessing.conversationId === conversationId) {
             CLDebug.Log(`HANDLE-POP: ${messageProcessing.conversationId} ${this.messageQueue.length}`,`messagequeue`)
         }
 

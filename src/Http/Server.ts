@@ -123,7 +123,7 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
             let userName = req.params.username
 
             let memory = CLMemory.GetMemory(key)
-            await memory.BotState.CreateConversationReferenceAsync(userName, key, conversationId)
+            await memory.BotState.CreateConversationReference(userName, key, conversationId)
             res.send(200)
         } catch (error) {
             HandleError(res, error)
@@ -247,7 +247,7 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
 
             // Did I delete my loaded app, if so clear my state
             let memory = CLMemory.GetMemory(key)
-            let app = await memory.BotState.AppAsync()
+            let app = await memory.BotState.GetApp()
             if (app && app.appId === appId) {
                 await memory.SetAppAsync(null)
 
@@ -294,7 +294,7 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
 
             // Get lookup table for which apps packages are being edited
             let memory = CLMemory.GetMemory(key)
-            let activeApps = await memory.BotState.EditingPackagesAsync();
+            let activeApps = await memory.BotState.GetEditingPackages();
 
             let uiAppList = { appList: apps, activeApps: activeApps } as models.UIAppList;
             res.send(uiAppList)
@@ -408,7 +408,7 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
             }
 
             let memory = CLMemory.GetMemory(key)
-            let updatedPackageVersions = await memory.BotState.SetEditingPackageAsync(appId, packageId);
+            let updatedPackageVersions = await memory.BotState.SetEditingPackage(appId, packageId);
             res.send(updatedPackageVersions)
 
         } catch (error) {
@@ -901,19 +901,19 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
             const key = req.header(models.MEMORY_KEY_HEADER_NAME)
 
             let memory = CLMemory.GetMemory(key)
-            let conversationId = await memory.BotState.ConversationIdAsync();
+            let conversationId = await memory.BotState.GetConversationId();
             if (!conversationId) {
                 // If conversation is empty
                 return;
             }
 
-            let sessionId = await memory.BotState.SessionIdAsync(conversationId);
+            let sessionId = await memory.BotState.GetSessionId(conversationId);
             if (sessionId != req.params.sessionId) {
                 throw new Error("Attempting to expire sessionId not in use")
             }
 
             // Force sesion to expire
-            await memory.BotState.SetLastActiveAsync(0);
+            await memory.BotState.SetLastActive(0);
             res.send(200)
         } catch (error) {
             HandleError(res, error)
