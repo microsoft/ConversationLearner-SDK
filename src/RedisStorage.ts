@@ -44,7 +44,7 @@ export class RedisStorage implements Storage {
      * Loads store items from storage
      *
      * @param keys Array of item keys to read from the store.
-     **/
+     */
     public async read(keys: string[]): Promise<StoreItems> {
         let storeItems: StoreItems = {}
 
@@ -61,7 +61,7 @@ export class RedisStorage implements Storage {
      * Saves store items to storage.
      *
      * @param changes Map of items to write to storage.
-     **/
+     */
     public async write(changes: StoreItems): Promise<void> {
         for (let key in changes) {
             let storeItem: StoreItem = changes[key]
@@ -73,7 +73,7 @@ export class RedisStorage implements Storage {
      * Removes store items from storage
      *
      * @param keys Array of item keys to remove from the store.
-     **/
+     */
     public async delete(keys: string[]) {
         for (let iKey in keys) {
             let key = keys[iKey]

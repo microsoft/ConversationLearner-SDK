@@ -10,13 +10,11 @@ import { CLClient } from './CLClient'
 import { TemplateProvider } from './TemplateProvider'
 import * as CLM from 'conversationlearner-models'
 import { ClientMemoryManager } from './Memory/ClientMemoryManager'
-import { addEntitiesById, generateGUID } from './Utils'
+import { addEntitiesById,CL_DEVELOPER, generateGUID } from './Utils'
 import { CLRecognizerResult } from './CLRecognizeResult'
 import { ConversationLearner } from './ConversationLearner'
-import { InputQueue } from './Memory/InputQueue';
-import { CL_DEVELOPER } from './Utils';
-import { SessionCreateParams, ApiAction } from 'conversationlearner-models';
-const util = require('util');
+import { InputQueue } from './Memory/InputQueue'
+import * as util from 'util'
 
 interface RunnerLookup {
     [appId: string] : CLRunner
@@ -82,7 +80,7 @@ export class CLRunner {
 
     public onTurn(turnContext: BB.TurnContext, next: () => Promise<void>): Promise<void> {
         return this.recognize(turnContext, true)
-                   .then(() => next());
+                   .then(next);
     }
 
     public recognize(turnContext: BB.TurnContext, force?: boolean): Promise<CLRecognizerResult | null> {
@@ -127,7 +125,7 @@ export class CLRunner {
 
     private async StartSessionAsync(memory: CLMemory, user: BB.ChannelAccount | undefined, appId: string, saveToLog: boolean, packageId: string): Promise<string> {
 
-        let sessionCreateParams = {saveToLog, packageId} as SessionCreateParams
+        let sessionCreateParams = {saveToLog, packageId} as CLM.SessionCreateParams
         let sessionResponse = await this.clClient.StartSession(appId, sessionCreateParams)
         if (!user) {
             throw new Error(`Attempted to start session but user was not set on current request.`)
@@ -431,16 +429,18 @@ export class CLRunner {
         const STRIP_COMMENTS = /(\/\/.*$)|(\/\*[\s\S]*?\*\/)|(\s*=[^,\)]*(('(?:\\'|[^'\r\n])*')|("(?:\\"|[^"\r\n])*"))|(\s*=[^,\)]*))/gm
         const ARGUMENT_NAMES = /([^\s,]+)/g
 
-        var fnStr = func.toString().replace(STRIP_COMMENTS, '')
-        var result = fnStr.slice(fnStr.indexOf('(') + 1, fnStr.indexOf(')')).match(ARGUMENT_NAMES)
-        if (result === null) result = []
+        let fnStr = func.toString().replace(STRIP_COMMENTS, '')
+        let result = fnStr.slice(fnStr.indexOf('(') + 1, fnStr.indexOf(')')).match(ARGUMENT_NAMES)
+        if (result === null) {
+            result = []
+        }
         return result.filter((f: string) => f !== 'memoryManager')
     }
 
     private async ProcessPredictedEntities(text: string, memory: BotMemory, predictedEntities: CLM.PredictedEntity[], allEntities: CLM.EntityBase[]): Promise<void> {
 
         // Update entities in my memory
-        for (var predictedEntity of predictedEntities) {
+        for (let predictedEntity of predictedEntities) {
             let entity = allEntities.find(e => e.entityId == predictedEntity.entityId)
             if (!entity) {
                 throw new Error(`Could not find entity by id: ${predictedEntity.entityId}`)
@@ -481,7 +481,7 @@ export class CLRunner {
         }
 
         // Get entities from my memory
-        var filledEntities = await memory.BotMemory.FilledEntitiesAsync()
+        const filledEntities = await memory.BotMemory.FilledEntitiesAsync()
 
         let scoreInput: CLM.ScoreInput = {
             filledEntities,
@@ -548,6 +548,8 @@ export class CLRunner {
                 const cardAction = new CLM.CardAction(clRecognizeResult.scoredAction as any)
                 message = await this.TakeCardAction(cardAction, filledEntityMap)
                 break
+            default:
+                throw new Error(`Could not find matching renderer for action type: ${clRecognizeResult.scoredAction.actionType}`)
         }
 
         // If action wasn't terminal loop, through Conversation Learner again after a short delay
@@ -581,7 +583,7 @@ export class CLRunner {
                 // If not inTeach, send message to user
                 if (!clRecognizeResult.inTeach) {
                     clRecognizeResult.scoredAction = bestAction
-                    let message = await this.RenderTemplateAsync(conversationReference, clRecognizeResult)
+                    message = await this.RenderTemplateAsync(conversationReference, clRecognizeResult)
                     if (message != null) {
                         this.SendMessage(clRecognizeResult.memory, message)
                     }
@@ -791,7 +793,7 @@ export class CLRunner {
     /** Convert list of filled entities into a filled entity map lookup table */
     private CreateFilledEntityMap(filledEntities: CLM.FilledEntity[], entityList: CLM.EntityList): CLM.FilledEntityMap {
         let filledEntityMap = new CLM.FilledEntityMap()
-        for (var filledEntity of filledEntities) {
+        for (let filledEntity of filledEntities) {
             let entity = entityList.entities.find(e => e.entityId == filledEntity.entityId)
             if (entity) {
                 filledEntityMap.map[entity.entityName] = filledEntity
@@ -801,11 +803,12 @@ export class CLRunner {
         return filledEntityMap
     }
 
-    /** Identify any validation issues 
+    /**
+     * Identify any validation issues 
      * Missing Entities
      * Missing Actions
      * Unavailble Actions
-    */
+     */
     public DialogValidationErrors(trainDialog: CLM.TrainDialog, entities: CLM.EntityBase[], actions: CLM.ActionBase[]) : string[] {
 
         let validationErrors: string[] = [];
@@ -883,10 +886,9 @@ export class CLRunner {
 
         let activities = []
         let replayErrors: CLM.ReplayError[] = [];
-        let roundNum = 0
         let isLastActionTerminal = false
 
-        for (let round of trainDialog.rounds) {
+        for (let [roundNum, round] of trainDialog.rounds.entries()) {
             let userText = round.extractorStep.textVariations[0].text
             let filledEntities = round.scorerSteps[0] && round.scorerSteps[0].input ? round.scorerSteps[0].input.filledEntities : []
 
@@ -933,8 +935,7 @@ export class CLRunner {
                 }
             }
 
-            let scoreNum = 0
-            for (let scorerStep of round.scorerSteps) {
+            for (let [scoreNum, scorerStep] of round.scorerSteps.entries()) {
                 let labelAction = scorerStep.labelAction
                 let botResponse = null
 
@@ -1012,9 +1013,7 @@ export class CLRunner {
                 if (botActivity) {
                     activities.push(botActivity)
                 }
-                scoreNum++
             }
-            roundNum++
         }
 
         let memories = await memory.BotMemory.DumpMemory()
@@ -1040,7 +1039,7 @@ export class CLRunner {
     }
 
     // Generate a card to show for an API action w/o output
-    private APICard(apiAction: ApiAction): Partial<BB.Activity> {
+    private APICard(apiAction: CLM.ApiAction): Partial<BB.Activity> {
         let card = {
             type: "AdaptiveCard",
             version: "1.0",

@@ -31,13 +31,15 @@ import * as filenamify from 'filenamify';
  */
 export class FileStorage implements Storage {
     static nextTag = 0;
-    private pEnsureFolder: Promise<void>|undefined;
-
+    private pEnsureFolder: Promise<void>|undefined
+    protected readonly path: string
     /**
      * Creates a new FileStorage instance.
      * @param path Root filesystem path for where the provider should store its items.
      */
-    public constructor(protected readonly path: string) { }
+    public constructor(filePath: string) {
+        this.path = filePath
+    }
 
     public read(keys: string[]): Promise<StoreItems> {
         return this.ensureFolder().then(() => {
@@ -67,13 +69,13 @@ export class FileStorage implements Storage {
                     promises.push(
                         fs.exists(filePath)
                             .then((exists) => {
-                                let newObj: StoreItem = Object.assign({}, changes[key]);
-                                newObj.eTag = (parseInt(newObj.eTag || '0') + 1).toString();
+                                let newObj: StoreItem = {...changes[key]}
+                                newObj.eTag = (parseInt(newObj.eTag || '0', 10) + 1).toString();
                                 return fs.writeTextFile(filePath, JSON.stringify(newObj));
                             })
                     );
                 }
-                return Promise.all(promises).then(() => { });
+                return Promise.all(promises).then(() => undefined);
             });
     };
 
@@ -90,7 +92,7 @@ export class FileStorage implements Storage {
                         });
                     promises.push(p);
                 }
-                Promise.all(promises).then(() => { });
+                Promise.all(promises).then(() => undefined);
             });
     }
 

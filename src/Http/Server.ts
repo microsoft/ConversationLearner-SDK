@@ -12,7 +12,6 @@ import { CLMemory } from '../CLMemory'
 import { CLRecognizerResult } from '../CLRecognizeResult'
 import { TemplateProvider } from '../TemplateProvider'
 import { Utils, replace, CL_DEVELOPER } from '../Utils'
-import { MEMORY_KEY_HEADER_NAME } from 'conversationlearner-models'
 import * as XMLDom from 'xmldom'
 import * as models from 'conversationlearner-models'
 import * as corsMiddleware from 'restify-cors-middleware'
@@ -105,7 +104,7 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
     /** Sets the current active application */
     server.put('state/app', async (req, res, next) => {
         try {
-            const key = req.header(MEMORY_KEY_HEADER_NAME)
+            const key = req.header(models.MEMORY_KEY_HEADER_NAME)
             let app: models.AppBase = req.body
 
             let memory = CLMemory.GetMemory(key)
@@ -119,7 +118,7 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
     /** Sets the current conversationId so bot can send initial pro-active message */
     server.put('state/conversationId', async (req, res, next) => {
         try {
-            const key = req.header(MEMORY_KEY_HEADER_NAME)
+            const key = req.header(models.MEMORY_KEY_HEADER_NAME)
             let conversationId = req.params.id
             let userName = req.params.username
 
@@ -203,7 +202,7 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
     server.post('/app', async (req, res, next) => {
         try {
             let query = req.getQuery()
-            const key = req.header(MEMORY_KEY_HEADER_NAME)
+            const key = req.header(models.MEMORY_KEY_HEADER_NAME)
             let app: models.AppBase = req.body
 
             let appId = await client.AddApp(app, query)
@@ -217,8 +216,10 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
         }
     })
 
-    /** Renames an existing application or changes its LUIS key
-     * Note: Renaming an application does not affect packages */
+    /**
+     * Renames an existing application or changes its LUIS key
+     * Note: Renaming an application does not affect packages
+     */
     server.put('/app/:appId', async (req, res, next) => {
         try {
             let query = req.getQuery()
@@ -240,7 +241,7 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
     /** Archives an existing application */
     server.del('/app/:appId', async (req, res, next) => {
         try {
-            const key = req.header(MEMORY_KEY_HEADER_NAME)
+            const key = req.header(models.MEMORY_KEY_HEADER_NAME)
             let appId = req.params.appId
             await client.ArchiveApp(appId)
 
@@ -259,8 +260,10 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
         }
     })
 
-    /** Destroys an existing application, including all its models, sessions, and logged dialogs
-     * Deleting an application from the archive really destroys it – no undo. */
+    /**
+     * Destroys an existing application, including all its models, sessions, and logged dialogs
+     * Deleting an application from the archive really destroys it – no undo.
+     */
     server.del('/archive/:appId', async (req, res, next) => {
         try {
             let appId = req.params.appId
@@ -285,7 +288,7 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
     /** Retrieves a list of (active) applications */
     server.get('/apps', async (req, res, next) => {
         try {
-            const key = req.header(MEMORY_KEY_HEADER_NAME)
+            const key = req.header(models.MEMORY_KEY_HEADER_NAME)
             let query = req.getQuery()
             let apps = await client.GetApps(query)
 
@@ -300,7 +303,7 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
         }
     })
 
-    /** Copy applications between accounts*/
+    /** Copy applications between accounts */
     server.post('/apps/copy', async (req, res, next) => {
         let srcUserId = req.params.srcUserId
         let destUserId = req.params.destUserId
@@ -393,7 +396,7 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
     /** Sets which app package is being edited */
     server.post('/app/:appId/edit/:packageId', async (req, res, next) => {
         try {
-            const key = req.header(MEMORY_KEY_HEADER_NAME)
+            const key = req.header(models.MEMORY_KEY_HEADER_NAME)
             let appId = req.params.appId
             let packageId = req.params.packageId
 
@@ -801,7 +804,7 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
      */
     server.put('/app/:appId/traindialog/:trainDialogId/extractor/:turnIndex', async (req, res, next) => {
         try {
-            const key = req.header(MEMORY_KEY_HEADER_NAME)
+            const key = req.header(models.MEMORY_KEY_HEADER_NAME)
             let appId = req.params.appId
             let trainDialogId = req.params.trainDialogId
             let turnIndex = req.params.turnIndex
@@ -820,7 +823,7 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
     /** Create a new teach session based on the current train dialog starting at round turnIndex */
     server.post('/app/:appId/traindialog/:trainDialogId/branch/:turnIndex', async (req, res, next) => {
         try {
-            const key = req.header(MEMORY_KEY_HEADER_NAME)
+            const key = req.header(models.MEMORY_KEY_HEADER_NAME)
             let appId = req.params.appId
             let userName = req.params.username
             let userId = req.params.userid
@@ -866,7 +869,7 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
     /** START SESSION : Creates a new session and a corresponding logDialog */
     server.post('/app/:appId/session', async (req, res, next) => {
         try {
-            const key = req.header(MEMORY_KEY_HEADER_NAME)
+            const key = req.header(models.MEMORY_KEY_HEADER_NAME)
             let appId = req.params.appId
             let sessionCreateParams: models.SessionCreateParams = req.body
             let sessionResponse = await client.StartSession(appId, sessionCreateParams)
@@ -895,7 +898,7 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
     /** EXPIRE SESSION : Expires the current session (timeout) */
     server.put('/app/:appId/session/:sessionId', async (req, res, next) => {
         try {
-            const key = req.header(MEMORY_KEY_HEADER_NAME)
+            const key = req.header(models.MEMORY_KEY_HEADER_NAME)
 
             let memory = CLMemory.GetMemory(key)
             let conversationId = await memory.BotState.ConversationIdAsync();
@@ -920,7 +923,7 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
     /** END SESSION : End a session. */
     server.del('/app/:appId/session/:sessionId', async (req, res, next) => {
         try {
-            const key = req.header(MEMORY_KEY_HEADER_NAME)
+            const key = req.header(models.MEMORY_KEY_HEADER_NAME)
             let appId = req.params.appId
             let sessionId = req.params.sessionId
 
@@ -970,7 +973,7 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
     /** START TEACH SESSION: Creates a new teaching session and a corresponding trainDialog */
     server.post('/app/:appId/teach', async (req, res, next) => {
         try {
-            const key = req.header(MEMORY_KEY_HEADER_NAME)
+            const key = req.header(models.MEMORY_KEY_HEADER_NAME)
             let appId = req.params.appId
             let teachResponse = await client.StartTeach(appId, null)
 
@@ -991,7 +994,7 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
     /** Clear the bot's memory */
     server.del('/app/:appId/botmemory', async (req, res, next) => {
         try {
-            const key = req.header(MEMORY_KEY_HEADER_NAME)
+            const key = req.header(models.MEMORY_KEY_HEADER_NAME)
 
             // Update Memory
             let memory = CLMemory.GetMemory(key)
@@ -1006,7 +1009,7 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
     /** START TEACH SESSION: Creates a new teaching session from existing train dialog */
     server.post('/app/:appId/teachwithhistory', async (req, res, next) => {
         try {
-            const key = req.header(MEMORY_KEY_HEADER_NAME)
+            const key = req.header(models.MEMORY_KEY_HEADER_NAME)
             let appId = req.params.appId
             let userName = req.params.username
             let userId = req.params.userid
@@ -1037,7 +1040,7 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
                 if (teachWithHistory.dialogMode === models.DialogMode.Scorer) {
 
                     // Get entities from my memory
-                    var filledEntities = await memory.BotMemory.FilledEntitiesAsync()
+                    const filledEntities = await memory.BotMemory.FilledEntitiesAsync()
                     let scoreInput: models.ScoreInput = {
                         filledEntities,
                         context: {},
@@ -1076,7 +1079,7 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
      */
     server.put('/app/:appId/teach/:teachId/extractor', async (req, res, next) => {
         try {
-            const key = req.header(MEMORY_KEY_HEADER_NAME)
+            const key = req.header(models.MEMORY_KEY_HEADER_NAME)
             let appId = req.params.appId
             let teachId = req.params.teachId
             let userInput = req.body
@@ -1107,7 +1110,7 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
      */
     server.put('/app/:appId/teach/:teachId/scorer', async (req, res, next) => {
         try {
-            const key = req.header(MEMORY_KEY_HEADER_NAME)
+            const key = req.header(models.MEMORY_KEY_HEADER_NAME)
             let appId = req.params.appId
             let teachId = req.params.teachId
             let uiScoreInput: models.UIScoreInput = req.body
@@ -1173,7 +1176,7 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
      */
     server.post('/app/:appId/teach/:teachId/scorer', async (req, res, next) => {
         try {
-            const key = req.header(MEMORY_KEY_HEADER_NAME)
+            const key = req.header(models.MEMORY_KEY_HEADER_NAME)
             let appId = req.params.appId
             let teachId = req.params.teachId
             let uiTrainScorerStep: models.UITrainScorerStep = req.body
@@ -1214,7 +1217,7 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
      */
     server.del('/app/:appId/teach/:teachId', async (req, res, next) => {
         try {
-            const key = req.header(MEMORY_KEY_HEADER_NAME)
+            const key = req.header(models.MEMORY_KEY_HEADER_NAME)
             let appId = req.params.appId
             let teachId = req.params.teachId
             let save = req.params.save ? `saveDialog=${req.params.save}` : ''
@@ -1258,7 +1261,7 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
 
     server.post('/app/:appId/history', async (req, res, next) => {
         try {
-            const key = req.header(MEMORY_KEY_HEADER_NAME)
+            const key = req.header(models.MEMORY_KEY_HEADER_NAME)
             let appId = req.params.appId
             let userName = req.params.username
             let userId = req.params.userid
@@ -1284,7 +1287,7 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
 
     server.post('/app/:appId/teach/:teachId/undo', async (req, res, next) => {
         try {
-            const key = req.header(MEMORY_KEY_HEADER_NAME)
+            const key = req.header(models.MEMORY_KEY_HEADER_NAME)
             let appId = req.params.appId
             let userName = req.params.username
             let userId = req.params.userid

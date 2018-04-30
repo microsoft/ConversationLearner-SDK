@@ -157,7 +157,7 @@ export class TemplateProvider {
     }
 
     private static GetTemplateVariables(template: any): TemplateVariable[] {
-        var tvs: TemplateVariable[] = []
+        let tvs: TemplateVariable[] = []
         if (template && template.type === "Action.Submit" && (!template.data || !template.data.submit)) {
             this.hasSubmitError = true
         }
@@ -171,7 +171,7 @@ export class TemplateProvider {
             }
         }
 
-        // Itterate through keys
+        // Iterate through keys
         for (let i in template) {
             if (!template.hasOwnProperty(i)) {
                 continue
