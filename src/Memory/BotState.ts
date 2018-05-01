@@ -16,7 +16,7 @@ export interface ConversationSession {
 export interface SessionInfo {
     userName: string,
     userId: string,
-    sessionId: string
+    logDialogId: string
 }
 
 // TODO - move to models
@@ -43,6 +43,9 @@ export enum BotStateType {
 
     // Last time active session was used (in ticks)
     LAST_ACTIVE = 'LAST_ACTIVE', 
+
+    // If session is a chat session what is logDialogId
+    LOG_DIALOG_ID = 'LOG_DIALOG_ID', 
 
     // Current message being processed
     MESSAGE_MUTEX = 'MESSAGE_MUTEX',
@@ -109,6 +112,7 @@ export class BotState {
         await this.SetOnEndSessionCalled(false)
         await this.SetInTeach(false)
         await this.SetSessionId(null)
+        await this.SetLogDialogId(null);
         await this.ClearEditingPackageAsync();
     }
 
@@ -245,8 +249,9 @@ export class BotState {
         await this.SetStateAsync(BotStateType.SESSION_ID, sessionId)
     }
 
-    public async SetSessionAsync(sessionId: string | null, conversationId: string | null, inTeach: boolean, orgSessionId: string | null): Promise<void> {
+    public async SetSessionAsync(sessionId: string | null, logDialogId: string | null, conversationId: string | null, inTeach: boolean, orgSessionId: string | null): Promise<void> {
         await this.SetSessionId(sessionId);
+        await this.SetLogDialogId(logDialogId);
 
         // Only update original sessionId, if one hasn't already been set (could be multiple restarts)
         let existingOrigSesionId = await this.GetOrgSessionIdAsync()
@@ -262,6 +267,7 @@ export class BotState {
 
     public async EndSessionAsync(): Promise<void> {
         await this.SetSessionId(null);
+        await this.SetLogDialogId(null);
         await this.SetOrgSessionId(null);
         await this.SetOnEndSessionCalled(false);
         await this.SetConversationId(null);
@@ -307,6 +313,17 @@ export class BotState {
     }
     
     // ------------------------------------------------
+    //  LOG_DIALOG_ID
+    // ------------------------------------------------
+    public async GetLogDialogId(): Promise<string | null> {
+        return await this.GetStateAsync<string | null>(BotStateType.LOG_DIALOG_ID)
+    }
+
+    public async SetLogDialogId(logDialogId: string | null): Promise<void> {
+        await this.SetStateAsync(BotStateType.LOG_DIALOG_ID, logDialogId)
+    }
+
+    // ------------------------------------------------
     //  MESSAGE_MUTEX
     // ------------------------------------------------
     public async GetMessageProcessing(): Promise<QueuedInput | null> {
@@ -328,17 +345,16 @@ export class BotState {
         const conversationReference = await this.GetConversationReverence();
 
         if (conversationReference && conversationReference.conversation) {
-            const sessionId = await this.GetSessionId(conversationReference.conversation.id);
             return {
                 userName : conversationReference.user && conversationReference.user.name,
                 userId : conversationReference.user && conversationReference.user.id,
-                sessionId: sessionId
+                logDialogId: await this.GetLogDialogId()
             } as SessionInfo
         }
         return {
             userName: '',
             userId: '',
-            sessionId: ''
+            logDialogId: ''
         } as SessionInfo
     }
 }
