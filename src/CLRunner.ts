@@ -101,13 +101,13 @@ export class CLRunner {
     // Add input to queue.  Allows CL to handle out-of-order messages
     private async AddInput(turnContext: BB.TurnContext) : Promise<CLRecognizerResult | null> {
 
+        // Set adapter / conversation reference even if from field not set
+        let conversationReference = BB.TurnContext.getConversationReference(turnContext.activity);
+        this.SetAdapter(turnContext.adapter, conversationReference);
+
         if (turnContext.activity.from === undefined || turnContext.activity.id == undefined) {
             return null;
         }
-
-        let conversationReference = BB.TurnContext.getConversationReference(turnContext.activity);
-
-        this.SetAdapter(turnContext.adapter, conversationReference);
 
         let clMemory = await CLMemory.InitMemory(turnContext.activity.from, conversationReference)
         let botState = clMemory.BotState;
