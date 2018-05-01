@@ -1,4 +1,4 @@
-# ConversationLearner-SKD
+# ConversationLearner-SDK
 
 Conversation Learner Software Development Kit
 
