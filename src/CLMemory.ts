@@ -6,7 +6,7 @@ import * as BB from 'botbuilder'
 import { CLDebug } from './CLDebug'
 import { BotMemory } from './Memory/BotMemory'
 import { BotState } from './Memory/BotState'
-import { AppBase } from 'conversationlearner-models'
+import { AppBase } from '@conversationlearner/models'
 
 export class CLMemory {
     private static memoryStorage: BB.Storage | null = null

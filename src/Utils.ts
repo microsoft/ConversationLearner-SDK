@@ -4,7 +4,7 @@
  */
 import * as BB from 'botbuilder'
 import * as request from 'request'
-import { TrainExtractorStep, TrainDialog, FilledEntityMap } from 'conversationlearner-models'
+import { TrainExtractorStep, TrainDialog, FilledEntityMap } from '@conversationlearner/models'
 
 export class Utils {
     public static SendTyping(adapter: BB.BotAdapter, address: any) {

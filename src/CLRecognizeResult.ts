@@ -4,7 +4,7 @@
  */
 import { CLMemory } from './CLMemory'
 import * as BB from 'botbuilder'
-import { ScoredAction, EntityBase } from 'conversationlearner-models'
+import { ScoredAction, EntityBase } from '@conversationlearner/models'
 
 export interface CLRecognizerResult {
     scoredAction: ScoredAction

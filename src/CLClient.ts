@@ -2,7 +2,7 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.  
  * Licensed under the MIT License.
  */
-import * as models from 'conversationlearner-models'
+import * as models from '@conversationlearner/models'
 import { CLDebug } from './CLDebug'
 import * as NodeCache from 'node-cache'
 import * as Request from 'request'

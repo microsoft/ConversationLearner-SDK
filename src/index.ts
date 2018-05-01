@@ -2,7 +2,7 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.  
  * Licensed under the MIT License.
  */
-import * as models from 'conversationlearner-models'
+import * as models from '@conversationlearner/models'
 import { ConversationLearner } from './ConversationLearner'
 import { ICLOptions } from './CLOptions'
 import { ClientMemoryManager } from './Memory/ClientMemoryManager'
