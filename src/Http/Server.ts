@@ -853,7 +853,7 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
                 let teachResponse = await client.StartTeach(appId, createTeachParams)
 
                 // Start Sesion - with "true" to save the memory from the History
-                await clRunner.InitSessionAsync(memory, teachResponse.teachId, null, { inTeach: true, isContinued: true })
+                await clRunner.InitSessionAsync(memory, teachResponse.teachId, null, null, { inTeach: true, isContinued: true })
                 teachWithHistory.teach = models.ModelUtils.ToTeach(teachResponse)
             }
             res.send(teachWithHistory)
@@ -877,7 +877,7 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
 
             let clRunner = CLRunner.Get(appId);
             let memory = CLMemory.GetMemory(key)
-            clRunner.InitSessionAsync(memory, sessionResponse.sessionId, null, { inTeach: false, isContinued: false })
+            clRunner.InitSessionAsync(memory, sessionResponse.sessionId, sessionResponse.logDialogId, null, { inTeach: false, isContinued: false })
         } catch (error) {
             HandleError(res, error)
         }
@@ -979,7 +979,7 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
 
             let clRunner = CLRunner.Get(appId);
             let memory = CLMemory.GetMemory(key)
-            clRunner.InitSessionAsync(memory, teachResponse.teachId, null, { inTeach: true, isContinued: false })
+            clRunner.InitSessionAsync(memory, teachResponse.teachId, null, null, { inTeach: true, isContinued: false })
 
             // Include and persistent memories in the response
             let memories = await memory.BotMemory.DumpMemory()
@@ -1033,7 +1033,7 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
                 let teachResponse = await client.StartTeach(appId, createTeachParams)
 
                 // Start Sesion - with "true" to save the memory from the History
-                await clRunner.InitSessionAsync(memory, teachResponse.teachId, null, { inTeach: true, isContinued: true })
+                await clRunner.InitSessionAsync(memory, teachResponse.teachId, null, null, { inTeach: true, isContinued: true })
                 teachWithHistory.teach = models.ModelUtils.ToTeach(teachResponse)
 
                 // If last action wasn't terminal need to score
@@ -1323,7 +1323,7 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
                 let teachResponse = await client.StartTeach(appId, createTeachParams)
 
                 // Start Sesion - with "true" to save the memory from the History
-                await clRunner.InitSessionAsync(memory, teachResponse.teachId, null, { inTeach: true, isContinued: true })
+                await clRunner.InitSessionAsync(memory, teachResponse.teachId, null, null, { inTeach: true, isContinued: true })
                  teachWithHistory.teach = models.ModelUtils.ToTeach(teachResponse)
             } else {
                 // Failed, so restore the old memory

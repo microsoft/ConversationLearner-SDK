@@ -145,7 +145,7 @@ export class CLRunner {
             throw new Error(`Attempted to start session but user.id was not set on current request.`)
         }
 
-        await this.InitSessionAsync(memory, sessionResponse.sessionId, user.id, { inTeach: false, isContinued: false })
+        await this.InitSessionAsync(memory, sessionResponse.sessionId, sessionResponse.logDialogId, user.id, { inTeach: false, isContinued: false })
         CLDebug.Verbose(`Started Session: ${sessionResponse.sessionId} - ${user.id}`)
         return sessionResponse.sessionId
     }
@@ -177,7 +177,7 @@ export class CLRunner {
 
 
     // Initialize a log or teach session 
-    public async InitSessionAsync(clMemory: CLMemory, sessionId: string, conversationId: string | null, params: ISessionStartParams, orgSessionId: string | null = null): Promise<void> {
+    public async InitSessionAsync(clMemory: CLMemory, sessionId: string, logDialogId: string | null, conversationId: string | null, params: ISessionStartParams, orgSessionId: string | null = null): Promise<void> {
     
         let app = await clMemory.BotState.GetApp()
 
@@ -193,7 +193,7 @@ export class CLRunner {
             }
         }
         await this.CallSessionStartCallback(clMemory, app ? app.appId : null);
-        await clMemory.BotState.SetSessionAsync(sessionId, conversationId, params.inTeach, orgSessionId)
+        await clMemory.BotState.SetSessionAsync(sessionId, logDialogId, conversationId, params.inTeach, orgSessionId)
     }
 
     // End a teach or log session
@@ -299,7 +299,7 @@ export class CLRunner {
         
                     // Update Memory, passing in original sessionId for reference
                     let conversationId = await memory.BotState.GetConversationId()
-                    this.InitSessionAsync(memory, sessionResponse.sessionId, conversationId, { inTeach: inTeach, isContinued: false }, sessionId)
+                    this.InitSessionAsync(memory, sessionResponse.sessionId, sessionResponse.logDialogId, conversationId, { inTeach: inTeach, isContinued: false }, sessionId)
 
                     // Set new sessionId
                     sessionId = sessionResponse.sessionId;
@@ -359,7 +359,13 @@ export class CLRunner {
             // End the session, so use can potentially recover
             await this.EndSessionAsync(activity.from.id)
 
-            let msg = CLDebug.Error(error, errComponent)
+            // Special message for 403 as it's like a bad appId
+            let customError = null;
+            if (error.statusCode === 403) {
+                customError = `403 Forbidden:  Please check you have set a valid CONVERSATION_LEARNER_APP_ID`
+            }
+
+            let msg = CLDebug.Error(customError || error, errComponent)
             if (memory) {
                 await this.SendMessage(memory, msg, activity.id)
             }

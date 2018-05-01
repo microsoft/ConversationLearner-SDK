@@ -24,8 +24,8 @@
   "dependencies": {
     "async-file": "^2.0.2",
     "botbuilder": "4.0.0-m4.0",
-    "conversationlearner-models": "0.148.0",
-    "conversationlearner-ui": "0.224.0",
+    "conversationlearner-models": "0.152.0",
+    "conversationlearner-ui": "0.228.0",
     "express": "^4.15.3",
     "filenamify": "^2.0.0",
     "node-cache": "^4.1.1",
