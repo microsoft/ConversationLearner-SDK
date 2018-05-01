@@ -29,7 +29,7 @@
     "express": "^4.15.3",
     "filenamify": "^2.0.0",
     "node-cache": "^4.1.1",
-    "offline-directline": "^1.2.2",
+    "offline-directline": "1.2.2",
     "redis": "^2.7.1",
     "request": "^2.79.0",
     "restify": "^6.3.2",
