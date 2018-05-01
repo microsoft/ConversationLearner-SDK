@@ -5,7 +5,7 @@
 import { CLMemory } from '../CLMemory'
 import { CLDebug } from '../CLDebug'
 import { Utils } from '../Utils'
-import { Memory, FilledEntity, MemoryValue, FilledEntityMap } from 'conversationlearner-models'
+import { Memory, FilledEntity, MemoryValue, FilledEntityMap } from '@conversationlearner/models'
 
 const NEGATIVE_PREFIX = '~'
 

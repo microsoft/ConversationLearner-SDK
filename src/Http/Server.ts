@@ -13,7 +13,7 @@ import { CLRecognizerResult } from '../CLRecognizeResult'
 import { TemplateProvider } from '../TemplateProvider'
 import { Utils, replace, CL_DEVELOPER } from '../Utils'
 import * as XMLDom from 'xmldom'
-import * as models from 'conversationlearner-models'
+import * as models from '@conversationlearner/models'
 import * as corsMiddleware from 'restify-cors-middleware'
 import * as crypto from 'crypto'
 

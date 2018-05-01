@@ -5,7 +5,7 @@
 import * as BB from 'botbuilder'
 import { ConversationLearner } from '../ConversationLearner'
 import { CLMemory } from '../CLMemory'
-import { AppBase } from 'conversationlearner-models'
+import { AppBase } from '@conversationlearner/models'
 import { QueuedInput } from './InputQueue';
 
 export interface ConversationSession {

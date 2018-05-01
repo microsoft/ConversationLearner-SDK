@@ -4,7 +4,7 @@
  */
 import * as fs from 'fs'
 import * as path from 'path'
-import { Template, TemplateVariable, RenderedActionArgument } from 'conversationlearner-models'
+import { Template, TemplateVariable, RenderedActionArgument } from '@conversationlearner/models'
 import { CLDebug } from './CLDebug'
 
 export class TemplateProvider {

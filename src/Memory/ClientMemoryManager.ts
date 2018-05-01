@@ -6,7 +6,7 @@ import { BotMemory } from '../Memory/BotMemory'
 import { SessionInfo } from '../Memory/BotState'
 import { CLMemory } from '../CLMemory'
 import { CLDebug } from '../CLDebug'
-import { EntityBase, MemoryValue, FilledEntity, FilledEntityMap } from 'conversationlearner-models'
+import { EntityBase, MemoryValue, FilledEntity, FilledEntityMap } from '@conversationlearner/models'
 
 export class ClientMemoryManager {
     public botMemory: BotMemory
