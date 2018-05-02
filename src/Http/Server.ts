@@ -64,7 +64,7 @@ export const HandleError = (response: restify.Response, err: any): void => {
         error += `${err.statusMessage}\n`
     }
     if (err.body && err.body.errorMessages && err.body.errorMessages.length > 0) {
-        error += err.body.errorMessages.join()
+        error += err.body.errorMessages.map((em: any) => JSON.stringify(em)).join()
     }
     let statusCode = err.statusCode ? err.statusCode : 500
     response.send(statusCode, error)
