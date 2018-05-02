@@ -161,18 +161,18 @@ export class BotState {
     //  EDITING_PACKAGE
     // ------------------------------------------------
     public async GetEditingPackages(): Promise<ActiveApps> {
-        return await this.GetStateAsync<ActiveApps>(BotStateType.EDITING_PACKAGE);
+        return await this.GetStateAsync<ActiveApps>(BotStateType.EDITING_PACKAGE) || {}
     }
 
     public async SetEditingPackage(appId: string, packageId: string): Promise<{ [appId: string]: string }> {
-        let activeApps = await this.GetStateAsync<ActiveApps>(BotStateType.EDITING_PACKAGE);
+        let activeApps = await this.GetStateAsync<ActiveApps>(BotStateType.EDITING_PACKAGE) || {}
         activeApps[appId] = packageId;
         await this.SetStateAsync<ActiveApps>(BotStateType.EDITING_PACKAGE, activeApps);
         return activeApps;
     }
 
     public async GetEditingPackageForApp(appId: string): Promise<string> {
-        let activeApps = await this.GetStateAsync<ActiveApps>(BotStateType.EDITING_PACKAGE);
+        let activeApps = await this.GetStateAsync<ActiveApps>(BotStateType.EDITING_PACKAGE) || {}
         return activeApps[appId];
     }
 
