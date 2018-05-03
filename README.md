@@ -11,8 +11,10 @@ This repo also includes a way to host the Conversation Learner adminstration web
 Install @conversationlearner/sdk in consuming project:
 
 ```bash
-npm install @conversationlearner/sdk
+npm install @conversationlearner/sdk --save-exact
 ```
+
+> Note: We recommend using --save-exact to lock the version since we are NOT following SemVer at this time. This can help prevent accidental package updates which may contain breaking changes if you are not using package-lock.json. We will move to following SemVer soon as we improve our release process.
 
 Using the middlware:
 
