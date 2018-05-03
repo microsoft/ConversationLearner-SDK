@@ -8,16 +8,16 @@ This repo also includes a way to host the Conversation Learner adminstration web
 
 # Getting started
 
-Install conversationlearner-sdk in consuming project:
+Install @conversationlearner/sdk in consuming project:
 
 ```bash
-npm install conversationlearner-sdk
+npm install @conversationlearner/sdk
 ```
 
 Using the middlware:
 
 ```typescript
-import { ConversationLearner, ICLOptions, ClientMemoryManager } from 'conversationlearner-sdk'
+import { ConversationLearner, ICLOptions, ClientMemoryManager } from '@conversationlearner/sdk'
 
 ...
 
@@ -48,7 +48,7 @@ server.post('/api/messages', (req, res) => {
 Starting the UI server:
 
 ```typescript
-import { startUiServer } from 'conversationlearner-sdk'
+import { startUiServer } from '@conversationlearner/sdk'
 
 startUiServer()
 ```

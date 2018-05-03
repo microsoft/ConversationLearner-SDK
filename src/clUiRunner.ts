@@ -3,7 +3,7 @@
  * Licensed under the MIT License.
  */
 /**
- * This is just a convenience for conversationlearner-sdk developers to test the UI
+ * This is just a convenience for @conversationlearner/sdk developers to test the UI
  */
 import startCLUi from './clUi'
 
