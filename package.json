@@ -22,8 +22,8 @@
   "author": "Microsoft Conversation Learner Team",
   "license": "MIT",
   "dependencies": {
-    "@conversationlearner/models": "0.154.0",
-    "@conversationlearner/ui": "0.235.0",
+    "@conversationlearner/models": "0.156.0",
+    "@conversationlearner/ui": "0.237.0",
     "async-file": "^2.0.2",
     "botbuilder": "4.0.0-m4.1",
     "express": "^4.15.3",
@@ -79,6 +79,7 @@
     "printWidth": 140
   },
   "publishConfig": {
-    "tag": "next"
+    "tag": "next",
+    "access": "public"
   }
 }
