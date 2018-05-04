@@ -253,60 +253,64 @@ export class CLRunner {
 
             let sessionId = await memory.BotState.GetSessionId(activity.from.id)
 
-            // Make sure session hasn't expired
-            if (!inTeach && sessionId) {
+            // If I'm not in teach mode
+            if (!inTeach) {
 
-
+                // If if was a conversation update
                 if (activity.type == "conversationUpdate")  {
-                    
                     CLDebug.Verbose(`Conversation update...  +${JSON.stringify(activity.membersAdded)} -${JSON.stringify(activity.membersRemoved)}`);
 
-                    // End the current session for user joining the conversation
-                    if (activity.membersAdded &&
-                        activity.from.id === activity.membersAdded[0].id) {
-                        await this.clClient.EndSession(app.appId, sessionId);
-                        await this.EndSessionAsync(activity.from.id)
+                    if (sessionId) {
+                        // End the current session for user joining the conversation
+                        if (activity.membersAdded &&
+                            activity.from.id === activity.membersAdded[0].id) {
+                            await this.clClient.EndSession(app.appId, sessionId);
+                            await this.EndSessionAsync(activity.from.id)
+                        }
                     }
 
+                    // Ignore message (for now)
                     await InputQueue.MessageHandled(memory.BotState, activity.id);
                     return null;
                 }
                 
-                // If session expired, create a new one
-                const currentTicks = new Date().getTime();
-                let lastActive = await memory.BotState.GetLastActive()
-                let passedTicks = currentTicks - lastActive;
-                if (passedTicks > this.maxTimeout!) { 
+                if (sessionId) {
+                    // If session expired, create a new one
+                    const currentTicks = new Date().getTime();
+                    let lastActive = await memory.BotState.GetLastActive()
+                    let passedTicks = currentTicks - lastActive;
+                    if (passedTicks > this.maxTimeout!) { 
 
-                    // End the current session, clear the memory
-                    await this.clClient.EndSession(app.appId, sessionId);
-                    await this.EndSessionAsync(activity.from.id)
+                        // End the current session, clear the memory
+                        await this.clClient.EndSession(app.appId, sessionId);
+                        await this.EndSessionAsync(activity.from.id)
 
-                    // If I'm not in the UI, reload the App to get any changes (live package version may have been updated)
-                    if (!inEditingUI) {
-                        app = await this.clClient.GetApp(this.appId)
-                        await memory.SetAppAsync(app)
-              
-                        if (!app) {
-                            let error = "ERROR: AppId not specified.  When running in a channel (i.e. Skype) or the Bot Framework Emulator, CONVERSATION_LEARNER_APP_ID must be specified in your Bot's .env file or Application Settings on the server"
-                            await this.SendMessage(memory, error, activity.id)
-                            return null
+                        // If I'm not in the UI, reload the App to get any changes (live package version may have been updated)
+                        if (!inEditingUI) {
+                            app = await this.clClient.GetApp(this.appId)
+                            await memory.SetAppAsync(app)
+                
+                            if (!app) {
+                                let error = "ERROR: AppId not specified.  When running in a channel (i.e. Skype) or the Bot Framework Emulator, CONVERSATION_LEARNER_APP_ID must be specified in your Bot's .env file or Application Settings on the server"
+                                await this.SendMessage(memory, error, activity.id)
+                                return null
+                            }
                         }
-                    }
-                    
-                    // Start a new session 
-                    let sessionResponse = await this.clClient.StartSession(app.appId, {saveToLog: app.metadata.isLoggingOn})
-        
-                    // Update Memory, passing in original sessionId for reference
-                    let conversationId = await memory.BotState.GetConversationId()
-                    this.InitSessionAsync(memory, sessionResponse.sessionId, sessionResponse.logDialogId, conversationId, { inTeach: inTeach, isContinued: false }, sessionId)
+                        
+                        // Start a new session 
+                        let sessionResponse = await this.clClient.StartSession(app.appId, {saveToLog: app.metadata.isLoggingOn})
+            
+                        // Update Memory, passing in original sessionId for reference
+                        let conversationId = await memory.BotState.GetConversationId()
+                        this.InitSessionAsync(memory, sessionResponse.sessionId, sessionResponse.logDialogId, conversationId, { inTeach: inTeach, isContinued: false }, sessionId)
 
-                    // Set new sessionId
-                    sessionId = sessionResponse.sessionId;
-                }
-                // Otherwise update last access time
-                else {
-                    await memory.BotState.SetLastActive(currentTicks);
+                        // Set new sessionId
+                        sessionId = sessionResponse.sessionId;
+                    }
+                    // Otherwise update last access time
+                    else {
+                        await memory.BotState.SetLastActive(currentTicks);
+                    }
                 }
             }
 
