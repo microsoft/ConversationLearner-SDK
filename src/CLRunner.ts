@@ -273,6 +273,11 @@ export class CLRunner {
                     await InputQueue.MessageHandled(memory.BotState, activity.id);
                     return null;
                 }
+                // Handle any other non-message input
+                else if (activity.type !== "message") {
+                    await InputQueue.MessageHandled(memory.BotState, activity.id);
+                    return null;
+                }
                 
                 if (sessionId) {
                     // If session expired, create a new one
