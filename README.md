@@ -28,9 +28,7 @@ ConversationLearner.Init({
     appId: process.env.CONVERSATION_LEARNER_APP_ID,
     redisServer: process.env.CONVERSATION_LEARNER_REDIS_SERVER,  (Optional)
     redisKey: process.env.CONVERSATION_LEARNER_REDIS_KEY,        (Optional)
-    localhost: process.env.DOL_START ? process.env.DOL_START.toLowerCase() === 'true' : true,
-    user: process.env.CONVERSATION_LEARNER_USER,
-    secret: process.env.CONVERSATION_LEARNER_SECRET
+    localhost: process.env.DOL_START ? process.env.DOL_START.toLowerCase() === 'true' : true
 });
 
 ...
