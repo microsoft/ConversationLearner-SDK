@@ -80,7 +80,7 @@ export class CLClient {
             return this.MakeURL(apiPath, query)
         }
         
-        // The base uri for session API in cognitive services APIM is in the form of '<service url>/blis/session/v1.0/'
+        // The base uri for session API in cognitive services APIM is in the form of '<service url>/conversationlearner/session/v1.0/'
         // Session API are the following api: 
         //  1) POST /app/<appId>/session
         //  2) PUT /app/<appId>/session/extract
@@ -100,7 +100,7 @@ export class CLClient {
         else
         {
             // When api version information is not part of the serviceUrl, we simply add /session/ to end of the api
-            // example: https://westus.api.cognitive.microsoft.com/blis/ -> https://westus.api.cognitive.microsoft.com/blis/session/
+            // example: https://westus.api.cognitive.microsoft.com/conversationlearner/ -> https://westus.api.cognitive.microsoft.com/conversationlearner/session/
             baseUri += 'session/'
         }
         return this.BuildURL(baseUri, apiPath, query)
