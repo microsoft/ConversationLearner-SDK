@@ -1201,7 +1201,7 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
             } as CLRecognizerResult
 
             let clRunner = CLRunner.Get(appId);
-            await clRunner.SendIntent(intent)
+            await clRunner.SendIntent(intent, true)
 
             let memories = await memory.BotMemory.DumpMemory()
             let uiTeachResponse: models.UITeachResponse = { teachResponse, memories }

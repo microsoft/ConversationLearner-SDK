@@ -11,7 +11,7 @@ export class CLDebug {
     public static cache: string = ''
     public static enabled: boolean
     public static verbose: boolean = true
-    public static logging: string = '' // OPTIONS: "messagequeue client flow memory memverbose";
+    public static logging: string = 'client' // OPTIONS: "messagequeue client clientdata flow memory memverbose";
 
     public static InitLogger(adapter: BB.BotAdapter, conversationReference: Partial<BB.ConversationReference>) {
         CLDebug.adapter = adapter
@@ -41,15 +41,20 @@ export class CLDebug {
 
     public static LogRequest(method: string, path: string, payload: any) {
         if (CLDebug.logging.includes('client')) {
-            let message = `${method} //${path}`
-            const formattedBody = payload.body ? JSON.stringify(payload.body, null, '  ') : ''
-            if (formattedBody.length > 0) {
-                message = `${message}
-                    
-${formattedBody}
-                `
-            }
 
+            // Ignore training status messages
+            if (path.indexOf('trainingstatus') > 0) {
+                return
+            }
+            
+            let message = `${method} //${path}`
+
+            if (CLDebug.logging.includes('clientbody')) {
+                const formattedBody = payload.body ? JSON.stringify(payload.body, null, '  ') : ''
+                if (formattedBody.length > 0) {
+                    message = `${message}\n\n${formattedBody}`
+                }
+            }
             console.log(message)
 
             if (CLDebug.enabled) {

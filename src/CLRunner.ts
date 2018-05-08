@@ -552,7 +552,7 @@ export class CLRunner {
         }
     }
 
-    public async RenderTemplateAsync(conversationReference: Partial<BB.ConversationReference>, clRecognizeResult: CLRecognizerResult): Promise<Partial<BB.Activity> | string | null> {
+    public async RenderTemplateAsync(conversationReference: Partial<BB.ConversationReference>, clRecognizeResult: CLRecognizerResult, inTeach = false): Promise<Partial<BB.Activity> | string | null> {
         // Get filled entities from memory
         let filledEntityMap = await clRecognizeResult.memory.BotMemory.FilledEntityMap()
         filledEntityMap = addEntitiesById(filledEntityMap)
@@ -580,6 +580,10 @@ export class CLRunner {
                     clRecognizeResult.memory,
                     clRecognizeResult.clEntities
                 )
+                // API may not have output, but need to show something to user in WebChat do they can edit if in Teach mode
+                if (!message && inTeach) {
+                    message = this.APICard(apiAction);
+                }
                 break
             case CLM.ActionTypes.CARD:
                 const cardAction = new CLM.CardAction(clRecognizeResult.scoredAction as any)
@@ -607,18 +611,19 @@ export class CLRunner {
                     throw new Error(`Attempted to get session by user id: ${user.id} but session was not found`)
                 }
 
-                let bestAction = await this.Score(
-                    app.appId,
-                    sessionId,
-                    clRecognizeResult.memory,
-                    '',
-                    [],
-                    clRecognizeResult.clEntities,
-                    clRecognizeResult.inTeach
-                )
-
                 // If not inTeach, send message to user
                 if (!clRecognizeResult.inTeach) {
+
+                    let bestAction = await this.Score(
+                        app.appId,
+                        sessionId,
+                        clRecognizeResult.memory,
+                        '',
+                        [],
+                        clRecognizeResult.clEntities,
+                        clRecognizeResult.inTeach
+                    )
+
                     clRecognizeResult.scoredAction = bestAction
                     message = await this.RenderTemplateAsync(conversationReference, clRecognizeResult)
                     if (message != null) {
@@ -630,7 +635,7 @@ export class CLRunner {
         return message
     }
 
-    public async SendIntent(intent: CLRecognizerResult): Promise<void> {
+    public async SendIntent(intent: CLRecognizerResult, inTeach = false): Promise<void> {
 
         let conversationReference = await intent.memory.BotState.GetConversationReverence();
 
@@ -639,7 +644,7 @@ export class CLRunner {
             return
         }
 
-        let message = await this.RenderTemplateAsync(conversationReference, intent)
+        let message = await this.RenderTemplateAsync(conversationReference, intent, inTeach)
     
         if (message != null) {
             await this.adapter.continueConversation(conversationReference, async (context) => {
