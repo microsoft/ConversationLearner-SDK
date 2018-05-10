@@ -3,7 +3,7 @@
  * Licensed under the MIT License.
  */
 import * as BB from 'botbuilder'
-import { CLDebug } from './CLDebug'
+import { CLDebug, DebugType } from './CLDebug'
 import { BotMemory } from './Memory/BotMemory'
 import { BotState } from './Memory/BotState'
 import { AppBase } from '@conversationlearner/models'
@@ -56,7 +56,7 @@ export class CLMemory {
         let key = this.Key(datakey)
         let cacheData = this.memCache[key]
         if (cacheData) {
-            CLDebug.Log(`-< ${key} : ${cacheData}`, 'memverbose')
+            CLDebug.Log(`-< ${key} : ${cacheData}`, DebugType.MemVerbose)
             return cacheData
         } else {
             try {
@@ -66,7 +66,7 @@ export class CLMemory {
                 } else {
                     this.memCache[key] = null
                 }
-                CLDebug.Log(`R< ${key} : ${this.memCache[key]}`, 'memory')
+                CLDebug.Log(`R< ${key} : ${this.memCache[key]}`, DebugType.Memory)
                 return this.memCache[key]
             }
             catch (err) {
@@ -91,12 +91,12 @@ export class CLMemory {
             // First check mem cache to see if anything has changed, if not, can skip write
             let cacheData = this.memCache[key]
             if (cacheData == value) {
-                CLDebug.Log(`-> ${key} : ${value}`, 'memverbose')
+                CLDebug.Log(`-> ${key} : ${value}`, DebugType.MemVerbose)
             } else {
                 // Write to memory storage (use * for etag)
                 await CLMemory.memoryStorage.write({ [key]: { value: value, eTag: '*' } })
                 this.memCache[key] = value
-                CLDebug.Log(`W> ${key} : ${value}`, 'memory')
+                CLDebug.Log(`W> ${key} : ${value}`, DebugType.Memory)
             }
         } catch (err) {
             CLDebug.Error(err)
@@ -110,7 +110,7 @@ export class CLMemory {
             // First check mem cache to see if already null, if not, can skip write
             let cacheData = this.memCache[key]
             if (!cacheData) {
-                CLDebug.Log(`-> ${key} : -----`, 'memverbose')
+                CLDebug.Log(`-> ${key} : -----`, DebugType.MemVerbose)
             } else {
                 // TODO: Remove possibility of being null
                 if (!CLMemory.memoryStorage) {
@@ -120,7 +120,7 @@ export class CLMemory {
 
                     CLMemory.memoryStorage.delete([key])
                     this.memCache[key] = null
-                    CLDebug.Log(`D> ${key} : -----`, 'memory')
+                    CLDebug.Log(`D> ${key} : -----`, DebugType.Memory)
                 }
             }
         } catch (err) {

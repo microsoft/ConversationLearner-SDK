@@ -4,7 +4,7 @@
  */
 import * as BB from 'botbuilder'
 import { BotState } from './BotState'
-import { CLDebug } from '../CLDebug'
+import { CLDebug, DebugType } from '../CLDebug'
 
 const MESSAGE_TIMEOUT = 10000
 
@@ -42,7 +42,7 @@ export class InputQueue {
         } as QueuedInput
 
         this.messageQueue.push(queuedInput);
-        CLDebug.Log(`ADD QUEUE: ${conversationId} ${this.messageQueue.length}`,`messagequeue`)
+        CLDebug.Log(`ADD QUEUE: ${conversationId} ${this.messageQueue.length}`, DebugType.MessageQueue)
     }
 
     // Attempt to process next message in the queue
@@ -57,7 +57,7 @@ export class InputQueue {
             const age = now - messageProcessing.timestamp;
 
             if (age > MESSAGE_TIMEOUT) {
-                CLDebug.Log(`EXPIRED: ${messageProcessing.conversationId} ${this.messageQueue.length}`,`messagequeue`)
+                CLDebug.Log(`EXPIRED: ${messageProcessing.conversationId} ${this.messageQueue.length}`, DebugType.MessageQueue)
                 await botState.MessageProcessingPopAsync();
                 let queuedInput = this.messageQueue.find(mq => mq.conversationId == messageProcessing.conversationId);
                 if (queuedInput) {
@@ -65,9 +65,9 @@ export class InputQueue {
                     queuedInput.callback(true, queuedInput.conversationId);
                 }
                 else {
-                    CLDebug.Log(`EXPIRE-WARNING: Couldn't find queud message`,`messagequeue`)
+                    CLDebug.Log(`EXPIRE-WARNING: Couldn't find queud message`, DebugType.MessageQueue)
                 }
-                CLDebug.Log(`EXPIRE-POP: ${messageProcessing.conversationId} ${this.messageQueue.length}`,`messagequeue`)
+                CLDebug.Log(`EXPIRE-POP: ${messageProcessing.conversationId} ${this.messageQueue.length}`, DebugType.MessageQueue)
             }
         }
 
@@ -90,15 +90,15 @@ export class InputQueue {
                 await botState.SetMessageProcessing(messageProcessing);
 
                 // Fire the callback with success
-                CLDebug.Log(`PROCESS-CALLBACK: ${messageProcessing.conversationId} ${this.messageQueue.length}`,`messagequeue`)
+                CLDebug.Log(`PROCESS-CALLBACK: ${messageProcessing.conversationId} ${this.messageQueue.length}`, DebugType.MessageQueue)
                 messageProcessing.callback(false, messageProcessing.conversationId);
             }
             else {
-                CLDebug.Log(`PROCESS-ERR: No Message`,`messagequeue`)
+                CLDebug.Log(`PROCESS-ERR: No Message`, DebugType.MessageQueue)
             }
         }
         else {
-            CLDebug.Log(`PROCESS-NEXT: Empty`,`messagequeue`)
+            CLDebug.Log(`PROCESS-NEXT: Empty`, DebugType.MessageQueue)
         }
     }
 
@@ -106,13 +106,13 @@ export class InputQueue {
     public static async MessageHandled(botState: BotState, conversationId: string | undefined): Promise<void> {
 
         if (!conversationId)  {
-            CLDebug.Log(`HANDLE: Missing conversation id`,`messagequeue`)
+            CLDebug.Log(`HANDLE: Missing conversation id`, DebugType.MessageQueue)
         }
         let messageProcessing = await botState.MessageProcessingPopAsync();
 
         // Check for consistency
         if (messageProcessing && messageProcessing.conversationId === conversationId) {
-            CLDebug.Log(`HANDLE-POP: ${messageProcessing.conversationId} ${this.messageQueue.length}`,`messagequeue`)
+            CLDebug.Log(`HANDLE-POP: ${messageProcessing.conversationId} ${this.messageQueue.length}`, DebugType.MessageQueue)
         }
 
         // Process next message in the queue
