@@ -5,19 +5,30 @@
 import { Utils } from './Utils'
 import * as BB from 'botbuilder'
 
+export enum DebugType {
+    Client = 1 << 0,
+    ClientBody = 1 << 1,
+    MessageQueue = 1 << 2,
+    Memory = 1 << 3,
+    MemVerbose = 1 << 4
+}
+
 export class CLDebug {
     public static adapter: BB.BotAdapter
     public static conversationReference: Partial<BB.ConversationReference>
     public static cache: string = ''
     public static enabled: boolean
     public static verbose: boolean = true
-    public static logging: string = 'client' // OPTIONS: "messagequeue client clientdata flow memory memverbose";
+    public static debugType: DebugType = DebugType.Client | DebugType.ClientBody
 
     public static InitLogger(adapter: BB.BotAdapter, conversationReference: Partial<BB.ConversationReference>) {
         CLDebug.adapter = adapter
         CLDebug.conversationReference = conversationReference;
     }
 
+    private static HasDebugType(debugType: DebugType) : boolean {
+        return (debugType & this.debugType) === debugType
+    }
     private static async SendCache() {
         if (CLDebug.adapter && CLDebug.cache) {
 
@@ -28,8 +39,8 @@ export class CLDebug {
         }
     }
 
-    public static Log(text: string, filter?: string) {
-        if (!filter || CLDebug.logging.indexOf(filter) >= 0) {
+    public static Log(text: string, filter?: DebugType) {
+        if (!filter || this.HasDebugType(filter)) {
             console.log(text)
 
             if (CLDebug.enabled) {
@@ -40,16 +51,16 @@ export class CLDebug {
     }
 
     public static LogRequest(method: string, path: string, payload: any) {
-        if (CLDebug.logging.includes('client')) {
+        if (this.HasDebugType(DebugType.Client)) {
 
             // Ignore training status messages
             if (path.indexOf('trainingstatus') > 0) {
                 return
             }
-            
+
             let message = `${method} //${path}`
 
-            if (CLDebug.logging.includes('clientbody')) {
+            if (this.HasDebugType(DebugType.ClientBody)) {
                 const formattedBody = payload.body ? JSON.stringify(payload.body, null, '  ') : ''
                 if (formattedBody.length > 0) {
                     message = `${message}\n\n${formattedBody}`
