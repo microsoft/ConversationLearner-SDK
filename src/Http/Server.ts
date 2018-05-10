@@ -1151,7 +1151,8 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
      */
     server.put('/app/:appId/teach/:teachId/rescore', async (req, res, next) => {
         try {
-            const { key, appId, teachId } = req.params
+            const key = req.header(models.MEMORY_KEY_HEADER_NAME)
+            const { appId, teachId } = req.params
             const scoreInput: models.ScoreInput = req.body
             const memory = CLMemory.GetMemory(key)
 
