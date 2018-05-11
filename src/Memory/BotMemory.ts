@@ -92,7 +92,7 @@ export class BotMemory {
             }
         }
 
-        let displayText = builtinType ? Utils.PrebuiltDisplayText(builtinType, resolution, entityValue) : null
+        let displayText = builtinType ? Utils.PrebuiltDisplayText(builtinType, resolution, entityValue) : entityValue
 
         const filledEntity = this.filledEntities.map[entityName]
         // Check if entity buckets values
