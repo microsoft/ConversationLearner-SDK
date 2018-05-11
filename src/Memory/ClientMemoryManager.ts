@@ -39,6 +39,10 @@ export class ClientMemoryManager {
             CLDebug.Error(`Can't find Entity named: ${entityName}`)
             return
         }
+        if (entity.entityType != 'LUIS') {
+            CLDebug.Error(`Not allowed to set values of pre-built Entities: ${entityName}`)
+            return
+        }
 
         if (typeof entityValue == 'object') {
             entityValue = JSON.stringify(entityValue);
@@ -55,6 +59,10 @@ export class ClientMemoryManager {
 
         if (!entity) {
             CLDebug.Error(`Can't find Entity named: ${entityName}`)
+            return
+        }
+        if (entity.entityType != 'LUIS') {
+            CLDebug.Error(`Not allowed to set values of pre-built Entities: ${entityName}`)
             return
         }
         if (!entity.isMultivalue) {
