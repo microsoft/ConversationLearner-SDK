@@ -6,7 +6,7 @@ import { BotMemory } from '../Memory/BotMemory'
 import { SessionInfo } from '../Memory/BotState'
 import { CLMemory } from '../CLMemory'
 import { CLDebug } from '../CLDebug'
-import { EntityBase, MemoryValue, FilledEntity, FilledEntityMap } from '@conversationlearner/models'
+import { EntityBase, MemoryValue, FilledEntity, FilledEntityMap, EntityType } from '@conversationlearner/models'
 
 export class ClientMemoryManager {
     public botMemory: BotMemory
@@ -39,7 +39,7 @@ export class ClientMemoryManager {
             CLDebug.Error(`Can't find Entity named: ${entityName}`)
             return
         }
-        if (entity.entityType != 'LUIS') {
+        if (entity.entityType != EntityType.LOCAL) {
             CLDebug.Error(`Not allowed to set values of pre-built Entities: ${entityName}`)
             return
         }
@@ -61,7 +61,7 @@ export class ClientMemoryManager {
             CLDebug.Error(`Can't find Entity named: ${entityName}`)
             return
         }
-        if (entity.entityType != 'LUIS') {
+        if (entity.entityType != EntityType.LOCAL) {
             CLDebug.Error(`Not allowed to set values of pre-built Entities: ${entityName}`)
             return
         }
