@@ -1060,10 +1060,11 @@ export class CLRunner {
                 }
 
                 let botActivity: Partial<BB.Activity> | null = null
+                let botId = `BOT-${userId}`
                 if (typeof botResponse == 'string') {
                     botActivity = {
                         id: generateGUID(),
-                        from: { id: CLM.CL_USER_NAME_ID, name: CLM.CL_USER_NAME_ID, role: BB.RoleTypes.Bot },
+                        from: { id: botId, name: CLM.CL_USER_NAME_ID, role: BB.RoleTypes.Bot },
                         type: 'message',
                         text: botResponse,
                         channelData: channelData
@@ -1071,7 +1072,7 @@ export class CLRunner {
                 } else if (botResponse) {
                     botActivity = botResponse as BB.Activity
                     botActivity.id = generateGUID()
-                    botActivity.from = { id: CLM.CL_USER_NAME_ID, name: CLM.CL_USER_NAME_ID, role: BB.RoleTypes.Bot }
+                    botActivity.from = { id: botId, name: CLM.CL_USER_NAME_ID, role: BB.RoleTypes.Bot }
                     botActivity.channelData = channelData
                 }
 

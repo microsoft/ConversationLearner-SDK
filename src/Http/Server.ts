@@ -12,6 +12,7 @@ import { CLMemory } from '../CLMemory'
 import { CLRecognizerResult } from '../CLRecognizeResult'
 import { TemplateProvider } from '../TemplateProvider'
 import { Utils, replace, CL_DEVELOPER } from '../Utils'
+import { BrowserSlot } from '../Memory/BrowserSlot'
 import * as XMLDom from 'xmldom'
 import * as models from '@conversationlearner/models'
 import * as corsMiddleware from 'restify-cors-middleware'
@@ -137,10 +138,13 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
     server.get('/bot', async (req, res, next) => {
         try {
             let appId = req.params.appId
+            let browserId = req.params.browserId
             let clRunner = CLRunner.Get(appId);
             let apiParams = clRunner.apiParams;
 
             let validationErrors = clRunner.clClient.ValidationErrors();
+
+            let browserSlot = await BrowserSlot.GetSlot(browserId);
 
             const key = ConversationLearner.options!.LUIS_AUTHORING_KEY!
             const hashedKey = key ? crypto.createHash('sha256').update(key).digest('hex') : ""
@@ -149,7 +153,7 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
                     // We keep track that the editing  UI is running by putting this as the name of the user
                     // Can't check localhost as can be running localhost and not UI
                     name: CL_DEVELOPER,
-                    id: hashedKey
+                    id: `${browserSlot}-${hashedKey}`
                 },
                 callbacks: apiParams,
                 templates: TemplateProvider.GetTemplates(),
