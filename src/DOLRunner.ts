@@ -10,5 +10,9 @@ export function startDirectOffLineServer(serviceUrl: string, botUrl: string) {
     console.log(`- botUrl: ${botUrl}`)
 
     const app = express()
-    directline.initializeRoutes(app, serviceUrl, botUrl)
+    
+    // Don't require converation initialization.  This allows
+    // UI to continue conversation even after bot restart
+    let requireConversationInit = false
+    directline.initializeRoutes(app, serviceUrl, botUrl, requireConversationInit)
 }
