@@ -951,7 +951,7 @@ export class CLRunner {
             let userText = round.extractorStep.textVariations[0].text
             let filledEntities = round.scorerSteps[0] && round.scorerSteps[0].input ? round.scorerSteps[0].input.filledEntities : []
 
-            // VALIDATION
+            // VALIDATIONnp
             // Check that entities exist
             let chatHighlight = null;
             for (let fentity of filledEntities) {
@@ -1095,6 +1095,7 @@ export class CLRunner {
             teach: undefined,
             scoreInput: undefined,
             scoreResponse: undefined,
+            isLastActionTerminal: isLastActionTerminal,
             history: activities,
             memories: memories,
             prevMemories: prevMemories,
