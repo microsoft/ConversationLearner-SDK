@@ -10,7 +10,7 @@ import { CLClient } from './CLClient'
 import { TemplateProvider } from './TemplateProvider'
 import * as CLM from '@conversationlearner/models'
 import { ClientMemoryManager } from './Memory/ClientMemoryManager'
-import { addEntitiesById,CL_DEVELOPER, generateGUID } from './Utils'
+import { addEntitiesById, CL_DEVELOPER, generateGUID } from './Utils'
 import { CLRecognizerResult } from './CLRecognizeResult'
 import { ConversationLearner } from './ConversationLearner'
 import { InputQueue } from './Memory/InputQueue'
@@ -1088,6 +1088,22 @@ export class CLRunner {
         let hasScorerRound = (hasRounds && trainDialog.rounds[trainDialog.rounds.length-1].scorerSteps.length > 0)
         let dialogMode = (isLastActionTerminal && hasScorerRound) || !hasRounds ? CLM.DialogMode.Wait : CLM.DialogMode.Scorer
 
+        // Calculate last extract response from text variations
+        let uiScoreInput : CLM.UIScoreInput | undefined;
+
+        if (hasRounds) {
+            // Note: Could potentailly just send back extractorStep and calculate extrateResponse on other end
+            let textVariations = trainDialog.rounds[trainDialog.rounds.length-1].extractorStep.textVariations;
+            let extractResponses = CLM.ModelUtils.ToExtractResponses(textVariations);
+            let trainExtractorStep = trainDialog.rounds[trainDialog.rounds.length-1].extractorStep;
+
+            uiScoreInput = {
+                trainExtractorStep: trainExtractorStep,
+                extractResponse: extractResponses[0]
+            } as CLM.UIScoreInput
+        }
+
+
         // Make errors unique using Set operator 
         replayErrors = [...new Set(replayErrors)]
 
@@ -1095,6 +1111,7 @@ export class CLRunner {
             teach: undefined,
             scoreInput: undefined,
             scoreResponse: undefined,
+            uiScoreInput: uiScoreInput,
             isLastActionTerminal: isLastActionTerminal,
             history: activities,
             memories: memories,
