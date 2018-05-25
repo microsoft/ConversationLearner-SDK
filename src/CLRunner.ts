@@ -501,15 +501,21 @@ export class CLRunner {
 
     public async CallEntityDetectionCallback(text: string, predictedEntities: CLM.PredictedEntity[], memory: CLMemory, allEntities: CLM.EntityBase[]): Promise<CLM.ScoreInput> {
 
-        let memoryManager = await ClientMemoryManager.CreateAsync(memory, allEntities)
+        // Entities before processing
+        let prevMemories = new CLM.FilledEntityMap(await memory.BotMemory.FilledEntityMap());
 
         // Update memory with predicted entities
         await this.ProcessPredictedEntities(text, memory.BotMemory, predictedEntities, allEntities)
+
+        let memoryManager = await this.CreateMemoryManagerAsync(memory, allEntities, prevMemories)
 
         // If bot has callback, call it
         if (this.entityDetectionCallback) {
             try {
                 await this.entityDetectionCallback(text, memoryManager)
+
+                // Update Memory
+                await memory.BotMemory.RestoreFromMap(memoryManager.curMemories)
             }
             catch (err) {
                 await this.SendMessage(memory, "Exception hit in Bot's EntityDetectionCallback")
@@ -529,12 +535,21 @@ export class CLRunner {
         return scoreInput
     }
 
+    private async CreateMemoryManagerAsync(clMemory: CLMemory, allEntities: CLM.EntityBase[], prevMemories?: CLM.FilledEntityMap): Promise<ClientMemoryManager> {
+        let sessionInfo = await clMemory.BotState.SessionInfoAsync()
+        let curMemories = new CLM.FilledEntityMap(await clMemory.BotMemory.FilledEntityMap());
+        if (!prevMemories) {
+            prevMemories = curMemories;
+        }
+        return new ClientMemoryManager(prevMemories, curMemories, allEntities, sessionInfo);
+    }
+
     public async CallSessionStartCallback(memory: CLMemory, appId: string | null): Promise<void> {
 
         // If bot has callback, call it
         if (appId && this.onSessionStartCallback) {
             let entityList = await this.clClient.GetEntities(appId)
-            let memoryManager = await ClientMemoryManager.CreateAsync(memory, entityList.entities)
+            let memoryManager = await this.CreateMemoryManagerAsync(memory, entityList.entities)
             await this.onSessionStartCallback(memoryManager)
         }
     }
@@ -544,7 +559,7 @@ export class CLRunner {
         // If bot has callback, call it to determine which entites to clear / edit
         if (appId && this.onSessionEndCallback) {
             let entityList = await this.clClient.GetEntities(appId)
-            let memoryManager = await ClientMemoryManager.CreateAsync(memory, entityList.entities)
+            let memoryManager = await this.CreateMemoryManagerAsync(memory, entityList.entities)
             await this.onSessionEndCallback(memoryManager)
         } 
         // Otherwise just clear the memory
@@ -714,7 +729,7 @@ export class CLRunner {
             return `ERROR: Missing Entity value(s) for ${missingEntities.join(', ')}`;
         }
 
-        let memoryManager = await ClientMemoryManager.CreateAsync(memory, allEntities)
+        let memoryManager = await this.CreateMemoryManagerAsync(memory, allEntities)
 
         try {
             try {
@@ -766,7 +781,7 @@ export class CLRunner {
     private EntityDiscrepancy(userInput: string, round: CLM.TrainRound, memory: CLMemory, entities: CLM.EntityBase[]): CLM.ReplayErrorEntityDiscrepancy | null {
         let isSame = true
         let oldEntities = round.scorerSteps[0] && round.scorerSteps[0].input ? round.scorerSteps[0].input.filledEntities : []
-        let newEntities = Object.keys(memory.BotMemory.filledEntities.map).map(k => memory.BotMemory.filledEntities.map[k] as CLM.FilledEntity)
+        let newEntities = Object.keys(memory.BotMemory.filledEntityMap.map).map(k => memory.BotMemory.filledEntityMap.map[k] as CLM.FilledEntity)
 
         if (oldEntities.length != newEntities.length) {
             isSame = false

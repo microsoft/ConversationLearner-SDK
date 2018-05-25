@@ -2,37 +2,29 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.  
  * Licensed under the MIT License.
  */
-import { BotMemory } from '../Memory/BotMemory'
 import { SessionInfo } from '../Memory/BotState'
-import { CLMemory } from '../CLMemory'
 import { CLDebug } from '../CLDebug'
 import { EntityBase, MemoryValue, FilledEntity, FilledEntityMap, EntityType } from '@conversationlearner/models'
 
 export class ClientMemoryManager {
-    public botMemory: BotMemory
-    protected entities: EntityBase[] = []
+    protected allEntities: EntityBase[] = []
     private sessionInfo: SessionInfo
-    private prevMemories: FilledEntityMap
+    public prevMemories: FilledEntityMap
+    public curMemories: FilledEntityMap
 
-    public static async CreateAsync(clMemory: CLMemory, entities: EntityBase[]): Promise<ClientMemoryManager> {
-        let sessionInfo = await clMemory.BotState.SessionInfoAsync()
-        let prevMemories = new FilledEntityMap(await clMemory.BotMemory.FilledEntityMap());
-        return new ClientMemoryManager(clMemory.BotMemory, prevMemories, entities, sessionInfo);
-    }
-
-    private constructor(botMemory: BotMemory, prevMemories: FilledEntityMap, entities: EntityBase[], sessionInfo: SessionInfo) {
-        this.entities = entities
-        this.botMemory = botMemory
-        this.sessionInfo = sessionInfo;
-        this.prevMemories = prevMemories;
+    public constructor(prevMemories: FilledEntityMap, curMemories: FilledEntityMap, allEntities: EntityBase[], sessionInfo: SessionInfo) {
+        this.allEntities = allEntities
+        this.sessionInfo = sessionInfo
+        this.prevMemories = prevMemories
+        this.curMemories = curMemories
     }
 
     private FindEntity(entityName: string): EntityBase | undefined {
-        let match = this.entities.find(e => e.entityName == entityName)
+        let match = this.allEntities.find(e => e.entityName == entityName)
         return match
     }
 
-    public async RememberEntityAsync(entityName: string, entityValue: string | number | object): Promise<void> {
+    public RememberEntity(entityName: string, entityValue: string | number | object): void {
         let entity = this.FindEntity(entityName)
 
         if (!entity) {
@@ -51,10 +43,10 @@ export class ClientMemoryManager {
         {
             entityValue = entityValue.toString();
         }
-        await this.botMemory.RememberEntity(entity.entityName, entity.entityId, entityValue, entity.isMultivalue)
+        this.curMemories.Remember(entity.entityName, entity.entityId, entityValue, entity.isMultivalue)
     }
 
-    public async RememberEntitiesAsync(entityName: string, entityValues: string[]): Promise<void> {
+    public RememberEntities(entityName: string, entityValues: string[]): void {
         let entity = this.FindEntity(entityName)
 
         if (!entity) {
@@ -69,10 +61,10 @@ export class ClientMemoryManager {
             CLDebug.Error(`RememberEntitiesAsync called on entity (${entityName}) that isn't Multi-Value.  Only the last value will be remembered`)
         }
 
-        await this.botMemory.RememberMany(entity.entityName, entity.entityId, entityValues, entity.isMultivalue)
+        this.curMemories.RememberMany(entity.entityName, entity.entityId, entityValues, entity.isMultivalue)
     }
 
-    public async ForgetEntityAsync(entityName: string, value: string | null = null): Promise<void> {
+    public ForgetEntity(entityName: string, value: string | null = null): void {
         let entity = this.FindEntity(entityName)
 
         if (!entity) {
@@ -81,22 +73,22 @@ export class ClientMemoryManager {
         }
 
         // If no value given, wipe all entites from buckets
-        await this.botMemory.Forget(entity.entityName, value, entity.isMultivalue)
+        this.curMemories.Forget(entity.entityName, value, entity.isMultivalue)
     }
 
     /** Clear all entity values apart from any included in the list of saveEntityNames
      * Useful in the "onSessionEndCallback" to preserve a subset of entities for the next session
      */
-    public async ForgetAllEntitiesAsync(saveEntityNames: string[]): Promise<void> {
+    public ForgetAllEntitiesAsync(saveEntityNames: string[]): void {
         
-        for (let entity of this.entities) {
+        for (let entity of this.allEntities) {
             if (saveEntityNames.indexOf(entity.entityName) < 0) {
-                await this.botMemory.Forget(entity.entityName, null, entity.isMultivalue)
+                this.curMemories.Forget(entity.entityName, null, entity.isMultivalue)
             }
         }
     }
 
-    public async CopyEntityAsync(entityNameFrom: string, entityNameTo: string): Promise<void> {
+    public CopyEntity(entityNameFrom: string, entityNameTo: string): void {
         let entityFrom = this.FindEntity(entityNameFrom)
         let entityTo = this.FindEntity(entityNameTo)
 
@@ -115,111 +107,67 @@ export class ClientMemoryManager {
         }
 
         // Clear "To" entity
-        await this.botMemory.Forget(entityNameTo)
+        this.curMemories.Forget(entityNameTo)
 
         // Get value of "From" entity
-        let values = await this.botMemory.ValueAsList(entityNameFrom)
+        let values = this.curMemories.ValueAsList(entityNameFrom)
 
         // Copy values from "From"
         for (let value of values) {
-            await this.RememberEntityAsync(entityNameTo, value)
+            this.RememberEntity(entityNameTo, value)
         }
     }
 
-    public async EntityValueAsync(entityName: string): Promise<string | null> {
-        return await this.botMemory.Value(entityName)
-    }
-
-    public async EntityValueAsPrebuiltAsync(entityName: string): Promise<MemoryValue[]> {
-        return await this.botMemory.ValueAsPrebuilt(entityName)
-    }
-
-    public async EntityValueAsListAsync(entityName: string): Promise<string[]> {
-        return await this.botMemory.ValueAsList(entityName)
-    }
-
-    public async EntityValueAsNumberAsync(entityName: string): Promise<number | null> {
-        const textObj = await this.botMemory.Value(entityName)
-        let number = Number(textObj);
-        if (isNaN(number)) {
-            CLDebug.Error(`EntityValueAsNumberAsync: Entity value "${textObj}" is not number`)
-            return null;
-        }
-        return number;
-    }
-
-    public async EntityValueAsBooleanAsync(entityName: string): Promise<boolean | null> {
-        const textObj = await this.botMemory.Value(entityName)
-        if (textObj) {
-            if (textObj.toLowerCase() === 'true') {
-                return true;
-            }
-            if (textObj.toLowerCase() === 'false') {
-                return false;
-            }
-        }
-        CLDebug.Error(`EntityValueAsBooleanAsync: Entity value "${textObj}" is not boolean`)
-        return null;
-    }
-
-    public async EntityValueAsObjectAsync<T>(entityName: string): Promise<T | null> {
-        const textObj = await this.botMemory.Value(entityName)
-        if (textObj) {
-            return JSON.parse(textObj) as T;
-        }
-        CLDebug.Error(`EntityValueAsObjectAsync: Entity value "${textObj}" is not an object`)
-        return null;
+    public EntityValue(entityName: string): string | null {
+        return this.curMemories.ValueAsString(entityName)
     }
 
     public PrevEntityValue(entityName: string): (string | null) {
-        return this.prevMemories.EntityValueAsString(entityName)
+        return this.prevMemories.ValueAsString(entityName)
+    }
+
+    public EntityValueAsPrebuilt(entityName: string): MemoryValue[] {
+        return this.curMemories.ValueAsPrebuilt(entityName)
     }
 
     public PrevEntityValueAsPrebuilt(entityName: string): MemoryValue[] {
-        if (!this.prevMemories.map[entityName]) {
-            return []
-        }
-        return this.prevMemories.map[entityName].values
+        return this.prevMemories.ValueAsPrebuilt(entityName)
+    }
+
+    public EntityValueAsList(entityName: string): string[] {
+        return this.curMemories.ValueAsList(entityName)
     }
 
     public PrevEntityValueAsList(entityName: string): string[] {
-        return this.prevMemories.EntityValueAsList(entityName)
+        return this.prevMemories.ValueAsList(entityName)
+    }
+
+    public EntityValueAsNumber(entityName: string): number | null {
+        return this.curMemories.ValueAsNumber(entityName)
     }
 
     public PrevValueAsNumber(entityName: string): number | null {
-        const textObj = this.prevMemories.EntityValueAsString(entityName)
-        let number = Number(textObj);
-        if (isNaN(number)) {
-            CLDebug.Error(`PrevValueAsNumber: Entity value "${textObj}" is not number`)
-            return null;
-        }
-        return number;
+        return this.prevMemories.ValueAsNumber(entityName)
+    }
+
+    public EntityValueAsBoolean(entityName: string): boolean | null {
+        return this.curMemories.ValueAsBoolean(entityName)
     }
 
     public PrevValueAsBoolean(entityName: string): boolean | null {
-        const textObj = this.prevMemories.EntityValueAsString(entityName)
-        if (textObj) {
-            if (textObj.toLowerCase() === 'true') {
-                return true;
-            }
-            if (textObj.toLowerCase() === 'false') {
-                return false;
-            }
-        }
-        CLDebug.Error(`PrevValueAsBoolean: Entity value "${textObj}" is not boolean`)
-        return null;
+        return this.prevMemories.ValueAsBoolean(entityName)
+    }
+
+    public EntityValueAsObject<T>(entityName: string): T | null {
+        return this.curMemories.ValueAsObject(entityName)
     }
 
     public PrevEntityValueAsObject<T>(entityName: string): (T | null) {
-        const textObj = this.prevMemories.EntityValueAsString(entityName)
-        if (textObj) {
-            return JSON.parse(textObj) as T;
-        }
-        return null;
+        return this.prevMemories.ValueAsObject(entityName)
     }
 
-    public async GetFilledEntitiesAsync(): Promise<FilledEntity[]> {
-        return await this.botMemory.FilledEntitiesAsync()
+    public GetFilledEntitiesAsync(): FilledEntity[] {
+        return this.curMemories.FilledEntities()
     }
 
     public SessionInfo(): SessionInfo {
