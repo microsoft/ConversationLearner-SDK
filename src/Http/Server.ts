@@ -13,6 +13,7 @@ import { CLRecognizerResult } from '../CLRecognizeResult'
 import { TemplateProvider } from '../TemplateProvider'
 import { Utils, replace, CL_DEVELOPER } from '../Utils'
 import { BrowserSlot } from '../Memory/BrowserSlot'
+import * as Request from 'request'
 import * as XMLDom from 'xmldom'
 import * as models from '@conversationlearner/models'
 import * as corsMiddleware from 'restify-cors-middleware'
@@ -77,6 +78,40 @@ export const HandleError = (response: restify.Response, err: any): void => {
 const defaultOptions: restify.ServerOptions = {
     name: `SDK Service`
 }
+
+const bannerEndpoint = "https://blisstorage.blob.core.windows.net/status/status.json";
+
+const getBanner = () : Promise<models.Banner | null> => {
+    return new Promise((resolve, reject) => {
+        const options = {
+            method: 'GET',
+            uri: bannerEndpoint,
+            json: true 
+        }
+        ​
+        // Never fail this request
+        Request(options, (error, response, banner) => {
+            if (error) {
+                CLDebug.Error(error, `Unable to retrieve Banner message`)
+                resolve(null)
+            } else if (response.statusCode && response.statusCode >= 300) {
+                CLDebug.Error(`Unable to retrieve Banner message.  Status Code: ${response.statusCode}`)
+                resolve(null)
+            } else {
+                try {
+                    if (banner.message === "") {
+                        banner = null;
+                    }
+                    resolve(banner)
+                }
+                catch (err) {
+                    CLDebug.Error("Malformed Banner messsage")
+                    resolve(null)
+                }
+            }
+        })
+    })
+  }
 
 export const createSdkServer = (client: CLClient, options: restify.ServerOptions = {}): restify.Server => {
     const server = restify.createServer({
@@ -144,20 +179,26 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
 
             let validationErrors = clRunner.clClient.ValidationErrors();
 
-            let browserSlot = await BrowserSlot.GetSlot(browserId);
-
+            // Generate id
+            const browserSlot = await BrowserSlot.GetSlot(browserId);
             const key = ConversationLearner.options!.LUIS_AUTHORING_KEY!
             const hashedKey = key ? crypto.createHash('sha256').update(key).digest('hex') : ""
+            const id = `${browserSlot}-${hashedKey}`
+
+            // Retreive any banner info
+            const banner = await getBanner();
+
             const botInfo: models.BotInfo = {
                 user: {
                     // We keep track that the editing  UI is running by putting this as the name of the user
                     // Can't check localhost as can be running localhost and not UI
                     name: CL_DEVELOPER,
-                    id: `${browserSlot}-${hashedKey}`
+                    id: id
                 },
                 callbacks: apiParams,
                 templates: TemplateProvider.GetTemplates(),
-                validationErrors: validationErrors
+                validationErrors: validationErrors,
+                banner: banner
             }
             res.send(botInfo)
         } catch (error) {
