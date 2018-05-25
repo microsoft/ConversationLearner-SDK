@@ -4,7 +4,6 @@
  */
 import { CLMemory } from '../CLMemory'
 import { CLDebug } from '../CLDebug'
-import { Utils } from '../Utils'
 import { Memory, FilledEntity, MemoryValue, FilledEntityMap } from '@conversationlearner/models'
 
 const NEGATIVE_PREFIX = '~'
@@ -13,10 +12,10 @@ export class BotMemory {
     private static _instance: BotMemory | null = null
     private static MEMKEY = 'BOTMEMORY'
     private memory: CLMemory
-    public filledEntities: FilledEntityMap
+    public filledEntityMap: FilledEntityMap
 
     private constructor(init?: Partial<BotMemory>) {
-        this.filledEntities = new FilledEntityMap()
+        this.filledEntityMap = new FilledEntityMap()
         ;(<any>Object).assign(this, init)
     }
 
@@ -30,7 +29,7 @@ export class BotMemory {
 
     public async FilledEntityMap(): Promise<FilledEntityMap> {
         await this.Init()
-        return this.filledEntities
+        return this.filledEntityMap
     }
 
     private async Init(): Promise<void> {
@@ -47,7 +46,7 @@ export class BotMemory {
     }
 
     public Serialize(): string {
-        return JSON.stringify(this.filledEntities.map)
+        return JSON.stringify(this.filledEntityMap.map)
     }
 
     private Deserialize(text: string): void {
@@ -55,7 +54,7 @@ export class BotMemory {
             return
         }
         let json = JSON.parse(text)
-        this.filledEntities.map = json ? json : {}
+        this.filledEntityMap.map = json ? json : {}
     }
 
     private async Set(): Promise<void> {
@@ -66,100 +65,42 @@ export class BotMemory {
     }
 
     public async RestoreFromMap(filledEntityMap: FilledEntityMap): Promise<void> {
-        this.filledEntities = new FilledEntityMap()
+        this.filledEntityMap = filledEntityMap
         await this.Set()
     }
 
     public async ClearAsync(): Promise<void> {
-        this.filledEntities = new FilledEntityMap()
+        this.filledEntityMap = new FilledEntityMap()
         await this.Set()
     }
 
-    // Intenral: Remember value for an entity (assumes init has happend and save will happen after
-    private async Remember(
-        entityName: string,
-        entityId: string,
-        entityValue: string,
-        isBucket: boolean = false,
-        builtinType: string | null = null,
-        // TODO: Add stronger type safety
-        resolution: any | null = null
-    ): Promise<void> {
-        if (!this.filledEntities.map[entityName]) {
-            this.filledEntities.map[entityName] = {
-                entityId: entityId,
-                values: []
-            }
-        }
-
-        let displayText = builtinType ? Utils.PrebuiltDisplayText(builtinType, resolution, entityValue) : entityValue
-
-        const filledEntity = this.filledEntities.map[entityName]
-        // Check if entity buckets values
-        if (isBucket) {
-            // Add if not a duplicate
-            const containsDuplicateValue = filledEntity.values.some(memoryValue => memoryValue.userText === entityValue)
-            if (!containsDuplicateValue) {
-                filledEntity.values.push({
-                    userText: entityValue,
-                    displayText: displayText,
-                    builtinType: builtinType,
-                    resolution: resolution
-                })
-            }
-        } else {
-            filledEntity.values = [{ userText: entityValue, displayText: displayText, builtinType: builtinType, resolution: resolution }]
-        }
-    }
-
     // Remember value for an entity
-    public async RememberEntity(
-        entityName: string,
-        entityId: string,
-        entityValue: string,
-        isBucket: boolean = false,
-        builtinType: string | null = null,
-        resolution: any | null = null
-    ): Promise<void> {
+    public async RememberEntity(entityName: string, entityId: string, entityValue: string, isBucket: boolean = false, builtinType: string | null = null, resolution: any | null = null): Promise<void> {
         await this.Init()
-        this.Remember(entityName, entityId, entityValue, isBucket, builtinType, resolution)
+        this.filledEntityMap.Remember(entityName, entityId, entityValue, isBucket, builtinType, resolution)
         await this.Set()
     }
 
     // Remember multiple values for an entity
-    public async RememberMany(
-        entityName: string,
-        entityId: string,
-        entityValues: string[],
-        isBucket: boolean = false,
-        builtinType: string | null = null,
-        resolution: {} | null = null
-    ): Promise<void> {
+    public async RememberMany(entityName: string, entityId: string, entityValues: string[], isBucket: boolean = false, builtinType: string | null = null, resolution: {} | null = null): Promise<void> {
         await this.Init()
-
-        for (let entityValue of entityValues) {
-            this.Remember(entityName, entityId, entityValue, isBucket, builtinType, resolution)
-        }
-
+        this.filledEntityMap.RememberMany(entityName, entityId, entityValues, isBucket, builtinType, resolution)
         await this.Set()
     }
 
     /** Return array of entity names for which I've remembered something */
     public async RememberedNames(): Promise<string[]> {
         await this.Init()
-        return Object.keys(this.filledEntities)
+        return Object.keys(this.filledEntityMap)
     }
 
     /** Return array of entity Ids for which I've remembered something */
     public async FilledEntitiesAsync(): Promise<FilledEntity[]> {
         await this.Init()
-        return Object.keys(this.filledEntities.map).map(val => {
-            return this.filledEntities.map[val]
-        })
+        return this.filledEntityMap.FilledEntities();
     }
 
     /** Given negative entity name, return positive version */
-
     private PositiveName(negativeName: string): string | null {
         if (negativeName.startsWith(NEGATIVE_PREFIX)) {
             return negativeName.slice(1)
@@ -168,7 +109,6 @@ export class BotMemory {
     }
 
     /** Forget a predicted Entity */
-
     public async ForgetEntity(entityName: string, entityValue: string, isMultivalue: boolean): Promise<void> {
         let posName = this.PositiveName(entityName)
         if (posName) {
@@ -181,32 +121,7 @@ export class BotMemory {
         try {
             // Check if entity buckets values
             await this.Init()
-            if (isBucket) {
-                // Entity might not be in memory
-                if (!this.filledEntities.map[entityName]) {
-                    return
-                }
-
-                // If no entity Value provide, clear the entity
-                if (!entityValue) {
-                    delete this.filledEntities.map[entityName]
-                } else {
-                    // Find case insensitive index
-                    let lowerCaseNames = this.filledEntities.map[entityName].values
-                        .filter(mv => mv.userText)
-                        .map(mv => mv.userText!.toLowerCase())
-
-                    let index = lowerCaseNames.indexOf(entityValue.toLowerCase())
-                    if (index > -1) {
-                        this.filledEntities.map[entityName].values.splice(index, 1)
-                        if (this.filledEntities.map[entityName].values.length == 0) {
-                            delete this.filledEntities.map[entityName]
-                        }
-                    }
-                }
-            } else {
-                delete this.filledEntities.map[entityName]
-            }
+            this.filledEntityMap.Forget(entityName, entityValue, isBucket)
             await this.Set()
         } catch (error) {
             CLDebug.Error(error)
@@ -218,7 +133,7 @@ export class BotMemory {
         await this.Init()
 
         let memory: Memory[] = []
-        for (let entityName in this.filledEntities.map) {
+        for (let entityName in this.filledEntityMap.map) {
             memory.push({ entityName: entityName, entityValues: this.MemoryValues(entityName) })
         }
         return memory
@@ -226,12 +141,12 @@ export class BotMemory {
 
     public async Value(entityName: string): Promise<string | null> {
         await this.Init()
-        return this.filledEntities.EntityValueAsString(entityName)
+        return this.filledEntityMap.ValueAsString(entityName)
     }
 
     public async ValueAsList(entityName: string): Promise<string[]> {
         await this.Init()
-        return this.filledEntities.EntityValueAsList(entityName)
+        return this.filledEntityMap.ValueAsList(entityName)
     }
 
     public async ValueAsPrebuilt(entityName: string): Promise<MemoryValue[]> {
@@ -240,10 +155,10 @@ export class BotMemory {
     }
 
     private MemoryValues(entityName: string): MemoryValue[] {
-        if (!this.filledEntities.map[entityName]) {
+        if (!this.filledEntityMap.map[entityName]) {
             return []
         }
 
-        return this.filledEntities.map[entityName].values
+        return this.filledEntityMap.map[entityName].values
     }
 }
