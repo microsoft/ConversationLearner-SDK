@@ -550,7 +550,15 @@ export class CLRunner {
         if (appId && this.onSessionStartCallback) {
             let entityList = await this.clClient.GetEntities(appId)
             let memoryManager = await this.CreateMemoryManagerAsync(memory, entityList.entities)
-            await this.onSessionStartCallback(memoryManager)
+            try {
+                await this.onSessionStartCallback(memoryManager)
+                await memory.BotMemory.RestoreFromMap(memoryManager.curMemories)
+            }
+            catch (err) {
+                await this.SendMessage(memory, "Exception hit in Bot's OnSessionStartCallback")
+                let errMsg = CLDebug.Error(err);
+                this.SendMessage(memory, errMsg);
+            }
         }
     }
 
@@ -560,7 +568,15 @@ export class CLRunner {
         if (appId && this.onSessionEndCallback) {
             let entityList = await this.clClient.GetEntities(appId)
             let memoryManager = await this.CreateMemoryManagerAsync(memory, entityList.entities)
-            await this.onSessionEndCallback(memoryManager)
+            try {
+                await this.onSessionEndCallback(memoryManager)
+                await memory.BotMemory.RestoreFromMap(memoryManager.curMemories)
+            }
+            catch (err) {
+                await this.SendMessage(memory, "Exception hit in Bot's OnSessionEndCallback")
+                let errMsg = CLDebug.Error(err);
+                this.SendMessage(memory, errMsg);
+            }
         } 
         // Otherwise just clear the memory
         else {
@@ -734,6 +750,7 @@ export class CLRunner {
         try {
             try {
                 let response = await api(memoryManager, ...argArray)
+                await memory.BotMemory.RestoreFromMap(memoryManager.curMemories)
                 return response ? response : null;
             }
             catch (err) {
