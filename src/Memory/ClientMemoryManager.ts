@@ -31,7 +31,7 @@ export class ClientMemoryManager {
             CLDebug.Error(`Can't find Entity named: ${entityName}`)
             return
         }
-        if (entity.entityType != EntityType.LOCAL) {
+        if (entity.entityType != EntityType.LOCAL && entity.entityType != EntityType.LUIS) {
             CLDebug.Error(`Not allowed to set values of pre-built Entities: ${entityName}`)
             return
         }
@@ -53,7 +53,7 @@ export class ClientMemoryManager {
             CLDebug.Error(`Can't find Entity named: ${entityName}`)
             return
         }
-        if (entity.entityType != EntityType.LOCAL) {
+        if (entity.entityType != EntityType.LOCAL && entity.entityType != EntityType.LUIS) {
             CLDebug.Error(`Not allowed to set values of pre-built Entities: ${entityName}`)
             return
         }

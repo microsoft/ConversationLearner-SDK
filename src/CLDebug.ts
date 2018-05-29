@@ -19,7 +19,7 @@ export class CLDebug {
     public static cache: string = ''
     public static enabled: boolean
     public static verbose: boolean = true
-    public static debugType: DebugType = DebugType.Client | DebugType.ClientBody
+    public static debugType: DebugType = 0
 
     public static InitLogger(adapter: BB.BotAdapter, conversationReference: Partial<BB.ConversationReference>) {
         CLDebug.adapter = adapter
