@@ -58,7 +58,7 @@ export class ClientMemoryManager {
             return
         }
         if (!entity.isMultivalue) {
-            CLDebug.Error(`RememberEntitiesAsync called on entity (${entityName}) that isn't Multi-Value.  Only the last value will be remembered`)
+            CLDebug.Error(`RememberEntities called on entity (${entityName}) that isn't Multi-Value.  Only the last value will be remembered`)
         }
 
         this.curMemories.RememberMany(entity.entityName, entity.entityId, entityValues, entity.isMultivalue)
@@ -79,7 +79,7 @@ export class ClientMemoryManager {
     /** Clear all entity values apart from any included in the list of saveEntityNames
      * Useful in the "onSessionEndCallback" to preserve a subset of entities for the next session
      */
-    public ForgetAllEntitiesAsync(saveEntityNames: string[]): void {
+    public ForgetAllEntities(saveEntityNames: string[]): void {
         
         for (let entity of this.allEntities) {
             if (saveEntityNames.indexOf(entity.entityName) < 0) {
@@ -166,7 +166,7 @@ export class ClientMemoryManager {
         return this.prevMemories.ValueAsObject(entityName)
     }
 
-    public GetFilledEntitiesAsync(): FilledEntity[] {
+    public GetFilledEntities(): FilledEntity[] {
         return this.curMemories.FilledEntities()
     }
 
