@@ -166,7 +166,7 @@ export class ClientMemoryManager {
         return this.prevMemories.ValueAsObject(entityName)
     }
 
-    public GetFilledEntitiesAsync(): FilledEntity[] {
+    public GetFilledEntities(): FilledEntity[] {
         return this.curMemories.FilledEntities()
     }
 
