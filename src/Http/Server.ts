@@ -232,6 +232,18 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
         }
     })
 
+    
+    server.post('/app/:appId/source', async (req, res, next) => {
+        const appId = req.params.appId
+        const source: models.AppDefinition = req.body
+        try {
+            await client.SetAppSource(appId, source)
+            res.send(200)
+        } catch (error) {
+            HandleError(res, error)
+        }
+    })
+
     server.get('/app/:appId/trainingstatus', async (req, res, next) => {
         const query = req.getQuery()
         const appId = req.params.appId
