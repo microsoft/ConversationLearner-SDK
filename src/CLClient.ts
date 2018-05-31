@@ -226,6 +226,11 @@ export class CLClient {
         return this.send('GET', this.MakeURL(apiPath))
     }
 
+    public SetAppSource(appId: string, source: models.AppDefinition): Promise<string> {
+        let apiPath = `app/${appId}/source`
+        return this.send('POST', this.MakeURL(apiPath), source)
+    }
+
     public GetAppTrainingStatus(appId: string, query: string): Promise<models.TrainingStatus> {
         let apiPath = `app/${appId}/trainingstatus`
         return this.send('GET', this.MakeURL(apiPath, query))
