@@ -17,7 +17,9 @@
     "test": "jest",
     "setpackageversion": "tsc -p ./scripts/tsconfig.json && node ./scripts/setpackageversion.js",
     "verifypackagelock": "tsc -p ./scripts/tsconfig.json && node ./scripts/verifypackagelock.js",
-    "ui": "node ./lib/clUiRunner.js"
+    "ui": "node ./lib/clUiRunner.js",
+    "commit": "git-cz",
+    "commitmsg": "commitlint -E GIT_PARAMS"
   },
   "author": "Microsoft Conversation Learner Team",
   "license": "MIT",
@@ -40,6 +42,8 @@
     "xmldom": "^0.1.27"
   },
   "devDependencies": {
+    "@commitlint/cli": "7.0.0",
+    "@commitlint/config-conventional": "7.0.1",
     "@types/execa": "^0.8.1",
     "@types/express": "^4.11.0",
     "@types/filenamify": "^2.0.1",
@@ -53,9 +57,11 @@
     "@types/restify-cors-middleware": "^1.0.1",
     "@types/restify-errors": "^4.3.2",
     "@types/xmldom": "^0.1.29",
+    "commitizen": "2.10.1",
     "execa": "^0.9.0",
     "fs-extra": "^5.0.0",
     "http-server": "^0.9.0",
+    "husky": "0.14.3",
     "jest": "^22.1.4",
     "nodemon": "^1.11.0",
     "prettier": "^1.10.2",
@@ -77,6 +83,11 @@
   "prettier": {
     "tabWidth": 4,
     "printWidth": 140
+  },
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ]
   },
   "publishConfig": {
     "tag": "next",

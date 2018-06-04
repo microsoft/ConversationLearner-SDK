@@ -1,3 +1,5 @@
+skip_branch_with_pr: true
+
 cache:
   - '%AppData%\npm-cache -> appveyor.yml'
   - node_modules -> package-lock.json
