@@ -26,6 +26,14 @@
       "path": "node_modules/cz-conventional-changelog"
     }
   },
+  "release": {
+    "analyzeCommits": {
+      "preset": "angular",
+      "releaseRules": [
+        {"breaking": true, "release": "minor"}
+      ]
+    }
+  },
   "author": "Microsoft Conversation Learner Team",
   "license": "MIT",
   "dependencies": {
