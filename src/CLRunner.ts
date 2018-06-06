@@ -246,7 +246,7 @@ export class CLRunner {
             let app = await this.GetApp(memory, inEditingUI);
             
             if (!app) {
-                let error = "ERROR: AppId not specified.  When running in a channel (i.e. Skype) or the Bot Framework Emulator, CONVERSATION_LEARNER_APP_ID must be specified in your Bot's .env file or Application Settings on the server"
+                let error = "ERROR: AppId not specified.  When running in a channel (i.e. Skype) or the Bot Framework Emulator, CONVERSATION_LEARNER_MODEL_ID must be specified in your Bot's .env file or Application Settings on the server"
                 await this.SendMessage(memory, error, activity.id)
                 return null;
             }
@@ -296,7 +296,7 @@ export class CLRunner {
                             await memory.SetAppAsync(app)
                 
                             if (!app) {
-                                let error = "ERROR: AppId not specified.  When running in a channel (i.e. Skype) or the Bot Framework Emulator, CONVERSATION_LEARNER_APP_ID must be specified in your Bot's .env file or Application Settings on the server"
+                                let error = "ERROR: AppId not specified.  When running in a channel (i.e. Skype) or the Bot Framework Emulator, CONVERSATION_LEARNER_MODEL_ID must be specified in your Bot's .env file or Application Settings on the server"
                                 await this.SendMessage(memory, error, activity.id)
                                 return null
                             }
@@ -371,7 +371,7 @@ export class CLRunner {
             // Special message for 403 as it's like a bad appId
             let customError = null;
             if (error.statusCode === 403) {
-                customError = `403 Forbidden:  Please check you have set a valid CONVERSATION_LEARNER_APP_ID`
+                customError = `403 Forbidden:  Please check you have set a valid CONVERSATION_LEARNER_MODEL_ID`
             }
 
             let msg = CLDebug.Error(customError || error, errComponent)

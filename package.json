@@ -21,11 +21,27 @@
     "commit": "git-cz",
     "commitmsg": "commitlint -E GIT_PARAMS"
   },
+  "config": {
+    "commitizen": {
+      "path": "node_modules/cz-conventional-changelog"
+    }
+  },
+  "release": {
+    "analyzeCommits": {
+      "preset": "angular",
+      "releaseRules": [
+        {
+          "breaking": true,
+          "release": "minor"
+        }
+      ]
+    }
+  },
   "author": "Microsoft Conversation Learner Team",
   "license": "MIT",
   "dependencies": {
     "@conversationlearner/models": "0.166.0",
-    "@conversationlearner/ui": "0.283.0",
+    "@conversationlearner/ui": "0.291.1",
     "async-file": "^2.0.2",
     "botbuilder": "4.0.0-preview1.2",
     "express": "^4.15.3",
