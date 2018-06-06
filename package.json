@@ -21,6 +21,11 @@
     "commit": "git-cz",
     "commitmsg": "commitlint -E GIT_PARAMS"
   },
+  "config": {
+    "commitizen": {
+      "path": "node_modules/cz-conventional-changelog"
+    }
+  },
   "author": "Microsoft Conversation Learner Team",
   "license": "MIT",
   "dependencies": {

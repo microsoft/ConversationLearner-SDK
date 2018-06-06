@@ -20,7 +20,7 @@ npm install @conversationlearner/sdk --save-exact
 
 > Note: We recommend using --save-exact to lock the version since we are NOT following SemVer at this time. This can help prevent accidental package updates which may contain breaking changes if you are not using package-lock.json. We will move to following SemVer soon as we improve our release process.
 
-Using the middlware:
+Using the middleware:
 
 ```typescript
 import { ConversationLearner, ICLOptions, ClientMemoryManager } from '@conversationlearner/sdk'
@@ -28,15 +28,12 @@ import { ConversationLearner, ICLOptions, ClientMemoryManager } from '@conversat
 ...
 
 ConversationLearner.Init({
-    serviceUri: process.env.CONVERSATION_LEARNER_SERVICE_URI,
-    appId: process.env.CONVERSATION_LEARNER_APP_ID,
-    redisServer: process.env.CONVERSATION_LEARNER_REDIS_SERVER,  (Optional)
-    redisKey: process.env.CONVERSATION_LEARNER_REDIS_KEY,        (Optional)
-    localhost: process.env.DOL_START ? process.env.DOL_START.toLowerCase() === 'true' : true
+    CONVERSATION_LEARNER_SERVICE_URI: process.env.CONVERSATION_LEARNER_SERVICE_URI,
+    DOL_START: process.env.DOL_START ? process.env.DOL_START.toLowerCase() === 'true' : true
 });
 
 ...
-let cl = new ConversationLearner(appId);
+let cl = new ConversationLearner(modelId);
 
 server.post('/api/messages', (req, res) => {
     adapter.processActivity(req, res, async context => {
