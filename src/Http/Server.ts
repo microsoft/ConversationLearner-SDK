@@ -172,9 +172,8 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
     /** Retrieves information about the running bot */
     server.get('/bot', async (req, res, next) => {
         try {
-            let appId = req.params.appId
             let browserId = req.params.browserId
-            let clRunner = CLRunner.Get(appId);
+            let clRunner = CLRunner.Get();
             let apiParams = clRunner.apiParams;
 
             let validationErrors = clRunner.clClient.ValidationErrors();
@@ -934,6 +933,8 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
 
             let clRunner = CLRunner.Get(appId);
             let memory = CLMemory.GetMemory(key)
+            memory.BotMemory.ClearAsync()
+            
             clRunner.InitSessionAsync(memory, sessionResponse.sessionId, sessionResponse.logDialogId, null, { inTeach: false, isContinued: false })
         } catch (error) {
             HandleError(res, error)
@@ -1038,10 +1039,9 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
             let memory = CLMemory.GetMemory(key)
             clRunner.InitSessionAsync(memory, teachResponse.teachId, null, null, { inTeach: true, isContinued: false })
 
-            // Include and persistent memories in the response
-            let memories = await memory.BotMemory.DumpMemory()
-            let uiTeachResponse: models.UITeachResponse = { teachResponse, memories }
-            res.send(uiTeachResponse)
+            // Clear the memory
+            await memory.BotMemory.ClearAsync()
+            res.send(teachResponse)
 
         } catch (error) {
             HandleError(res, error)
@@ -1124,6 +1124,23 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
             let teachId = req.params.teachId
             let teach = await client.GetTeach(appId, teachId)
             res.send(teach)
+        } catch (error) {
+            HandleError(res, error)
+        }
+    })
+
+    /** INIT MEMORY: Sets initial value for BotMemory at start of Teach Session */
+    server.put('/app/:appId/teach/:teachId/initmemory', async (req, res, next) => {
+        try {
+            const key = req.header(models.MEMORY_KEY_HEADER_NAME)
+            let filledEntityMap = req.body as models.FilledEntityMap
+
+            let botMemory = CLMemory.GetMemory(key).BotMemory
+
+            await botMemory.RestoreFromMap(filledEntityMap)
+
+            let memories = await botMemory.DumpMemory();
+            res.send(memories)
         } catch (error) {
             HandleError(res, error)
         }
@@ -1262,8 +1279,9 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
             await clRunner.SendIntent(intent, true)
 
             let memories = await memory.BotMemory.DumpMemory()
-            let uiTeachResponse: models.UITeachResponse = { teachResponse, memories }
-            res.send(uiTeachResponse)
+            let isEndTask = scoredAction.actionType === models.ActionTypes.END_SESSION
+            let uiPostScoreResponse: models.UIPostScoreResponse = { teachResponse, memories, isEndTask }
+            res.send(uiPostScoreResponse)
         } catch (error) {
             HandleError(res, error)
         }

@@ -249,7 +249,7 @@ export class BotState {
         await this.SetStateAsync(BotStateType.SESSION_ID, sessionId)
     }
 
-    public async SetSessionAsync(sessionId: string | null, logDialogId: string | null, conversationId: string | null, inTeach: boolean, orgSessionId: string | null): Promise<void> {
+    public async StartSessionAsync(sessionId: string | null, logDialogId: string | null, conversationId: string | null, inTeach: boolean, orgSessionId: string | null): Promise<void> {
         await this.SetSessionId(sessionId);
         await this.SetLogDialogId(logDialogId);
 
@@ -269,7 +269,6 @@ export class BotState {
         await this.SetSessionId(null);
         await this.SetLogDialogId(null);
         await this.SetOrgSessionId(null);
-        await this.SetOnEndSessionCalled(false);
         await this.SetConversationId(null);
         await this.SetLastActive(0);
         await this.SetInTeach(false);

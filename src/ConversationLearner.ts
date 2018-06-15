@@ -66,13 +66,42 @@ export class ConversationLearner {
         return await this.clRunner.recognize(turnContext, force);
     }
 
+    /**
+     * OPTIONAL: Sessions are started automaticaly, StartSession call is only needed if bot needs
+     * to start Conversation Learner Session with initial entity values.  
+     * Results in clearing of existing Entity values, and a call to the OnSessionStartCallback
+     * @param turnContext BotBuilder Context
+     */
+    public async StartSession(turnContext: BB.TurnContext): Promise<void> {
+        await this.clRunner.BotStartSession(turnContext);
+    }
+
+    /**
+     * Provide an callback that will be invoked whenever a Session is started
+     */
+    public OnSessionStartCallback(
+        target: (context: BB.TurnContext, memoryManager: ClientMemoryManager) => Promise<void>
+    ) {
+        this.clRunner.onSessionStartCallback = target
+    }
+    
+    /**
+     * Provide a callback that will be invoked whenever a Session ends.  Sessions
+     * can end because of a timeout or the selection of an EndSession activity
+     */
+    public OnSessionEndCallback(
+        target: (context: BB.TurnContext, memoryManager: ClientMemoryManager, content: string | undefined) => Promise<string[] | null>
+    ) {
+        this.clRunner.onSessionEndCallback = target
+    }
+
     public async SendResult(result: CLRecognizerResult): Promise<void> {
         this.clRunner.SendIntent(result);
     }
 
     // Returns true is bot is running in the Training UI
-    public inTrainingUI(activity: BB.Activity): boolean {
-        return (activity.from.name === CL_DEVELOPER);
+    public inTrainingUI(context: BB.TurnContext): boolean {
+        return (context.activity.from.name === CL_DEVELOPER);
     }
 
     public AddAPICallback(
@@ -86,17 +115,5 @@ export class ConversationLearner {
         target: (text: string, memoryManager: ClientMemoryManager) => Promise<void>
     ) {
         this.clRunner.entityDetectionCallback = target
-    }
-
-    public OnSessionEndCallback(
-        target: (memoryManager: ClientMemoryManager) => Promise<void>
-    ) {
-        this.clRunner.onSessionEndCallback = target
-    }
-
-    public OnSessionStartCallback(
-        target: (memoryManager: ClientMemoryManager) => Promise<void>
-    ) {
-        this.clRunner.onSessionStartCallback = target
     }
 }
