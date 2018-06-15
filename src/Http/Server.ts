@@ -11,7 +11,7 @@ import { ConversationLearner } from '../ConversationLearner'
 import { CLMemory } from '../CLMemory'
 import { CLRecognizerResult } from '../CLRecognizeResult'
 import { TemplateProvider } from '../TemplateProvider'
-import { Utils, replace, CL_DEVELOPER } from '../Utils'
+import { replace, CL_DEVELOPER } from '../Utils'
 import { BrowserSlot } from '../Memory/BrowserSlot'
 import * as Request from 'request'
 import * as XMLDom from 'xmldom'
@@ -786,11 +786,7 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
         try {
             let appId = req.params.appId
             let trainDialog: models.TrainDialog = req.body
-
-            // TEMP: until object refactor
-            let strippedTrainDialog = Utils.StripPrebuiltInfoFromTrain(trainDialog)
-
-            let trainDialogId = await client.AddTrainDialog(appId, strippedTrainDialog)
+            let trainDialogId = await client.AddTrainDialog(appId, trainDialog)
             res.send(trainDialogId)
         } catch (error) {
             HandleError(res, error)
@@ -801,11 +797,7 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
         try {
             let appId = req.params.appId
             let trainDialog: models.TrainDialog = req.body
-
-            //TEMP: until object refactor
-            let strippedTrainDialog = Utils.StripPrebuiltInfoFromTrain(trainDialog)
-
-            let trainDialogId = await client.EditTrainDialog(appId, strippedTrainDialog)
+            let trainDialogId = await client.EditTrainDialog(appId, trainDialog)
             res.send(trainDialogId)
         } catch (error) {
             HandleError(res, error)
@@ -1193,11 +1185,8 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
 
             // There will be no extraction step if performing a 2nd scorer round after a non-termial action
             if (uiScoreInput.trainExtractorStep) {
-                // TEMP: until object scheme is revised, need to strip for server
-                let trainExtractorStep = Utils.StripPrebuiltInfo(uiScoreInput.trainExtractorStep)
-
                 // Send teach feedback;
-                await client.TeachExtractFeedback(appId, teachId, trainExtractorStep)
+                await client.TeachExtractFeedback(appId, teachId, uiScoreInput.trainExtractorStep)
             }
 
             // Call LUIS callback to get scoreInput
