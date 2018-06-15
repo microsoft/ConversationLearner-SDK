@@ -71,7 +71,6 @@ export class ConversationLearner {
      * to start Conversation Learner Session with initial entity values.  
      * Results in clearing of existing Entity values, and a call to the OnSessionStartCallback
      * @param turnContext BotBuilder Context
-     * @param keyValues   Key Value data used to initialize Entities
      */
     public async StartSession(turnContext: BB.TurnContext): Promise<void> {
         await this.clRunner.BotStartSession(turnContext);
@@ -79,7 +78,6 @@ export class ConversationLearner {
 
     /**
      * Provide an callback that will be invoked whenever a Session is started
-     * @param target 
      */
     public OnSessionStartCallback(
         target: (context: BB.TurnContext, memoryManager: ClientMemoryManager) => Promise<void>
@@ -90,7 +88,6 @@ export class ConversationLearner {
     /**
      * Provide a callback that will be invoked whenever a Session ends.  Sessions
      * can end because of a timeout or the selection of an EndSession activity
-     * @param target 
      */
     public OnSessionEndCallback(
         target: (context: BB.TurnContext, memoryManager: ClientMemoryManager, content: string | undefined) => Promise<string[] | null>
