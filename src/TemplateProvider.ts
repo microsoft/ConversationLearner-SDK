@@ -14,7 +14,7 @@ export class TemplateProvider {
     // E.g. use generic key,value object instead of RenderedActionArgument
     public static async RenderTemplate(templateName: string, templateArguments: RenderedActionArgument[]): Promise<any | null> {
         let template = this.GetTemplate(templateName)
-        if (template == null) {
+        if (template === null) {
             return null
         }
 
