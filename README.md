@@ -20,7 +20,7 @@ npm install @conversationlearner/sdk --save-exact
 
 > Note: We recommend using --save-exact to lock the version since we are NOT following SemVer at this time. This can help prevent accidental package updates which may contain breaking changes if you are not using package-lock.json. We will move to following SemVer soon as we improve our release process.
 
-Using the middlware:
+Using the middleware:
 
 ```typescript
 import { ConversationLearner, ICLOptions, ClientMemoryManager } from '@conversationlearner/sdk'
@@ -28,15 +28,12 @@ import { ConversationLearner, ICLOptions, ClientMemoryManager } from '@conversat
 ...
 
 ConversationLearner.Init({
-    serviceUri: process.env.CONVERSATION_LEARNER_SERVICE_URI,
-    appId: process.env.CONVERSATION_LEARNER_APP_ID,
-    redisServer: process.env.CONVERSATION_LEARNER_REDIS_SERVER,  (Optional)
-    redisKey: process.env.CONVERSATION_LEARNER_REDIS_KEY,        (Optional)
-    localhost: process.env.DOL_START ? process.env.DOL_START.toLowerCase() === 'true' : true
+    CONVERSATION_LEARNER_SERVICE_URI: process.env.CONVERSATION_LEARNER_SERVICE_URI,
+    DOL_START: process.env.DOL_START ? process.env.DOL_START.toLowerCase() === 'true' : true
 });
 
 ...
-let cl = new ConversationLearner(appId);
+let cl = new ConversationLearner(modelId);
 
 server.post('/api/messages', (req, res) => {
     adapter.processActivity(req, res, async context => {
@@ -61,6 +58,18 @@ startUiServer()
 # Contributing
 
 This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+
+## Semantic Release
+
+Semantic release works by analyzing all commits that have occurred since the last release, computing the next version to increment based on the most significant commit found, then tagging and publishing a new package with that version.
+
+See: https://semantic-release.gitbooks.io/semantic-release/content/#how-does-it-work
+
+In order to analyze the commit messages reliably they must be in a known format.  To help writing these commits there is a tool at `npm run commit` which acts a wizard walking you through the options.
+
+For most use cases the only change required is to type a special word in front of your normal commit messages. Instead of "add function to compute X" put "feat: add function to compute X".  Based on the rules "feat" is mapped to a "minor" release.
+
+Video Demo: https://youtu.be/qf7c-KxBBZc?t=37s
 
 # Release Process
 

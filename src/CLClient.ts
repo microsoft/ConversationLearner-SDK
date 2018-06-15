@@ -383,10 +383,9 @@ export class CLClient {
 
     /** Create a new entity */
     // TODO: Fix API to return entity
-    public async AddEntity(appId: string, entity: models.EntityBase): Promise<string> {
+    public async AddEntity(appId: string, entity: models.EntityBase): Promise<models.ChangeEntityResponse> {
         let apiPath = `app/${appId}/entity`
-        const entityResponse = await this.send<any>('POST', this.MakeURL(apiPath), entity)
-        return entityResponse.entityId
+        return await this.send<any>('POST', this.MakeURL(apiPath), entity)
     }
 
     //=============================================================================

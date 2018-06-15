@@ -58,7 +58,7 @@ export class CLDebug {
                 return
             }
 
-            let message = `${method} //${path}`
+            let message = `${method} ${path}`
 
             if (this.HasDebugType(DebugType.ClientBody)) {
                 const formattedBody = payload.body ? JSON.stringify(payload.body, null, '  ') : ''
