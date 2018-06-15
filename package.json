@@ -40,13 +40,8 @@
   "author": "Microsoft Conversation Learner Team",
   "license": "MIT",
   "dependencies": {
-<<<<<<< HEAD
     "@conversationlearner/models": "0.168.0",
     "@conversationlearner/ui": "0.293.0",
-=======
-    "@conversationlearner/models": "0.167.1",
-    "@conversationlearner/ui": "0.292.3",
->>>>>>> master
     "async-file": "^2.0.2",
     "botbuilder": "4.0.0-preview1.2",
     "express": "^4.15.3",
