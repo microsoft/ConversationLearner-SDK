@@ -54,15 +54,17 @@ export class CLRunner {
         if (!CLRunner.UIRunner) {
             CLRunner.UIRunner = newRunner;
         }
+
         return newRunner;
     }
 
     // Get CLRunner for an app
-    public static Get(appId: string) : CLRunner {
+    public static Get(appId?: string) : CLRunner {
 
-        // If runner with the appId doesn't exist, use the UI Runner
-        if (!CLRunner.Runners[appId]) {
+        // Runner with the appId may not exist if running training UI, if so use the UI Runner
+        if (!appId || !CLRunner.Runners[appId]) {
             if (CLRunner.UIRunner) {
+                CLRunner.UIRunner.appId = appId || "UIRunner"
                 return CLRunner.UIRunner;
             } else {
                 throw new Error(`Not in UI and requested CLRunner that doesn't exist: ${appId}`)
@@ -89,6 +91,29 @@ export class CLRunner {
         return this.AddInput(turnContext).then(res => {
             return res;
         })
+    }
+
+    // Allows Bot developer to start a new Session with initial parameters (never in Teach)
+    public async BotStartSession(turnContext: BB.TurnContext): Promise<void> {
+
+        // Set adapter / conversation reference even if from field not set
+        let conversationReference = BB.TurnContext.getConversationReference(turnContext.activity);
+        this.SetAdapter(turnContext.adapter, conversationReference);
+
+        const activity = turnContext.activity
+        if (activity.from === undefined || activity.id == undefined) {
+            return;
+        }
+
+        let clMemory = await CLMemory.InitMemory(activity.from, conversationReference)
+        let app = await clMemory.BotState.GetApp()
+     
+        if (app) {
+            let packageId = (app.livePackageId || app.devPackageId)
+            if (packageId) {
+                await this.StartSessionAsync(clMemory, activity.from, app.appId, app.metadata.isLoggingOn !== false, packageId)
+            }
+        }
     }
 
     public SetAdapter(adapter: BB.BotAdapter, conversationReference: Partial<BB.ConversationReference>) {
@@ -145,7 +170,7 @@ export class CLRunner {
             throw new Error(`Attempted to start session but user.id was not set on current request.`)
         }
 
-        await this.InitSessionAsync(memory, sessionResponse.sessionId, sessionResponse.logDialogId, user.id, { inTeach: false, isContinued: false })
+        await this.InitSessionAsync(memory, sessionResponse.sessionId, sessionResponse.logDialogId, user.id, { inTeach: false, isContinued: false }, null)
         CLDebug.Verbose(`Started Session: ${sessionResponse.sessionId} - ${user.id}`)
         return sessionResponse.sessionId
     }
@@ -183,27 +208,21 @@ export class CLRunner {
 
         // If not continuing an edited session or restarting an expired session 
         if (!params.isContinued && !orgSessionId) {
-
-            // If onEndSession hasn't been called yet, call it
-            let calledEndSession = await clMemory.BotState.GetEndSessionCalled();
-            if (!calledEndSession) {
-
-                // Default callback will clear the bot memory
-                await this.CallSessionEndCallback(clMemory, app ? app.appId : null);
-            }
+            // Default callback will clear the bot memory
+            await this.CallSessionEndCallback(clMemory, app ? app.appId : null);
         }
         await this.CallSessionStartCallback(clMemory, app ? app.appId : null);
-        await clMemory.BotState.SetSessionAsync(sessionId, logDialogId, conversationId, params.inTeach, orgSessionId)
+        await clMemory.BotState.StartSessionAsync(sessionId, logDialogId, conversationId, params.inTeach, orgSessionId)
     }
 
     // End a teach or log session
-    public async EndSessionAsync(key: string): Promise<void> {
+    public async EndSessionAsync(key: string, content?: string): Promise<void> {
 
         let memory = CLMemory.GetMemory(key)
         let app = await memory.BotState.GetApp()
 
         // Default callback will clear the bot memory
-        await this.CallSessionEndCallback(memory, app ? app.appId : null);
+        await this.CallSessionEndCallback(memory, app ? app.appId : null, content);
 
         await memory.BotState.EndSessionAsync();
     }
@@ -220,8 +239,6 @@ export class CLRunner {
         let memory = await CLMemory.InitMemory(activity.from, conversationReference)
 
         try {
-            CLDebug.Verbose(`Process Input...`)
-
             let inTeach = await memory.BotState.GetInTeach()
             let inEditingUI = 
                 conversationReference.user &&
@@ -449,10 +466,10 @@ export class CLRunner {
     public entityDetectionCallback: (text: string,memoryManager: ClientMemoryManager) => Promise<void>
 
     // Optional callback than runs before a new chat session starts.  Allows Bot to set initial entities
-    public onSessionStartCallback: (memoryManager: ClientMemoryManager) => Promise<void>
+    public onSessionStartCallback: (context: BB.TurnContext, memoryManager: ClientMemoryManager) => Promise<void>
 
     // Optional callback than runs when a session ends.  Allows Bot set and/or preserve memories after session end
-    public onSessionEndCallback: (memoryManager: ClientMemoryManager) => Promise<void>
+    public onSessionEndCallback: (context: BB.TurnContext, memoryManager: ClientMemoryManager, content: string | undefined) => Promise<string[] | null>
   
     public AddAPICallback(
         name: string,
@@ -544,43 +561,71 @@ export class CLRunner {
         return new ClientMemoryManager(prevMemories, curMemories, allEntities, sessionInfo);
     }
 
-    public async CallSessionStartCallback(memory: CLMemory, appId: string | null): Promise<void> {
+    public async CallSessionStartCallback(clMemory: CLMemory, appId: string | null): Promise<void> {
 
         // If bot has callback, call it
         if (appId && this.onSessionStartCallback) {
             let entityList = await this.clClient.GetEntities(appId)
-            let memoryManager = await this.CreateMemoryManagerAsync(memory, entityList.entities)
-            try {
-                await this.onSessionStartCallback(memoryManager)
-                await memory.BotMemory.RestoreFromMap(memoryManager.curMemories)
+            let memoryManager = await this.CreateMemoryManagerAsync(clMemory, entityList.entities)
+            
+            // Get conversation ref, so I can generate context and send it back to bot dev
+            let conversationReference = await clMemory.BotState.GetConversationReverence()
+            if (!conversationReference) {
+                CLDebug.Error('Missing ConversationReference')
+                return
             }
-            catch (err) {
-                await this.SendMessage(memory, "Exception hit in Bot's OnSessionStartCallback")
-                let errMsg = CLDebug.Error(err);
-                this.SendMessage(memory, errMsg);
-            }
+
+            await this.adapter.continueConversation(conversationReference, async (context) => {
+                try {
+                    await this.onSessionStartCallback(context, memoryManager)
+                    await clMemory.BotMemory.RestoreFromMap(memoryManager.curMemories)
+                }
+                catch (err) {
+                    await this.SendMessage(clMemory, "Exception hit in Bot's OnSessionStartCallback")
+                    let errMsg = CLDebug.Error(err);
+                    this.SendMessage(clMemory, errMsg);
+                }
+            })
         }
     }
 
-    public async CallSessionEndCallback(memory: CLMemory, appId: string | null): Promise<void> {
+    public async CallSessionEndCallback(clMemory: CLMemory, appId: string | null, content?: string): Promise<void> {
 
-        // If bot has callback, call it to determine which entites to clear / edit
-        if (appId && this.onSessionEndCallback) {
-            let entityList = await this.clClient.GetEntities(appId)
-            let memoryManager = await this.CreateMemoryManagerAsync(memory, entityList.entities)
-            try {
-                await this.onSessionEndCallback(memoryManager)
-                await memory.BotMemory.RestoreFromMap(memoryManager.curMemories)
+        // If onEndSession hasn't been called yet, call it
+        let calledEndSession = await clMemory.BotState.GetEndSessionCalled();
+        if (!calledEndSession) {
+          
+            // If bot has callback, call it to determine which entites to clear / edit
+            if (appId && this.onSessionEndCallback) {
+                let entityList = await this.clClient.GetEntities(appId)
+
+                let memoryManager = await this.CreateMemoryManagerAsync(clMemory, entityList.entities)
+
+                // Get conversation ref, so I can generate context and send it back to bot dev
+                let conversationReference = await clMemory.BotState.GetConversationReverence()
+                if (!conversationReference) {
+                    CLDebug.Error('Missing ConversationReference')
+                    return
+                }
+
+                await this.adapter.continueConversation(conversationReference, async (context) => {
+                    try {
+                        let saveEntities = await this.onSessionEndCallback(context, memoryManager, content)
+
+                        await clMemory.BotMemory.ClearAsync(saveEntities)
+                    }
+                    catch (err) {
+                        await this.SendMessage(clMemory, "Exception hit in Bot's OnSessionEndCallback")
+                        let errMsg = CLDebug.Error(err);
+                        this.SendMessage(clMemory, errMsg);
+                    }
+                })
+            } 
+            // Otherwise just clear the memory
+            else {
+                await clMemory.BotMemory.ClearAsync()
             }
-            catch (err) {
-                await this.SendMessage(memory, "Exception hit in Bot's OnSessionEndCallback")
-                let errMsg = CLDebug.Error(err);
-                this.SendMessage(memory, errMsg);
-            }
-        } 
-        // Otherwise just clear the memory
-        else {
-            await memory.BotMemory.ClearAsync()
+            await clMemory.BotState.SetOnEndSessionCalled(true);
         }
     }
 
@@ -610,16 +655,18 @@ export class CLRunner {
                     apiAction,
                     filledEntityMap,
                     clRecognizeResult.memory,
-                    clRecognizeResult.clEntities
+                    clRecognizeResult.clEntities, 
+                    inTeach
                 )
-                // API may not have output, but need to show something to user in WebChat do they can edit if in Teach mode
-                if (!message && inTeach) {
-                    message = this.APICard(apiAction);
-                }
                 break
             case CLM.ActionTypes.CARD:
                 const cardAction = new CLM.CardAction(clRecognizeResult.scoredAction as any)
                 message = await this.TakeCardAction(cardAction, filledEntityMap)
+                break
+            case CLM.ActionTypes.END_SESSION:
+                const sessionAction = new CLM.SessionAction(clRecognizeResult.scoredAction as any)
+                let sessionInfo = await clRecognizeResult.memory.BotState.SessionInfoAsync();
+                message = await this.TakeSessionAction(sessionAction, filledEntityMap, inTeach, sessionInfo.userId);
                 break
             default:
                 throw new Error(`Could not find matching renderer for action type: ${clRecognizeResult.scoredAction.actionType}`)
@@ -675,6 +722,10 @@ export class CLRunner {
             CLDebug.Error('Missing ConversationReference')
             return
         }
+        if (!this.adapter) {
+            CLDebug.Error('Missing Adapter')
+            return
+        }
 
         let message = await this.RenderTemplateAsync(conversationReference, intent, inTeach)
     
@@ -706,7 +757,7 @@ export class CLRunner {
         });
     }
 
-    public async TakeLocalAPIAction(apiAction: CLM.ApiAction, filledEntityMap: CLM.FilledEntityMap, memory: CLMemory, allEntities: CLM.EntityBase[]): Promise<Partial<BB.Activity> | string | null> {
+    public async TakeLocalAPIAction(apiAction: CLM.ApiAction, filledEntityMap: CLM.FilledEntityMap, memory: CLMemory, allEntities: CLM.EntityBase[], inTeach: boolean): Promise<Partial<BB.Activity> | string | null> {
         if (!this.apiCallbacks) {
             CLDebug.Error('No Local APIs defined.')
             return null
@@ -751,6 +802,11 @@ export class CLRunner {
             try {
                 let response = await api(memoryManager, ...argArray)
                 await memory.BotMemory.RestoreFromMap(memoryManager.curMemories)
+
+                // API may not have output, but need to show something to user in WebChat so they can edit
+                if (!response && inTeach) {
+                    response = this.APICard(apiAction);
+                }
                 return response ? response : null;
             }
             catch (err) {
@@ -791,6 +847,33 @@ export class CLRunner {
             let msg = CLDebug.Error(error, 'Failed to Render Template')
             return msg
         }
+    }
+
+    public async TakeSessionAction(sessionAction: CLM.SessionAction, filledEntityMap: CLM.FilledEntityMap, inTeach: boolean, userId: string): Promise<Partial<BB.Activity> | null> {
+        
+        // Get any context from the action
+        let content = sessionAction.renderValue(CLM.getEntityDisplayValueMap(filledEntityMap))
+    
+        await this.EndSessionAsync(userId, content);
+
+        // If inTeach, show something to user in WebChat so they can edit
+        if (inTeach) {
+            let payload = await sessionAction.renderValue(CLM.getEntityDisplayValueMap(filledEntityMap))
+            let card = {
+                type: "AdaptiveCard",
+                version: "1.0",
+                body: [
+                    {
+                        type: "TextBlock",
+                        text: `EndSession: *${payload}*`
+                    }
+                ]
+            }
+            const attachment = BB.CardFactory.adaptiveCard(card)
+            const message = BB.MessageFactory.attachment(attachment)
+            return message
+        }
+        return null
     }
 
     // Validate that training round memory is the same as what in the bot's memory
@@ -977,7 +1060,7 @@ export class CLRunner {
 
         let activities = []
         let replayErrors: CLM.ReplayError[] = [];
-        let isLastActionTerminal = false
+        let lastAction = null
 
         for (let [roundNum, round] of trainDialog.rounds.entries()) {
             let userText = round.extractorStep.textVariations[0].text
@@ -1061,33 +1144,32 @@ export class CLRunner {
                 }
 
                 // Generate bot response
-                let action = actions.filter((a: CLM.ActionBase) => a.actionId === labelAction)[0]
-                if (!action) {
+                lastAction = actions.filter((a: CLM.ActionBase) => a.actionId === labelAction)[0]
+                if (!lastAction) {
                     botResponse = CLDebug.Error(`Can't find Action Id ${labelAction}`);
                 }
                 else {
-                    isLastActionTerminal = action.isTerminal
 
                     let filledEntityMap = this.CreateFilledEntityMap(scorerStep.input.filledEntities, entityList)
 
-                    if (action.actionType === CLM.ActionTypes.CARD) {
-                        const cardAction = new CLM.CardAction(action)
+                    if (lastAction.actionType === CLM.ActionTypes.CARD) {
+                        const cardAction = new CLM.CardAction(lastAction)
                         botResponse = await this.TakeCardAction(cardAction, filledEntityMap)
-                    } else if (action.actionType === CLM.ActionTypes.API_LOCAL) {
-                        const apiAction = new CLM.ApiAction(action)
-                        botResponse = await this.TakeLocalAPIAction(apiAction, filledEntityMap, memory, entityList.entities)
-                        // API may not have output, but need to show something to user in WebChat do they can edit
-                        if (!botResponse) {
-                            botResponse = this.APICard(apiAction);
-                        }
-                    } else if (action.actionType === CLM.ActionTypes.TEXT) {
-                        const textAction = new CLM.TextAction(action)
+                    } else if (lastAction.actionType === CLM.ActionTypes.API_LOCAL) {
+                        const apiAction = new CLM.ApiAction(lastAction)
+                        botResponse = await this.TakeLocalAPIAction(apiAction, filledEntityMap, memory, entityList.entities, true)
+                    } else if (lastAction.actionType === CLM.ActionTypes.TEXT) {
+                        const textAction = new CLM.TextAction(lastAction)
                         botResponse = await this.TakeTextAction(textAction, filledEntityMap)
+                    } else if (lastAction.actionType === CLM.ActionTypes.END_SESSION) {
+                        const sessionAction = new CLM.SessionAction(lastAction)
+                        let sessionInfo = await memory.BotState.SessionInfoAsync();
+                        botResponse = await this.TakeSessionAction(sessionAction, filledEntityMap, true, sessionInfo.userId)
                     }
                     // TODO
                     //  TakeAzureAPIAction
                     else {
-                        throw new Error(`Cannont construct bot response for unknown action type: ${action.actionType}`)
+                        throw new Error(`Cannot construct bot response for unknown action type: ${lastAction.actionType}`)
                     }
                 }
 
@@ -1118,7 +1200,22 @@ export class CLRunner {
 
         let hasRounds = trainDialog.rounds.length > 0;
         let hasScorerRound = (hasRounds && trainDialog.rounds[trainDialog.rounds.length-1].scorerSteps.length > 0)
-        let dialogMode = (isLastActionTerminal && hasScorerRound) || !hasRounds ? CLM.DialogMode.Wait : CLM.DialogMode.Scorer
+        let dialogMode =  CLM.DialogMode.Scorer;
+        
+        // If I have no rounds, I'm waiting for input
+        if (!hasRounds) {
+            dialogMode = CLM.DialogMode.Wait;
+        }
+        else if (lastAction) {
+            // If last action is session end
+            if (lastAction.actionType === CLM.ActionTypes.END_SESSION) {
+                dialogMode = CLM.DialogMode.EndSession;
+            }
+            // If I have a scorer round, wait
+            else if (lastAction.isTerminal && hasScorerRound) {
+                dialogMode = CLM.DialogMode.Wait;
+            }
+        }
 
         // Calculate last extract response from text variations
         let uiScoreInput : CLM.UIScoreInput | undefined;
@@ -1144,7 +1241,7 @@ export class CLRunner {
             scoreInput: undefined,
             scoreResponse: undefined,
             uiScoreInput: uiScoreInput,
-            isLastActionTerminal: isLastActionTerminal,
+            lastAction: lastAction,
             history: activities,
             memories: memories,
             prevMemories: prevMemories,

@@ -65,12 +65,24 @@ export class BotMemory {
     }
 
     public async RestoreFromMap(filledEntityMap: FilledEntityMap): Promise<void> {
-        this.filledEntityMap = filledEntityMap
+        this.filledEntityMap.map = filledEntityMap.map
         await this.Set()
     }
 
-    public async ClearAsync(): Promise<void> {
-        this.filledEntityMap = new FilledEntityMap()
+    // Clear memory values not in saveList
+    public async ClearAsync(saveList?: string[] | null): Promise<void> {
+
+        if (!saveList) {
+            this.filledEntityMap = new FilledEntityMap()
+        }
+        else {
+            for (let key of Object.keys(this.filledEntityMap.map)) {
+                if (saveList.indexOf(key) < 0) {
+                    delete this.filledEntityMap.map[key]
+                }
+            }
+
+        }
         await this.Set()
     }
 
