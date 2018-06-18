@@ -15,36 +15,6 @@ export class Utils {
         */
     }
 
-    // TEMP: Until we re-jigger object types.  Need to be stripped
-    public static StripPrebuiltInfoFromTrain(trainDialog: TrainDialog): TrainDialog {
-        return {
-            trainDialogId: trainDialog.trainDialogId,
-            sourceLogDialogId: trainDialog.sourceLogDialogId,
-            version: trainDialog.version,
-            packageCreationId: trainDialog.packageCreationId,
-            packageDeletionId: trainDialog.packageDeletionId,
-            rounds: trainDialog.rounds.map(r => ({
-                scorerSteps: r.scorerSteps,
-                extractorStep: this.StripPrebuiltInfo(r.extractorStep)
-            }))
-        }
-    }
-
-    // TEMP: Until we re-jigger object types.  Need to be stripped
-    public static StripPrebuiltInfo(trainExtractorStep: TrainExtractorStep): TrainExtractorStep {
-        return {
-            textVariations: trainExtractorStep.textVariations.map(tv => ({
-                text: tv.text,
-                labelEntities: tv.labelEntities.map(le => {
-                    let nle = { ...le }
-                    delete nle.builtinType
-                    delete nle.resolution
-                    return nle
-                })
-            }))
-        }
-    }
-
     /** Trick to get errors to render on Azure */
     private static ReplaceErrors(key: any, value: any) {
         if (value instanceof Error) {
