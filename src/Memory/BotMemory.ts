@@ -5,6 +5,7 @@
 import { CLMemory } from '../CLMemory'
 import { CLDebug } from '../CLDebug'
 import { Memory, FilledEntity, MemoryValue, FilledEntityMap } from '@conversationlearner/models'
+import { ClientMemoryManager } from '..';
 
 const NEGATIVE_PREFIX = '~'
 
@@ -66,6 +67,13 @@ export class BotMemory {
 
     public async RestoreFromMap(filledEntityMap: FilledEntityMap): Promise<void> {
         this.filledEntityMap.map = filledEntityMap.map
+        await this.Set()
+    }
+
+    public async RestoreFromMemoryManager(memoryManager: ClientMemoryManager): Promise<void> {
+        // Disable memory manager.  Use has been completed
+        memoryManager.__Expire()
+        this.filledEntityMap.map = memoryManager.curMemories.map
         await this.Set()
     }
 
