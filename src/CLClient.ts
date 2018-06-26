@@ -272,7 +272,7 @@ export class CLClient {
     /** Retrieves details for a specific $appId */
     public GetAppStatus(appId: string): Promise<models.AppBase> {
         let apiPath = `archive/${appId}`
-        return this.send('DELETE', this.MakeURL(apiPath))
+        return this.send('GET', this.MakeURL(apiPath))
     }
 
     /** Moves an application from the archive to the set of active applications */
