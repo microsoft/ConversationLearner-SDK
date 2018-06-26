@@ -17,7 +17,7 @@ export class CLDebug {
     public static adapter: BB.BotAdapter
     public static conversationReference: Partial<BB.ConversationReference>
     public static cache: string = ''
-    public static enabled: boolean
+    public static logToUI: boolean = false  // If set all log messages displayed in chat UI, if false only error messages
     public static verbose: boolean = true
     public static debugType: DebugType = 0
 
@@ -32,10 +32,12 @@ export class CLDebug {
     private static async SendCache() {
         if (CLDebug.adapter && CLDebug.cache) {
 
+            //TODO: Only send when running in UI
             await CLDebug.adapter.continueConversation(CLDebug.conversationReference, async (context) => {
-                await context.sendActivity(this.cache)
+                let message = this.cache
+                this.cache = '';
+                await context.sendActivity(message)
             });
-            CLDebug.cache = '';
         }
     }
 
@@ -43,7 +45,7 @@ export class CLDebug {
         if (!filter || this.HasDebugType(filter)) {
             console.log(text)
 
-            if (CLDebug.enabled) {
+            if (CLDebug.logToUI) {
                 CLDebug.cache += (CLDebug.cache ? '\n\n' : '') + text
             }
             CLDebug.SendCache()
@@ -68,7 +70,7 @@ export class CLDebug {
             }
             console.log(message)
 
-            if (CLDebug.enabled) {
+            if (CLDebug.logToUI) {
                 CLDebug.cache += (CLDebug.cache ? '\n\n' : '') + message
             }
             CLDebug.SendCache()
@@ -77,7 +79,12 @@ export class CLDebug {
 
     public static Error(error: any, context: string = ''): string {
         let text = `ERROR: ${error ? Utils.ErrorString(error, context) : 'No details'}`
-        CLDebug.Log(text)
+
+        console.log(text)
+
+        CLDebug.cache += (CLDebug.cache ? '\n\n' : '') + text
+        CLDebug.SendCache()
+
         return text
     }
 

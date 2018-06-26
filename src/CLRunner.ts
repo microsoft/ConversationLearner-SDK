@@ -117,10 +117,8 @@ export class CLRunner {
     }
 
     public SetAdapter(adapter: BB.BotAdapter, conversationReference: Partial<BB.ConversationReference>) {
-        if (!this.adapter) {
-            this.adapter = adapter
-            CLDebug.InitLogger(adapter, conversationReference)
-        }
+        this.adapter = adapter
+        CLDebug.InitLogger(adapter, conversationReference)
     }
 
     // Add input to queue.  Allows CL to handle out-of-order messages
@@ -532,7 +530,7 @@ export class CLRunner {
                 await this.entityDetectionCallback(text, memoryManager)
 
                 // Update Memory
-                await memory.BotMemory.RestoreFromMap(memoryManager.curMemories)
+                await memory.BotMemory.RestoreFromMemoryManager(memoryManager)
             }
             catch (err) {
                 await this.SendMessage(memory, "Exception hit in Bot's EntityDetectionCallback")
@@ -578,7 +576,7 @@ export class CLRunner {
             await this.adapter.continueConversation(conversationReference, async (context) => {
                 try {
                     await this.onSessionStartCallback(context, memoryManager)
-                    await clMemory.BotMemory.RestoreFromMap(memoryManager.curMemories)
+                    await clMemory.BotMemory.RestoreFromMemoryManager(memoryManager)
                 }
                 catch (err) {
                     await this.SendMessage(clMemory, "Exception hit in Bot's OnSessionStartCallback")
@@ -801,7 +799,7 @@ export class CLRunner {
         try {
             try {
                 let response = await api(memoryManager, ...argArray)
-                await memory.BotMemory.RestoreFromMap(memoryManager.curMemories)
+                await memory.BotMemory.RestoreFromMemoryManager(memoryManager)
 
                 // API may not have output, but need to show something to user in WebChat so they can edit
                 if (!response && inTeach) {

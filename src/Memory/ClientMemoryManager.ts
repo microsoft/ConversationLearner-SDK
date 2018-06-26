@@ -6,26 +6,41 @@ import { SessionInfo } from '../Memory/BotState'
 import { CLDebug } from '../CLDebug'
 import { EntityBase, MemoryValue, FilledEntity, FilledEntityMap, EntityType } from '@conversationlearner/models'
 
+const errMsg = "called after your function has already returned. You must await results within your code rather than use callbacks"
+
 export class ClientMemoryManager {
     protected allEntities: EntityBase[] = []
     private sessionInfo: SessionInfo
     public prevMemories: FilledEntityMap
     public curMemories: FilledEntityMap
+    private __expired: boolean
+
 
     public constructor(prevMemories: FilledEntityMap, curMemories: FilledEntityMap, allEntities: EntityBase[], sessionInfo: SessionInfo) {
         this.allEntities = allEntities
         this.sessionInfo = sessionInfo
         this.prevMemories = prevMemories
         this.curMemories = curMemories
+        this.__expired = false
     }
 
-    private FindEntity(entityName: string): EntityBase | undefined {
+    public __Expire(): void {
+        this.__expired = true
+    }
+
+    private __FindEntity(entityName: string): EntityBase | undefined {
         let match = this.allEntities.find(e => e.entityName == entityName)
         return match
     }
 
     public RememberEntity(entityName: string, entityValue: string | number | object): void {
-        let entity = this.FindEntity(entityName)
+
+        if (this.__expired) {
+            CLDebug.Error(`ClientMemoryManager: RememberEntity "${entityName}" ${errMsg}`)
+            return
+        }
+
+        let entity = this.__FindEntity(entityName)
 
         if (!entity) {
             CLDebug.Error(`Can't find Entity named: ${entityName}`)
@@ -47,7 +62,13 @@ export class ClientMemoryManager {
     }
 
     public RememberEntities(entityName: string, entityValues: string[]): void {
-        let entity = this.FindEntity(entityName)
+
+        if (this.__expired) {
+            CLDebug.Error(`ClientMemoryManager: RememberEntities "${entityName}" ${errMsg}`)
+            return
+        }
+
+        let entity = this.__FindEntity(entityName)
 
         if (!entity) {
             CLDebug.Error(`Can't find Entity named: ${entityName}`)
@@ -65,7 +86,13 @@ export class ClientMemoryManager {
     }
 
     public ForgetEntity(entityName: string, value: string | null = null): void {
-        let entity = this.FindEntity(entityName)
+
+        if (this.__expired) {
+            CLDebug.Error(`ClientMemoryManager: ForgetEntity "${entityName}" ${errMsg}`)
+            return
+        }
+
+        let entity = this.__FindEntity(entityName)
 
         if (!entity) {
             CLDebug.Error(`Can't find Entity named: ${entityName}`)
@@ -76,11 +103,14 @@ export class ClientMemoryManager {
         this.curMemories.Forget(entity.entityName, value, entity.isMultivalue)
     }
 
-    /** Clear all entity values apart from any included in the list of saveEntityNames
-     * Useful in the "onSessionEndCallback" to preserve a subset of entities for the next session
-     */
+    /** Clear all entity values apart from any included in the list of saveEntityNames */
     public ForgetAllEntities(saveEntityNames: string[]): void {
         
+        if (this.__expired) {
+            CLDebug.Error(`ClientMemoryManager: ForgetAllEntities ${errMsg}`)
+            return
+        }
+
         for (let entity of this.allEntities) {
             if (saveEntityNames.indexOf(entity.entityName) < 0) {
                 this.curMemories.Forget(entity.entityName, null, entity.isMultivalue)
@@ -89,8 +119,14 @@ export class ClientMemoryManager {
     }
 
     public CopyEntity(entityNameFrom: string, entityNameTo: string): void {
-        let entityFrom = this.FindEntity(entityNameFrom)
-        let entityTo = this.FindEntity(entityNameTo)
+
+        if (this.__expired) {
+            CLDebug.Error(`ClientMemoryManager: CopyEntity ${errMsg}`)
+            return
+        }
+
+        let entityFrom = this.__FindEntity(entityNameFrom)
+        let entityTo = this.__FindEntity(entityNameTo)
 
         if (!entityFrom) {
             CLDebug.Error(`Can't find Entity named: ${entityNameFrom}`)
