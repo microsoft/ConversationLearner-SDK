@@ -13,10 +13,20 @@ export enum DebugType {
     MemVerbose = 1 << 4
 }
 
+enum LogType {
+    Log,
+    Error
+}
+
+interface LogMessage {
+    message: string
+    logType: LogType
+}
+
 export class CLDebug {
-    public static adapter: BB.BotAdapter
-    public static conversationReference: Partial<BB.ConversationReference>
-    public static cache: string = ''
+    private static adapter: BB.BotAdapter
+    private static conversationReference: Partial<BB.ConversationReference>
+    private static cachedMessages: LogMessage[] = []
     public static logToUI: boolean = false  // If set all log messages displayed in chat UI, if false only error messages
     public static verbose: boolean = true
     public static debugType: DebugType = 0
@@ -30,13 +40,21 @@ export class CLDebug {
         return (debugType & this.debugType) === debugType
     }
     private static async SendCache() {
-        if (CLDebug.adapter && CLDebug.cache) {
+        if (CLDebug.adapter && CLDebug.cachedMessages.length > 0) {
 
             //TODO: Only send when running in UI
             await CLDebug.adapter.continueConversation(CLDebug.conversationReference, async (context) => {
-                let message = this.cache
-                this.cache = '';
-                await context.sendActivity(message)
+                let cachedMessages = [...this.cachedMessages]
+                this.cachedMessages = []
+
+                for (let logMessage of cachedMessages) {
+                    if (logMessage.logType === LogType.Error) {
+                        await context.sendActivity({text: logMessage.message, channelData: {highlight: "error"}})
+                    }
+                    else {
+                        await context.sendActivity(logMessage.message)
+                    }
+                }
             });
         }
     }
@@ -46,7 +64,7 @@ export class CLDebug {
             console.log(text)
 
             if (CLDebug.logToUI) {
-                CLDebug.cache += (CLDebug.cache ? '\n\n' : '') + text
+                CLDebug.cachedMessages.push({message: text, logType: LogType.Log})
             }
             CLDebug.SendCache()
         }
@@ -71,7 +89,7 @@ export class CLDebug {
             console.log(message)
 
             if (CLDebug.logToUI) {
-                CLDebug.cache += (CLDebug.cache ? '\n\n' : '') + message
+                CLDebug.cachedMessages.push({message: message, logType: LogType.Log})
             }
             CLDebug.SendCache()
         }
@@ -82,7 +100,7 @@ export class CLDebug {
 
         console.log(text)
 
-        CLDebug.cache += (CLDebug.cache ? '\n\n' : '') + text
+        CLDebug.cachedMessages.push({message: text, logType: LogType.Error})
         CLDebug.SendCache()
 
         return text
