@@ -25,6 +25,11 @@ export interface ISessionStartParams {
     isContinued: boolean
 }
 
+export type EntityDetectionCallback = (text: string, memoryManager: ClientMemoryManager) => Promise<void>
+export type OnSessionStartCallback = (context: BB.TurnContext, memoryManager: ClientMemoryManager) => Promise<void>
+export type OnSessionEndCallback = (context: BB.TurnContext, memoryManager: ClientMemoryManager, content: string | undefined) => Promise<string[] | undefined>
+export type ApiCallback = (memoryManager: ClientMemoryManager, ...args: string[]) => Promise<Partial<BB.Activity> | string | void>
+
 export class CLRunner {
 
     // Lookup table for incoming calls from UI
@@ -32,7 +37,7 @@ export class CLRunner {
     private static UIRunner: CLRunner;
 
     public clClient: CLClient
-    public adapter: BB.BotAdapter
+    public adapter: BB.BotAdapter | undefined
     private appId: string;
     private maxTimeout: number | undefined;  // TODO: Move timeout to app settings
 
@@ -461,17 +466,17 @@ export class CLRunner {
 
     //-------------------------------------------
     // Optional callback than runs after LUIS but before Conversation Learner.  Allows Bot to substitute entities
-    public entityDetectionCallback: (text: string,memoryManager: ClientMemoryManager) => Promise<void>
+    public entityDetectionCallback: EntityDetectionCallback | undefined
 
     // Optional callback than runs before a new chat session starts.  Allows Bot to set initial entities
-    public onSessionStartCallback: (context: BB.TurnContext, memoryManager: ClientMemoryManager) => Promise<void>
+    public onSessionStartCallback: OnSessionStartCallback | undefined
 
     // Optional callback than runs when a session ends.  Allows Bot set and/or preserve memories after session end
-    public onSessionEndCallback: (context: BB.TurnContext, memoryManager: ClientMemoryManager, content: string | undefined) => Promise<string[] | null>
+    public onSessionEndCallback: OnSessionEndCallback | undefined
   
     public AddAPICallback(
         name: string,
-        target: (memoryManager: ClientMemoryManager, ...args: string[]) => Promise<Partial<BB.Activity> | string | void>
+        target: ApiCallback
     ) {
         this.apiCallbacks[name] = target
         this.apiParams.push({ name, arguments: this.GetArguments(target) })
@@ -562,7 +567,7 @@ export class CLRunner {
     public async CallSessionStartCallback(clMemory: CLMemory, appId: string | null): Promise<void> {
 
         // If bot has callback, call it
-        if (appId && this.onSessionStartCallback) {
+        if (appId && this.onSessionStartCallback && this.adapter) {
             let entityList = await this.clClient.GetEntities(appId)
             let memoryManager = await this.CreateMemoryManagerAsync(clMemory, entityList.entities)
             
@@ -575,7 +580,9 @@ export class CLRunner {
 
             await this.adapter.continueConversation(conversationReference, async (context) => {
                 try {
-                    await this.onSessionStartCallback(context, memoryManager)
+                    if (this.onSessionStartCallback) {
+                        await this.onSessionStartCallback(context, memoryManager)
+                    }
                     await clMemory.BotMemory.RestoreFromMemoryManager(memoryManager)
                 }
                 catch (err) {
@@ -594,7 +601,7 @@ export class CLRunner {
         if (!calledEndSession) {
           
             // If bot has callback, call it to determine which entites to clear / edit
-            if (appId && this.onSessionEndCallback) {
+            if (appId && this.onSessionEndCallback && this.adapter) {
                 let entityList = await this.clClient.GetEntities(appId)
 
                 let memoryManager = await this.CreateMemoryManagerAsync(clMemory, entityList.entities)
@@ -608,7 +615,9 @@ export class CLRunner {
 
                 await this.adapter.continueConversation(conversationReference, async (context) => {
                     try {
-                        let saveEntities = await this.onSessionEndCallback(context, memoryManager, content)
+                        let saveEntities = this.onSessionEndCallback
+                            ? await this.onSessionEndCallback(context, memoryManager, content)
+                            : undefined
 
                         await clMemory.BotMemory.ClearAsync(saveEntities)
                     }
@@ -747,6 +756,11 @@ export class CLRunner {
         let conversationReference = await memory.BotState.GetConversationReverence()
         if (!conversationReference) {
             CLDebug.Error('Missing ConversationReference')
+            return
+        }
+
+        if (!this.adapter) {
+            CLDebug.Error(`Attempted to send message before adapter was assigned`)
             return
         }
 

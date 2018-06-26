@@ -61,8 +61,8 @@ export enum BotStateType {
 }
 
 export class BotState {
-    private static _instance: BotState | null = null
-    public memory: CLMemory
+    private static _instance: BotState | undefined
+    public memory: CLMemory | undefined
 
     private constructor(init?: Partial<BotState>) {
         (<any>Object).assign(this, init)

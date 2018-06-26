@@ -10,9 +10,9 @@ import { ClientMemoryManager } from '..';
 const NEGATIVE_PREFIX = '~'
 
 export class BotMemory {
-    private static _instance: BotMemory | null = null
+    private static _instance: BotMemory | undefined
     private static MEMKEY = 'BOTMEMORY'
-    private memory: CLMemory
+    private memory: CLMemory | undefined
     public filledEntityMap: FilledEntityMap
 
     private constructor(init?: Partial<BotMemory>) {
@@ -78,7 +78,7 @@ export class BotMemory {
     }
 
     // Clear memory values not in saveList
-    public async ClearAsync(saveList?: string[] | null): Promise<void> {
+    public async ClearAsync(saveList?: string[] | undefined): Promise<void> {
 
         if (!saveList) {
             this.filledEntityMap = new FilledEntityMap()
