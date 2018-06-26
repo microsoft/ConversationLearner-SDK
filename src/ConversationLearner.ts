@@ -3,7 +3,7 @@
  * Licensed under the MIT License.
  */
 import * as BB from 'botbuilder'
-import { CLRunner } from './CLRunner'
+import { CLRunner, ApiCallback, EntityDetectionCallback, OnSessionStartCallback, OnSessionEndCallback } from './CLRunner'
 import { ICLOptions } from './CLOptions'
 import { CLMemory } from './CLMemory'
 import { CLDebug } from './CLDebug'
@@ -11,7 +11,6 @@ import { CLClient } from './CLClient'
 import createSdkServer from './Http/Server'
 import { startDirectOffLineServer } from './DOLRunner'
 import { CL_DEVELOPER, DEFAULT_MAX_SESSION_LENGTH } from './Utils'
-import { ClientMemoryManager } from './Memory/ClientMemoryManager'
 import { CLRecognizerResult } from './CLRecognizeResult'
 
 export class ConversationLearner {
@@ -79,9 +78,7 @@ export class ConversationLearner {
     /**
      * Provide an callback that will be invoked whenever a Session is started
      */
-    public OnSessionStartCallback(
-        target: (context: BB.TurnContext, memoryManager: ClientMemoryManager) => Promise<void>
-    ) {
+    public OnSessionStartCallback(target: OnSessionStartCallback) {
         this.clRunner.onSessionStartCallback = target
     }
     
@@ -89,14 +86,12 @@ export class ConversationLearner {
      * Provide a callback that will be invoked whenever a Session ends.  Sessions
      * can end because of a timeout or the selection of an EndSession activity
      */
-    public OnSessionEndCallback(
-        target: (context: BB.TurnContext, memoryManager: ClientMemoryManager, content: string | undefined) => Promise<string[] | null>
-    ) {
+    public OnSessionEndCallback(target: OnSessionEndCallback) {
         this.clRunner.onSessionEndCallback = target
     }
 
     public async SendResult(result: CLRecognizerResult): Promise<void> {
-        this.clRunner.SendIntent(result);
+        return this.clRunner.SendIntent(result)
     }
 
     // Returns true is bot is running in the Training UI
@@ -104,16 +99,11 @@ export class ConversationLearner {
         return (context.activity.from.name === CL_DEVELOPER);
     }
 
-    public AddAPICallback(
-        name: string,
-        target: (memoryManager: ClientMemoryManager, ...args: string[]) => Promise<Partial<BB.Activity> | string | void>
-    ) {
+    public AddAPICallback(name: string, target: ApiCallback) {
         this.clRunner.AddAPICallback(name, target);
     }
 
-    public EntityDetectionCallback(
-        target: (text: string, memoryManager: ClientMemoryManager) => Promise<void>
-    ) {
+    public EntityDetectionCallback(target: EntityDetectionCallback) {
         this.clRunner.entityDetectionCallback = target
     }
 }
