@@ -17,7 +17,7 @@ export class BotMemory {
 
     private constructor(init?: Partial<BotMemory>) {
         this.filledEntityMap = new FilledEntityMap()
-        ;(<any>Object).assign(this, init)
+        Object.assign(this, init)
     }
 
     public static Get(clMemory: CLMemory): BotMemory {
@@ -35,7 +35,7 @@ export class BotMemory {
 
     private async Init(): Promise<void> {
         if (!this.memory) {
-            throw new Error('BotMemory called without initialzing memory')
+            throw new Error('BotMemory called without initializing memory')
         }
 
         let data = await this.memory.GetAsync(BotMemory.MEMKEY)
@@ -60,7 +60,7 @@ export class BotMemory {
 
     private async Set(): Promise<void> {
         if (!this.memory) {
-            throw new Error('BotMemory called without initialzing memory')
+            throw new Error('BotMemory called without initializing memory')
         }
         await this.memory.SetAsync(BotMemory.MEMKEY, this.Serialize())
     }
@@ -129,10 +129,10 @@ export class BotMemory {
     }
 
     /** Forget a predicted Entity */
-    public async ForgetEntity(entityName: string, entityValue: string, isMultivalue: boolean): Promise<void> {
+    public async ForgetEntity(entityName: string, entityValue: string, isMultiValue: boolean): Promise<void> {
         let posName = this.PositiveName(entityName)
         if (posName) {
-            await this.Forget(posName, entityValue, isMultivalue)
+            await this.Forget(posName, entityValue, isMultiValue)
         }
     }
 

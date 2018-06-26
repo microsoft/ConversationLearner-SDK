@@ -29,8 +29,8 @@ export enum BotStateType {
     // Currently running application
     APP = 'APP',  //public app: AppBase | null = null
     
-    // Conversation Id associated with this sesssion
-    CONVERSTAION_ID = 'CONVERSATION_ID',
+    // Conversation Id associated with this session
+    CONVERSATION_ID = 'CONVERSATION_ID',
 
     // BotBuilder conversation reference
     CONVERSATION_REFERENCE = 'CONVERSATION_REFERENCE',
@@ -65,7 +65,7 @@ export class BotState {
     public memory: CLMemory | undefined
 
     private constructor(init?: Partial<BotState>) {
-        (<any>Object).assign(this, init)
+        Object.assign(this, init)
     }
 
     public static Get(clMemory: CLMemory): BotState {
@@ -95,7 +95,7 @@ export class BotState {
 
     private async SetStateAsync<T>(botStateType: BotStateType, value: T): Promise<void> {
         if (!this.memory) {
-            throw new Error('BotState called without initialzing memory')
+            throw new Error('BotState called without initializing memory')
         }
         const json = JSON.stringify(value) 
         await this.memory.SetAsync(botStateType, json)
@@ -150,11 +150,11 @@ export class BotState {
     //  CONVERSATION_ID
     // ------------------------------------------------
     public async GetConversationId(): Promise<string | null> {
-        return await this.GetStateAsync<string | null>(BotStateType.CONVERSTAION_ID)
+        return await this.GetStateAsync<string | null>(BotStateType.CONVERSATION_ID)
     }
 
     public async SetConversationId(conversationId : string | null): Promise<void> {
-        await this.SetStateAsync(BotStateType.CONVERSTAION_ID, conversationId)
+        await this.SetStateAsync(BotStateType.CONVERSATION_ID, conversationId)
     }
 
     // ------------------------------------------------
@@ -231,7 +231,7 @@ export class BotState {
     // ------------------------------------------------
     public async GetSessionId(conversationId: string): Promise<string | null> {
 
-        // If convId not set yet, use the session and set it
+        // If conversationId not set yet, use the session and set it
         let existingConversationId = await this.GetConversationId();
         if (!existingConversationId) {
             await this.SetConversationId(conversationId)
@@ -254,8 +254,8 @@ export class BotState {
         await this.SetLogDialogId(logDialogId);
 
         // Only update original sessionId, if one hasn't already been set (could be multiple restarts)
-        let existingOrigSesionId = await this.GetOrgSessionIdAsync()
-        if (!existingOrigSesionId) {
+        let existingOrigSessionId = await this.GetOrgSessionIdAsync()
+        if (!existingOrigSessionId) {
             await this.SetOrgSessionId(orgSessionId)
         }
         await this.SetOnEndSessionCalled(false)

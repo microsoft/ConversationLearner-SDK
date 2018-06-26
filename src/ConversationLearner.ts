@@ -66,7 +66,7 @@ export class ConversationLearner {
     }
 
     /**
-     * OPTIONAL: Sessions are started automaticaly, StartSession call is only needed if bot needs
+     * OPTIONAL: Sessions are started automatically, StartSession call is only needed if bot needs
      * to start Conversation Learner Session with initial entity values.  
      * Results in clearing of existing Entity values, and a call to the OnSessionStartCallback
      * @param turnContext BotBuilder Context
