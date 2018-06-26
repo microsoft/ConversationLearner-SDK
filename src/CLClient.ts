@@ -4,7 +4,6 @@
  */
 import * as models from '@conversationlearner/models'
 import { CLDebug } from './CLDebug'
-import * as NodeCache from 'node-cache'
 import * as Request from 'request'
 
 const apimSubscriptionKeyHeader = 'Ocp-Apim-Subscription-Key'
@@ -30,9 +29,6 @@ export interface ICLClientOptions {
 
 export class CLClient {
     private options: ICLClientOptions
-    private actionCache = new NodeCache({ stdTTL: 300, checkperiod: 600 })
-    private entityCache = new NodeCache({ stdTTL: 300, checkperiod: 600 })
-    private exportCache = new NodeCache({ stdTTL: 300, checkperiod: 600 })
 
     constructor(options: ICLClientOptions) {
         this.options = options;
@@ -106,10 +102,6 @@ export class CLClient {
         return this.BuildURL(baseUri, apiPath, query)
     }
 
-    public ClearExportCache(appId: string): void {
-        this.exportCache.del(appId)
-    }
-
     private send<T>(method: HTTP_METHOD, url: string, body?: any): Promise<T> {
         return new Promise((resolve, reject) => {
             const requestData = {
@@ -152,17 +144,8 @@ export class CLClient {
      * (or the specified package if provided)
      */
     public async GetAction(appId: string, actionId: string, query: string): Promise<models.ActionBase> {
-        let action = this.actionCache.get(actionId) as models.ActionBase
-        if (action) {
-            return Promise.resolve(action)         
-        }
-
-        let apiPath = `app/${appId}/action/${actionId}`
-        action = await this.send<models.ActionBase>('GET', this.MakeURL(apiPath, query))
-        action.actionId = actionId
-        this.actionCache.set(actionId, action)
-
-        return action
+        const apiPath = `app/${appId}/action/${actionId}`
+        return await this.send<models.ActionBase>('GET', this.MakeURL(apiPath, query))
     }
 
     /** 
@@ -187,14 +170,12 @@ export class CLClient {
 
     /** Updates payload and/or metadata on an existing action */
     public EditAction(appId: string, action: models.ActionBase): Promise<models.DeleteEditResponse> {
-        this.actionCache.del(action.actionId)
         let apiPath = `app/${appId}/action/${action.actionId}`
         return this.send('PUT', this.MakeURL(apiPath), action)
     }
 
     /** Marks an action as deleted */
     public DeleteAction(appId: string, actionId: string): Promise<models.DeleteEditResponse> {
-        this.actionCache.del(actionId)
         let apiPath = `app/${appId}/action/${actionId}`
         return this.send('DELETE', this.MakeURL(apiPath))
     }
@@ -333,16 +314,8 @@ export class CLClient {
      * (or the specified package, if provided)
      */
     public async GetEntity(appId: string, entityId: string, query: string): Promise<models.EntityBase> {
-        // Check cache first
-        let entity = this.entityCache.get(entityId) as models.EntityBase
-        if (entity) {
-            return Promise.resolve(entity)
-        }
-
         let apiPath = `app/${appId}/entity/${entityId}`
-        entity = await this.send<models.EntityBase>('GET', this.MakeURL(apiPath, query))
-        this.entityCache.set(entityId, entity)
-        return entity
+        return await this.send<models.EntityBase>('GET', this.MakeURL(apiPath, query))
     }
 
     /**
@@ -368,10 +341,6 @@ export class CLClient {
     /** Updates name and/or metadata on an existing entity */
     public EditEntity(appId: string, entity: models.EntityBase): Promise<string> {
         let apiPath = `app/${appId}/entity/${entity.entityId}`
-
-        // Clear old one from cache
-        this.entityCache.del(entity.entityId)
-
         return this.send('PUT', this.MakeURL(apiPath), entity)
     }
 
