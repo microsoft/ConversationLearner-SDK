@@ -64,7 +64,7 @@ export class BotMemory {
         await this.memory.SetAsync(BotMemory.MEMKEY, this.Serialize())
     }
 
-    public async RestoreFromMap(filledEntityMap: FilledEntityMap): Promise<void> {
+    public async RestoreFromMapAsync(filledEntityMap: FilledEntityMap): Promise<void> {
         this.filledEntityMap.map = filledEntityMap.map
         await this.Set()
     }

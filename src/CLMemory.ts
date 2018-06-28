@@ -76,12 +76,12 @@ export class CLMemory {
         }
     }
 
-    public async SetAsync(datakey: string, value: any): Promise<void> {
+    public async SetAsync(datakey: string, jsonString: string): Promise<void> {
         if (!CLMemory.memoryStorage) {
             throw new Error('Memory storage not found')
         }
 
-        if (value == null) {
+        if (jsonString == "null") {
             await this.DeleteAsync(datakey)
             return
         }
@@ -90,13 +90,13 @@ export class CLMemory {
         try {
             // First check mem cache to see if anything has changed, if not, can skip write
             let cacheData = this.memCache[key]
-            if (cacheData == value) {
-                CLDebug.Log(`-> ${key} : ${value}`, DebugType.MemVerbose)
+            if (cacheData == jsonString) {
+                CLDebug.Log(`-> ${key} : ${jsonString}`, DebugType.MemVerbose)
             } else {
                 // Write to memory storage (use * for etag)
-                await CLMemory.memoryStorage.write({ [key]: { value: value, eTag: '*' } })
-                this.memCache[key] = value
-                CLDebug.Log(`W> ${key} : ${value}`, DebugType.Memory)
+                await CLMemory.memoryStorage.write({ [key]: { value: jsonString, eTag: '*' } })
+                this.memCache[key] = jsonString
+                CLDebug.Log(`W> ${key} : ${jsonString}`, DebugType.Memory)
             }
         } catch (err) {
             CLDebug.Error(err)
@@ -107,21 +107,15 @@ export class CLMemory {
         let key = this.Key(datakey)
 
         try {
-            // First check mem cache to see if already null, if not, can skip write
-            let cacheData = this.memCache[key]
-            if (!cacheData) {
-                CLDebug.Log(`-> ${key} : -----`, DebugType.MemVerbose)
-            } else {
-                // TODO: Remove possibility of being null
-                if (!CLMemory.memoryStorage) {
-                    CLDebug.Error(`You attempted to delete key: ${key} before memoryStorage was defined`)
-                }
-                else {
+            // TODO: Remove possibility of being null
+            if (!CLMemory.memoryStorage) {
+                CLDebug.Error(`You attempted to delete key: ${key} before memoryStorage was defined`)
+            }
+            else {
 
-                    CLMemory.memoryStorage.delete([key])
-                    this.memCache[key] = null
-                    CLDebug.Log(`D> ${key} : -----`, DebugType.Memory)
-                }
+                CLMemory.memoryStorage.delete([key])
+                this.memCache[key] = null
+                CLDebug.Log(`D> ${key} : -----`, DebugType.Memory)
             }
         } catch (err) {
             CLDebug.Error(err)

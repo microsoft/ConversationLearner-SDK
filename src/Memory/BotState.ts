@@ -30,7 +30,7 @@ export enum BotStateType {
     APP = 'APP',  //public app: AppBase | null = null
     
     // Conversation Id associated with this sesssion
-    CONVERSTAION_ID = 'CONVERSATION_ID',
+    CONVERSATION_ID = 'CONVERSATION_ID',
 
     // BotBuilder conversation reference
     CONVERSATION_REFERENCE = 'CONVERSATION_REFERENCE',
@@ -150,11 +150,11 @@ export class BotState {
     //  CONVERSATION_ID
     // ------------------------------------------------
     public async GetConversationId(): Promise<string | null> {
-        return await this.GetStateAsync<string | null>(BotStateType.CONVERSTAION_ID)
+        return await this.GetStateAsync<string | null>(BotStateType.CONVERSATION_ID)
     }
 
     public async SetConversationId(conversationId : string | null): Promise<void> {
-        await this.SetStateAsync(BotStateType.CONVERSTAION_ID, conversationId)
+        await this.SetStateAsync(BotStateType.CONVERSATION_ID, conversationId)
     }
 
     // ------------------------------------------------
@@ -229,9 +229,9 @@ export class BotState {
     // ------------------------------------------------
     // SESSION_ID
     // ------------------------------------------------
-    public async GetSessionId(conversationId: string): Promise<string | null> {
+    public async GetSessionIdAndSetConversationId(conversationId: string): Promise<string | null> {
 
-        // If convId not set yet, use the session and set it
+        // If convId not set yet, use the existing session and set it
         let existingConversationId = await this.GetConversationId();
         if (!existingConversationId) {
             await this.SetConversationId(conversationId)
@@ -249,26 +249,35 @@ export class BotState {
         await this.SetStateAsync(BotStateType.SESSION_ID, sessionId)
     }
 
-    public async StartSessionAsync(sessionId: string | null, logDialogId: string | null, conversationId: string | null, inTeach: boolean, orgSessionId: string | null): Promise<void> {
+    public async StartSessionAsync(sessionId: string | null, logDialogId: string | null, conversationId: string | null, inTeach: boolean): Promise<void> {
         await this.SetSessionId(sessionId);
+        // NOTE: Do not clear OrgSessionId, as this could be a restart
         await this.SetLogDialogId(logDialogId);
-
-        // Only update original sessionId, if one hasn't already been set (could be multiple restarts)
-        let existingOrigSesionId = await this.GetOrgSessionIdAsync()
-        if (!existingOrigSesionId) {
-            await this.SetOrgSessionId(orgSessionId)
-        }
         await this.SetOnEndSessionCalled(false)
         await this.SetConversationId(conversationId)
         await this.SetLastActive(new Date().getTime())
         await this.SetInTeach(inTeach)
         await this.SetMessageProcessing(null)
+
+        
     }
 
-    public async EndSessionAsync(): Promise<void> {
+    // End a session.  
+    // originalSessionId is sent when session terminated from EndSession action or expiration
+    public async EndSessionAsync(originalSessionId: string | null = null): Promise<void> {
         await this.SetSessionId(null);
         await this.SetLogDialogId(null);
-        await this.SetOrgSessionId(null);
+
+        if (originalSessionId) {
+            let existingOrigSesionId = await this.GetOrgSessionIdAsync()
+            if (!existingOrigSesionId) {
+                await this.SetOrgSessionId(originalSessionId)
+            }
+        }
+        else {
+            await this.SetOrgSessionId(null);
+        }
+
         await this.SetConversationId(null);
         await this.SetLastActive(0);
         await this.SetInTeach(false);
