@@ -957,8 +957,12 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
                 return;
             }
 
-            let sessionId = await memory.BotState.GetSessionId(conversationId);
-            if (sessionId != req.params.sessionId) {
+            let curSessionId = await memory.BotState.GetSessionIdAndSetConversationId(conversationId);
+
+            // Session may be a replacement for an expired one
+            let uiSessionId = await memory.BotState.OrgSessionIdAsync(req.params.sessionId)
+
+            if (curSessionId != uiSessionId) {
                 throw new Error("Attempting to expire sessionId not in use")
             }
 
@@ -1129,7 +1133,7 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
 
             let botMemory = CLMemory.GetMemory(key).BotMemory
 
-            await botMemory.RestoreFromMap(filledEntityMap)
+            await botMemory.RestoreFromMapAsync(filledEntityMap)
 
             let memories = await botMemory.DumpMemory();
             res.send(memories)
@@ -1392,7 +1396,7 @@ export const createSdkServer = (client: CLClient, options: restify.ServerOptions
                  teachWithHistory.teach = models.ModelUtils.ToTeach(teachResponse)
             } else {
                 // Failed, so restore the old memory
-                await memory.BotMemory.RestoreFromMap(memoryBackup)
+                await memory.BotMemory.RestoreFromMapAsync(memoryBackup)
             }
             res.send(teachWithHistory)
         } catch (error) {

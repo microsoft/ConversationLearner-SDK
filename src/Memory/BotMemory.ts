@@ -65,12 +65,12 @@ export class BotMemory {
         await this.memory.SetAsync(BotMemory.MEMKEY, this.Serialize())
     }
 
-    public async RestoreFromMap(filledEntityMap: FilledEntityMap): Promise<void> {
+    public async RestoreFromMapAsync(filledEntityMap: FilledEntityMap): Promise<void> {
         this.filledEntityMap.map = filledEntityMap.map
         await this.Set()
     }
 
-    public async RestoreFromMemoryManager(memoryManager: ClientMemoryManager): Promise<void> {
+    public async RestoreFromMemoryManagerAsync(memoryManager: ClientMemoryManager): Promise<void> {
         // Disable memory manager.  Use has been completed
         memoryManager.__Expire()
         this.filledEntityMap.map = memoryManager.curMemories.map
