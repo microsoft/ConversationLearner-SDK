@@ -25,6 +25,11 @@ export interface ISessionStartParams {
     isContinued: boolean
 }
 
+export type EntityDetectionCallback = (text: string, memoryManager: ClientMemoryManager) => Promise<void>
+export type OnSessionStartCallback = (context: BB.TurnContext, memoryManager: ClientMemoryManager) => Promise<void>
+export type OnSessionEndCallback = (context: BB.TurnContext, memoryManager: ClientMemoryManager, content: string | undefined) => Promise<string[] | undefined>
+export type ApiCallback = (memoryManager: ClientMemoryManager, ...args: string[]) => Promise<Partial<BB.Activity> | string | void>
+
 export class CLRunner {
 
     // Lookup table for incoming calls from UI
@@ -32,7 +37,7 @@ export class CLRunner {
     private static UIRunner: CLRunner;
 
     public clClient: CLClient
-    public adapter: BB.BotAdapter
+    public adapter: BB.BotAdapter | undefined
     private appId: string;
     private maxTimeout: number | undefined;  // TODO: Move timeout to app settings
 
@@ -117,10 +122,8 @@ export class CLRunner {
     }
 
     public SetAdapter(adapter: BB.BotAdapter, conversationReference: Partial<BB.ConversationReference>) {
-        if (!this.adapter) {
-            this.adapter = adapter
-            CLDebug.InitLogger(adapter, conversationReference)
-        }
+        this.adapter = adapter
+        CLDebug.InitLogger(adapter, conversationReference)
     }
 
     // Add input to queue.  Allows CL to handle out-of-order messages
@@ -143,7 +146,7 @@ export class CLRunner {
             return await this.ProcessInput(turnContext.activity, conversationReference);
         }
 
-        // Otherwise I have to queue up messages as user may input them faster than bot reponds
+        // Otherwise I have to queue up messages as user may input them faster than bot responds
         else {
             let addInputPromise = util.promisify(InputQueue.AddInput);
             let isReady = await addInputPromise(botState, turnContext.activity, conversationReference);
@@ -168,7 +171,7 @@ export class CLRunner {
         return sessionResponse.sessionId
     }
 
-    // Get the currently runing app
+    // Get the currently running app
     private async GetApp(memory: CLMemory, inEditingUI: boolean) : Promise<CLM.AppBase | null> {
 
         let app = await memory.BotState.GetApp()
@@ -221,7 +224,7 @@ export class CLRunner {
         await memory.BotState.EndSessionAsync(originalSessionId);
     }
 
-    // Proces user input
+    // Process user input
     private async ProcessInput(activity: BB.Activity, conversationReference: Partial<BB.ConversationReference>): Promise<CLRecognizerResult | null> {
         let errComponent = 'ProcessInput'
 
@@ -424,7 +427,7 @@ export class CLRunner {
             if (data['submit']) {
                 return data['submit']
             } else {
-                CLDebug.Error(`Adaptive Card has no Sumbit data`)
+                CLDebug.Error(`Adaptive Card has no Submit data`)
                 return null
             }
         }
@@ -460,17 +463,17 @@ export class CLRunner {
 
     //-------------------------------------------
     // Optional callback than runs after LUIS but before Conversation Learner.  Allows Bot to substitute entities
-    public entityDetectionCallback: (text: string,memoryManager: ClientMemoryManager) => Promise<void>
+    public entityDetectionCallback: EntityDetectionCallback | undefined
 
     // Optional callback than runs before a new chat session starts.  Allows Bot to set initial entities
-    public onSessionStartCallback: (context: BB.TurnContext, memoryManager: ClientMemoryManager) => Promise<void>
+    public onSessionStartCallback: OnSessionStartCallback | undefined
 
     // Optional callback than runs when a session ends.  Allows Bot set and/or preserve memories after session end
-    public onSessionEndCallback: (context: BB.TurnContext, memoryManager: ClientMemoryManager, content: string | undefined) => Promise<string[] | null>
+    public onSessionEndCallback: OnSessionEndCallback | undefined
   
     public AddAPICallback(
         name: string,
-        target: (memoryManager: ClientMemoryManager, ...args: string[]) => Promise<Partial<BB.Activity> | string | void>
+        target: ApiCallback
     ) {
         this.apiCallbacks[name] = target
         this.apiParams.push({ name, arguments: this.GetArguments(target) })
@@ -529,7 +532,7 @@ export class CLRunner {
                 await this.entityDetectionCallback(text, memoryManager)
 
                 // Update Memory
-                await memory.BotMemory.RestoreFromMapAsync(memoryManager.curMemories)
+                await memory.BotMemory.RestoreFromMemoryManagerAsync(memoryManager)
             }
             catch (err) {
                 await this.SendMessage(memory, "Exception hit in Bot's EntityDetectionCallback")
@@ -561,7 +564,7 @@ export class CLRunner {
     public async CallSessionStartCallback(clMemory: CLMemory, appId: string | null): Promise<void> {
 
         // If bot has callback, call it
-        if (appId && this.onSessionStartCallback) {
+        if (appId && this.onSessionStartCallback && this.adapter) {
             let entityList = await this.clClient.GetEntities(appId)
             let memoryManager = await this.CreateMemoryManagerAsync(clMemory, entityList.entities)
             
@@ -573,14 +576,16 @@ export class CLRunner {
             }
 
             await this.adapter.continueConversation(conversationReference, async (context) => {
-                try {
-                    await this.onSessionStartCallback(context, memoryManager)
-                    await clMemory.BotMemory.RestoreFromMapAsync(memoryManager.curMemories)
-                }
-                catch (err) {
-                    await this.SendMessage(clMemory, "Exception hit in Bot's OnSessionStartCallback")
-                    let errMsg = CLDebug.Error(err);
-                    this.SendMessage(clMemory, errMsg);
+                if (this.onSessionStartCallback) {
+                    try {
+                        await this.onSessionStartCallback(context, memoryManager)
+                        await clMemory.BotMemory.RestoreFromMemoryManagerAsync(memoryManager)
+                    }
+                    catch (err) {
+                        await this.SendMessage(clMemory, "Exception hit in Bot's OnSessionStartCallback")
+                        let errMsg = CLDebug.Error(err);
+                        this.SendMessage(clMemory, errMsg);
+                    }
                 }
             })
         }
@@ -592,8 +597,8 @@ export class CLRunner {
         let calledEndSession = await clMemory.BotState.GetEndSessionCalled();
         if (!calledEndSession) {
           
-            // If bot has callback, call it to determine which entites to clear / edit
-            if (appId && this.onSessionEndCallback) {
+            // If bot has callback, call it to determine which entities to clear / edit
+            if (appId && this.onSessionEndCallback && this.adapter) {
                 let entityList = await this.clClient.GetEntities(appId)
 
                 let memoryManager = await this.CreateMemoryManagerAsync(clMemory, entityList.entities)
@@ -607,7 +612,9 @@ export class CLRunner {
 
                 await this.adapter.continueConversation(conversationReference, async (context) => {
                     try {
-                        let saveEntities = await this.onSessionEndCallback(context, memoryManager, content)
+                        let saveEntities = this.onSessionEndCallback
+                            ? await this.onSessionEndCallback(context, memoryManager, content)
+                            : undefined
 
                         await clMemory.BotMemory.ClearAsync(saveEntities)
                     }
@@ -742,7 +749,7 @@ export class CLRunner {
 
     public async SendMessage(memory: CLMemory, message: string | Partial<BB.Activity>, incomingActivityId?: string | undefined): Promise<void> {
 
-        // If requested, pop incoming acitivty from message queue
+        // If requested, pop incoming activity from message queue
         if (incomingActivityId) {
             await InputQueue.MessageHandled(memory.BotState, incomingActivityId);
         }
@@ -750,6 +757,11 @@ export class CLRunner {
         let conversationReference = await memory.BotState.GetConversationReverence()
         if (!conversationReference) {
             CLDebug.Error('Missing ConversationReference')
+            return
+        }
+
+        if (!this.adapter) {
+            CLDebug.Error(`Attempted to send message before adapter was assigned`)
             return
         }
 
@@ -767,15 +779,15 @@ export class CLRunner {
         // Extract API name and args
         const apiName = apiAction.name
         const api = this.apiCallbacks[apiName]
-        const callbackParams = this.apiParams.find(apip => apip.name == apiName)
+        const callbackParams = this.apiParams.find(apiParam => apiParam.name == apiName)
         if (!api || !callbackParams) {
             return CLDebug.Error(`API "${apiName}" is undefined`)
         }
 
         // TODO: This issue arises because we only save non-null non-empty argument values on the actions
         // which means callback may accept more arguments than is actually available on the action.arguments
-        // To me, it seeems it would make more sense to always have these be same length, but perhaps there is
-        // dependency on action not being defined somewhere else in the application like AcionCreatorEditor
+        // To me, it seems it would make more sense to always have these be same length, but perhaps there is
+        // dependency on action not being defined somewhere else in the application like ActionCreatorEditor
         let missingEntities: string[] = []
         // Get arguments in order specified by the API
         const argArray = callbackParams.arguments.map((param: string) => {
@@ -802,7 +814,7 @@ export class CLRunner {
         try {
             try {
                 let response = await api(memoryManager, ...argArray)
-                await memory.BotMemory.RestoreFromMapAsync(memoryManager.curMemories)
+                await memory.BotMemory.RestoreFromMemoryManagerAsync(memoryManager)
 
                 // API may not have output, but need to show something to user in WebChat so they can edit
                 if (!response && inTeach) {
@@ -967,7 +979,7 @@ export class CLRunner {
      * Identify any validation issues 
      * Missing Entities
      * Missing Actions
-     * Unavailble Actions
+     * Unavailable Actions
      */
     public DialogValidationErrors(trainDialog: CLM.TrainDialog, entities: CLM.EntityBase[], actions: CLM.ActionBase[]) : string[] {
 
@@ -978,9 +990,9 @@ export class CLRunner {
             let filledEntities = round.scorerSteps[0] && round.scorerSteps[0].input ? round.scorerSteps[0].input.filledEntities : []
 
             // Check that entities exist
-            for (let fentity of filledEntities) {
-                if (!entities.find(e => e.entityId == fentity.entityId)) {
-                    validationErrors.push(`Missing Entity for "${CLM.filledEntityValueAsString(fentity)}"`);
+            for (let filledEntity of filledEntities) {
+                if (!entities.find(e => e.entityId == filledEntity.entityId)) {
+                    validationErrors.push(`Missing Entity for "${CLM.filledEntityValueAsString(filledEntity)}"`);
                 }
             }
 
@@ -1037,7 +1049,8 @@ export class CLRunner {
         }
     }
 
-    /** Get Activites generated by trainDialog.  
+    /** 
+     * Get Activities generated by trainDialog.  
      * NOTE: Will set bot memory to state at end of history
      */
     public async GetHistory(
@@ -1081,9 +1094,9 @@ export class CLRunner {
             // VALIDATION
             // Check that entities exist
             let chatHighlight = null;
-            for (let fentity of filledEntities) {
-                if (!entities.find(e => e.entityId == fentity.entityId)) {
-                    replayErrors.push(new CLM.ReplayErrorMissingEntity(CLM.filledEntityValueAsString(fentity)));
+            for (let filledEntity of filledEntities) {
+                if (!entities.find(e => e.entityId == filledEntity.entityId)) {
+                    replayErrors.push(new CLM.ReplayErrorMissingEntity(CLM.filledEntityValueAsString(filledEntity)));
                     chatHighlight = "warning"
                 }
             }
@@ -1118,7 +1131,7 @@ export class CLRunner {
 
             await this.CallEntityDetectionCallback(textVariation.text, predictedEntities, clMemory, entities)
 
-            // Look for discrenancies when replaying API calls
+            // Look for discrepancies when replaying API calls
             // Unless asked to ignore the last as user trigged an edit by editing last extract step
             if (!ignoreLastExtract || roundNum != trainDialog.rounds.length - 1) {
                 let discrepancyError = this.EntityDiscrepancy(userText, round, clMemory, entities)
@@ -1233,7 +1246,7 @@ export class CLRunner {
         let uiScoreInput : CLM.UIScoreInput | undefined;
 
         if (hasRounds) {
-            // Note: Could potentailly just send back extractorStep and calculate extrateResponse on other end
+            // Note: Could potentially just send back extractorStep and calculate extractResponse on other end
             let textVariations = trainDialog.rounds[trainDialog.rounds.length-1].extractorStep.textVariations;
             let extractResponses = CLM.ModelUtils.ToExtractResponses(textVariations);
             let trainExtractorStep = trainDialog.rounds[trainDialog.rounds.length-1].extractorStep;

@@ -29,7 +29,7 @@ export enum BotStateType {
     // Currently running application
     APP = 'APP',  //public app: AppBase | null = null
     
-    // Conversation Id associated with this sesssion
+    // Conversation Id associated with this session
     CONVERSATION_ID = 'CONVERSATION_ID',
 
     // BotBuilder conversation reference
@@ -61,11 +61,11 @@ export enum BotStateType {
 }
 
 export class BotState {
-    private static _instance: BotState | null = null
-    public memory: CLMemory
+    private static _instance: BotState | undefined
+    public memory: CLMemory | undefined
 
     private constructor(init?: Partial<BotState>) {
-        (<any>Object).assign(this, init)
+        Object.assign(this, init)
     }
 
     public static Get(clMemory: CLMemory): BotState {
@@ -95,7 +95,7 @@ export class BotState {
 
     private async SetStateAsync<T>(botStateType: BotStateType, value: T): Promise<void> {
         if (!this.memory) {
-            throw new Error('BotState called without initialzing memory')
+            throw new Error('BotState called without initializing memory')
         }
         const json = JSON.stringify(value) 
         await this.memory.SetAsync(botStateType, json)
@@ -231,7 +231,7 @@ export class BotState {
     // ------------------------------------------------
     public async GetSessionIdAndSetConversationId(conversationId: string): Promise<string | null> {
 
-        // If convId not set yet, use the existing session and set it
+        // If conversationId not set yet, use the session and set it
         let existingConversationId = await this.GetConversationId();
         if (!existingConversationId) {
             await this.SetConversationId(conversationId)
@@ -257,9 +257,7 @@ export class BotState {
         await this.SetConversationId(conversationId)
         await this.SetLastActive(new Date().getTime())
         await this.SetInTeach(inTeach)
-        await this.SetMessageProcessing(null)
-
-        
+        await this.SetMessageProcessing(null)   
     }
 
     // End a session.  

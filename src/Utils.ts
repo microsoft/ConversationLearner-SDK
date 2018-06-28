@@ -4,7 +4,7 @@
  */
 import * as BB from 'botbuilder'
 import * as request from 'request'
-import { TrainExtractorStep, TrainDialog, FilledEntityMap } from '@conversationlearner/models'
+import { FilledEntityMap } from '@conversationlearner/models'
 
 export class Utils {
     public static SendTyping(adapter: BB.BotAdapter, address: any) {
@@ -13,36 +13,6 @@ export class Utils {
         msg.address = address;
         bot.post(msg);
         */
-    }
-
-    // TEMP: Until we re-jigger object types.  Need to be stripped
-    public static StripPrebuiltInfoFromTrain(trainDialog: TrainDialog): TrainDialog {
-        return {
-            trainDialogId: trainDialog.trainDialogId,
-            sourceLogDialogId: trainDialog.sourceLogDialogId,
-            version: trainDialog.version,
-            packageCreationId: trainDialog.packageCreationId,
-            packageDeletionId: trainDialog.packageDeletionId,
-            rounds: trainDialog.rounds.map(r => ({
-                scorerSteps: r.scorerSteps,
-                extractorStep: this.StripPrebuiltInfo(r.extractorStep)
-            }))
-        }
-    }
-
-    // TEMP: Until we re-jigger object types.  Need to be stripped
-    public static StripPrebuiltInfo(trainExtractorStep: TrainExtractorStep): TrainExtractorStep {
-        return {
-            textVariations: trainExtractorStep.textVariations.map(tv => ({
-                text: tv.text,
-                labelEntities: tv.labelEntities.map(le => {
-                    let nle = { ...le }
-                    delete nle.builtinType
-                    delete nle.resolution
-                    return nle
-                })
-            }))
-        }
     }
 
     /** Trick to get errors to render on Azure */

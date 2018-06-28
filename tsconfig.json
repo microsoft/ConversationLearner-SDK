@@ -6,7 +6,7 @@
         "noImplicitReturns": true,
         "noImplicitThis": true,
         "noImplicitAny": true,
-        "strictNullChecks": true,
+        "strict": true,
         "suppressImplicitAnyIndexErrors": true,
         "experimentalDecorators": true,
         "emitDecoratorMetadata": true,
