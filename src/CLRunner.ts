@@ -10,7 +10,7 @@ import { CLClient } from './CLClient'
 import { TemplateProvider } from './TemplateProvider'
 import * as CLM from '@conversationlearner/models'
 import { ClientMemoryManager } from './Memory/ClientMemoryManager'
-import { addEntitiesById, CL_DEVELOPER, generateGUID } from './Utils'
+import { addEntitiesById, CL_DEVELOPER, UI_RUNNER_APPID, generateGUID } from './Utils'
 import { CLRecognizerResult } from './CLRecognizeResult'
 import { ConversationLearner } from './ConversationLearner'
 import { InputQueue } from './Memory/InputQueue'
@@ -27,7 +27,7 @@ export interface ISessionStartParams {
 
 export type EntityDetectionCallback = (text: string, memoryManager: ClientMemoryManager) => Promise<void>
 export type OnSessionStartCallback = (context: BB.TurnContext, memoryManager: ClientMemoryManager) => Promise<void>
-export type OnSessionEndCallback = (context: BB.TurnContext, memoryManager: ClientMemoryManager, content: string | undefined) => Promise<string[] | undefined>
+export type OnSessionEndCallback = (context: BB.TurnContext, memoryManager: ClientMemoryManager, sessionEndState: CLM.SessionEndState, data: string | undefined) => Promise<string[] | undefined>
 export type ApiCallback = (memoryManager: ClientMemoryManager, ...args: string[]) => Promise<Partial<BB.Activity> | string | void>
 
 export class CLRunner {
@@ -47,9 +47,9 @@ export class CLRunner {
 
     public static Create(appId: string | undefined, maxTimeout: number | undefined, client: CLClient): CLRunner {
 
-        // Ok to not provide appId when just running in training UI 
+        // Ok to not provide appId when just running in training UI.  Use const
         if (!appId) {
-            appId = "UIRunner";
+            appId = UI_RUNNER_APPID;
         }
 
         let newRunner = new CLRunner(appId, maxTimeout, client);
@@ -69,7 +69,7 @@ export class CLRunner {
         // Runner with the appId may not exist if running training UI, if so use the UI Runner
         if (!appId || !CLRunner.Runners[appId]) {
             if (CLRunner.UIRunner) {
-                CLRunner.UIRunner.appId = appId || "UIRunner"
+                CLRunner.UIRunner.appId = appId || UI_RUNNER_APPID
                 return CLRunner.UIRunner;
             } else {
                 throw new Error(`Not in UI and requested CLRunner that doesn't exist: ${appId}`)
@@ -178,7 +178,7 @@ export class CLRunner {
 
         // If I'm not in the editing UI, always use app specified by options
         if (app) {         
-            if (!inEditingUI && app.appId != this.appId)
+            if (!inEditingUI && app.appId != this.appId && this.appId != UI_RUNNER_APPID)
             {
                 // Use config value
                 CLDebug.Log(`Switching to app specified in config: ${this.appId}`)
@@ -204,8 +204,9 @@ export class CLRunner {
 
         // If not continuing an edited session, call endSession 
         if (!params.isContinued) {
-            // Default callback will clear the bot memory
-            await this.CallSessionEndCallback(clMemory, app ? app.appId : null);
+            // Default callback will clear the bot memory.
+            // END_SESSION action was never triggered, so SessionEndState.OPEN
+            await this.CallSessionEndCallback(clMemory, app ? app.appId : null, CLM.SessionEndState.OPEN);
         }
         await this.CallSessionStartCallback(clMemory, app ? app.appId : null);
         await clMemory.BotState.StartSessionAsync(sessionId, logDialogId, conversationId, params.inTeach)
@@ -213,13 +214,13 @@ export class CLRunner {
 
     // End a teach or log session
     // originalSessionId is sent when session terminated from EndSession action or expiration
-    public async EndSessionAsync(key: string, originalSessionId: string | null = null, content?: string): Promise<void> {
+    public async EndSessionAsync(key: string, sessionEndState: CLM.SessionEndState, originalSessionId: string | null = null, data?: string): Promise<void> {
 
         let memory = CLMemory.GetMemory(key)
         let app = await memory.BotState.GetApp()
 
         // Default callback will clear the bot memory
-        await this.CallSessionEndCallback(memory, app ? app.appId : null, content);
+        await this.CallSessionEndCallback(memory, app ? app.appId : null, sessionEndState, data);
 
         await memory.BotState.EndSessionAsync(originalSessionId);
     }
@@ -279,7 +280,7 @@ export class CLRunner {
                         if (activity.membersAdded &&
                             activity.from.id === activity.membersAdded[0].id) {
                             await this.clClient.EndSession(app.appId, sessionId);
-                            await this.EndSessionAsync(activity.from.id)
+                            await this.EndSessionAsync(activity.from.id, CLM.SessionEndState.OPEN)
                         }
                     }
 
@@ -304,7 +305,7 @@ export class CLRunner {
                         await this.clClient.EndSession(app.appId, sessionId)
 
                         // Send original session Id. Used for continuing sessions
-                        await this.EndSessionAsync(activity.from.id, sessionId)
+                        await this.EndSessionAsync(activity.from.id, CLM.SessionEndState.OPEN, sessionId)
 
                         // If I'm not in the UI, reload the App to get any changes (live package version may have been updated)
                         if (!inEditingUI) {
@@ -383,7 +384,7 @@ export class CLRunner {
             CLDebug.Log(`Error during ProcessInput: ${error.message}`)
 
             // End the session, so use can potentially recover
-            await this.EndSessionAsync(activity.from.id)
+            await this.EndSessionAsync(activity.from.id, CLM.SessionEndState.OPEN)
 
             // Special message for 403 as it's like a bad appId
             let customError = null;
@@ -591,11 +592,12 @@ export class CLRunner {
         }
     }
 
-    public async CallSessionEndCallback(clMemory: CLMemory, appId: string | null, content?: string): Promise<void> {
+    public async CallSessionEndCallback(clMemory: CLMemory, appId: string | null, sessionEndState: CLM.SessionEndState, data?: string): Promise<void> {
 
         // If onEndSession hasn't been called yet, call it
-        let calledEndSession = await clMemory.BotState.GetEndSessionCalled();
-        if (!calledEndSession) {
+        let needEndSession = await clMemory.BotState.GetNeedSessionEndCall();
+
+        if (needEndSession) {
           
             // If bot has callback, call it to determine which entities to clear / edit
             if (appId && this.onSessionEndCallback && this.adapter) {
@@ -613,7 +615,7 @@ export class CLRunner {
                 await this.adapter.continueConversation(conversationReference, async (context) => {
                     try {
                         let saveEntities = this.onSessionEndCallback
-                            ? await this.onSessionEndCallback(context, memoryManager, content)
+                            ? await this.onSessionEndCallback(context, memoryManager, sessionEndState, data)
                             : undefined
 
                         await clMemory.BotMemory.ClearAsync(saveEntities)
@@ -629,7 +631,7 @@ export class CLRunner {
             else {
                 await clMemory.BotMemory.ClearAsync()
             }
-            await clMemory.BotState.SetOnEndSessionCalled(true);
+            await clMemory.BotState.SetNeedSessionEndCall(false);
         }
     }
 
@@ -868,7 +870,7 @@ export class CLRunner {
         let content = sessionAction.renderValue(CLM.getEntityDisplayValueMap(filledEntityMap))
     
         // Send original session Id. Used for continuing sessions
-        await this.EndSessionAsync(userId, sessionId, content);
+        await this.EndSessionAsync(userId, CLM.SessionEndState.COMPLETED, sessionId, content);
 
         // If inTeach, show something to user in WebChat so they can edit
         if (inTeach) {

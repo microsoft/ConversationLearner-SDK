@@ -4,7 +4,7 @@
  */
 import { SessionInfo } from '../Memory/BotState'
 import { CLDebug } from '../CLDebug'
-import { EntityBase, MemoryValue, FilledEntity, FilledEntityMap, EntityType } from '@conversationlearner/models'
+import { EntityBase, MemoryValue, FilledEntityMap, EntityType } from '@conversationlearner/models'
 
 const errMsg = "called after your function has already returned. You must await results within your code rather than use callbacks"
 
@@ -103,7 +103,9 @@ export class ClientMemoryManager {
         this.curMemories.Forget(entity.entityName, value, entity.isMultivalue)
     }
 
-    /** Clear all entity values apart from any included in the list of saveEntityNames */
+    /** Clear all entity values apart from any included in the list of saveEntityNames 
+     * @param saveEntityNames Array of entity names not to forget
+     */
     public ForgetAllEntities(saveEntityNames: string[]): void {
         
         if (this.__expired) {
@@ -118,6 +120,11 @@ export class ClientMemoryManager {
         }
     }
 
+    /**
+     * Copy values from one entity to another
+     * @param entityNameFrom Source Entity
+     * @param entityNameTo Destination Entity
+     */
     public CopyEntity(entityNameFrom: string, entityNameTo: string): void {
 
         if (this.__expired) {
@@ -154,58 +161,105 @@ export class ClientMemoryManager {
         }
     }
 
+    /**
+     * Get value of entity 
+     * @param entityName Name of Entity
+     */
     public EntityValue(entityName: string): string | null {
         return this.curMemories.ValueAsString(entityName)
     }
 
+    /**
+     * Get value of entity before most recent input
+     * @param entityName Name of Entity
+     */
     public PrevEntityValue(entityName: string): (string | null) {
         return this.prevMemories.ValueAsString(entityName)
     }
 
+    /**
+     * Get value of entity as a Prebuilt Entity 
+     * @param entityName Name of Entity
+     */
     public EntityValueAsPrebuilt(entityName: string): MemoryValue[] {
         return this.curMemories.ValueAsPrebuilt(entityName)
     }
 
+    /**
+     * Get value of entity before most recent input as a Prebuilt Entity 
+     * @param entityName Name of Entity
+     */
     public PrevEntityValueAsPrebuilt(entityName: string): MemoryValue[] {
         return this.prevMemories.ValueAsPrebuilt(entityName)
     }
 
+    /**
+     * Get entity values a comma delminated string
+     * @param entityName Name of Entity
+     */
     public EntityValueAsList(entityName: string): string[] {
         return this.curMemories.ValueAsList(entityName)
     }
 
+    /**
+     * Get entity values before most recent input a comma delminated string
+     * @param entityName Name of Entity
+     */
     public PrevEntityValueAsList(entityName: string): string[] {
         return this.prevMemories.ValueAsList(entityName)
     }
 
+    /**
+     * Get entity value as a number
+     * @param entityName Name of Entity
+     */
     public EntityValueAsNumber(entityName: string): number | null {
         return this.curMemories.ValueAsNumber(entityName)
     }
 
+    /**
+     * Get entity value before most recent input as a number
+     * @param entityName Name of Entity
+     */
     public PrevValueAsNumber(entityName: string): number | null {
         return this.prevMemories.ValueAsNumber(entityName)
     }
 
+    /**
+     * Get entity value as a boolean
+     * @param entityName Name of Entity
+     */
     public EntityValueAsBoolean(entityName: string): boolean | null {
         return this.curMemories.ValueAsBoolean(entityName)
     }
 
+    /**
+     * Get entity value before most recent input as a boolean
+     * @param entityName Name of Entity
+     */
     public PrevValueAsBoolean(entityName: string): boolean | null {
         return this.prevMemories.ValueAsBoolean(entityName)
     }
 
+    /**
+     * Get entity value as object of type T
+     * @param entityName Name of Entity
+     */
     public EntityValueAsObject<T>(entityName: string): T | null {
         return this.curMemories.ValueAsObject(entityName)
     }
 
+    /**
+     * Get entity value before most recent input as object of type T
+     * @param entityName Name of Entity
+     */
     public PrevEntityValueAsObject<T>(entityName: string): (T | null) {
         return this.prevMemories.ValueAsObject(entityName)
     }
 
-    public GetFilledEntities(): FilledEntity[] {
-        return this.curMemories.FilledEntities()
-    }
-
+    /**
+     * Get information about the current running session
+     */
     public SessionInfo(): SessionInfo {
         return this.sessionInfo;
     }
