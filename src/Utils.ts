@@ -123,6 +123,7 @@ export function generateGUID(): string {
 }
 
 export const CL_DEVELOPER = 'ConversationLearnerDeveloper';
+export const UI_RUNNER_APPID = 'UIRunner_AppId'
 export const DEFAULT_MAX_SESSION_LENGTH = 20 * 60 * 1000;  // 20 minutes
 
 

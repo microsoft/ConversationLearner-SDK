@@ -77,6 +77,7 @@ export class ConversationLearner {
 
     /**
      * Provide an callback that will be invoked whenever a Session is started
+     * @param target Callback of the form (context: BB.TurnContext, memoryManager: ClientMemoryManager) => Promise<void>
      */
     public OnSessionStartCallback(target: OnSessionStartCallback) {
         this.clRunner.onSessionStartCallback = target
@@ -85,6 +86,7 @@ export class ConversationLearner {
     /**
      * Provide a callback that will be invoked whenever a Session ends.  Sessions
      * can end because of a timeout or the selection of an EndSession activity
+     * @param target Callback of the form (context: BB.TurnContext, memoryManager: ClientMemoryManager, sessionEndState: CLM.SessionEndState, data: string | undefined) => Promise<string[] | undefined>
      */
     public OnSessionEndCallback(target: OnSessionEndCallback) {
         this.clRunner.onSessionEndCallback = target
@@ -94,15 +96,24 @@ export class ConversationLearner {
         return this.clRunner.SendIntent(result)
     }
 
-    // Returns true is bot is running in the Training UI
+    /** Returns true is bot is running in the Training UI
+     * @param turnContext BotBuilder Context
+     */
     public inTrainingUI(context: BB.TurnContext): boolean {
         return (context.activity.from.name === CL_DEVELOPER);
     }
 
+    /** Define an API callback that can be used by the Model 
+     * @param name Name of function that will be displayed in CL UI
+     * @param target Callback of the form (memoryManager: ClientMemoryManager, ...args: string[]) => Promise<Partial<BB.Activity> | string | void>
+     */
     public AddAPICallback(name: string, target: ApiCallback) {
         this.clRunner.AddAPICallback(name, target);
     }
 
+    /** Define an Callback that will be called after Entity Detection
+     * @param target Callback of the form (text: string, memoryManager: ClientMemoryManager) => Promise<void>
+     */
     public EntityDetectionCallback(target: EntityDetectionCallback) {
         this.clRunner.entityDetectionCallback = target
     }
