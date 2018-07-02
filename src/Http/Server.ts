@@ -279,7 +279,7 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
                 await memory.SetAppAsync(null)
 
                 let clRunner = CLRunner.Get(appId);
-                await clRunner.EndSessionAsync(key);
+                await clRunner.EndSessionAsync(key, models.SessionEndState.OPEN);
             }
             res.send(200)
         } catch (error) {
@@ -941,7 +941,7 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
             res.send(response)
 
             let clRunner = CLRunner.Get(appId);
-            clRunner.EndSessionAsync(key)
+            clRunner.EndSessionAsync(key, models.SessionEndState.OPEN)
         } catch (error) {
             HandleError(res, error)
         }
@@ -1241,7 +1241,7 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
             res.send(response)
 
             let clRunner = CLRunner.Get(appId);
-            clRunner.EndSessionAsync(key)
+            clRunner.EndSessionAsync(key, models.SessionEndState.OPEN)
         } catch (error) {
             HandleError(res, error)
         }
