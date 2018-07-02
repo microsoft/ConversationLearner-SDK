@@ -15,13 +15,13 @@ export default function(port: number = 5050): { app: express.Express; listener: 
 
     const listener = app.listen(port, () =>
         console.log(`Navigate to http://localhost:${listener.address().port} to view Conversation Learner administration application.`)
-    ).on('error', (err: any) => {
-        if (err.code === 'EADDRINUSE') {
-            console.log(`ERROR: The UI is already running or the port (${port}) is in use by another process`);
+    ).on('error', (error: NodeJS.ErrnoException) => {
+        if (error.code === 'EADDRINUSE') {
+            console.log(`ERROR: The UI is already running or the port (${port}) is in use by another process`)
+            return
         }
-        else {
-            throw (err);
-        }
+        
+        throw error
     });
 
     return {

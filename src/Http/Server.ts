@@ -3,8 +3,6 @@
  * Licensed under the MIT License.
  */
 import * as express from 'express'
-import * as bodyParser from 'body-parser'
-import * as cors from 'cors'
 import * as url from 'url'
 import { CLDebug } from '../CLDebug'
 import { CLClient } from '../CLClient'
@@ -98,7 +96,7 @@ const getBanner = () : Promise<models.Banner | null> => {
                     resolve(banner)
                 }
                 catch (err) {
-                    CLDebug.Error("Malformed Banner messsage")
+                    CLDebug.Error("Malformed Banner message")
                     resolve(null)
                 }
             }
@@ -106,12 +104,7 @@ const getBanner = () : Promise<models.Banner | null> => {
     })
   }
 
-export const createSdkServer = (client: CLClient): express.Express => {
-    const server = express()
-
-    server.use(cors())
-    server.use(bodyParser.json())
-
+export const addSdkRoutes = (server: express.Express, client: CLClient): express.Express => {
     //========================================================
     // State
     //=======================================================
@@ -1371,4 +1364,4 @@ function getQuery (req: express.Request): any {
     return url.parse(req.url, true).query || {}
 }
 
-export default createSdkServer
+export default addSdkRoutes
