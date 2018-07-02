@@ -34,11 +34,11 @@ export class ConversationLearner {
             }
 
             const sdkServer = createSdkServer(this.clClient)
-            sdkServer.listen(options.CONVERSATION_LEARNER_SDK_PORT, (err: any) => {
+            const listener = sdkServer.listen(options.CONVERSATION_LEARNER_SDK_PORT, (err: any) => {
                 if (err) {
                     CLDebug.Error(err, 'Server/Init')
                 } else {
-                    CLDebug.Log(`${sdkServer.name} listening to ${sdkServer.url}`)
+                    CLDebug.Log(`SDK Server listening to ${listener.address().port}`)
                 }
             })
 

@@ -373,9 +373,9 @@ export class CLClient {
      * To retrieve just a list of IDs of all logDialogs,
      * see the GET GetLogDialogIds method.
      */
-    public GetLogDialogs(appId: string, packageId: string): Promise<models.LogDialogList> {
-        let packages = packageId.split(",").map(p => `package=${p}`).join("&");
-        let apiPath = `app/${appId}/logdialogs?includeDefinitions=false&${packages}`
+    public GetLogDialogs(appId: string, packageIds: string[]): Promise<models.LogDialogList> {
+        const packages = packageIds.map(p => `package=${p}`).join("&")
+        const apiPath = `app/${appId}/logdialogs?includeDefinitions=false&${packages}`
         return this.send('GET', this.MakeURL(apiPath))
     }
 
