@@ -8,10 +8,13 @@ import { ICLOptions } from './CLOptions'
 import { CLMemory } from './CLMemory'
 import { CLDebug } from './CLDebug'
 import { CLClient } from './CLClient'
-import createSdkServer from './Http/Server'
-import { startDirectOffLineServer } from './DOLRunner'
+import addSdkRoutes from './Http/Server'
 import { CL_DEVELOPER, DEFAULT_MAX_SESSION_LENGTH } from './Utils'
 import { CLRecognizerResult } from './CLRecognizeResult'
+import * as directline from 'offline-directline'
+import * as express from 'express'
+import * as bodyParser from 'body-parser'
+import * as cors from 'cors'
 
 export class ConversationLearner {
     public static options: ICLOptions | null = null;
@@ -30,21 +33,39 @@ export class ConversationLearner {
 
             // Should we start DirectOffline server (for Editing UI)
             if (options.DOL_START) {
-                startDirectOffLineServer(options.DOL_SERVICE_URL, options.DOL_BOT_URL)
+                const { DOL_SERVICE_URL: dolServiceUrl, DOL_BOT_URL: dolBotUrl } = options
+                console.log(`Starting DOL (Direct Offline):`)
+                console.log(`- Service Url: ${dolServiceUrl}`)
+                console.log(`- Bot Url: ${dolBotUrl}`)
+                
+                const dolServer = express()
+                // Don't require conversation initialization. This allows
+                // UI to continue conversation even after bot restart
+                const conversationInitRequired = false
+                directline.initializeRoutes(dolServer, dolServiceUrl, dolBotUrl, conversationInitRequired)
             }
 
-            const sdkServer = createSdkServer(this.clClient)
-            sdkServer.listen(options.CONVERSATION_LEARNER_SDK_PORT, (err: any) => {
-                if (err) {
-                    CLDebug.Error(err, 'Server/Init')
-                } else {
-                    CLDebug.Log(`${sdkServer.name} listening to ${sdkServer.url}`)
+            // Create SDK server
+            const sdkServer = express()
+            sdkServer.use(cors())
+            sdkServer.use(bodyParser.json())
+            addSdkRoutes(sdkServer, this.clClient)
+
+            const sdkPort = options.CONVERSATION_LEARNER_SDK_PORT
+            const listener = sdkServer.listen(sdkPort, () => {
+                CLDebug.Log(`SDK Server listening on http://localhost:${listener.address().port}`)
+            }).on('error', (error: NodeJS.ErrnoException) => {
+                if (error.code === 'EADDRINUSE') {
+                    console.log(`ERROR: The SDK is either already running or the port (${sdkPort}) is in use by another process`)
+                    return
                 }
+
+                throw error
             })
 
             CLDebug.Log('Initialization complete.')
         } catch (error) {
-            CLDebug.Error(error, 'Dialog Constructor')
+            CLDebug.Error(error, 'Conversation Learner Initialization')
         }
     }
 
