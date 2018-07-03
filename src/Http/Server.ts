@@ -237,33 +237,6 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
         }
     })
 
-    /**
-     * Destroys an existing application, including all its models, sessions, and logged dialogs
-     * Deleting an application from the archive really destroys it – no undo.
-     */
-    server.delete('/archive/:appId', async (req, res, next) => {
-        const { appId } = req.params
-        
-        try {
-            await client.DeleteApp(appId)
-            res.sendStatus(200)
-        } catch (error) {
-            HandleError(res, error)
-        }
-    })
-
-    /** GET APP STATUS : Retrieves details for a specific $appId */
-    server.get('/archive/:appId', async (req, res, next) => {
-        const { appId } = req.params
-
-        try {
-            const app = await client.GetArchivedApp(appId)
-            res.send(app)
-        } catch (error) {
-            HandleError(res, error)
-        }
-    })
-
     /** Retrieves a list of (active) applications */
     server.get('/apps', async (req, res, next) => {
         try {
@@ -300,40 +273,6 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
         }
     })
 
-    /** Retrieves a list of application Ids in the archive for the given user */
-    server.get('/archive', async (req, res, next) => {
-        try {
-            const query = url.parse(req.url).query || ''
-            const apps = await client.GetArchivedAppIds(query)
-            res.send(apps)
-        } catch (error) {
-            HandleError(res, error)
-        }
-    })
-
-    /** Retrieves a list of full applications in the archive for the given user */
-    server.get('/archives', async (req, res, next) => {
-        try {
-            const query = url.parse(req.url).query || ''
-            const apps = await client.GetArchivedApps(query)
-            res.send(apps)
-        } catch (error) {
-            HandleError(res, error)
-        }
-    })
-
-    /** Moves an application from the archive to the set of active applications */
-    server.put('/archive/:appId', async (req, res, next) => {
-        const { appId } = req.params
-
-        try {
-            let app = await client.RestoreApp(appId)
-            res.send(app)
-        } catch (error) {
-            HandleError(res, error)
-        }
-    })
-
     /** Creates a new package tag for an app */
     server.put('/app/:appId/publish', async (req, res, next) => {
         const { appId } = req.params
@@ -351,19 +290,6 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
             }
             const app = await client.GetApp(appId);
 
-            res.send(app)
-        } catch (error) {
-            HandleError(res, error)
-        }
-    })
-
-    /** Sets the live package tag for an app */
-    server.post('/app/:appId/publish/:packageId', async (req, res, next) => {
-        const { appId, packageId } = req.params
-
-        try {
-            await client.PublishProdPackage(appId, packageId)
-            const app = await client.GetApp(appId);
             res.send(app)
         } catch (error) {
             HandleError(res, error)
@@ -395,42 +321,6 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
     //========================================================
     // Action
     //========================================================
-    server.get('/app/:appId/action/:actionId', async (req, res, next) => {
-        const { appId, actionId } = req.params
-        const query = url.parse(req.url).query || ''
-
-        try {
-            const action = await client.GetAction(appId, actionId, query)
-            res.send(action)
-        } catch (error) {
-            HandleError(res, error)
-        }
-    })
-
-    server.post('/app/:appId/action', async (req, res, next) => {
-        const { appId } = req.params
-
-        try {
-            const action: models.ActionBase = req.body
-            const actionId = await client.AddAction(appId, action)
-            res.send(actionId)
-        } catch (error) {
-            HandleError(res, error)
-        }
-    })
-
-    server.put('/app/:appId/action/:actionId', async (req, res, next) => {
-        const { appId } = req.params
-
-        try {
-            const action: models.ActionBase = req.body
-            const deleteEditResponse = await client.EditAction(appId, action)
-            res.send(deleteEditResponse)
-        } catch (error) {
-            HandleError(res, error)
-        }
-    })
-
     /** Returns list of trainingDialogIds that are invalidated by the given changed action */
     server.post('/app/:appId/action/:actionId/editValidation', async (req, res, next) => {
         const { appId } = req.params
@@ -458,18 +348,6 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
         }
     })
 
-    /** Delete action */
-    server.delete('/app/:appId/action/:actionId', async (req, res, next) => {
-        const { appId, actionId } = req.params
-
-        try {
-            const deleteEditResponse = await client.DeleteAction(appId, actionId)
-            res.send(deleteEditResponse)
-        } catch (error) {
-            HandleError(res, error)
-        }
-    })
-
     /** Returns list of trainDialogs invalidated by deleting the given action */
     server.get('/app/:appId/action/:actionId/deleteValidation', async (req, res, next) => {
         const { appId, actionId } = req.params
@@ -489,82 +367,9 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
         }
     })
 
-    server.get('/app/:appId/actions', async (req, res, next) => {
-        const { appId } = req.params
-        const query = url.parse(req.url).query || ''
-
-        try {
-            const actions = await client.GetActions(appId, query)
-            res.send(actions)
-        } catch (error) {
-            HandleError(res, error)
-        }
-    })
-
-    server.get('/app/:appId/action', async (req, res, next) => {
-        const { appId } = req.params
-        const query = url.parse(req.url).query || ''
-
-        try {
-            const actions = await client.GetActionIds(appId, query)
-            res.send(actions)
-        } catch (error) {
-            HandleError(res, error)
-        }
-    })
-
     //========================================================
     // Entities
     //========================================================
-
-    server.get('/app/:appId/entityIds', async (req, res, next) => {
-        const { appId } = req.params
-        const query = url.parse(req.url).query || ''
-
-        try {
-            const actions = await client.GetEntityIds(appId, query)
-            res.send(actions)
-        } catch (error) {
-            HandleError(res, error)
-        }
-    })
-
-    server.get('/app/:appId/entity/:entityId', async (req, res, next) => {
-        const { appId, entityId } = req.params
-        const query = url.parse(req.url).query || ''
-
-        try {
-            const entity = await client.GetEntity(appId, entityId, query)
-            res.send(entity)
-        } catch (error) {
-            HandleError(res, error)
-        }
-    })
-
-    server.post('/app/:appId/entity', async (req, res, next) => {
-        const { appId } = req.params
-
-        try {
-            const entity: models.EntityBase = req.body
-            const entityId = await client.AddEntity(appId, entity)
-            res.send(entityId)
-        } catch (error) {
-            HandleError(res, error)
-        }
-    })
-
-    server.put('/app/:appId/entity/:entityId', async (req, res, next) => {
-        const { appId } = req.params
-
-        try {
-            const entity: models.EntityBase = req.body
-            const entityId = await client.EditEntity(appId, entity)
-            res.send(entityId)
-        } catch (error) {
-            HandleError(res, error)
-        }
-    })
-    
     /** Returns list of trainingDialogIds that are invalidated by the given changed entity */
     server.post('/app/:appId/entity/:entityId/editValidation', async (req, res, next) => {
         const { appId } = req.params
@@ -580,17 +385,6 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
             const clRunner = CLRunner.Get(appId);
             const invalidTrainDialogIds = clRunner.validateTrainDialogs(appDefinition);
             res.send(invalidTrainDialogIds)
-        } catch (error) {
-            HandleError(res, error)
-        }
-    })
-
-    server.delete('/app/:appId/entity/:entityId', async (req, res, next) => {
-        const { appId, entityId } = req.params
-
-        try {
-            const deleteEditResponse = await client.DeleteEntity(appId, entityId)
-            res.send(deleteEditResponse)
         } catch (error) {
             HandleError(res, error)
         }
@@ -615,55 +409,9 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
         }
     })
 
-    server.get('/app/:appId/entities', async (req, res, next) => {
-        const { appId } = req.params
-        const query = url.parse(req.url).query || ''
-
-        try {
-            const entities = await client.GetEntities(appId, query)
-            res.send(entities)
-        } catch (error) {
-            HandleError(res, error)
-        }
-    })
-
-    server.get('/app/:appId/entity', async (req, res, next) => {
-        const { appId } = req.params
-        const query = url.parse(req.url).query || ''
-
-        try {
-            const entityIds = await client.GetEntityIds(appId, query)
-            res.send(entityIds)
-        } catch (error) {
-            HandleError(res, error)
-        }
-    })
-
     //========================================================
     // LogDialogs
     //========================================================
-    server.get('/app/:appId/logdialog/:logDialogId', async (req, res, next) => {
-        const { appId, logDialogId } = req.params
-
-        try {
-            const logDialog = await client.GetLogDialog(appId, logDialogId)
-            res.send(logDialog)
-        } catch (error) {
-            HandleError(res, error)
-        }
-    })
-
-    server.delete('/app/:appId/logdialog/:logDialogId', async (req, res, next) => {
-        const { appId, logDialogId } = req.params
-
-        try {
-            await client.DeleteLogDialog(appId, logDialogId)
-            res.sendStatus(200)
-        } catch (error) {
-            HandleError(res, error)
-        }
-    })
-
     server.get('/app/:appId/logdialogs', async (req, res, next) => {
         const { appId } = req.params
 
@@ -677,89 +425,11 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
         }
     })
 
-    server.get('/app/:appId/logDialogIds', async (req, res, next) => {
-        const { appId } = req.params
-
-        try {
-            const query = url.parse(req.url).query || ''
-            const logDialogIds = await client.GetLogDialogIds(appId, query)
-            res.send(logDialogIds)
-        } catch (error) {
-            HandleError(res, error)
-        }
-    })
-
     //========================================================
     // TrainDialogs
     //========================================================
-
-    server.post('/app/:appId/traindialog', async (req, res, next) => {
-        try {
-            const appId = req.params.appId
-            const trainDialog: models.TrainDialog = req.body
-            const trainDialogId = await client.AddTrainDialog(appId, trainDialog)
-            res.send(trainDialogId)
-        } catch (error) {
-            HandleError(res, error)
-        }
-    })
-
-    server.put('/app/:appId/traindialog/:trainDialogId', async (req, res, next) => {
-        try {
-            const { appId } = req.params
-            const trainDialog: models.TrainDialog = req.body
-            const trainDialogId = await client.EditTrainDialog(appId, trainDialog)
-            res.send(trainDialogId)
-        } catch (error) {
-            HandleError(res, error)
-        }
-    })
-
-    server.get('/app/:appId/traindialog/:trainDialogId', async (req, res, next) => {
-        try {
-            const { appId, trainDialogId } = req.params
-            const trainDialog = await client.GetTrainDialog(appId, trainDialogId)
-            res.send(trainDialog)
-        } catch (error) {
-            HandleError(res, error)
-        }
-    })
-
-    server.delete('/app/:appId/traindialog/:trainDialogId', async (req, res, next) => {
-        try {
-            const { appId, trainDialogId } = req.params
-            await client.DeleteTrainDialog(appId, trainDialogId)
-            res.sendStatus(200)
-        } catch (error) {
-            HandleError(res, error)
-        }
-    })
-
-    server.get('/app/:appId/traindialogs', async (req, res, next) => {
-        const { appId } = req.params
-        const query = url.parse(req.url).query || ''
-
-        try {
-            const trainDialogs = await client.GetTrainDialogs(appId, query)
-            res.send(trainDialogs)
-        } catch (error) {
-            HandleError(res, error)
-        }
-    })
-
-    server.get('/app/:appId/trainDialogIds', async (req, res, next) => {
-        const { appId } = req.params
-        const query = url.parse(req.url).query || ''
-
-        try {
-            const trainDialogIds = await client.GetTrainDialogIds(appId, query)
-            res.send(trainDialogIds)
-        } catch (error) {
-            HandleError(res, error)
-        }
-    })
-
-    /** RUN EXTRACTOR: Runs entity extraction on a train dialog
+    /** 
+     * RUN EXTRACTOR: Runs entity extraction on a train dialog
      */
     server.put('/app/:appId/traindialog/:trainDialogId/extractor/:turnIndex', async (req, res, next) => {
         try {
@@ -781,12 +451,8 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
     server.post('/app/:appId/traindialog/:trainDialogId/branch/:turnIndex', async (req, res, next) => {
         try {
             const key = getMemoryKey(req)
-            const query = getQuery(req)
-            const { username, userid } = query
-            console.warn(`CHECK query params for case sensitivity: `, query, username, userid)
+            const { username: userName, userid: userId } = getQuery(req)
             const { appId, trainDialogId, turnIndex } = req.params
-
-            // Retrieve current train dialog
             const trainDialog = await client.GetTrainDialog(appId, trainDialogId, true)
 
             // Slice to length requested by user
@@ -794,9 +460,8 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
 
             // Get history and replay to put bot into last round
             const memory = CLMemory.GetMemory(key)
-
             const clRunner = CLRunner.Get(appId);
-            const teachWithHistory = await clRunner.GetHistory(appId, trainDialog, username, userid, memory)
+            const teachWithHistory = await clRunner.GetHistory(appId, trainDialog, userName, userId, memory)
             if (!teachWithHistory) {
                 res.status(500)
                 res.send(new Error(`Could not find teach session history for given train dialog`))
@@ -842,17 +507,6 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
         }
     })
 
-    /** GET SESSION : Retrieves information about the specified session */
-    server.get('/app/:appId/session/:sessionId', async (req, res, next) => {
-        try {
-            const { appId, sessionId } = req.params
-            const response = await client.GetSession(appId, sessionId)
-            res.send(response)
-        } catch (error) {
-            HandleError(res, error)
-        }
-    })
-
     /** EXPIRE SESSION : Expires the current session (timeout) */
     server.put('/app/:appId/session/:sessionId', async (req, res, next) => {
         try {
@@ -861,7 +515,7 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
             const conversationId = await memory.BotState.GetConversationId();
             if (!conversationId) {
                 // If conversation is empty
-                return;
+                return
             }
 
             const curSessionId = await memory.BotState.GetSessionIdAndSetConversationId(conversationId);
@@ -898,30 +552,6 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
 
             const clRunner = CLRunner.Get(appId);
             clRunner.EndSessionAsync(key, models.SessionEndState.OPEN)
-        } catch (error) {
-            HandleError(res, error)
-        }
-    })
-
-    /** GET SESSIONS : Retrieves definitions of ALL open sessions */
-    server.get('/app/:appId/sessions', async (req, res, next) => {
-        try {
-            const query = url.parse(req.url).query || ''
-            const { appId } = req.params
-            const sessions = await client.GetSessions(appId, query)
-            res.send(sessions)
-        } catch (error) {
-            HandleError(res, error)
-        }
-    })
-
-    /** GET SESSION IDS : Retrieves a list of session IDs */
-    server.get('/app/:appId/session', async (req, res, next) => {
-        try {
-            const query = url.parse(req.url).query || ''
-            const { appId } = req.params
-            const sessionIds = await client.GetSessionIds(appId, query)
-            res.send(sessionIds)
         } catch (error) {
             HandleError(res, error)
         }
@@ -1014,17 +644,6 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
                 }
             }
             res.send(teachWithHistory)
-        } catch (error) {
-            HandleError(res, error)
-        }
-    })
-
-    /** GET TEACH: Retrieves information about the specified teach */
-    server.get('/app/:appId/teach/:teachId', async (req, res, next) => {
-        try {
-            const { appId, teachId } = req.params
-            const teach = await client.GetTeach(appId, teachId)
-            res.send(teach)
         } catch (error) {
             HandleError(res, error)
         }
@@ -1201,30 +820,6 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
         }
     })
 
-    /** GET TEACH SESSIONS: Retrieves definitions of ALL open teach sessions */
-    server.get('/app/:appId/teaches', async (req, res, next) => {
-        try {
-            const query = url.parse(req.url).query || ''
-            const { appId } = req.params
-            const teaches = await client.GetTeaches(appId, query)
-            res.send(teaches)
-        } catch (error) {
-            HandleError(res, error)
-        }
-    })
-
-    /** GET TEACH SESSION IDS: Retrieves a list of teach session IDs */
-    server.get('/app/:appId/teach', async (req, res, next) => {
-        try {
-            const query = url.parse(req.url).query || ''
-            const appId = req.params.appId
-            const teachIds = await client.GetTeachIds(appId, query)
-            res.send(teachIds)
-        } catch (error) {
-            HandleError(res, error)
-        }
-    })
-
     //========================================================
     // Replay
     //========================================================
@@ -1302,11 +897,6 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
         }
     })
 
-    server.use((req, res, next) => {
-        console.log(`Proxy will handle request: ${req.method} ${req.url}`)
-        next()
-    })
-
     const httpProxy = proxy({
         target: options.CONVERSATION_LEARNER_SERVICE_URI,
         changeOrigin: true,
@@ -1316,12 +906,6 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
             proxyReq.setHeader(luisSubscriptionKeyHeader, options.LUIS_SUBSCRIPTION_KEY || '')
             proxyReq.setHeader(apimSubscriptionIdHeader, options.LUIS_AUTHORING_KEY || '')
             proxyReq.setHeader(apimSubscriptionKeyHeader, options.APIM_SUBSCRIPTION_KEY || '')
-
-            console.log(`
-req.url: ${req.url}
-req.headers: ${JSON.stringify(req.headers, null, '  ')}
-proxyReq.headers: ${JSON.stringify(proxyReq.getHeaders(), null, '  ')}
-`)
         }
     })
 
