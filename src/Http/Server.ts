@@ -5,7 +5,7 @@
 import * as express from 'express'
 import * as url from 'url'
 import { CLDebug } from '../CLDebug'
-import { CLClient } from '../CLClient'
+import { CLClient, ICLClientOptions } from '../CLClient'
 import { CLRunner } from '../CLRunner'
 import { ConversationLearner } from '../ConversationLearner'
 import { CLMemory } from '../CLMemory'
@@ -17,6 +17,12 @@ import * as Request from 'request'
 import * as XMLDom from 'xmldom'
 import * as models from '@conversationlearner/models'
 import * as crypto from 'crypto'
+import * as proxy from 'http-proxy-middleware'
+
+const apimSubscriptionKeyHeader = 'Ocp-Apim-Subscription-Key'
+const apimSubscriptionIdHeader = 'apim-subscription-id'
+const luisAuthoringKeyHeader = 'x-luis-authoring-key'
+const luisSubscriptionKeyHeader = 'x-luis-subscription-key'
 
 // Extract error text from HTML error
 export const HTML2Error = (htmlText: string): string => {
@@ -104,7 +110,7 @@ const getBanner = () : Promise<models.Banner | null> => {
     })
   }
 
-export const addSdkRoutes = (server: express.Express, client: CLClient): express.Express => {
+export const addSdkRoutes = (server: express.Express, client: CLClient, options: ICLClientOptions): express.Express => {
     //========================================================
     // State
     //=======================================================
@@ -176,52 +182,6 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
     //========================================================
     // App
     //========================================================
-
-    /** Retrieves information about a specific application */
-    server.get('/app/:appId', async (req, res, next) => {
-        const { appId } = req.params
-        try {
-            const app = await client.GetApp(appId)
-            res.send(app)
-        } catch (error) {
-            HandleError(res, error)
-        }
-    })
-
-    server.get('/app/:appId/source', async (req, res, next) => {
-        const { appId } = req.params
-        const { packageId } = getQuery(req)
-        try {
-            const appDefinition = await client.GetAppSource(appId, packageId)
-            res.send(appDefinition)
-        } catch (error) {
-            HandleError(res, error)
-        }
-    })
-
-    
-    server.post('/app/:appId/source', async (req, res, next) => {
-        const { appId } = req.params
-        const source: models.AppDefinition = req.body
-        try {
-            await client.SetAppSource(appId, source)
-            res.sendStatus(200)
-        } catch (error) {
-            HandleError(res, error)
-        }
-    })
-
-    server.get('/app/:appId/trainingstatus', async (req, res, next) => {
-        const { appId } = req.params
-        const query = url.parse(req.url).query || ''
-        try {
-            const trainingStatus = await client.GetAppTrainingStatus(appId, query)
-            res.send(trainingStatus)
-        } catch (error) {
-            HandleError(res, error)
-        }
-    })
-
     /** Create a new application */
     server.post('/app', async (req, res, next) => {
         try {
@@ -1341,6 +1301,31 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
             HandleError(res, error)
         }
     })
+
+    server.use((req, res, next) => {
+        console.log(`Proxy will handle request: ${req.method} ${req.url}`)
+        next()
+    })
+
+    const httpProxy = proxy({
+        target: options.CONVERSATION_LEARNER_SERVICE_URI,
+        changeOrigin: true,
+        logLevel: 'debug',
+        onProxyReq: (proxyReq, req, res) => {
+            proxyReq.setHeader(luisAuthoringKeyHeader, options.LUIS_AUTHORING_KEY || '')
+            proxyReq.setHeader(luisSubscriptionKeyHeader, options.LUIS_SUBSCRIPTION_KEY || '')
+            proxyReq.setHeader(apimSubscriptionIdHeader, options.LUIS_AUTHORING_KEY || '')
+            proxyReq.setHeader(apimSubscriptionKeyHeader, options.APIM_SUBSCRIPTION_KEY || '')
+
+            console.log(`
+req.url: ${req.url}
+req.headers: ${JSON.stringify(req.headers, null, '  ')}
+proxyReq.headers: ${JSON.stringify(proxyReq.getHeaders(), null, '  ')}
+`)
+        }
+    })
+
+    server.use(httpProxy)
 
     return server
 }
