@@ -228,7 +228,8 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
             const query = url.parse(req.url).query || ''
             const key = getMemoryKey(req)
             const newApp: models.AppBase = req.body
-            const app = await client.AddApp(newApp, query)
+            let app = await client.AddApp(newApp, query)
+            app = await client.GetApp(app.appId)
             res.send(app)
             
             // Initialize memory
@@ -1006,7 +1007,7 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
             if (!teachWithHistory) {
                 res.status(500)
                 res.send(new Error(`Could not find teach session history for given train dialog`))
-                 return
+                return
             }
 
             // Start session if API returned consistent results during replay
