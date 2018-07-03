@@ -254,10 +254,9 @@ export class CLClient {
      * Create a new application
      */
     // TODO: Fix API to return full object
-    public async AddApp(app: models.AppBase, query: string): Promise<string> {
+    public async AddApp(app: models.AppBase, query: string): Promise<models.AppBase> {
         const apiPath = `app`
-        const appResponse = await this.send<models.AppBase>('POST', this.MakeURL(apiPath, query), app)
-        return appResponse.appId
+        return await this.send<models.AppBase>('POST', this.MakeURL(apiPath, query), app)
     }
 
     /** 
@@ -270,7 +269,7 @@ export class CLClient {
     }
 
     /** Retrieves details for a specific $appId */
-    public GetAppStatus(appId: string): Promise<models.AppBase> {
+    public GetArchivedApp(appId: string): Promise<models.AppBase> {
         let apiPath = `archive/${appId}`
         return this.send('GET', this.MakeURL(apiPath))
     }
