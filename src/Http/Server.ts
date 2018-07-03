@@ -239,6 +239,21 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
         }
     })
 
+    /**
+     * Renames an existing application or changes its LUIS key
+     * Note: Renaming an application does not affect packages
+     */
+    server.put('/app/:appId', async (req, res, next) => {
+        try {
+            const query = url.parse(req.url).query || ''
+            const app: models.AppBase = req.body
+            const appId = await client.EditApp(app, query)
+            res.send(appId)
+        } catch (error) {
+            HandleError(res, error)
+        }
+    })
+
     /** Archives an existing application */
     server.delete('/app/:appId', async (req, res, next) => {
         const { appId } = req.params
