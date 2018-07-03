@@ -228,8 +228,8 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
             const query = url.parse(req.url).query || ''
             const key = getMemoryKey(req)
             const newApp: models.AppBase = req.body
-            let app = await client.AddApp(newApp, query)
-            app = await client.GetApp(app.appId)
+            const appId = await client.AddApp(newApp, query)
+            const app = await client.GetApp(appId)
             res.send(app)
             
             // Initialize memory

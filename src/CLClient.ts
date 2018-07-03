@@ -254,9 +254,11 @@ export class CLClient {
      * Create a new application
      */
     // TODO: Fix API to return full object
-    public async AddApp(app: models.AppBase, query: string): Promise<models.AppBase> {
+    public async AddApp(app: models.AppBase, query: string): Promise<string> {
         const apiPath = `app`
-        return await this.send<models.AppBase>('POST', this.MakeURL(apiPath, query), app)
+        // Note: This isn't an actual AppBase, but just { appId, packageId }
+        const appResponse = await this.send<models.AppBase>('POST', this.MakeURL(apiPath, query), app)
+        return appResponse.appId
     }
 
     /** 
