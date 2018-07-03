@@ -112,11 +112,11 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
     server.put('/state/app', async (req, res, next) => {
         try {
             const key = getMemoryKey(req)
-            let app: models.AppBase = req.body
+            const app: models.AppBase = req.body
 
-            let memory = CLMemory.GetMemory(key)
+            const memory = CLMemory.GetMemory(key)
             await memory.SetAppAsync(app)
-            res.send(200)
+            res.sendStatus(200)
         } catch (error) {
             HandleError(res, error)
         }
@@ -127,9 +127,9 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
         try {
             const key = getMemoryKey(req)
             const { conversationId, userName } = getQuery(req)
-            let memory = CLMemory.GetMemory(key)
+            const memory = CLMemory.GetMemory(key)
             await memory.BotState.CreateConversationReference(userName, key, conversationId)
-            res.send(200)
+            res.sendStatus(200)
         } catch (error) {
             HandleError(res, error)
         }
@@ -142,10 +142,9 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
     server.get('/bot', async (req, res, next) => {
         try {
             const { browserId } = getQuery(req)
-            let clRunner = CLRunner.Get()
-            let apiParams = clRunner.apiParams
-
-            let validationErrors = clRunner.clClient.ValidationErrors();
+            const clRunner = CLRunner.Get()
+            const apiParams = clRunner.apiParams
+            const validationErrors = clRunner.clClient.ValidationErrors();
 
             // Generate id
             const browserSlot = await BrowserSlot.GetSlot(browserId);
@@ -180,9 +179,9 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
 
     /** Retrieves information about a specific application */
     server.get('/app/:appId', async (req, res, next) => {
-        let appId = req.params.appId
+        const { appId } = req.params
         try {
-            let app = await client.GetApp(appId)
+            const app = await client.GetApp(appId)
             res.send(app)
         } catch (error) {
             HandleError(res, error)
@@ -190,7 +189,7 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
     })
 
     server.get('/app/:appId/source', async (req, res, next) => {
-        const appId = req.params.appId
+        const { appId } = req.params
         const { packageId } = getQuery(req)
         try {
             const appDefinition = await client.GetAppSource(appId, packageId)
@@ -202,19 +201,19 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
 
     
     server.post('/app/:appId/source', async (req, res, next) => {
-        const appId = req.params.appId
+        const { appId } = req.params
         const source: models.AppDefinition = req.body
         try {
             await client.SetAppSource(appId, source)
-            res.send(200)
+            res.sendStatus(200)
         } catch (error) {
             HandleError(res, error)
         }
     })
 
     server.get('/app/:appId/trainingstatus', async (req, res, next) => {
+        const { appId } = req.params
         const query = url.parse(req.url).query || ''
-        const appId = req.params.appId
         try {
             const trainingStatus = await client.GetAppTrainingStatus(appId, query)
             res.send(trainingStatus)
@@ -226,14 +225,13 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
     /** Create a new application */
     server.post('/app', async (req, res, next) => {
         try {
-            let query = url.parse(req.url).query || ''
+            const query = url.parse(req.url).query || ''
             const key = getMemoryKey(req)
-            let app: models.AppBase = req.body
-
-            let appId = await client.AddApp(app, query)
-            app = await client.GetApp(appId);
+            const newApp: models.AppBase = req.body
+            const appId = await client.AddApp(newApp, query)
+            const app = await client.GetApp(appId)
             res.send(app)
-
+            
             // Initialize memory
             await CLMemory.GetMemory(key).SetAppAsync(app)
         } catch (error) {
@@ -247,18 +245,9 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
      */
     server.put('/app/:appId', async (req, res, next) => {
         try {
-            let query = url.parse(req.url).query || ''
-            let app: models.AppBase = req.body
-
-            if (!app.appId) {
-                app.appId = req.params.appId
-            } else if (req.params.appId != app.appId) {
-                res.status(400)
-                res.send({ error: `appId of object: ${app.appId} must match appId in url: ${req.params.appId}` })
-                return
-            }
-
-            let appId = await client.EditApp(app, query)
+            const query = url.parse(req.url).query || ''
+            const app: models.AppBase = req.body
+            const appId = await client.EditApp(app, query)
             res.send(appId)
         } catch (error) {
             HandleError(res, error)
@@ -267,21 +256,22 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
 
     /** Archives an existing application */
     server.delete('/app/:appId', async (req, res, next) => {
+        const { appId } = req.params
+
         try {
             const key = getMemoryKey(req)
-            let appId = req.params.appId
             await client.ArchiveApp(appId)
 
             // Did I delete my loaded app, if so clear my state
-            let memory = CLMemory.GetMemory(key)
-            let app = await memory.BotState.GetApp()
+            const memory = CLMemory.GetMemory(key)
+            const app = await memory.BotState.GetApp()
             if (app && app.appId === appId) {
                 await memory.SetAppAsync(null)
 
-                let clRunner = CLRunner.Get(appId);
+                const clRunner = CLRunner.Get(appId);
                 await clRunner.EndSessionAsync(key, models.SessionEndState.OPEN);
             }
-            res.send(200)
+            res.sendStatus(200)
         } catch (error) {
             HandleError(res, error)
         }
@@ -292,10 +282,11 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
      * Deleting an application from the archive really destroys it – no undo.
      */
     server.delete('/archive/:appId', async (req, res, next) => {
+        const { appId } = req.params
+        
         try {
-            let appId = req.params.appId
             await client.DeleteApp(appId)
-            res.send(200)
+            res.sendStatus(200)
         } catch (error) {
             HandleError(res, error)
         }
@@ -303,9 +294,10 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
 
     /** GET APP STATUS : Retrieves details for a specific $appId */
     server.get('/archive/:appId', async (req, res, next) => {
+        const { appId } = req.params
+
         try {
-            let appId = req.params.appId
-            let app = await client.GetAppStatus(appId)
+            const app = await client.GetArchivedApp(appId)
             res.send(app)
         } catch (error) {
             HandleError(res, error)
@@ -316,14 +308,14 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
     server.get('/apps', async (req, res, next) => {
         try {
             const key = getMemoryKey(req)
-            let query = url.parse(req.url).query || ''
-            let apps = await client.GetApps(query)
+            const query = url.parse(req.url).query || ''
+            const apps = await client.GetApps(query)
 
             // Get lookup table for which apps packages are being edited
-            let memory = CLMemory.GetMemory(key)
-            let activeApps = await memory.BotState.GetEditingPackages();
+            const memory = CLMemory.GetMemory(key)
+            const activeApps = await memory.BotState.GetEditingPackages();
 
-            let uiAppList = { appList: apps, activeApps: activeApps } as models.UIAppList;
+            const uiAppList = { appList: apps, activeApps: activeApps } as models.UIAppList;
             res.send(uiAppList)
         } catch (error) {
             HandleError(res, error)
@@ -333,15 +325,15 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
     /** Copy applications between accounts */
     server.post('/apps/copy', async (req, res, next) => {
         const { srcUserId, destUserId, appId } = getQuery(req)
-        let clRunner = CLRunner.Get(appId)
-        let luisSubscriptionKey = clRunner.clClient.LuisAuthoringKey()
+        const clRunner = CLRunner.Get(appId)
+        const luisSubscriptionKey = clRunner.clClient.LuisAuthoringKey()
 
         if (luisSubscriptionKey == undefined) {
             throw new Error(`LUIS_AUTHORING_KEY undefined`);
         }
 
         try {
-            let appIds = await client.CopyApps(srcUserId, destUserId, appId, luisSubscriptionKey)
+            const appIds = await client.CopyApps(srcUserId, destUserId, appId, luisSubscriptionKey)
             res.send(appIds)
         } catch (error) {
             HandleError(res, error)
@@ -351,8 +343,8 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
     /** Retrieves a list of application Ids in the archive for the given user */
     server.get('/archive', async (req, res, next) => {
         try {
-            let query = url.parse(req.url).query || ''
-            let apps = await client.GetArchivedAppIds(query)
+            const query = url.parse(req.url).query || ''
+            const apps = await client.GetArchivedAppIds(query)
             res.send(apps)
         } catch (error) {
             HandleError(res, error)
@@ -362,8 +354,8 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
     /** Retrieves a list of full applications in the archive for the given user */
     server.get('/archives', async (req, res, next) => {
         try {
-            let query = url.parse(req.url).query || ''
-            let apps = await client.GetArchivedApps(query)
+            const query = url.parse(req.url).query || ''
+            const apps = await client.GetArchivedApps(query)
             res.send(apps)
         } catch (error) {
             HandleError(res, error)
@@ -372,8 +364,9 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
 
     /** Moves an application from the archive to the set of active applications */
     server.put('/archive/:appId', async (req, res, next) => {
+        const { appId } = req.params
+
         try {
-            let appId = req.params.appId
             let app = await client.RestoreApp(appId)
             res.send(app)
         } catch (error) {
@@ -383,20 +376,20 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
 
     /** Creates a new package tag for an app */
     server.put('/app/:appId/publish', async (req, res, next) => {
+        const { appId } = req.params
+
         try {
-            let appId = req.params.appId
-            const { version, makeLive } = getQuery(req)
-            let tagName = version
-            let setLive = makeLive === "true";
+            const { version: tagName, makeLive } = getQuery(req)
+            const setLive = makeLive === "true";
 
             // Create tag, then load updated app
-            let packageReference = await client.PublishApp(appId, tagName)
+            const packageReference = await client.PublishApp(appId, tagName)
 
             // Make live app if requested
             if (setLive) {
                 await client.PublishProdPackage(appId, packageReference.packageId)
             }
-            let app = await client.GetApp(appId);
+            const app = await client.GetApp(appId);
 
             res.send(app)
         } catch (error) {
@@ -406,12 +399,11 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
 
     /** Sets the live package tag for an app */
     server.post('/app/:appId/publish/:packageId', async (req, res, next) => {
-        try {
-            let appId = req.params.appId
-            let packageId = req.params.packageId
+        const { appId, packageId } = req.params
 
+        try {
             await client.PublishProdPackage(appId, packageId)
-            let app = await client.GetApp(appId);
+            const app = await client.GetApp(appId);
             res.send(app)
         } catch (error) {
             HandleError(res, error)
@@ -420,20 +412,19 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
 
     /** Sets which app package is being edited */
     server.post('/app/:appId/edit/:packageId', async (req, res, next) => {
+        const { appId, packageId } = req.params
+
         try {
             const key = getMemoryKey(req)
-            let appId = req.params.appId
-            let packageId = req.params.packageId
-
-            let app = await client.GetApp(appId);
+            const app = await client.GetApp(appId);
             if (packageId != app.devPackageId) {
                 if (!app.packageVersions || !app.packageVersions.find(pv => pv.packageId == packageId)) {
-                    throw new Error(`Attemped to edit package that doesn't exist: ${packageId}`)
+                    throw new Error(`Attempted to edit package that doesn't exist: ${packageId}`)
                 }
             }
 
-            let memory = CLMemory.GetMemory(key)
-            let updatedPackageVersions = await memory.BotState.SetEditingPackage(appId, packageId);
+            const memory = CLMemory.GetMemory(key)
+            const updatedPackageVersions = await memory.BotState.SetEditingPackage(appId, packageId);
             res.send(updatedPackageVersions)
 
         } catch (error) {
@@ -445,10 +436,11 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
     // Action
     //========================================================
     server.get('/app/:appId/action/:actionId', async (req, res, next) => {
+        const { appId, actionId } = req.params
+        const query = url.parse(req.url).query || ''
+
         try {
-            let query = url.parse(req.url).query || ''
-            const { appId, actionId } = req.params
-            let action = await client.GetAction(appId, actionId, query)
+            const action = await client.GetAction(appId, actionId, query)
             res.send(action)
         } catch (error) {
             HandleError(res, error)
@@ -456,10 +448,11 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
     })
 
     server.post('/app/:appId/action', async (req, res, next) => {
+        const { appId } = req.params
+
         try {
-            let appId = req.params.appId
-            let action: models.ActionBase = req.body
-            let actionId = await client.AddAction(appId, action)
+            const action: models.ActionBase = req.body
+            const actionId = await client.AddAction(appId, action)
             res.send(actionId)
         } catch (error) {
             HandleError(res, error)
@@ -467,18 +460,11 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
     })
 
     server.put('/app/:appId/action/:actionId', async (req, res, next) => {
-        try {
-            let appId = req.params.appId
-            let action: models.ActionBase = req.body
+        const { appId } = req.params
 
-            if (!action.actionId) {
-                action.actionId = req.params.actionId
-            } else if (req.params.actionId != action.actionId) {
-                res.status(400)
-                res.send({ error: 'ActionId of object does not match URI' })
-                return
-            }
-            let deleteEditResponse = await client.EditAction(appId, action)
+        try {
+            const action: models.ActionBase = req.body
+            const deleteEditResponse = await client.EditAction(appId, action)
             res.send(deleteEditResponse)
         } catch (error) {
             HandleError(res, error)
@@ -487,9 +473,10 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
 
     /** Returns list of trainingDialogIds that are invalidated by the given changed action */
     server.post('/app/:appId/action/:actionId/editValidation', async (req, res, next) => {
+        const { appId } = req.params
+
         try {
-            let appId = req.params.appId
-            let action: models.ActionBase = req.body
+            const action: models.ActionBase = req.body
             const { packageId } = getQuery(req)
             if (!packageId) {
                 res.status(400)
@@ -502,8 +489,8 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
             // Replace the action with new one
             appDefinition.actions = replace(appDefinition.actions, action, a => a.actionId)
 
-            let clRunner = CLRunner.Get(appId);
-            let invalidTrainDialogIds = clRunner.validateTrainDialogs(appDefinition);
+            const clRunner = CLRunner.Get(appId);
+            const invalidTrainDialogIds = clRunner.validateTrainDialogs(appDefinition);
 
             res.send(invalidTrainDialogIds)
         } catch (error) {
@@ -513,10 +500,10 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
 
     /** Delete action */
     server.delete('/app/:appId/action/:actionId', async (req, res, next) => {
+        const { appId, actionId } = req.params
+
         try {
-            let appId = req.params.appId
-            let actionId = req.params.actionId
-            let deleteEditResponse = await client.DeleteAction(appId, actionId)
+            const deleteEditResponse = await client.DeleteAction(appId, actionId)
             res.send(deleteEditResponse)
         } catch (error) {
             HandleError(res, error)
@@ -525,17 +512,17 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
 
     /** Returns list of trainDialogs invalidated by deleting the given action */
     server.get('/app/:appId/action/:actionId/deleteValidation', async (req, res, next) => {
+        const { appId, actionId } = req.params
+
         try {
-            let appId = req.params.appId
-            let actionId = req.params.actionId
             const { packageId } = getQuery(req)
             const appDefinition = await client.GetAppSource(appId, packageId)
 
             // Remove the action
-            appDefinition.actions = appDefinition.actions.filter(a => a.actionId != actionId);
+            appDefinition.actions = appDefinition.actions.filter(a => a.actionId != actionId)
 
-            let clRunner = CLRunner.Get(appId);
-            let invalidTrainDialogIds = clRunner.validateTrainDialogs(appDefinition);
+            const clRunner = CLRunner.Get(appId)
+            const invalidTrainDialogIds = clRunner.validateTrainDialogs(appDefinition)
             res.send(invalidTrainDialogIds)
         } catch (error) {
             HandleError(res, error)
@@ -543,10 +530,11 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
     })
 
     server.get('/app/:appId/actions', async (req, res, next) => {
+        const { appId } = req.params
+        const query = url.parse(req.url).query || ''
+
         try {
-            let query = url.parse(req.url).query || ''
-            let appId = req.params.appId
-            let actions = await client.GetActions(appId, query)
+            const actions = await client.GetActions(appId, query)
             res.send(actions)
         } catch (error) {
             HandleError(res, error)
@@ -554,10 +542,11 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
     })
 
     server.get('/app/:appId/action', async (req, res, next) => {
+        const { appId } = req.params
+        const query = url.parse(req.url).query || ''
+
         try {
-            let query = url.parse(req.url).query || ''
-            let appId = req.params.appId
-            let actions = await client.GetActionIds(appId, query)
+            const actions = await client.GetActionIds(appId, query)
             res.send(actions)
         } catch (error) {
             HandleError(res, error)
@@ -569,10 +558,11 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
     //========================================================
 
     server.get('/app/:appId/entityIds', async (req, res, next) => {
+        const { appId } = req.params
+        const query = url.parse(req.url).query || ''
+
         try {
-            let query = url.parse(req.url).query || ''
-            let appId = req.params.appId
-            let actions = await client.GetEntityIds(appId, query)
+            const actions = await client.GetEntityIds(appId, query)
             res.send(actions)
         } catch (error) {
             HandleError(res, error)
@@ -580,11 +570,11 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
     })
 
     server.get('/app/:appId/entity/:entityId', async (req, res, next) => {
+        const { appId, entityId } = req.params
+        const query = url.parse(req.url).query || ''
+
         try {
-            let query = url.parse(req.url).query || ''
-            let appId = req.params.appId
-            let entityId = req.params.entityId
-            let entity = await client.GetEntity(appId, entityId, query)
+            const entity = await client.GetEntity(appId, entityId, query)
             res.send(entity)
         } catch (error) {
             HandleError(res, error)
@@ -592,10 +582,11 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
     })
 
     server.post('/app/:appId/entity', async (req, res, next) => {
+        const { appId } = req.params
+
         try {
-            let appId = req.params.appId
-            let entity: models.EntityBase = req.body
-            let entityId = await client.AddEntity(appId, entity)
+            const entity: models.EntityBase = req.body
+            const entityId = await client.AddEntity(appId, entity)
             res.send(entityId)
         } catch (error) {
             HandleError(res, error)
@@ -603,10 +594,11 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
     })
 
     server.put('/app/:appId/entity/:entityId', async (req, res, next) => {
+        const { appId } = req.params
+
         try {
-            let appId = req.params.appId
-            let entity: models.EntityBase = req.body
-            let entityId = await client.EditEntity(appId, entity)
+            const entity: models.EntityBase = req.body
+            const entityId = await client.EditEntity(appId, entity)
             res.send(entityId)
         } catch (error) {
             HandleError(res, error)
@@ -615,17 +607,18 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
     
     /** Returns list of trainingDialogIds that are invalidated by the given changed entity */
     server.post('/app/:appId/entity/:entityId/editValidation', async (req, res, next) => {
+        const { appId } = req.params
+
         try {
-            let appId = req.params.appId
-            let entity: models.EntityBase = req.body
+            const entity: models.EntityBase = req.body
             const { packageId } = getQuery(req)
             const appDefinition = await client.GetAppSource(appId, packageId)
             
             // Replace the entity with new one
             appDefinition.entities = replace(appDefinition.entities, entity, e => e.entityId)
 
-            let clRunner = CLRunner.Get(appId);
-            let invalidTrainDialogIds = clRunner.validateTrainDialogs(appDefinition);
+            const clRunner = CLRunner.Get(appId);
+            const invalidTrainDialogIds = clRunner.validateTrainDialogs(appDefinition);
             res.send(invalidTrainDialogIds)
         } catch (error) {
             HandleError(res, error)
@@ -633,10 +626,10 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
     })
 
     server.delete('/app/:appId/entity/:entityId', async (req, res, next) => {
+        const { appId, entityId } = req.params
+
         try {
-            let appId = req.params.appId
-            let entityId = req.params.entityId
-            let deleteEditResponse = await client.DeleteEntity(appId, entityId)
+            const deleteEditResponse = await client.DeleteEntity(appId, entityId)
             res.send(deleteEditResponse)
         } catch (error) {
             HandleError(res, error)
@@ -645,18 +638,17 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
 
     /** Returns list of trainDialogs invalidated by deleting the given entity */
     server.get('/app/:appId/entity/:entityId/deleteValidation', async (req, res, next) => {
-        try {
-            let appId = req.params.appId
-            let entityId = req.params.entityId
-            const { packageId } = getQuery(req)
+        const { appId, entityId } = req.params
 
+        try {
+            const { packageId } = getQuery(req)
             const appDefinition = await client.GetAppSource(appId, packageId)
 
             // Remove the action
-            appDefinition.entities = appDefinition.entities.filter(e => e.entityId != entityId);
+            appDefinition.entities = appDefinition.entities.filter(e => e.entityId != entityId)
 
-            let clRunner = CLRunner.Get(appId);
-            let invalidTrainDialogIds = clRunner.validateTrainDialogs(appDefinition);
+            const clRunner = CLRunner.Get(appId)
+            const invalidTrainDialogIds = clRunner.validateTrainDialogs(appDefinition)
             res.send(invalidTrainDialogIds)
         } catch (error) {
             HandleError(res, error)
@@ -664,10 +656,11 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
     })
 
     server.get('/app/:appId/entities', async (req, res, next) => {
+        const { appId } = req.params
+        const query = url.parse(req.url).query || ''
+
         try {
-            let query = url.parse(req.url).query || ''
-            let appId = req.params.appId
-            let entities = await client.GetEntities(appId, query)
+            const entities = await client.GetEntities(appId, query)
             res.send(entities)
         } catch (error) {
             HandleError(res, error)
@@ -675,10 +668,11 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
     })
 
     server.get('/app/:appId/entity', async (req, res, next) => {
+        const { appId } = req.params
+        const query = url.parse(req.url).query || ''
+
         try {
-            let query = url.parse(req.url).query || ''
-            let appId = req.params.appId
-            let entityIds = await client.GetEntityIds(appId, query)
+            const entityIds = await client.GetEntityIds(appId, query)
             res.send(entityIds)
         } catch (error) {
             HandleError(res, error)
@@ -689,10 +683,10 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
     // LogDialogs
     //========================================================
     server.get('/app/:appId/logdialog/:logDialogId', async (req, res, next) => {
+        const { appId, logDialogId } = req.params
+
         try {
-            let appId = req.params.appId
-            let logDialogId = req.params.logDialogId
-            let logDialog = await client.GetLogDialog(appId, logDialogId)
+            const logDialog = await client.GetLogDialog(appId, logDialogId)
             res.send(logDialog)
         } catch (error) {
             HandleError(res, error)
@@ -700,19 +694,20 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
     })
 
     server.delete('/app/:appId/logdialog/:logDialogId', async (req, res, next) => {
+        const { appId, logDialogId } = req.params
+
         try {
-            let appId = req.params.appId
-            let logDialogId = req.params.logDialogId
             await client.DeleteLogDialog(appId, logDialogId)
-            res.send(200)
+            res.sendStatus(200)
         } catch (error) {
             HandleError(res, error)
         }
     })
 
     server.get('/app/:appId/logdialogs', async (req, res, next) => {
+        const { appId } = req.params
+
         try {
-            const appId = req.params.appId
             const { packageId } = getQuery(req)
             const packageIds = packageId.split(",")
             const logDialogs = await client.GetLogDialogs(appId, packageIds)
@@ -723,10 +718,11 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
     })
 
     server.get('/app/:appId/logDialogIds', async (req, res, next) => {
+        const { appId } = req.params
+
         try {
-            let query = url.parse(req.url).query || ''
-            let appId = req.params.appId
-            let logDialogIds = await client.GetLogDialogIds(appId, query)
+            const query = url.parse(req.url).query || ''
+            const logDialogIds = await client.GetLogDialogIds(appId, query)
             res.send(logDialogIds)
         } catch (error) {
             HandleError(res, error)
@@ -739,9 +735,9 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
 
     server.post('/app/:appId/traindialog', async (req, res, next) => {
         try {
-            let appId = req.params.appId
-            let trainDialog: models.TrainDialog = req.body
-            let trainDialogId = await client.AddTrainDialog(appId, trainDialog)
+            const appId = req.params.appId
+            const trainDialog: models.TrainDialog = req.body
+            const trainDialogId = await client.AddTrainDialog(appId, trainDialog)
             res.send(trainDialogId)
         } catch (error) {
             HandleError(res, error)
@@ -750,9 +746,9 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
 
     server.put('/app/:appId/traindialog/:trainDialogId', async (req, res, next) => {
         try {
-            let appId = req.params.appId
-            let trainDialog: models.TrainDialog = req.body
-            let trainDialogId = await client.EditTrainDialog(appId, trainDialog)
+            const { appId } = req.params
+            const trainDialog: models.TrainDialog = req.body
+            const trainDialogId = await client.EditTrainDialog(appId, trainDialog)
             res.send(trainDialogId)
         } catch (error) {
             HandleError(res, error)
@@ -761,9 +757,8 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
 
     server.get('/app/:appId/traindialog/:trainDialogId', async (req, res, next) => {
         try {
-            let appId = req.params.appId
-            let trainDialogId = req.params.trainDialogId
-            let trainDialog = await client.GetTrainDialog(appId, trainDialogId)
+            const { appId, trainDialogId } = req.params
+            const trainDialog = await client.GetTrainDialog(appId, trainDialogId)
             res.send(trainDialog)
         } catch (error) {
             HandleError(res, error)
@@ -772,20 +767,20 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
 
     server.delete('/app/:appId/traindialog/:trainDialogId', async (req, res, next) => {
         try {
-            let appId = req.params.appId
-            let trainDialogId = req.params.trainDialogId
+            const { appId, trainDialogId } = req.params
             await client.DeleteTrainDialog(appId, trainDialogId)
-            res.send(200)
+            res.sendStatus(200)
         } catch (error) {
             HandleError(res, error)
         }
     })
 
     server.get('/app/:appId/traindialogs', async (req, res, next) => {
+        const { appId } = req.params
+        const query = url.parse(req.url).query || ''
+
         try {
-            let query = url.parse(req.url).query || ''
-            let appId = req.params.appId
-            let trainDialogs = await client.GetTrainDialogs(appId, query)
+            const trainDialogs = await client.GetTrainDialogs(appId, query)
             res.send(trainDialogs)
         } catch (error) {
             HandleError(res, error)
@@ -793,10 +788,11 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
     })
 
     server.get('/app/:appId/trainDialogIds', async (req, res, next) => {
+        const { appId } = req.params
+        const query = url.parse(req.url).query || ''
+
         try {
-            let query = url.parse(req.url).query || ''
-            let appId = req.params.appId
-            let trainDialogIds = await client.GetTrainDialogIds(appId, query)
+            const trainDialogIds = await client.GetTrainDialogIds(appId, query)
             res.send(trainDialogIds)
         } catch (error) {
             HandleError(res, error)
@@ -809,12 +805,12 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
         try {
             const key = getMemoryKey(req)
             const { appId, trainDialogId, turnIndex } = req.params
-            let userInput: models.UserInput = req.body
-            let extractResponse = await client.TrainDialogExtract(appId, trainDialogId, turnIndex, userInput)
+            const userInput: models.UserInput = req.body
+            const extractResponse = await client.TrainDialogExtract(appId, trainDialogId, turnIndex, userInput)
 
-            let memory = CLMemory.GetMemory(key)
-            let memories = await memory.BotMemory.DumpMemory()
-            let uiExtractResponse: models.UIExtractResponse = { extractResponse, memories }
+            const memory = CLMemory.GetMemory(key)
+            const memories = await memory.BotMemory.DumpMemory()
+            const uiExtractResponse: models.UIExtractResponse = { extractResponse, memories }
             res.send(uiExtractResponse)
         } catch (error) {
             HandleError(res, error)
@@ -831,16 +827,16 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
             const { appId, trainDialogId, turnIndex } = req.params
 
             // Retrieve current train dialog
-            let trainDialog = await client.GetTrainDialog(appId, trainDialogId, true)
+            const trainDialog = await client.GetTrainDialog(appId, trainDialogId, true)
 
             // Slice to length requested by user
             trainDialog.rounds = trainDialog.rounds.slice(0, turnIndex)
 
             // Get history and replay to put bot into last round
-            let memory = CLMemory.GetMemory(key)
+            const memory = CLMemory.GetMemory(key)
 
-            let clRunner = CLRunner.Get(appId);
-            let teachWithHistory = await clRunner.GetHistory(appId, trainDialog, username, userid, memory)
+            const clRunner = CLRunner.Get(appId);
+            const teachWithHistory = await clRunner.GetHistory(appId, trainDialog, username, userid, memory)
             if (!teachWithHistory) {
                 res.status(500)
                 res.send(new Error(`Could not find teach session history for given train dialog`))
@@ -850,8 +846,8 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
             // Start teach session if replay of API was consistent
             if (teachWithHistory.replayErrors.length === 0) {
                 // Start new teach session from the old train dialog
-                let createTeachParams = models.ModelUtils.ToCreateTeachParams(trainDialog)
-                let teachResponse = await client.StartTeach(appId, createTeachParams)
+                const createTeachParams = models.ModelUtils.ToCreateTeachParams(trainDialog)
+                const teachResponse = await client.StartTeach(appId, createTeachParams)
 
                 // Start Session - with "true" to save the memory from the History
                 await clRunner.InitSessionAsync(memory, teachResponse.teachId, null, null, { inTeach: true, isContinued: true })
@@ -871,13 +867,13 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
     server.post('/app/:appId/session', async (req, res, next) => {
         try {
             const key = getMemoryKey(req)
-            let appId = req.params.appId
-            let sessionCreateParams: models.SessionCreateParams = req.body
-            let sessionResponse = await client.StartSession(appId, sessionCreateParams)
+            const { appId } = req.params
+            const sessionCreateParams: models.SessionCreateParams = req.body
+            const sessionResponse = await client.StartSession(appId, sessionCreateParams)
             res.send(sessionResponse)
 
-            let clRunner = CLRunner.Get(appId);
-            let memory = CLMemory.GetMemory(key)
+            const clRunner = CLRunner.Get(appId);
+            const memory = CLMemory.GetMemory(key)
             memory.BotMemory.ClearAsync()
             
             clRunner.InitSessionAsync(memory, sessionResponse.sessionId, sessionResponse.logDialogId, null, { inTeach: false, isContinued: false })
@@ -890,7 +886,7 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
     server.get('/app/:appId/session/:sessionId', async (req, res, next) => {
         try {
             const { appId, sessionId } = req.params
-            let response = await client.GetSession(appId, sessionId)
+            const response = await client.GetSession(appId, sessionId)
             res.send(response)
         } catch (error) {
             HandleError(res, error)
@@ -901,17 +897,17 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
     server.put('/app/:appId/session/:sessionId', async (req, res, next) => {
         try {
             const key = getMemoryKey(req)
-            let memory = CLMemory.GetMemory(key)
-            let conversationId = await memory.BotState.GetConversationId();
+            const memory = CLMemory.GetMemory(key)
+            const conversationId = await memory.BotState.GetConversationId();
             if (!conversationId) {
                 // If conversation is empty
                 return;
             }
 
-            let curSessionId = await memory.BotState.GetSessionIdAndSetConversationId(conversationId);
+            const curSessionId = await memory.BotState.GetSessionIdAndSetConversationId(conversationId);
 
             // Session may be a replacement for an expired one
-            let uiSessionId = await memory.BotState.OrgSessionIdAsync(req.params.sessionId)
+            const uiSessionId = await memory.BotState.OrgSessionIdAsync(req.params.sessionId)
 
             if (curSessionId != uiSessionId) {
                 throw new Error("Attempting to expire sessionId not in use")
@@ -919,7 +915,7 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
 
             // Force sesion to expire
             await memory.BotState.SetLastActive(0);
-            res.send(200)
+            res.sendStatus(200)
         } catch (error) {
             HandleError(res, error)
         }
@@ -932,15 +928,15 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
             const { appId, sessionId } = req.params
 
             // Session may be a replacement for an expired one
-            let memory = CLMemory.GetMemory(key)
+            const memory = CLMemory.GetMemory(key)
             const originalSessionId = await memory.BotState.OrgSessionIdAsync(sessionId)
             if (!originalSessionId) {
                 throw new Error(`original session id not found for session id: ${sessionId}`)
             }
-            let response = await client.EndSession(appId, originalSessionId)
+            const response = await client.EndSession(appId, originalSessionId)
             res.send(response)
 
-            let clRunner = CLRunner.Get(appId);
+            const clRunner = CLRunner.Get(appId);
             clRunner.EndSessionAsync(key, models.SessionEndState.OPEN)
         } catch (error) {
             HandleError(res, error)
@@ -950,9 +946,9 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
     /** GET SESSIONS : Retrieves definitions of ALL open sessions */
     server.get('/app/:appId/sessions', async (req, res, next) => {
         try {
-            let query = url.parse(req.url).query || ''
-            let appId = req.params.appId
-            let sessions = await client.GetSessions(appId, query)
+            const query = url.parse(req.url).query || ''
+            const { appId } = req.params
+            const sessions = await client.GetSessions(appId, query)
             res.send(sessions)
         } catch (error) {
             HandleError(res, error)
@@ -962,9 +958,9 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
     /** GET SESSION IDS : Retrieves a list of session IDs */
     server.get('/app/:appId/session', async (req, res, next) => {
         try {
-            let query = url.parse(req.url).query || ''
-            let appId = req.params.appId
-            let sessionIds = await client.GetSessionIds(appId, query)
+            const query = url.parse(req.url).query || ''
+            const { appId } = req.params
+            const sessionIds = await client.GetSessionIds(appId, query)
             res.send(sessionIds)
         } catch (error) {
             HandleError(res, error)
@@ -979,11 +975,11 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
     server.post('/app/:appId/teach', async (req, res, next) => {
         try {
             const key = getMemoryKey(req)
-            let appId = req.params.appId
-            let teachResponse = await client.StartTeach(appId, null)
+            const { appId } = req.params
+            const teachResponse = await client.StartTeach(appId, null)
 
-            let clRunner = CLRunner.Get(appId);
-            let memory = CLMemory.GetMemory(key)
+            const clRunner = CLRunner.Get(appId);
+            const memory = CLMemory.GetMemory(key)
             clRunner.InitSessionAsync(memory, teachResponse.teachId, null, null, { inTeach: true, isContinued: false })
 
             // Clear the memory
@@ -999,11 +995,10 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
     server.delete('/app/:appId/botmemory', async (req, res, next) => {
         try {
             const key = getMemoryKey(req)
-
             // Update Memory
-            let memory = CLMemory.GetMemory(key)
+            const memory = CLMemory.GetMemory(key)
             await memory.BotMemory.ClearAsync();
-            res.send(200)
+            res.sendStatus(200)
 
         } catch (error) {
             HandleError(res, error)
@@ -1014,29 +1009,29 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
     server.post('/app/:appId/teachwithhistory', async (req, res, next) => {
         try {
             const key = getMemoryKey(req)
-            let appId = req.params.appId
-            const { username, userid, ignoreLastExtract } = getQuery(req)
+            const appId = req.params.appId
+            const { username: userName, userid: userId, ignoreLastExtract } = getQuery(req)
             const ignoreLastExtractBoolean = ignoreLastExtract === 'true'
-            let trainDialog: models.TrainDialog = req.body
+            const trainDialog: models.TrainDialog = req.body
 
             // Get history and replay to put bot into last round
-            let memory = CLMemory.GetMemory(key)
+            const memory = CLMemory.GetMemory(key)
 
-            let clRunner = CLRunner.Get(appId);
-            let teachWithHistory = await clRunner.GetHistory(appId, trainDialog, username, userid, memory, ignoreLastExtractBoolean)
+            const clRunner = CLRunner.Get(appId);
+            const teachWithHistory = await clRunner.GetHistory(appId, trainDialog, userName, userId, memory, ignoreLastExtractBoolean)
             if (!teachWithHistory) {
                 res.status(500)
                 res.send(new Error(`Could not find teach session history for given train dialog`))
-                 return
+                return
             }
 
             // Start session if API returned consistent results during replay
             if (teachWithHistory.replayErrors.length === 0) {
                 // Start new teach session from the old train dialog
-                let createTeachParams = models.ModelUtils.ToCreateTeachParams(trainDialog)
-                let teachResponse = await client.StartTeach(appId, createTeachParams)
+                const createTeachParams = models.ModelUtils.ToCreateTeachParams(trainDialog)
+                const teachResponse = await client.StartTeach(appId, createTeachParams)
 
-                // Start Sesion - with "true" to save the memory from the History
+                // Start Session - with "true" to save the memory from the History
                 await clRunner.InitSessionAsync(memory, teachResponse.teachId, null, null, { inTeach: true, isContinued: true })
                 teachWithHistory.teach = models.ModelUtils.ToTeach(teachResponse)
 
@@ -1045,12 +1040,12 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
 
                     // Get entities from my memory
                     const filledEntities = await memory.BotMemory.FilledEntitiesAsync()
-                    let scoreInput: models.ScoreInput = {
+                    const scoreInput: models.ScoreInput = {
                         filledEntities,
                         context: {},
                         maskedActions: []
                     }
-                    teachWithHistory.scoreInput = scoreInput;
+                    teachWithHistory.scoreInput = scoreInput
                     teachWithHistory.scoreResponse = await client.TeachScore(
                         appId,
                         teachWithHistory.teach.teachId,
@@ -1068,7 +1063,7 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
     server.get('/app/:appId/teach/:teachId', async (req, res, next) => {
         try {
             const { appId, teachId } = req.params
-            let teach = await client.GetTeach(appId, teachId)
+            const teach = await client.GetTeach(appId, teachId)
             res.send(teach)
         } catch (error) {
             HandleError(res, error)
@@ -1079,12 +1074,12 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
     server.put('/app/:appId/teach/:teachId/initmemory', async (req, res, next) => {
         try {
             const key = getMemoryKey(req)
-            let filledEntityMap = req.body as models.FilledEntityMap
-            let botMemory = CLMemory.GetMemory(key).BotMemory
+            const filledEntityMap = req.body as models.FilledEntityMap
+            const botMemory = CLMemory.GetMemory(key).BotMemory
 
             await botMemory.RestoreFromMapAsync(filledEntityMap)
 
-            let memories = await botMemory.DumpMemory();
+            const memories = await botMemory.DumpMemory();
             res.send(memories)
         } catch (error) {
             HandleError(res, error)
@@ -1100,17 +1095,17 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
         try {
             const key = getMemoryKey(req)
             const { appId, teachId } = req.params
-            let userInput = req.body
+            const userInput: models.UserInput = req.body
 
             // If a form text could be null
             if (!userInput.text) {
                 userInput.text = '  '
             }
-            let extractResponse = await client.TeachExtract(appId, teachId, userInput)
+            const extractResponse = await client.TeachExtract(appId, teachId, userInput)
 
-            let memory = CLMemory.GetMemory(key)
-            let memories = await memory.BotMemory.DumpMemory()
-            let uiExtractResponse: models.UIExtractResponse = { extractResponse, memories }
+            const memory = CLMemory.GetMemory(key)
+            const memories = await memory.BotMemory.DumpMemory()
+            const uiExtractResponse: models.UIExtractResponse = { extractResponse, memories }
             res.send(uiExtractResponse)
         } catch (error) {
             HandleError(res, error)
@@ -1130,8 +1125,8 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
         try {
             const key = getMemoryKey(req)
             const { appId, teachId } = req.params
-            let uiScoreInput: models.UIScoreInput = req.body
-            let memory = CLMemory.GetMemory(key)
+            const uiScoreInput: models.UIScoreInput = req.body
+            const memory = CLMemory.GetMemory(key)
 
             // There will be no extraction step if performing a 2nd scorer round after a non-termial action
             if (uiScoreInput.trainExtractorStep) {
@@ -1140,9 +1135,9 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
             }
 
             // Call LUIS callback to get scoreInput
-            let extractResponse = uiScoreInput.extractResponse
-            let clRunner = CLRunner.Get(appId);
-            let scoreInput = await clRunner.CallEntityDetectionCallback(
+            const extractResponse = uiScoreInput.extractResponse
+            const clRunner = CLRunner.Get(appId);
+            const scoreInput = await clRunner.CallEntityDetectionCallback(
                 extractResponse.text,
                 extractResponse.predictedEntities,
                 memory,
@@ -1150,9 +1145,9 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
             )
 
             // Get score response
-            let scoreResponse = await client.TeachScore(appId, teachId, scoreInput)
-            let memories = await memory.BotMemory.DumpMemory()
-            let uiScoreResponse: models.UIScoreResponse = { scoreInput, scoreResponse, memories }
+            const scoreResponse = await client.TeachScore(appId, teachId, scoreInput)
+            const memories = await memory.BotMemory.DumpMemory()
+            const uiScoreResponse: models.UIScoreResponse = { scoreInput, scoreResponse, memories }
             res.send(uiScoreResponse)
         } catch (error) {
             HandleError(res, error)
@@ -1191,68 +1186,67 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
     server.post('/app/:appId/teach/:teachId/scorer', async (req, res, next) => {
         try {
             const key = getMemoryKey(req)
-            let appId = req.params.appId
-            let teachId = req.params.teachId
-            let uiTrainScorerStep: models.UITrainScorerStep = req.body
+            const { appId, teachId } = req.params
+            const uiTrainScorerStep: models.UITrainScorerStep = req.body
 
             // Save scored action and remove from service call
-            let scoredAction = uiTrainScorerStep.trainScorerStep.scoredAction
+            const scoredAction = uiTrainScorerStep.trainScorerStep.scoredAction
             if (!scoredAction) {
                 throw new Error(`trainScorerStep.scoredAction must be defined.`)
             }
             delete uiTrainScorerStep.trainScorerStep.scoredAction
 
-            let teachResponse = await client.TeachScoreFeedback(appId, teachId, uiTrainScorerStep.trainScorerStep)
+            const teachResponse = await client.TeachScoreFeedback(appId, teachId, uiTrainScorerStep.trainScorerStep)
 
-            let memory = CLMemory.GetMemory(key)
+            const memory = CLMemory.GetMemory(key)
 
             // Now send the trained intent
-            let intent = {
+            const intent = {
                 scoredAction: scoredAction,
                 clEntities: uiTrainScorerStep.entities,
                 memory: memory,
                 inTeach: true
             } as CLRecognizerResult
 
-            let clRunner = CLRunner.Get(appId);
+            const clRunner = CLRunner.Get(appId);
             await clRunner.SendIntent(intent, true)
 
-            let memories = await memory.BotMemory.DumpMemory()
-            let isEndTask = scoredAction.actionType === models.ActionTypes.END_SESSION
-            let uiPostScoreResponse: models.UIPostScoreResponse = { teachResponse, memories, isEndTask }
+            const memories = await memory.BotMemory.DumpMemory()
+            const isEndTask = scoredAction.actionType === models.ActionTypes.END_SESSION
+            const uiPostScoreResponse: models.UIPostScoreResponse = { teachResponse, memories, isEndTask }
             res.send(uiPostScoreResponse)
         } catch (error) {
             HandleError(res, error)
         }
     })
 
-    /** END TEACH: Ends a teach.
+    /**
+     * END TEACH: Ends a teach.
      * For Teach sessions, does NOT delete the associated trainDialog.
      * To delete the associated trainDialog, call DELETE on the trainDialog.
      */
     server.delete('/app/:appId/teach/:teachId', async (req, res, next) => {
         try {
             const key = getMemoryKey(req)
-            let appId = req.params.appId
-            let teachId = req.params.teachId
+            const { appId, teachId } = req.params
             const { save } = getQuery(req)
-            let saveQuery = save ? `saveDialog=${save}` : ''
-            let response = await client.EndTeach(appId, teachId, saveQuery)
+            const saveQuery = save ? `saveDialog=${save}` : ''
+            const response = await client.EndTeach(appId, teachId, saveQuery)
             res.send(response)
 
-            let clRunner = CLRunner.Get(appId);
+            const clRunner = CLRunner.Get(appId);
             clRunner.EndSessionAsync(key, models.SessionEndState.OPEN)
         } catch (error) {
             HandleError(res, error)
         }
     })
 
-    /** GET TEACH SESSOINS: Retrieves definitions of ALL open teach sessions */
+    /** GET TEACH SESSIONS: Retrieves definitions of ALL open teach sessions */
     server.get('/app/:appId/teaches', async (req, res, next) => {
         try {
-            let query = url.parse(req.url).query || ''
-            let appId = req.params.appId
-            let teaches = await client.GetTeaches(appId, query)
+            const query = url.parse(req.url).query || ''
+            const { appId } = req.params
+            const teaches = await client.GetTeaches(appId, query)
             res.send(teaches)
         } catch (error) {
             HandleError(res, error)
@@ -1262,9 +1256,9 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
     /** GET TEACH SESSION IDS: Retrieves a list of teach session IDs */
     server.get('/app/:appId/teach', async (req, res, next) => {
         try {
-            let query = url.parse(req.url).query || ''
-            let appId = req.params.appId
-            let teachIds = await client.GetTeachIds(appId, query)
+            const query = url.parse(req.url).query || ''
+            const appId = req.params.appId
+            const teachIds = await client.GetTeachIds(appId, query)
             res.send(teachIds)
         } catch (error) {
             HandleError(res, error)
@@ -1278,22 +1272,22 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
     server.post('/app/:appId/history', async (req, res, next) => {
         try {
             const key = getMemoryKey(req)
-            let appId = req.params.appId
+            const appId = req.params.appId
             const { username: userName, userid: userId } = getQuery(req)
-            let trainDialog: models.TrainDialog = req.body
+            const trainDialog: models.TrainDialog = req.body
 
-            let memory = CLMemory.GetMemory(key)
-            let clRunner = CLRunner.Get(appId);
-            let teachWithHistory = await clRunner.GetHistory(appId, trainDialog, userName, userId, memory)
+            const memory = CLMemory.GetMemory(key)
+            const clRunner = CLRunner.Get(appId);
+            const teachWithHistory = await clRunner.GetHistory(appId, trainDialog, userName, userId, memory)
 
-            // Clear bot memory geneated with his
+            // Clear bot memory generated with this
             memory.BotMemory.ClearAsync();
             
             if (teachWithHistory) {
                 res.send(teachWithHistory)
             }
             else {
-                res.send(204)
+                res.sendStatus(204)
             }
         } catch (error) {
             HandleError(res, error)
@@ -1303,12 +1297,12 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
     server.post('/app/:appId/teach/:teachId/undo', async (req, res, next) => {
         try {
             const key = getMemoryKey(req)
-            let appId = req.params.appId
+            const appId = req.params.appId
             const { username: userName, userid: userId, popround: popRound } = getQuery(req)
-            let teach: models.Teach = req.body
+            const teach: models.Teach = req.body
 
-            // Retreive current train dialog
-            let trainDialog = await client.GetTrainDialog(appId, teach.trainDialogId, true)
+            // Retrieve current train dialog
+            const trainDialog = await client.GetTrainDialog(appId, teach.trainDialogId, true)
 
             // Remove last round
             if (popRound == 'true') {
@@ -1316,12 +1310,12 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
             }
 
             // Get memory and store a backup in case the undo fails
-            let memory = CLMemory.GetMemory(key)
-            let memoryBackup = await memory.BotMemory.FilledEntityMap()
+            const memory = CLMemory.GetMemory(key)
+            const memoryBackup = await memory.BotMemory.FilledEntityMap()
 
             // Get history and replay to put bot into last round
-            let clRunner = CLRunner.Get(appId);
-            let teachWithHistory = await clRunner.GetHistory(appId, trainDialog, userName, userId, memory)
+            const clRunner = CLRunner.Get(appId);
+            const teachWithHistory = await clRunner.GetHistory(appId, trainDialog, userName, userId, memory)
             if (!teachWithHistory) {
                 throw new Error(`Attempted to undo last action of teach session, but could not get session history`)
             }
@@ -1332,8 +1326,8 @@ export const addSdkRoutes = (server: express.Express, client: CLClient): express
                 client.EndTeach(appId, teach.teachId, `saveDialog=false`)
 
                 // Start new teach session from the previous trainDialog
-                let createTeachParams = models.ModelUtils.ToCreateTeachParams(trainDialog)
-                let teachResponse = await client.StartTeach(appId, createTeachParams)
+                const createTeachParams = models.ModelUtils.ToCreateTeachParams(trainDialog)
+                const teachResponse = await client.StartTeach(appId, createTeachParams)
 
                 // Start Sesion - with "true" to save the memory from the History
                 await clRunner.InitSessionAsync(memory, teachResponse.teachId, null, null, { inTeach: true, isContinued: true })
