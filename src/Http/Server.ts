@@ -884,15 +884,13 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
         }
     })
 
-    router.use((req, res, next) => {
-        console.log(`Proxy will handle request: ${req.method} ${req.url}`)
-        next()
-    })
-
     const httpProxy = proxy({
         target: options.CONVERSATION_LEARNER_SERVICE_URI,
         changeOrigin: true,
         logLevel: 'debug',
+        pathRewrite: {
+            '^/sdk': '/'
+        },
         onProxyReq: (proxyReq, req, res) => {
             proxyReq.setHeader(constants.luisAuthoringKeyHeader, options.LUIS_AUTHORING_KEY || '')
             proxyReq.setHeader(constants.luisSubscriptionKeyHeader, options.LUIS_SUBSCRIPTION_KEY || '')
@@ -902,7 +900,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             /**
              * TODO: Find more elegant solution with middleware ordering.
              * Currently there is conflict of interest.  For the custom routes we define, we want the body parsed
-             * so we need bodyParser.json() middleare above it in the pipeline; however, when bodyParser is above/before
+             * so we need bodyParser.json() middleware above it in the pipeline; however, when bodyParser is above/before
              * the http-proxy-middleware then it can't properly stream the body through.
              * 
              * This code explicitly re-streams the data by calling .write()
@@ -940,4 +938,4 @@ function getQuery (req: express.Request): any {
     return url.parse(req.url, true).query || {}
 }
 
-export default addSdkRoutes
+export default getRouter

@@ -20,11 +20,9 @@ export class ConversationLearner {
     public appId: string | undefined
 
     public static Init(options: ICLOptions, storage: BB.Storage | null = null): express.Router {
-
         ConversationLearner.options = options
 
         try {
-            CLDebug.Log('Creating Conversation Learner Client....')
             this.clClient = new CLClient(options)
             CLMemory.Init(storage)
         } catch (error) {

@@ -15,6 +15,4 @@ export interface ICLOptions {
 
     // Application settings
     SESSION_MAX_TIMEOUT?: number
-
-    DOL_START?: boolean
 }
