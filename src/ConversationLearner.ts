@@ -49,8 +49,8 @@ export class ConversationLearner {
             const sdkServer = express()
             sdkServer.use(cors())
             sdkServer.use(bodyParser.json())
-            addSdkRoutes(sdkServer, this.clClient)
-
+            addSdkRoutes(sdkServer, this.clClient, options)
+            
             const sdkPort = options.CONVERSATION_LEARNER_SDK_PORT
             const listener = sdkServer.listen(sdkPort, () => {
                 CLDebug.Log(`SDK Server listening on http://localhost:${listener.address().port}`)

@@ -5,11 +5,7 @@
 import * as models from '@conversationlearner/models'
 import { CLDebug } from './CLDebug'
 import * as Request from 'request'
-
-const apimSubscriptionKeyHeader = 'Ocp-Apim-Subscription-Key'
-const apimSubscriptionIdHeader = 'apim-subscription-id'
-const luisAuthoringKeyHeader = 'x-luis-authoring-key'
-const luisSubscriptionKeyHeader = 'x-luis-subscription-key'
+import * as constants from './constants'
 
 type HTTP_METHOD = 'GET' | 'PUT' | 'POST' | 'DELETE'
 const requestMethodMap = new Map<HTTP_METHOD, typeof Request.get | typeof Request.post>([
@@ -107,11 +103,11 @@ export class CLClient {
             const requestData = {
                 url,
                 headers: {
-                    [luisAuthoringKeyHeader]: this.options.LUIS_AUTHORING_KEY,
-                    [luisSubscriptionKeyHeader]: this.options.LUIS_SUBSCRIPTION_KEY,
+                    [constants.luisAuthoringKeyHeader]: this.options.LUIS_AUTHORING_KEY,
+                    [constants.luisSubscriptionKeyHeader]: this.options.LUIS_SUBSCRIPTION_KEY,
                     // This is only used when directly targeting service.  In future APIM will provide user/subscription id associated from LUIS key
-                    [apimSubscriptionIdHeader]: this.options.LUIS_AUTHORING_KEY,
-                    [apimSubscriptionKeyHeader]: this.options.APIM_SUBSCRIPTION_KEY
+                    [constants.apimSubscriptionIdHeader]: this.options.LUIS_AUTHORING_KEY,
+                    [constants.apimSubscriptionKeyHeader]: this.options.APIM_SUBSCRIPTION_KEY
                 },
                 json: true,
                 body
@@ -135,63 +131,9 @@ export class CLClient {
         })
     }
 
-    //=============================================================================
-    // Action
-    //=============================================================================
-
-    /** 
-     * Retrieves information about a specific action for the current package
-     * (or the specified package if provided)
-     */
-    public async GetAction(appId: string, actionId: string, query: string): Promise<models.ActionBase> {
-        const apiPath = `app/${appId}/action/${actionId}`
-        return await this.send<models.ActionBase>('GET', this.MakeURL(apiPath, query))
-    }
-
-    /** 
-     * Retrieves definitions of ALL actions for the current package
-     * (or the specified package if provided). To retrieve just the
-     * IDs of actions, see the GetActionIds Method
-     */
-    public GetActions(appId: string, query: string): Promise<models.ActionList> {
-        let apiPath = `app/${appId}/actions`
-        return this.send('GET', this.MakeURL(apiPath, query))
-    }
-
-    /** 
-     * Retrieves a list of action IDs for the latest package
-     * (or the specified package, if provided).  To retrieve
-     * the definitions of many actions, see the GetAction method
-     */
-    public GetActionIds(appId: string, query: string): Promise<models.ActionIdList> {
-        let apiPath = `app/${appId}/action`
-        return this.send('GET', this.MakeURL(apiPath, query))
-    }
-
-    /** Updates payload and/or metadata on an existing action */
-    public EditAction(appId: string, action: models.ActionBase): Promise<models.DeleteEditResponse> {
-        let apiPath = `app/${appId}/action/${action.actionId}`
-        return this.send('PUT', this.MakeURL(apiPath), action)
-    }
-
-    /** Marks an action as deleted */
-    public DeleteAction(appId: string, actionId: string): Promise<models.DeleteEditResponse> {
-        let apiPath = `app/${appId}/action/${actionId}`
-        return this.send('DELETE', this.MakeURL(apiPath))
-    }
-
-    /** Create a new action */
-    // TODO: Fix API to return full object
-    public async AddAction(appId: string, action: models.ActionBase): Promise<string> {
-        let apiPath = `app/${appId}/action`
-        const actionResponse = await this.send<any>('POST', this.MakeURL(apiPath), action)
-        return actionResponse.actionId
-    }
-
     //==============================================================================
     // App
     //=============================================================================
-
     /** 
      * Retrieve information about a specific application
      * If the app ID isn't found in the set of (non-archived) apps,
@@ -207,16 +149,6 @@ export class CLClient {
         return this.send('GET', this.MakeURL(apiPath))
     }
 
-    public SetAppSource(appId: string, source: models.AppDefinition): Promise<string> {
-        let apiPath = `app/${appId}/source`
-        return this.send('POST', this.MakeURL(apiPath), source)
-    }
-
-    public GetAppTrainingStatus(appId: string, query: string): Promise<models.TrainingStatus> {
-        let apiPath = `app/${appId}/trainingstatus`
-        return this.send('GET', this.MakeURL(apiPath, query))
-    }
-
     /** Retrieve a list of (active) applications */
     public GetApps(query: string): Promise<models.AppList> {
         let apiPath = `apps`
@@ -227,15 +159,6 @@ export class CLClient {
     public CopyApps(srcUserId: string, destUserId: string, appId: string, luisSubscriptionKey: string): Promise<string> {
         const apiPath = `apps/copy?srcUserId=${srcUserId}&destUserId=${destUserId}&appId=${appId}&luisSubscriptionKey=${luisSubscriptionKey}`
         return this.send('POST', this.MakeURL(apiPath))
-    }
-
-    /** 
-     * Rename an existing application or changes its LUIS key
-     * Note: Renaming an application does not affect packages
-     */
-    public EditApp(app: models.AppBase, query: string): Promise<string> {
-        let apiPath = `app/${app.appId}`
-        return this.send('PUT', this.MakeURL(apiPath, query), app)
     }
 
     /** 
@@ -261,39 +184,6 @@ export class CLClient {
         return appResponse.appId
     }
 
-    /** 
-     * Destroys an existing application, including all its models, sessions, and logged dialogs
-     * Deleting an application from the archive really destroys it – no undo.
-     */
-    public DeleteApp(appId: string): Promise<string> {
-        let apiPath = `archive/${appId}`
-        return this.send('DELETE', this.MakeURL(apiPath))
-    }
-
-    /** Retrieves details for a specific $appId */
-    public GetArchivedApp(appId: string): Promise<models.AppBase> {
-        let apiPath = `archive/${appId}`
-        return this.send('GET', this.MakeURL(apiPath))
-    }
-
-    /** Moves an application from the archive to the set of active applications */
-    public RestoreApp(appId: string): Promise<string> {
-        let apiPath = `archive/${appId}`
-        return this.send('PUT', this.MakeURL(apiPath))
-    }
-
-    /** Retrieves a list of application Ids in the archive for the given user */
-    public GetArchivedAppIds(query: string): Promise<models.AppIdList> {
-        let apiPath = `archive`
-        return this.send('GET', this.MakeURL(apiPath, query))
-    }
-
-    /** Retrieves a list of full applications in the archive for the given user */
-    public GetArchivedApps(query: string): Promise<models.AppList> {
-        let apiPath = `archives`
-        return this.send('GET', this.MakeURL(apiPath, query))
-    }
-
     /** Creates a new package tag */
     public PublishApp(appId: string, tagName: string): Promise<models.PackageReference> {
         let apiPath = `app/${appId}/publish?version=${tagName}`
@@ -309,16 +199,6 @@ export class CLClient {
     //==============================================================================
     // Entity
     //=============================================================================
-
-    /**
-     * Retrieves information about a specific entity in the latest package
-     * (or the specified package, if provided)
-     */
-    public async GetEntity(appId: string, entityId: string, query: string): Promise<models.EntityBase> {
-        let apiPath = `app/${appId}/entity/${entityId}`
-        return await this.send<models.EntityBase>('GET', this.MakeURL(apiPath, query))
-    }
-
     /**
      * Retrieves definitions of ALL entities in the latest package
      * (or the specified package, if provided).  To retrieve just the IDs
@@ -329,46 +209,9 @@ export class CLClient {
         return this.send('GET', this.MakeURL(apiPath, query))
     }
 
-    /**
-     * Retrieves a list of entity IDs for the latest package
-     * (or the specified package, if provided).  To retrieve the definitions
-     * of many entities, see the GetEntities method
-     */
-    public GetEntityIds(appId: string, query: string): Promise<models.EntityIdList> {
-        let apiPath = `app/${appId}/entity`
-        return this.send('GET', this.MakeURL(apiPath, query))
-    }
-
-    /** Updates name and/or metadata on an existing entity */
-    public EditEntity(appId: string, entity: models.EntityBase): Promise<string> {
-        let apiPath = `app/${appId}/entity/${entity.entityId}`
-        return this.send('PUT', this.MakeURL(apiPath), entity)
-    }
-
-    /** Deletes an entity */
-    public DeleteEntity(appId: string, entityId: string): Promise<string> {
-        let apiPath = `app/${appId}/entity/${entityId}`
-        return this.send('DELETE', this.MakeURL(apiPath))
-    }
-
-    /** Create a new entity */
-    // TODO: Fix API to return entity
-    public async AddEntity(appId: string, entity: models.EntityBase): Promise<models.ChangeEntityResponse> {
-        let apiPath = `app/${appId}/entity`
-        return await this.send<any>('POST', this.MakeURL(apiPath), entity)
-    }
-
     //=============================================================================
     // Log Dialogs
     //=============================================================================
-
-    /** Retrieves information about a specific logDialog */
-    public GetLogDialog(appId: string, logDialogId: string): Promise<models.LogDialog> {
-        let apiPath = `app/${appId}/logdialog/${logDialogId}`
-        let query = 'includeDefinitions=false'
-        return this.send('GET', this.MakeURL(apiPath, query))
-    }
-
     /**
      * Retrieves the contents of many/all logDialogs.
      * To retrieve just a list of IDs of all logDialogs,
@@ -380,37 +223,9 @@ export class CLClient {
         return this.send('GET', this.MakeURL(apiPath))
     }
 
-    /**
-     * Retrieves just the IDs of logDialogs.
-     * To retrieve the contents of many logDialogs, see the GetLogDialogs method.
-     */
-    public GetLogDialogIds(appId: string, query: string): Promise<models.LogDialogIdList> {
-        let apiPath = `app/${appId}/logdialog`
-        return this.send('GET', this.MakeURL(apiPath, query))
-    }
-
-    /** Deletes a LogDialog */
-    public DeleteLogDialog(appId: string, logDialogId: string): Promise<string> {
-        let apiPath = `app/${appId}/logdialog/${logDialogId}`
-        return this.send('DELETE', this.MakeURL(apiPath))
-    }
-
     //=============================================================================
     // Train Dialogs
     //=============================================================================
-
-    /** Create a new TrainDialog */
-    public AddTrainDialog(appId: string, trainDialog: models.TrainDialog): Promise<models.TrainResponse> {
-        let apiPath = `app/${appId}/traindialog`
-        return this.send('POST', this.MakeURL(apiPath), trainDialog)
-    }
-
-    /** Updates a trainDialog, overwriting the content of its dialog */
-    public EditTrainDialog(appId: string, trainDialog: models.TrainDialog): Promise<models.TrainResponse> {
-        let apiPath = `app/${appId}/traindialog/${trainDialog.trainDialogId}`
-        return this.send('PUT', this.MakeURL(apiPath), trainDialog)
-    }
-
     /**
      * Retrieves information about a specific trainDialog in the current package
      * (or the specified package, if provided)
@@ -419,36 +234,6 @@ export class CLClient {
         let query = `includeDefinitions=${includeDefinitions}`
         let apiPath = `app/${appId}/traindialog/${trainDialogId}`
         return this.send('GET', this.MakeURL(apiPath, query))
-    }
-
-    /**
-     * Retrieves the contents of many/all train dialogs.
-     * To retrieve just a list of IDs of all trainDialogs,
-     * see the GetTrainDialogIds method
-     */
-    public GetTrainDialogs(appId: string, query: string): Promise<models.TrainDialogList> {
-        let apiPath = `app/${appId}/traindialogs`
-        if(!query.includes('includeDefinitions'))
-        {
-            query += `${query.length > 0 ? '&' : ''}includeDefinitions=false`; 
-        }
-        return this.send('GET', this.MakeURL(apiPath, query))
-    }
-
-    /**
-     * Retrieves a list of trainDialog IDs.
-     * To retrieve the contents of multiple trainDialogs,
-     * see the GetTrainDialogs method
-     */
-    public GetTrainDialogIds(appId: string, query: string): Promise<models.TrainDialogIdList> {
-        let apiPath = `app/${appId}/traindialog`
-        return this.send('GET', this.MakeURL(apiPath, query))
-    }
-
-    /** Deletes a TrainDialog */
-    public DeleteTrainDialog(appId: string, trainDialogId: string): Promise<models.TrainResponse> {
-        let apiPath = `app/${appId}/traindialog/${trainDialogId}`
-        return this.send('DELETE', this.MakeURL(apiPath))
     }
 
     /** Runs entity extraction (prediction). */
@@ -472,12 +257,6 @@ export class CLClient {
     public StartSession(appId: string, sessionCreateParams: models.SessionCreateParams): Promise<models.Session> {
         let apiPath = `app/${appId}/session`
         return this.send('POST', this.MakeSessionURL(apiPath), sessionCreateParams)
-    }
-
-    /** Retrieves information about the specified session */
-    public GetSession(appId: string, sessionId: string): Promise<models.Session> {
-        let apiPath = `app/${appId}/session/${sessionId}`
-        return this.send('GET', this.MakeURL(apiPath))
     }
 
     /** Runs entity extraction (prediction). */
@@ -504,24 +283,6 @@ export class CLClient {
         return this.send('DELETE', this.MakeSessionURL(apiPath, query))
     }
 
-    /**
-     * Retrieves definitions of ALL open sessions
-     * To retrieve just the IDs, see the GetSessionIds method
-     */
-    public GetSessions(appId: string, query: string): Promise<models.SessionList> {
-        let apiPath = `app/${appId}/sessions`
-        return this.send('GET', this.MakeURL(apiPath, query))
-    }
-
-    /**
-     * Retrieves a list of session IDs
-     * To retrieve the definitions, see the GetSessions method
-     */
-    public GetSessionIds(appId: string, query: string): Promise<models.SessionIdList> {
-        let apiPath = `app/${appId}/session`
-        return this.send('GET', this.MakeURL(apiPath, query))
-    }
-
     //=============================================================================
     // Teach
     //=============================================================================
@@ -530,12 +291,6 @@ export class CLClient {
     public StartTeach(appId: string, createTeachParams: models.CreateTeachParams | null): Promise<models.TeachResponse> {
         let apiPath = `app/${appId}/teach`
         return this.send('POST', this.MakeURL(apiPath), createTeachParams ? createTeachParams : {})
-    }
-
-    /** Retrieves information about the specified teach */
-    public GetTeach(appId: string, teachId: string): Promise<models.Teach> {
-        let apiPath = `app/${appId}/teach/${teachId}`
-        return this.send('GET', this.MakeURL(apiPath))
     }
 
     /**
@@ -589,23 +344,5 @@ export class CLClient {
     public EndTeach(appId: string, teachId: string, query: string): Promise<models.TrainResponse> {
         let apiPath = `app/${appId}/teach/${teachId}`
         return this.send('DELETE', this.MakeURL(apiPath, query))
-    }
-
-    /**
-     * Retrieves definitions of ALL teaching sessions
-     * To retrieve just the IDs, see the GetTeachIds method
-     */
-    public GetTeaches(appId: string, query: string): Promise<models.TeachList> {
-        let apiPath = `app/${appId}/teaches`
-        return this.send('GET', this.MakeURL(apiPath, query))
-    }
-
-    /**
-     * Retrieves a list of teach session IDs
-     * To retrieve the definitions, see the GetTeaches method
-     */
-    public GetTeachIds(appId: string, query: string): Promise<models.TeachIdList> {
-        let apiPath = `app/${appId}/teach`
-        return this.send('GET', this.MakeURL(apiPath, query))
     }
 }
