@@ -897,6 +897,11 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
         }
     })
 
+    server.use((req, res, next) => {
+        console.log(`Proxy will handle request: ${req.method} ${req.url}`)
+        next()
+    })
+
     const httpProxy = proxy({
         target: options.CONVERSATION_LEARNER_SERVICE_URI,
         changeOrigin: true,
@@ -906,6 +911,27 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
             proxyReq.setHeader(luisSubscriptionKeyHeader, options.LUIS_SUBSCRIPTION_KEY || '')
             proxyReq.setHeader(apimSubscriptionIdHeader, options.LUIS_AUTHORING_KEY || '')
             proxyReq.setHeader(apimSubscriptionKeyHeader, options.APIM_SUBSCRIPTION_KEY || '')
+
+            /**
+             * TODO: Find more elegant solution with middleware ordering.
+             * Currently there is conflict of interest.  For the custom routes we define, we want the body parsed
+             * so we need bodyParser.json() middleare above it in the pipeline; however, when bodyParser is above/before
+             * the http-proxy-middleware then it can't properly stream the body through.
+             * 
+             * This code explicitly re-streams the data by calling .write()
+             * 
+             * Ideally we could find a way to only use bodyParser.json() on our custom routes so it's no in the pipeline above
+             * the proxy
+             */
+            const anyReq: any = req
+            if (anyReq.body) {
+                let bodyData = JSON.stringify(anyReq.body)
+                // incase if content-type is application/x-www-form-urlencoded -> we need to change to application/json
+                proxyReq.setHeader('Content-Type','application/json')
+                proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData))
+                // stream the content
+                proxyReq.write(bodyData)
+            }
         }
     })
 
