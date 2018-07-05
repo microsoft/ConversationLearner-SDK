@@ -5,11 +5,7 @@
 import * as models from '@conversationlearner/models'
 import { CLDebug } from './CLDebug'
 import * as Request from 'request'
-
-const apimSubscriptionKeyHeader = 'Ocp-Apim-Subscription-Key'
-const apimSubscriptionIdHeader = 'apim-subscription-id'
-const luisAuthoringKeyHeader = 'x-luis-authoring-key'
-const luisSubscriptionKeyHeader = 'x-luis-subscription-key'
+import * as constants from './constants'
 
 type HTTP_METHOD = 'GET' | 'PUT' | 'POST' | 'DELETE'
 const requestMethodMap = new Map<HTTP_METHOD, typeof Request.get | typeof Request.post>([
@@ -107,11 +103,11 @@ export class CLClient {
             const requestData = {
                 url,
                 headers: {
-                    [luisAuthoringKeyHeader]: this.options.LUIS_AUTHORING_KEY,
-                    [luisSubscriptionKeyHeader]: this.options.LUIS_SUBSCRIPTION_KEY,
+                    [constants.luisAuthoringKeyHeader]: this.options.LUIS_AUTHORING_KEY,
+                    [constants.luisSubscriptionKeyHeader]: this.options.LUIS_SUBSCRIPTION_KEY,
                     // This is only used when directly targeting service.  In future APIM will provide user/subscription id associated from LUIS key
-                    [apimSubscriptionIdHeader]: this.options.LUIS_AUTHORING_KEY,
-                    [apimSubscriptionKeyHeader]: this.options.APIM_SUBSCRIPTION_KEY
+                    [constants.apimSubscriptionIdHeader]: this.options.LUIS_AUTHORING_KEY,
+                    [constants.apimSubscriptionKeyHeader]: this.options.APIM_SUBSCRIPTION_KEY
                 },
                 json: true,
                 body

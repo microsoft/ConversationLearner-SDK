@@ -18,11 +18,7 @@ import * as XMLDom from 'xmldom'
 import * as models from '@conversationlearner/models'
 import * as crypto from 'crypto'
 import * as proxy from 'http-proxy-middleware'
-
-const apimSubscriptionKeyHeader = 'Ocp-Apim-Subscription-Key'
-const apimSubscriptionIdHeader = 'apim-subscription-id'
-const luisAuthoringKeyHeader = 'x-luis-authoring-key'
-const luisSubscriptionKeyHeader = 'x-luis-subscription-key'
+import * as constants from '../constants'
 
 // Extract error text from HTML error
 export const HTML2Error = (htmlText: string): string => {
@@ -892,10 +888,10 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
         changeOrigin: true,
         logLevel: 'debug',
         onProxyReq: (proxyReq, req, res) => {
-            proxyReq.setHeader(luisAuthoringKeyHeader, options.LUIS_AUTHORING_KEY || '')
-            proxyReq.setHeader(luisSubscriptionKeyHeader, options.LUIS_SUBSCRIPTION_KEY || '')
-            proxyReq.setHeader(apimSubscriptionIdHeader, options.LUIS_AUTHORING_KEY || '')
-            proxyReq.setHeader(apimSubscriptionKeyHeader, options.APIM_SUBSCRIPTION_KEY || '')
+            proxyReq.setHeader(constants.luisAuthoringKeyHeader, options.LUIS_AUTHORING_KEY || '')
+            proxyReq.setHeader(constants.luisSubscriptionKeyHeader, options.LUIS_SUBSCRIPTION_KEY || '')
+            proxyReq.setHeader(constants.apimSubscriptionIdHeader, options.LUIS_AUTHORING_KEY || '')
+            proxyReq.setHeader(constants.apimSubscriptionKeyHeader, options.APIM_SUBSCRIPTION_KEY || '')
 
             /**
              * TODO: Find more elegant solution with middleware ordering.
