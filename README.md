@@ -28,8 +28,7 @@ import { ConversationLearner, ICLOptions, ClientMemoryManager } from '@conversat
 ...
 
 ConversationLearner.Init({
-    CONVERSATION_LEARNER_SERVICE_URI: process.env.CONVERSATION_LEARNER_SERVICE_URI,
-    DOL_START: process.env.DOL_START ? process.env.DOL_START.toLowerCase() === 'true' : true
+    CONVERSATION_LEARNER_SERVICE_URI: process.env.CONVERSATION_LEARNER_SERVICE_URI
 });
 
 ...

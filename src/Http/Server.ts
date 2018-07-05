@@ -19,6 +19,8 @@ import * as models from '@conversationlearner/models'
 import * as crypto from 'crypto'
 import * as proxy from 'http-proxy-middleware'
 import * as constants from '../constants'
+import * as bodyParser from 'body-parser'
+import * as cors from 'cors'
 
 // Extract error text from HTML error
 export const HTML2Error = (htmlText: string): string => {
@@ -106,12 +108,16 @@ const getBanner = () : Promise<models.Banner | null> => {
     })
   }
 
-export const addSdkRoutes = (server: express.Express, client: CLClient, options: ICLClientOptions): express.Express => {
+export const getRouter = (client: CLClient, options: ICLClientOptions): express.Router => {
+    const router = express.Router({ caseSensitive: false })
+    router.use(cors())
+    router.use(bodyParser.json())
+
     //========================================================
     // State
     //=======================================================
     /** Sets the current active application */
-    server.put('/state/app', async (req, res, next) => {
+    router.put('/state/app', async (req, res, next) => {
         try {
             const key = getMemoryKey(req)
             const app: models.AppBase = req.body
@@ -125,7 +131,7 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
     })
 
     /** Sets the current conversationId so bot can send initial pro-active message */
-    server.put('/state/conversationId', async (req, res, next) => {
+    router.put('/state/conversationId', async (req, res, next) => {
         try {
             const key = getMemoryKey(req)
             const { conversationId, userName } = getQuery(req)
@@ -141,7 +147,7 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
     // Bot
     //========================================================
     /** Retrieves information about the running bot */
-    server.get('/bot', async (req, res, next) => {
+    router.get('/bot', async (req, res, next) => {
         try {
             const { browserId } = getQuery(req)
             const clRunner = CLRunner.Get()
@@ -179,7 +185,7 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
     // App
     //========================================================
     /** Create a new application */
-    server.post('/app', async (req, res, next) => {
+    router.post('/app', async (req, res, next) => {
         try {
             const query = url.parse(req.url).query || ''
             const key = getMemoryKey(req)
@@ -196,7 +202,7 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
     })
 
     /** Archives an existing application */
-    server.delete('/app/:appId', async (req, res, next) => {
+    router.delete('/app/:appId', async (req, res, next) => {
         const { appId } = req.params
 
         try {
@@ -219,7 +225,7 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
     })
 
     /** Retrieves a list of (active) applications */
-    server.get('/apps', async (req, res, next) => {
+    router.get('/apps', async (req, res, next) => {
         try {
             const key = getMemoryKey(req)
             const query = url.parse(req.url).query || ''
@@ -237,7 +243,7 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
     })
 
     /** Copy applications between accounts */
-    server.post('/apps/copy', async (req, res, next) => {
+    router.post('/apps/copy', async (req, res, next) => {
         const { srcUserId, destUserId, appId } = getQuery(req)
         const clRunner = CLRunner.Get(appId)
         const luisSubscriptionKey = clRunner.clClient.LuisAuthoringKey()
@@ -255,7 +261,7 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
     })
 
     /** Creates a new package tag for an app */
-    server.put('/app/:appId/publish', async (req, res, next) => {
+    router.put('/app/:appId/publish', async (req, res, next) => {
         const { appId } = req.params
 
         try {
@@ -278,7 +284,7 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
     })
 
     /** Sets which app package is being edited */
-    server.post('/app/:appId/edit/:packageId', async (req, res, next) => {
+    router.post('/app/:appId/edit/:packageId', async (req, res, next) => {
         const { appId, packageId } = req.params
 
         try {
@@ -303,7 +309,7 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
     // Action
     //========================================================
     /** Returns list of trainingDialogIds that are invalidated by the given changed action */
-    server.post('/app/:appId/action/:actionId/editValidation', async (req, res, next) => {
+    router.post('/app/:appId/action/:actionId/editValidation', async (req, res, next) => {
         const { appId } = req.params
 
         try {
@@ -330,7 +336,7 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
     })
 
     /** Returns list of trainDialogs invalidated by deleting the given action */
-    server.get('/app/:appId/action/:actionId/deleteValidation', async (req, res, next) => {
+    router.get('/app/:appId/action/:actionId/deleteValidation', async (req, res, next) => {
         const { appId, actionId } = req.params
 
         try {
@@ -352,7 +358,7 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
     // Entities
     //========================================================
     /** Returns list of trainingDialogIds that are invalidated by the given changed entity */
-    server.post('/app/:appId/entity/:entityId/editValidation', async (req, res, next) => {
+    router.post('/app/:appId/entity/:entityId/editValidation', async (req, res, next) => {
         const { appId } = req.params
 
         try {
@@ -372,7 +378,7 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
     })
 
     /** Returns list of trainDialogs invalidated by deleting the given entity */
-    server.get('/app/:appId/entity/:entityId/deleteValidation', async (req, res, next) => {
+    router.get('/app/:appId/entity/:entityId/deleteValidation', async (req, res, next) => {
         const { appId, entityId } = req.params
 
         try {
@@ -393,7 +399,7 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
     //========================================================
     // LogDialogs
     //========================================================
-    server.get('/app/:appId/logdialogs', async (req, res, next) => {
+    router.get('/app/:appId/logdialogs', async (req, res, next) => {
         const { appId } = req.params
 
         try {
@@ -412,7 +418,7 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
     /** 
      * RUN EXTRACTOR: Runs entity extraction on a train dialog
      */
-    server.put('/app/:appId/traindialog/:trainDialogId/extractor/:turnIndex', async (req, res, next) => {
+    router.put('/app/:appId/traindialog/:trainDialogId/extractor/:turnIndex', async (req, res, next) => {
         try {
             const key = getMemoryKey(req)
             const { appId, trainDialogId, turnIndex } = req.params
@@ -429,7 +435,7 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
     })
 
     /** Create a new teach session based on the current train dialog starting at round turnIndex */
-    server.post('/app/:appId/traindialog/:trainDialogId/branch/:turnIndex', async (req, res, next) => {
+    router.post('/app/:appId/traindialog/:trainDialogId/branch/:turnIndex', async (req, res, next) => {
         try {
             const key = getMemoryKey(req)
             const { username: userName, userid: userId } = getQuery(req)
@@ -470,7 +476,7 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
     //========================================================
 
     /** START SESSION : Creates a new session and a corresponding logDialog */
-    server.post('/app/:appId/session', async (req, res, next) => {
+    router.post('/app/:appId/session', async (req, res, next) => {
         try {
             const key = getMemoryKey(req)
             const { appId } = req.params
@@ -489,7 +495,7 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
     })
 
     /** EXPIRE SESSION : Expires the current session (timeout) */
-    server.put('/app/:appId/session/:sessionId', async (req, res, next) => {
+    router.put('/app/:appId/session/:sessionId', async (req, res, next) => {
         try {
             const key = getMemoryKey(req)
             const memory = CLMemory.GetMemory(key)
@@ -517,7 +523,7 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
     })
 
     /** END SESSION : End a session. */
-    server.delete('/app/:appId/session/:sessionId', async (req, res, next) => {
+    router.delete('/app/:appId/session/:sessionId', async (req, res, next) => {
         try {
             const key = getMemoryKey(req)
             const { appId, sessionId } = req.params
@@ -543,7 +549,7 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
     //========================================================
 
     /** START TEACH SESSION: Creates a new teaching session and a corresponding trainDialog */
-    server.post('/app/:appId/teach', async (req, res, next) => {
+    router.post('/app/:appId/teach', async (req, res, next) => {
         try {
             const key = getMemoryKey(req)
             const { appId } = req.params
@@ -563,7 +569,7 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
     })
 
     /** Clear the bot's memory */
-    server.delete('/app/:appId/botmemory', async (req, res, next) => {
+    router.delete('/app/:appId/botmemory', async (req, res, next) => {
         try {
             const key = getMemoryKey(req)
             // Update Memory
@@ -577,7 +583,7 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
     })
 
     /** START TEACH SESSION: Creates a new teaching session from existing train dialog */
-    server.post('/app/:appId/teachwithhistory', async (req, res, next) => {
+    router.post('/app/:appId/teachwithhistory', async (req, res, next) => {
         try {
             const key = getMemoryKey(req)
             const appId = req.params.appId
@@ -631,7 +637,7 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
     })
 
     /** INIT MEMORY: Sets initial value for BotMemory at start of Teach Session */
-    server.put('/app/:appId/teach/:teachId/initmemory', async (req, res, next) => {
+    router.put('/app/:appId/teach/:teachId/initmemory', async (req, res, next) => {
         try {
             const key = getMemoryKey(req)
             const filledEntityMap = req.body as models.FilledEntityMap
@@ -651,7 +657,7 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
      * the server, the session will first migrate to that newer version.  This
      * doesn't affect the trainDialog maintained.
      */
-    server.put('/app/:appId/teach/:teachId/extractor', async (req, res, next) => {
+    router.put('/app/:appId/teach/:teachId/extractor', async (req, res, next) => {
         try {
             const key = getMemoryKey(req)
             const { appId, teachId } = req.params
@@ -681,7 +687,7 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
      * available on the server, the session will first migrate to that newer version.
      * This doesn't affect the trainDialog maintained by the teaching session.
      */
-    server.put('/app/:appId/teach/:teachId/scorer', async (req, res, next) => {
+    router.put('/app/:appId/teach/:teachId/scorer', async (req, res, next) => {
         try {
             const key = getMemoryKey(req)
             const { appId, teachId } = req.params
@@ -717,7 +723,7 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
     /**
      * Re-run scorer given previous score input
      */
-    server.put('/app/:appId/teach/:teachId/rescore', async (req, res, next) => {
+    router.put('/app/:appId/teach/:teachId/rescore', async (req, res, next) => {
         try {
             const key = getMemoryKey(req)
             const { appId, teachId } = req.params
@@ -743,7 +749,7 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
      * – ie "commits" a scorer label, appending it to the teach session's
      * trainDialog, and advancing the dialog. This may yield produce a new package.
      */
-    server.post('/app/:appId/teach/:teachId/scorer', async (req, res, next) => {
+    router.post('/app/:appId/teach/:teachId/scorer', async (req, res, next) => {
         try {
             const key = getMemoryKey(req)
             const { appId, teachId } = req.params
@@ -785,7 +791,7 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
      * For Teach sessions, does NOT delete the associated trainDialog.
      * To delete the associated trainDialog, call DELETE on the trainDialog.
      */
-    server.delete('/app/:appId/teach/:teachId', async (req, res, next) => {
+    router.delete('/app/:appId/teach/:teachId', async (req, res, next) => {
         try {
             const key = getMemoryKey(req)
             const { appId, teachId } = req.params
@@ -805,7 +811,7 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
     // Replay
     //========================================================
 
-    server.post('/app/:appId/history', async (req, res, next) => {
+    router.post('/app/:appId/history', async (req, res, next) => {
         try {
             const key = getMemoryKey(req)
             const appId = req.params.appId
@@ -830,7 +836,7 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
         }
     })
 
-    server.post('/app/:appId/teach/:teachId/undo', async (req, res, next) => {
+    router.post('/app/:appId/teach/:teachId/undo', async (req, res, next) => {
         try {
             const key = getMemoryKey(req)
             const appId = req.params.appId
@@ -878,15 +884,13 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
         }
     })
 
-    server.use((req, res, next) => {
-        console.log(`Proxy will handle request: ${req.method} ${req.url}`)
-        next()
-    })
-
     const httpProxy = proxy({
         target: options.CONVERSATION_LEARNER_SERVICE_URI,
         changeOrigin: true,
         logLevel: 'debug',
+        pathRewrite: {
+            '^/sdk': '/'
+        },
         onProxyReq: (proxyReq, req, res) => {
             proxyReq.setHeader(constants.luisAuthoringKeyHeader, options.LUIS_AUTHORING_KEY || '')
             proxyReq.setHeader(constants.luisSubscriptionKeyHeader, options.LUIS_SUBSCRIPTION_KEY || '')
@@ -896,7 +900,7 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
             /**
              * TODO: Find more elegant solution with middleware ordering.
              * Currently there is conflict of interest.  For the custom routes we define, we want the body parsed
-             * so we need bodyParser.json() middleare above it in the pipeline; however, when bodyParser is above/before
+             * so we need bodyParser.json() middleware above it in the pipeline; however, when bodyParser is above/before
              * the http-proxy-middleware then it can't properly stream the body through.
              * 
              * This code explicitly re-streams the data by calling .write()
@@ -916,9 +920,9 @@ export const addSdkRoutes = (server: express.Express, client: CLClient, options:
         }
     })
 
-    server.use(httpProxy)
+    router.use(httpProxy)
 
-    return server
+    return router
 }
 
 function getMemoryKey (req: express.Request): string {
@@ -934,4 +938,4 @@ function getQuery (req: express.Request): any {
     return url.parse(req.url, true).query || {}
 }
 
-export default addSdkRoutes
+export default getRouter
