@@ -329,9 +329,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 return
             }
 
-            if (!action.actionId) {
-                action.actionId = actionId
-            } else if (actionId !== action.actionId) {
+            if (actionId !== action.actionId) {
                 res.status(400)
                 res.send(new Error(`ActionId in body: ${action.actionId} does not match id from URI: ${actionId}`))
                 return
