@@ -50,7 +50,10 @@ export enum BotStateType {
     // Current message being processed
     MESSAGE_MUTEX = 'MESSAGE_MUTEX',
 
-    // True if onEndSession has been
+    // True if onStartSession needs to be called
+    NEED_SESSIONSTART_CALL = 'ON_STARTSESSION_CALLED', 
+
+    // True if onEndSession needs to be called
     NEED_SESSIONEND_CALL = 'ON_ENDSESSION_CALLED', 
 
     // If session is continuation of times out session, what was the original sessionId
@@ -109,6 +112,7 @@ export class BotState {
         await this.SetLastActive(0);
         await this.SetMessageProcessing(null);
         await this.SetOrgSessionId(null)
+        await this.SetNeedSessionStartCall(false)
         await this.SetNeedSessionEndCall(false)
         await this.SetInTeach(false)
         await this.SetSessionId(null)
@@ -203,6 +207,19 @@ export class BotState {
     }
 
     // ------------------------------------------------
+    // NEED_SESSIONSTART_CALL
+    // ------------------------------------------------
+    public async GetNeedSessionStartCall(): Promise<boolean> {
+        const needed = await this.GetStateAsync<boolean>(BotStateType.NEED_SESSIONSTART_CALL)
+        return (needed ? needed : false);
+    }
+
+    public async SetNeedSessionStartCall(needed: boolean): Promise<void> {
+        needed = needed ? needed : false;
+        await this.SetStateAsync(BotStateType.NEED_SESSIONSTART_CALL, needed)
+    }
+
+    // ------------------------------------------------
     // NEED_SESSIONEND_CALL
     // ------------------------------------------------
     public async GetNeedSessionEndCall(): Promise<boolean> {
@@ -252,7 +269,8 @@ export class BotState {
     public async StartSessionAsync(sessionId: string | null, logDialogId: string | null, conversationId: string | null, inTeach: boolean): Promise<void> {
         await this.SetSessionId(sessionId);
         // NOTE: Do not clear OrgSessionId, as this could be a restart
-        await this.SetLogDialogId(logDialogId);
+        await this.SetLogDialogId(logDialogId)
+        await this.SetNeedSessionStartCall(true)
         await this.SetNeedSessionEndCall(true)
         await this.SetConversationId(conversationId)
         await this.SetLastActive(new Date().getTime())
