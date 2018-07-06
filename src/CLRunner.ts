@@ -206,9 +206,8 @@ export class CLRunner {
         if (!params.isContinued) {
             // Default callback will clear the bot memory.
             // END_SESSION action was never triggered, so SessionEndState.OPEN
-            await this.CallSessionEndCallback(clMemory, app ? app.appId : null, CLM.SessionEndState.OPEN);
+            await this.CheckSessionEndCallback(clMemory, app ? app.appId : null, CLM.SessionEndState.OPEN);
         }
-        await this.CallSessionStartCallback(clMemory, app ? app.appId : null);
         await clMemory.BotState.StartSessionAsync(sessionId, logDialogId, conversationId, params.inTeach)
     }
 
@@ -220,7 +219,7 @@ export class CLRunner {
         let app = await memory.BotState.GetApp()
 
         // Default callback will clear the bot memory
-        await this.CallSessionEndCallback(memory, app ? app.appId : null, sessionEndState, data);
+        await this.CheckSessionEndCallback(memory, app ? app.appId : null, sessionEndState, data);
 
         await memory.BotState.EndSessionAsync(originalSessionId);
     }
@@ -234,10 +233,10 @@ export class CLRunner {
             throw new Error(`Attempted to get current session for user, but user was not defined on bot request.`)
         }
 
-        let memory = await CLMemory.InitMemory(activity.from, conversationReference)
+        let clMemory = await CLMemory.InitMemory(activity.from, conversationReference)
 
         try {
-            let inTeach = await memory.BotState.GetInTeach()
+            let inTeach = await clMemory.BotState.GetInTeach()
             let inEditingUI = 
                 conversationReference.user &&
                 conversationReference.user.name === CL_DEVELOPER || false;
@@ -246,7 +245,7 @@ export class CLRunner {
             if (!inEditingUI && !this.appId) {
                 let msg =  'Must specify appId in CL constructor when not running bot in Editing UI\n\n'
                 CLDebug.Error(msg)
-                await this.SendMessage(memory, msg, activity.id)
+                await this.SendMessage(clMemory, msg, activity.id)
                 return null
             }
 
@@ -254,19 +253,22 @@ export class CLRunner {
                 // TODO: Remove mention of environment variables. They are not guaranteed and are part of different repository.
                 let msg =  'Options must specify luisAuthoringKey.  Set the LUIS_AUTHORING_KEY.\n\n'
                 CLDebug.Error(msg)
-                await this.SendMessage(memory, msg, activity.id)
+                await this.SendMessage(clMemory, msg, activity.id)
                 return null
             }
 
-            let app = await this.GetApp(memory, inEditingUI);
+            let app = await this.GetApp(clMemory, inEditingUI);
             
             if (!app) {
                 let error = "ERROR: AppId not specified.  When running in a channel (i.e. Skype) or the Bot Framework Emulator, CONVERSATION_LEARNER_MODEL_ID must be specified in your Bot's .env file or Application Settings on the server"
-                await this.SendMessage(memory, error, activity.id)
+                await this.SendMessage(clMemory, error, activity.id)
                 return null;
             }
 
-            let sessionId = await memory.BotState.GetSessionIdAndSetConversationId(activity.conversation.id)
+            // Check if StartSession call is required
+            await this.CheckSessionStartCallback(clMemory, app ? app.appId : null);
+        
+            let sessionId = await clMemory.BotState.GetSessionIdAndSetConversationId(activity.conversation.id)
 
             // If I'm not in teach mode
             if (!inTeach) {
@@ -285,19 +287,19 @@ export class CLRunner {
                     }
 
                     // Ignore message (for now)
-                    await InputQueue.MessageHandled(memory.BotState, activity.id);
+                    await InputQueue.MessageHandled(clMemory.BotState, activity.id);
                     return null;
                 }
                 // Handle any other non-message input
                 else if (activity.type !== "message") {
-                    await InputQueue.MessageHandled(memory.BotState, activity.id);
+                    await InputQueue.MessageHandled(clMemory.BotState, activity.id);
                     return null;
                 }
                 
                 if (sessionId) {
                     // If session expired, create a new one
                     const currentTicks = new Date().getTime();
-                    let lastActive = await memory.BotState.GetLastActive()
+                    let lastActive = await clMemory.BotState.GetLastActive()
                     let passedTicks = currentTicks - lastActive;
                     if (passedTicks > this.maxTimeout!) { 
 
@@ -310,11 +312,11 @@ export class CLRunner {
                         // If I'm not in the UI, reload the App to get any changes (live package version may have been updated)
                         if (!inEditingUI) {
                             app = await this.clClient.GetApp(this.appId)
-                            await memory.SetAppAsync(app)
+                            await clMemory.SetAppAsync(app)
                 
                             if (!app) {
                                 let error = "ERROR: AppId not specified.  When running in a channel (i.e. Skype) or the Bot Framework Emulator, CONVERSATION_LEARNER_MODEL_ID must be specified in your Bot's .env file or Application Settings on the server"
-                                await this.SendMessage(memory, error, activity.id)
+                                await this.SendMessage(clMemory, error, activity.id)
                                 return null
                             }
                         }
@@ -323,34 +325,34 @@ export class CLRunner {
                         let sessionResponse = await this.clClient.StartSession(app.appId, {saveToLog: app.metadata.isLoggingOn})
             
                         // Update Memory, passing in original sessionId for reference
-                        let conversationId = await memory.BotState.GetConversationId()
+                        let conversationId = await clMemory.BotState.GetConversationId()
 
-                        this.InitSessionAsync(memory, sessionResponse.sessionId, sessionResponse.logDialogId, conversationId, { inTeach: inTeach, isContinued: false })
+                        this.InitSessionAsync(clMemory, sessionResponse.sessionId, sessionResponse.logDialogId, conversationId, { inTeach: inTeach, isContinued: false })
 
                         // Set new sessionId
                         sessionId = sessionResponse.sessionId;
                     }
                     // Otherwise update last access time
                     else {
-                        await memory.BotState.SetLastActive(currentTicks);
+                        await clMemory.BotState.SetLastActive(currentTicks);
                     }
                 }
             }
 
             // PackageId: Use live package id if not in editing UI, default to devPackage if no active package set
-            let packageId = (inEditingUI ? await memory.BotState.GetEditingPackageForApp(app.appId) : app.livePackageId) || app.devPackageId
+            let packageId = (inEditingUI ? await clMemory.BotState.GetEditingPackageForApp(app.appId) : app.livePackageId) || app.devPackageId
             if (!packageId) {
-                await this.SendMessage(memory, "ERROR: No PackageId has been set", activity.id)
+                await this.SendMessage(clMemory, "ERROR: No PackageId has been set", activity.id)
                 return null;
             }
 
             // If no session for this conversation (or it's expired), create a new one
             if (!sessionId) {
-                sessionId = await this.StartSessionAsync(memory, activity.conversation.id, app.appId, app.metadata.isLoggingOn !== false, packageId)
+                sessionId = await this.StartSessionAsync(clMemory, activity.conversation.id, app.appId, app.metadata.isLoggingOn !== false, packageId)
             }
 
             // Process any form data
-            let buttonResponse = await this.ProcessFormData(activity, memory, app.appId)
+            let buttonResponse = await this.ProcessFormData(activity, clMemory, app.appId)
 
             // Teach inputs are handled via API calls from the Conversation Learner UI
             if (!inTeach) {
@@ -365,7 +367,7 @@ export class CLRunner {
                 const scoredAction = await this.Score(
                     app.appId,
                     sessionId,
-                    memory,
+                    clMemory,
                     extractResponse.text,
                     extractResponse.predictedEntities,
                     entities,
@@ -374,7 +376,7 @@ export class CLRunner {
                 return {
                     scoredAction: scoredAction,
                     clEntities: entities,
-                    memory: memory,
+                    memory: clMemory,
                     inTeach: false,
                     activity: activity
                 } as CLRecognizerResult
@@ -393,8 +395,8 @@ export class CLRunner {
             }
 
             let msg = CLDebug.Error(customError || error, errComponent)
-            if (memory) {
-                await this.SendMessage(memory, msg, activity.id)
+            if (clMemory) {
+                await this.SendMessage(clMemory, msg, activity.id)
             }
             return null
         }
@@ -562,37 +564,43 @@ export class CLRunner {
         return new ClientMemoryManager(prevMemories, curMemories, allEntities, sessionInfo);
     }
 
-    public async CallSessionStartCallback(clMemory: CLMemory, appId: string | null): Promise<void> {
+    public async CheckSessionStartCallback(clMemory: CLMemory, appId: string | null): Promise<void> {
 
-        // If bot has callback, call it
-        if (appId && this.onSessionStartCallback && this.adapter) {
-            let entityList = await this.clClient.GetEntities(appId)
-            let memoryManager = await this.CreateMemoryManagerAsync(clMemory, entityList.entities)
-            
-            // Get conversation ref, so I can generate context and send it back to bot dev
-            let conversationReference = await clMemory.BotState.GetConversationReverence()
-            if (!conversationReference) {
-                CLDebug.Error('Missing ConversationReference')
-                return
-            }
+        // If onStartSession hasn't been called yet, call it
+        let needStartSession = await clMemory.BotState.GetNeedSessionStartCall();
 
-            await this.adapter.continueConversation(conversationReference, async (context) => {
-                if (this.onSessionStartCallback) {
-                    try {
-                        await this.onSessionStartCallback(context, memoryManager)
-                        await clMemory.BotMemory.RestoreFromMemoryManagerAsync(memoryManager)
-                    }
-                    catch (err) {
-                        await this.SendMessage(clMemory, "Exception hit in Bot's OnSessionStartCallback")
-                        let errMsg = CLDebug.Error(err);
-                        this.SendMessage(clMemory, errMsg);
-                    }
+        if (needStartSession) {
+            // If bot has callback, call it
+            if (appId && this.onSessionStartCallback && this.adapter) {
+                let entityList = await this.clClient.GetEntities(appId)
+                let memoryManager = await this.CreateMemoryManagerAsync(clMemory, entityList.entities)
+                
+                // Get conversation ref, so I can generate context and send it back to bot dev
+                let conversationReference = await clMemory.BotState.GetConversationReverence()
+                if (!conversationReference) {
+                    CLDebug.Error('Missing ConversationReference')
+                    return
                 }
-            })
+
+                await this.adapter.continueConversation(conversationReference, async (context) => {
+                    if (this.onSessionStartCallback) {
+                        try {
+                            await this.onSessionStartCallback(context, memoryManager)
+                            await clMemory.BotMemory.RestoreFromMemoryManagerAsync(memoryManager)
+                        }
+                        catch (err) {
+                            await this.SendMessage(clMemory, "Exception hit in Bot's OnSessionStartCallback")
+                            let errMsg = CLDebug.Error(err);
+                            this.SendMessage(clMemory, errMsg);
+                        }
+                    }
+                })
+            }
+            await clMemory.BotState.SetNeedSessionStartCall(false);
         }
     }
 
-    public async CallSessionEndCallback(clMemory: CLMemory, appId: string | null, sessionEndState: CLM.SessionEndState, data?: string): Promise<void> {
+    public async CheckSessionEndCallback(clMemory: CLMemory, appId: string | null, sessionEndState: CLM.SessionEndState, data?: string): Promise<void> {
 
         // If onEndSession hasn't been called yet, call it
         let needEndSession = await clMemory.BotState.GetNeedSessionEndCall();

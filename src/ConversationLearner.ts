@@ -83,8 +83,9 @@ export class ConversationLearner {
     /** Returns true is bot is running in the Training UI
      * @param turnContext BotBuilder Context
      */
-    public inTrainingUI(context: BB.TurnContext): boolean {
-        return (context.activity.from.name === CL_DEVELOPER);
+    public inTrainingUI(turnContext: BB.TurnContext): boolean {
+        // TODO: This always returns false for onConversationUpdate as 'from' is not set
+        return (turnContext.activity.from && turnContext.activity.from.name === CL_DEVELOPER);
     }
 
     /** Define an API callback that can be used by the Model 
