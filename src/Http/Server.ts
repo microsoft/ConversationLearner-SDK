@@ -119,7 +119,15 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
     /** Sets the current active application */
     router.put('/state/app', async (req, res, next) => {
         try {
-            const key = getMemoryKey(req)
+            // TODO: Fix the UI page refresh to prevent calling this endpoint without a memory key.
+            /**
+             * During page refresh when UI is still on app page it will call /state/app when the component renders
+             * t then detects no app and redirects back to homepage to call /botinfo and get a userid / memory key 
+             * However, it is too late. The call has already been made and it will return error panel since this request
+             * fails without memory key header
+             */
+            // const key = getMemoryKey(req)
+            const key = req.header(models.MEMORY_KEY_HEADER_NAME)!
             const app: models.AppBase = req.body
 
             const memory = CLMemory.GetMemory(key)
@@ -925,7 +933,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
     return router
 }
 
-function getMemoryKey (req: express.Request): string {
+function getMemoryKey (req: express.Request, throwError: boolean = true): string {
     const key = req.header(models.MEMORY_KEY_HEADER_NAME)
     if (!key) {
         throw new Error(`Header ${models.MEMORY_KEY_HEADER_NAME} must be provided. Url: ${req.url}`)
