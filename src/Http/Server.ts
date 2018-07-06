@@ -318,7 +318,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
     //========================================================
     /** Returns list of trainingDialogIds that are invalidated by the given changed action */
     router.post('/app/:appId/action/:actionId/editValidation', async (req, res, next) => {
-        const { appId } = req.params
+        const { appId, actionId } = req.params
 
         try {
             const action: models.ActionBase = req.body
@@ -326,6 +326,12 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             if (!packageId) {
                 res.status(400)
                 res.send({ error: 'packageId query parameter must be provided' })
+                return
+            }
+
+            if (actionId !== action.actionId) {
+                res.status(400)
+                res.send(new Error(`ActionId in body: ${action.actionId} does not match id from URI: ${actionId}`))
                 return
             }
 
