@@ -115,7 +115,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
     router.get('/', (req, res, next) => {
         res.status(200).send({
-            message: 'ConversationLearner SDK Server is running'
+            message: `Conversation Learner SDK: ${new Date().toJSON()}`
         })
     })
 
