@@ -113,6 +113,12 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
     router.use(cors())
     router.use(bodyParser.json())
 
+    router.get('/', (req, res, next) => {
+        res.status(200).send({
+            message: `Conversation Learner SDK: ${new Date().toJSON()}`
+        })
+    })
+
     //========================================================
     // State
     //=======================================================
