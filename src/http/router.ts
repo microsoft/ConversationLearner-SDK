@@ -899,7 +899,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
     const httpProxy = proxy({
         target: options.CONVERSATION_LEARNER_SERVICE_URI,
         changeOrigin: true,
-        logLevel: 'debug',
+        logLevel: 'info',
         pathRewrite: {
             '^/sdk': '/'
         },
