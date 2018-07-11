@@ -172,7 +172,7 @@ export class CLRunner {
     }
 
     // Get the currently running app
-    private async GetApp(memory: CLMemory, inEditingUI: boolean) : Promise<CLM.AppBase | null> {
+    private async GetRunningApp(memory: CLMemory, inEditingUI: boolean) : Promise<CLM.AppBase | null> {
 
         let app = await memory.BotState.GetApp()
 
@@ -257,7 +257,7 @@ export class CLRunner {
                 return null
             }
 
-            let app = await this.GetApp(clMemory, inEditingUI);
+            let app = await this.GetRunningApp(clMemory, inEditingUI);
             
             if (!app) {
                 let error = "ERROR: AppId not specified.  When running in a channel (i.e. Skype) or the Bot Framework Emulator, CONVERSATION_LEARNER_MODEL_ID must be specified in your Bot's .env file or Application Settings on the server"
