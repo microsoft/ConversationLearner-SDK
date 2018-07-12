@@ -78,8 +78,7 @@ export class BotMemory {
     }
 
     // Clear memory values not in saveList
-    public async ClearAsync(saveList?: string[] | undefined): Promise<void> {
-
+    public async ClearAsync(saveList?: string[] | void): Promise<void> {
         if (!saveList) {
             this.filledEntityMap = new FilledEntityMap()
         }
