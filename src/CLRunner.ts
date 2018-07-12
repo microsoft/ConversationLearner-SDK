@@ -25,9 +25,29 @@ export interface ISessionStartParams {
     isContinued: boolean
 }
 
+/**
+ * Processes messages received from the user. Called by the dialog system.
+ */
 export type EntityDetectionCallback = (text: string, memoryManager: ClientMemoryManager) => Promise<void>
+
+/**
+ * Called at session start.
+ * Allows bot to set initial entities before conversation begins
+ */
 export type OnSessionStartCallback = (context: BB.TurnContext, memoryManager: ClientMemoryManager) => Promise<void>
+
+/**
+ * Called when Session ends.
+ * If not implemented all entity values will be cleared.
+ * If implemented, developer may return a list of entities to preserve for the next session
+ * as well as store them in the Bot State
+ */
 export type OnSessionEndCallback = (context: BB.TurnContext, memoryManager: ClientMemoryManager, sessionEndState: CLM.SessionEndState, data: string | undefined) => Promise<string[] | undefined>
+
+/**
+ * Called when the associated API Action in your bot is sent.
+ * Common use cases are to call external APIs to gather data and save into entities for usage later.
+ */
 export type ApiCallback = (memoryManager: ClientMemoryManager, ...args: string[]) => Promise<Partial<BB.Activity> | string | void>
 
 export class CLRunner {

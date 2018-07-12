@@ -9,5 +9,18 @@ import { RedisStorage } from './RedisStorage'
 import { FileStorage } from './FileStorage'
 import startUiServer from './clUi'
 import { SessionEndState } from '@conversationlearner/models'
+import { EntityDetectionCallback, OnSessionStartCallback, OnSessionEndCallback, ApiCallback } from './CLRunner'
 
-export { startUiServer, ConversationLearner, ICLOptions, ClientMemoryManager, RedisStorage, FileStorage, SessionEndState }
+export {
+    startUiServer,
+    ConversationLearner,
+    ICLOptions,
+    ClientMemoryManager,
+    RedisStorage,
+    FileStorage,
+    SessionEndState,
+    EntityDetectionCallback,
+    OnSessionStartCallback,
+    OnSessionEndCallback,
+    ApiCallback
+}
