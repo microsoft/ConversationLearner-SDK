@@ -7,7 +7,7 @@ Conversation Learner Software Development Kit
 [![AppVeyor](https://ci.appveyor.com/api/projects/status/github/Microsoft/ConversationLearner-SDK?branch=master&svg=true)](https://ci.appveyor.com/project/conversationlearner/conversationlearner-sdk)
 
 This repo is intended to be consumed by your bot. The SDK contains 3 major components:
-1. Administration UI - provides graphical interface to manage, train, and test
+1. Administration UI - provides graphical interface to manage, train, and test your bot
 2. [Express](https://expressjs.com/en/guide/routing.html) Router - The router is mounted to your server in development and used by the UI (above) during training
 3. Recognizer - Similar to other [BotBuilder](https://github.com/Microsoft/botbuilder-js) recognizers like [LUIS](https://github.com/Microsoft/botbuilder-js/blob/master/samples/luis-bot-es6/app.js#L64) the CL recognizer processes the given Bot context and returns results such as messages, adaptive cards, and more.
 
