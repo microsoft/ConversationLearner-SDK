@@ -42,7 +42,7 @@ export type OnSessionStartCallback = (context: BB.TurnContext, memoryManager: Cl
  * If implemented, developer may return a list of entities to preserve for the next session
  * as well as store them in the Bot State
  */
-export type OnSessionEndCallback = (context: BB.TurnContext, memoryManager: ClientMemoryManager, sessionEndState: CLM.SessionEndState, data: string | undefined) => Promise<string[] | undefined>
+export type OnSessionEndCallback = (context: BB.TurnContext, memoryManager: ClientMemoryManager, sessionEndState: CLM.SessionEndState, data: string | undefined) => Promise<string[] | void>
 
 /**
  * Called when the associated API Action in your bot is sent.
