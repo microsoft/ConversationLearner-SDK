@@ -543,10 +543,19 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             // Session may be a replacement for an expired one
             const memory = CLMemory.GetMemory(key)
             const originalSessionId = await memory.BotState.OrgSessionIdAsync(sessionId)
+
+            let response : string
             if (!originalSessionId) {
-                throw new Error(`original session id not found for session id: ${sessionId}`)
+                // This can happen when a LogDialog End_Session Action is called and the 
+                // user subsequently presses the DONE button
+                response = await client.EndSession(appId, sessionId)
+
+                // TODO: Once log dialog interface goes away, throw error here instead
+                //throw new Error(`original session id not found for session id: ${sessionId}`)
+            } else {
+                 response = await client.EndSession(appId, originalSessionId)
             }
-            const response = await client.EndSession(appId, originalSessionId)
+
             res.send(response)
 
             const clRunner = CLRunner.GetRunnerForUI(appId);
