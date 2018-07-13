@@ -52,30 +52,29 @@ export type ApiCallback = (memoryManager: ClientMemoryManager, ...args: string[]
 
 export class CLRunner {
 
-    // Lookup table for incoming calls from UI
+    /* Lookup table for CLRunners.  One CLRunner per CL Model */
     private static Runners: RunnerLookup = {}
     private static UIRunner: CLRunner;
 
     public clClient: CLClient
     public adapter: BB.BotAdapter | undefined
-    private appId: string;
+
+    /* Model Id passed in from configuration.  Used when not running in Conversation Learner UI */
+    private configModelId: string | undefined;
     private maxTimeout: number | undefined;  // TODO: Move timeout to app settings
 
-    // Mapping between user defined API names and functions
+    /* Mapping between user defined API names and functions */
     public apiCallbacks: { [name: string]: (memoryManager: ClientMemoryManager, ...args: string[]) => Promise<Partial<BB.Activity> | string | void> } = {}
     public apiParams: CLM.CallbackAPI[] = []   
 
-    public static Create(appId: string | undefined, maxTimeout: number | undefined, client: CLClient): CLRunner {
+    public static Create(configModelId: string | undefined, maxTimeout: number | undefined, client: CLClient): CLRunner {
 
-        // Ok to not provide appId when just running in training UI.  Use const
-        if (!appId) {
-            appId = UI_RUNNER_APPID;
-        }
+        // Ok to not provide modelId when just running in training UI.  
+        // If not, Use UI_RUNNER_APPID const as lookup value
+        let newRunner = new CLRunner(configModelId, maxTimeout, client);
+        CLRunner.Runners[configModelId || UI_RUNNER_APPID] = newRunner;
 
-        let newRunner = new CLRunner(appId, maxTimeout, client);
-        CLRunner.Runners[appId] = newRunner;
-
-        // Always run UI on first CL defined in the bot
+        // Bot can define multiple CLs.  Always run UI on first CL defined in the bot
         if (!CLRunner.UIRunner) {
             CLRunner.UIRunner = newRunner;
         }
@@ -83,13 +82,12 @@ export class CLRunner {
         return newRunner;
     }
 
-    // Get CLRunner for an app
-    public static Get(appId?: string) : CLRunner {
+    // Get CLRunner for the UI
+    public static GetRunnerForUI(appId?: string) : CLRunner {
 
         // Runner with the appId may not exist if running training UI, if so use the UI Runner
         if (!appId || !CLRunner.Runners[appId]) {
             if (CLRunner.UIRunner) {
-                CLRunner.UIRunner.appId = appId || UI_RUNNER_APPID
                 return CLRunner.UIRunner;
             } else {
                 throw new Error(`Not in UI and requested CLRunner that doesn't exist: ${appId}`)
@@ -98,8 +96,8 @@ export class CLRunner {
         return CLRunner.Runners[appId];
     }
 
-    private constructor(appId: string, maxTimeout: number | undefined, client: CLClient) {
-        this.appId = appId
+    private constructor(configModelId: string | undefined, maxTimeout: number | undefined, client: CLClient) {
+        this.configModelId = configModelId
         this.maxTimeout = maxTimeout
         this.clClient = client
     }
@@ -153,6 +151,13 @@ export class CLRunner {
         let conversationReference = BB.TurnContext.getConversationReference(turnContext.activity);
         this.SetAdapter(turnContext.adapter, conversationReference);
 
+        // ConversationUpdate messages are not processed by ConversationLearner
+        // They should be handled in the general bot code
+        if (turnContext.activity.type == "conversationUpdate")  {
+            CLDebug.Verbose(`Ignoring Conversation update...  +${JSON.stringify(turnContext.activity.membersAdded)} -${JSON.stringify(turnContext.activity.membersRemoved)}`);
+            return null
+        }
+
         if (turnContext.activity.from === undefined || turnContext.activity.id == undefined) {
             return null;
         }
@@ -196,20 +201,20 @@ export class CLRunner {
 
         let app = await memory.BotState.GetApp()
 
-        // If I'm not in the editing UI, always use app specified by options
-        if (app) {         
-            if (!inEditingUI && app.appId != this.appId && this.appId != UI_RUNNER_APPID)
+        if (app) {  
+            // If I'm not in the editing UI, always use app specified by options       
+            if (!inEditingUI && this.configModelId && this.configModelId != app.appId)
             {
                 // Use config value
-                CLDebug.Log(`Switching to app specified in config: ${this.appId}`)
-                app = await this.clClient.GetApp(this.appId)
+                CLDebug.Log(`Switching to app specified in config: ${this.configModelId}`)
+                app = await this.clClient.GetApp(this.configModelId)
                 await memory.SetAppAsync(app)
             }
         }
         // If I don't have an app, attempt to use one set in config
-        else if (this.appId) {
-            CLDebug.Log(`Selecting app specified in config: ${this.appId}`)
-            app = await this.clClient.GetApp(this.appId)
+        else if (this.configModelId) {
+            CLDebug.Log(`Selecting app specified in config: ${this.configModelId}`)
+            app = await this.clClient.GetApp(this.configModelId)
             await memory.SetAppAsync(app)
         }
 
@@ -262,18 +267,15 @@ export class CLRunner {
                 conversationReference.user.name === CL_DEVELOPER || false;
 
             // Validate setup
-            if (!inEditingUI && !this.appId) {
-                let msg =  'Must specify appId in CL constructor when not running bot in Editing UI\n\n'
+            if (!inEditingUI && !this.configModelId) {
+                let msg =  'Must specify modelId in ConversationLearner constructor when not running bot in Editing UI\n\n'
                 CLDebug.Error(msg)
-                await this.SendMessage(clMemory, msg, activity.id)
                 return null
             }
 
             if (!ConversationLearner.options || !ConversationLearner.options.LUIS_AUTHORING_KEY) {
-                // TODO: Remove mention of environment variables. They are not guaranteed and are part of different repository.
                 let msg =  'Options must specify luisAuthoringKey.  Set the LUIS_AUTHORING_KEY.\n\n'
                 CLDebug.Error(msg)
-                await this.SendMessage(clMemory, msg, activity.id)
                 return null
             }
 
@@ -290,73 +292,60 @@ export class CLRunner {
         
             let sessionId = await clMemory.BotState.GetSessionIdAndSetConversationId(activity.conversation.id)
 
-            // If I'm not in teach mode
-            if (!inTeach) {
+            // If I'm not in teach mode and have a session
+            if (!inTeach && sessionId) {
 
-                // If if was a conversation update
-                if (activity.type == "conversationUpdate")  {
-                    CLDebug.Verbose(`Conversation update...  +${JSON.stringify(activity.membersAdded)} -${JSON.stringify(activity.membersRemoved)}`);
+                const currentTicks = new Date().getTime();
+                let lastActive = await clMemory.BotState.GetLastActive()
+                let passedTicks = currentTicks - lastActive;
+                if (passedTicks > this.maxTimeout!) { 
 
-                    if (sessionId) {
-                        // End the current session for user joining the conversation
-                        if (activity.membersAdded &&
-                            activity.from.id === activity.membersAdded[0].id) {
-                            await this.clClient.EndSession(app.appId, sessionId);
-                            await this.EndSessionAsync(activity.from.id, CLM.SessionEndState.OPEN)
+                    // End the current session, clear the memory
+                    await this.clClient.EndSession(app.appId, sessionId)
+
+                    // Send original session Id. Used for continuing sessions
+                    await this.EndSessionAsync(activity.from.id, CLM.SessionEndState.OPEN, sessionId)
+
+                    // If I'm not in the UI, reload the App to get any changes (live package version may have been updated)
+                    if (!inEditingUI) {
+
+                        if (!this.configModelId) {
+                            let error = "ERROR: ModelId not specified.  When running in a channel (i.e. Skype) or the Bot Framework Emulator, CONVERSATION_LEARNER_MODEL_ID must be specified in your Bot's .env file or Application Settings on the server"
+                            await this.SendMessage(clMemory, error, activity.id)
+                            return null
                         }
-                    }
 
-                    // Ignore message (for now)
-                    await InputQueue.MessageHandled(clMemory.BotState, activity.id);
-                    return null;
-                }
-                // Handle any other non-message input
-                else if (activity.type !== "message") {
-                    await InputQueue.MessageHandled(clMemory.BotState, activity.id);
-                    return null;
-                }
-                
-                if (sessionId) {
-                    // If session expired, create a new one
-                    const currentTicks = new Date().getTime();
-                    let lastActive = await clMemory.BotState.GetLastActive()
-                    let passedTicks = currentTicks - lastActive;
-                    if (passedTicks > this.maxTimeout!) { 
-
-                        // End the current session, clear the memory
-                        await this.clClient.EndSession(app.appId, sessionId)
-
-                        // Send original session Id. Used for continuing sessions
-                        await this.EndSessionAsync(activity.from.id, CLM.SessionEndState.OPEN, sessionId)
-
-                        // If I'm not in the UI, reload the App to get any changes (live package version may have been updated)
-                        if (!inEditingUI) {
-                            app = await this.clClient.GetApp(this.appId)
-                            await clMemory.SetAppAsync(app)
-                
-                            if (!app) {
-                                let error = "ERROR: AppId not specified.  When running in a channel (i.e. Skype) or the Bot Framework Emulator, CONVERSATION_LEARNER_MODEL_ID must be specified in your Bot's .env file or Application Settings on the server"
-                                await this.SendMessage(clMemory, error, activity.id)
-                                return null
-                            }
-                        }
-                        
-                        // Start a new session 
-                        let sessionResponse = await this.clClient.StartSession(app.appId, {saveToLog: app.metadata.isLoggingOn})
+                        app = await this.clClient.GetApp(this.configModelId)
+                        await clMemory.SetAppAsync(app)
             
-                        // Update Memory, passing in original sessionId for reference
-                        let conversationId = await clMemory.BotState.GetConversationId()
-
-                        this.InitSessionAsync(clMemory, sessionResponse.sessionId, sessionResponse.logDialogId, conversationId, { inTeach: inTeach, isContinued: false })
-
-                        // Set new sessionId
-                        sessionId = sessionResponse.sessionId;
+                        if (!app) {
+                            let error = "ERROR: Failed to find Model specified by CONVERSATION_LEARNER_MODEL_ID"
+                            await this.SendMessage(clMemory, error, activity.id)
+                            return null
+                        }
                     }
-                    // Otherwise update last access time
-                    else {
-                        await clMemory.BotState.SetLastActive(currentTicks);
-                    }
+                    
+                    // Start a new session 
+                    let sessionResponse = await this.clClient.StartSession(app.appId, {saveToLog: app.metadata.isLoggingOn})
+        
+                    // Update Memory, passing in original sessionId for reference
+                    let conversationId = await clMemory.BotState.GetConversationId()
+
+                    this.InitSessionAsync(clMemory, sessionResponse.sessionId, sessionResponse.logDialogId, conversationId, { inTeach: inTeach, isContinued: false })
+
+                    // Set new sessionId
+                    sessionId = sessionResponse.sessionId;
                 }
+                // Otherwise update last access time
+                else {
+                    await clMemory.BotState.SetLastActive(currentTicks);
+                }
+            }
+
+            // Handle any other non-message input
+            if (activity.type !== "message") {
+                await InputQueue.MessageHandled(clMemory.BotState, activity.id);
+                return null;
             }
 
             // PackageId: Use live package id if not in editing UI, default to devPackage if no active package set
@@ -366,7 +355,7 @@ export class CLRunner {
                 return null;
             }
 
-            // If no session for this conversation (or it's expired), create a new one
+            // If no session for this conversation, create a new one
             if (!sessionId) {
                 sessionId = await this.StartSessionAsync(clMemory, activity.conversation.id, app.appId, app.metadata.isLoggingOn !== false, packageId)
             }
