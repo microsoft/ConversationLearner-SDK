@@ -197,9 +197,10 @@ export class CLRunner {
     }
 
     // Get the currently running app
-    private async GetRunningApp(memory: CLMemory, inEditingUI: boolean) : Promise<CLM.AppBase | null> {
+    private async GetRunningApp(key: string, inEditingUI: boolean) : Promise<CLM.AppBase | null> {
 
-        let app = await memory.BotState.GetApp()
+        let clMemory = CLMemory.GetMemory(key)
+        let app = await clMemory.BotState.GetApp()
 
         if (app) {  
             // If I'm not in the editing UI, always use app specified by options       
@@ -208,16 +209,15 @@ export class CLRunner {
                 // Use config value
                 CLDebug.Log(`Switching to app specified in config: ${this.configModelId}`)
                 app = await this.clClient.GetApp(this.configModelId)
-                await memory.SetAppAsync(app)
+                await clMemory.SetAppAsync(app)
             }
         }
         // If I don't have an app, attempt to use one set in config
         else if (this.configModelId) {
             CLDebug.Log(`Selecting app specified in config: ${this.configModelId}`)
             app = await this.clClient.GetApp(this.configModelId)
-            await memory.SetAppAsync(app)
+            await clMemory.SetAppAsync(app)
         }
-
         return app;
     }
 
@@ -258,10 +258,8 @@ export class CLRunner {
             throw new Error(`Attempted to get current session for user, but user was not defined on bot request.`)
         }
 
-        let clMemory = await CLMemory.InitMemory(activity.from, conversationReference)
-
         try {
-            let inTeach = await clMemory.BotState.GetInTeach()
+            
             let inEditingUI = 
                 conversationReference.user &&
                 conversationReference.user.name === CL_DEVELOPER || false;
@@ -279,17 +277,16 @@ export class CLRunner {
                 return null
             }
 
-            let app = await this.GetRunningApp(clMemory, inEditingUI);
-            
+            let app = await this.GetRunningApp(activity.from.id, inEditingUI);
+            let clMemory = await CLMemory.InitMemory(activity.from, conversationReference)
+            let inTeach = await clMemory.BotState.GetInTeach()
+
             if (!app) {
                 let error = "ERROR: AppId not specified.  When running in a channel (i.e. Skype) or the Bot Framework Emulator, CONVERSATION_LEARNER_MODEL_ID must be specified in your Bot's .env file or Application Settings on the server"
                 await this.SendMessage(clMemory, error, activity.id)
                 return null;
             }
 
-            // Check if StartSession call is required
-            await this.CheckSessionStartCallback(clMemory, app ? app.appId : null);
-        
             let sessionId = await clMemory.BotState.GetSessionIdAndSetConversationId(activity.conversation.id)
 
             // If I'm not in teach mode and have a session
@@ -360,6 +357,9 @@ export class CLRunner {
                 sessionId = await this.StartSessionAsync(clMemory, activity.conversation.id, app.appId, app.metadata.isLoggingOn !== false, packageId)
             }
 
+            // Check if StartSession call is required
+            await this.CheckSessionStartCallback(clMemory, app ? app.appId : null);
+        
             // Process any form data
             let buttonResponse = await this.ProcessFormData(activity, clMemory, app.appId)
 
@@ -394,19 +394,20 @@ export class CLRunner {
         } catch (error) {
             CLDebug.Log(`Error during ProcessInput: ${error.message}`)
 
-            // End the session, so use can potentially recover
-            await this.EndSessionAsync(activity.from.id, CLM.SessionEndState.OPEN)
+            // Try to end the session, so use can potentially recover
+            try {
+                await this.EndSessionAsync(activity.from.id, CLM.SessionEndState.OPEN)
+            } catch {
+                CLDebug.Log(`Failed to End Session`)
+            }
 
-            // Special message for 403 as it's like a bad appId
+            // Special message for 403 as it's like a bad ModelId
             let customError = null;
             if (error.statusCode === 403) {
                 customError = `403 Forbidden:  Please check you have set a valid CONVERSATION_LEARNER_MODEL_ID`
             }
 
-            let msg = CLDebug.Error(customError || error, errComponent)
-            if (clMemory) {
-                await this.SendMessage(clMemory, msg, activity.id)
-            }
+            CLDebug.Error(customError || error, errComponent)
             return null
         }
     }
