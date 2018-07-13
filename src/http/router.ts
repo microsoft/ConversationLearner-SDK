@@ -156,7 +156,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
     router.get('/bot', async (req, res, next) => {
         try {
             const { browserId } = getQuery(req)
-            const clRunner = CLRunner.Get()
+            const clRunner = CLRunner.GetRunnerForUI()
             const apiParams = clRunner.apiParams
             const validationErrors = clRunner.clClient.ValidationErrors();
 
@@ -221,7 +221,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             if (app && app.appId === appId) {
                 await memory.SetAppAsync(null)
 
-                const clRunner = CLRunner.Get(appId);
+                const clRunner = CLRunner.GetRunnerForUI(appId);
                 await clRunner.EndSessionAsync(key, models.SessionEndState.OPEN);
             }
             res.sendStatus(200)
@@ -251,7 +251,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
     /** Copy applications between accounts */
     router.post('/apps/copy', async (req, res, next) => {
         const { srcUserId, destUserId, appId } = getQuery(req)
-        const clRunner = CLRunner.Get(appId)
+        const clRunner = CLRunner.GetRunnerForUI(appId)
         const luisSubscriptionKey = clRunner.clClient.LuisAuthoringKey()
 
         if (luisSubscriptionKey == undefined) {
@@ -338,7 +338,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             // Replace the action with new one
             appDefinition.actions = replace(appDefinition.actions, action, a => a.actionId)
 
-            const clRunner = CLRunner.Get(appId);
+            const clRunner = CLRunner.GetRunnerForUI(appId);
             const invalidTrainDialogIds = clRunner.validateTrainDialogs(appDefinition);
 
             res.send(invalidTrainDialogIds)
@@ -358,7 +358,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             // Remove the action
             appDefinition.actions = appDefinition.actions.filter(a => a.actionId != actionId)
 
-            const clRunner = CLRunner.Get(appId)
+            const clRunner = CLRunner.GetRunnerForUI(appId)
             const invalidTrainDialogIds = clRunner.validateTrainDialogs(appDefinition)
             res.send(invalidTrainDialogIds)
         } catch (error) {
@@ -381,7 +381,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             // Replace the entity with new one
             appDefinition.entities = replace(appDefinition.entities, entity, e => e.entityId)
 
-            const clRunner = CLRunner.Get(appId);
+            const clRunner = CLRunner.GetRunnerForUI(appId);
             const invalidTrainDialogIds = clRunner.validateTrainDialogs(appDefinition);
             res.send(invalidTrainDialogIds)
         } catch (error) {
@@ -400,7 +400,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             // Remove the action
             appDefinition.entities = appDefinition.entities.filter(e => e.entityId != entityId)
 
-            const clRunner = CLRunner.Get(appId)
+            const clRunner = CLRunner.GetRunnerForUI(appId)
             const invalidTrainDialogIds = clRunner.validateTrainDialogs(appDefinition)
             res.send(invalidTrainDialogIds)
         } catch (error) {
@@ -459,7 +459,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
             // Get history and replay to put bot into last round
             const memory = CLMemory.GetMemory(key)
-            const clRunner = CLRunner.Get(appId);
+            const clRunner = CLRunner.GetRunnerForUI(appId);
             const teachWithHistory = await clRunner.GetHistory(appId, trainDialog, userName, userId, memory)
             if (!teachWithHistory) {
                 res.status(500)
@@ -496,7 +496,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const sessionResponse = await client.StartSession(appId, sessionCreateParams)
             res.send(sessionResponse)
 
-            const clRunner = CLRunner.Get(appId);
+            const clRunner = CLRunner.GetRunnerForUI(appId);
             const memory = CLMemory.GetMemory(key)
             memory.BotMemory.ClearAsync()
             
@@ -549,7 +549,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const response = await client.EndSession(appId, originalSessionId)
             res.send(response)
 
-            const clRunner = CLRunner.Get(appId);
+            const clRunner = CLRunner.GetRunnerForUI(appId);
             clRunner.EndSessionAsync(key, models.SessionEndState.OPEN)
         } catch (error) {
             HandleError(res, error)
@@ -567,7 +567,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const { appId } = req.params
             const teachResponse = await client.StartTeach(appId, null)
 
-            const clRunner = CLRunner.Get(appId);
+            const clRunner = CLRunner.GetRunnerForUI(appId);
             const memory = CLMemory.GetMemory(key)
             clRunner.InitSessionAsync(memory, teachResponse.teachId, null, null, { inTeach: true, isContinued: false })
 
@@ -606,7 +606,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             // Get history and replay to put bot into last round
             const memory = CLMemory.GetMemory(key)
 
-            const clRunner = CLRunner.Get(appId);
+            const clRunner = CLRunner.GetRunnerForUI(appId);
             const teachWithHistory = await clRunner.GetHistory(appId, trainDialog, userName, userId, memory, ignoreLastExtractBoolean)
             if (!teachWithHistory) {
                 res.status(500)
@@ -714,7 +714,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
             // Call LUIS callback to get scoreInput
             const extractResponse = uiScoreInput.extractResponse
-            const clRunner = CLRunner.Get(appId);
+            const clRunner = CLRunner.GetRunnerForUI(appId);
             const scoreInput = await clRunner.CallEntityDetectionCallback(
                 extractResponse.text,
                 extractResponse.predictedEntities,
@@ -786,7 +786,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 inTeach: true
             } as CLRecognizerResult
 
-            const clRunner = CLRunner.Get(appId);
+            const clRunner = CLRunner.GetRunnerForUI(appId);
             await clRunner.SendIntent(intent, true)
 
             const memories = await memory.BotMemory.DumpMemory()
@@ -812,7 +812,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const response = await client.EndTeach(appId, teachId, saveQuery)
             res.send(response)
 
-            const clRunner = CLRunner.Get(appId);
+            const clRunner = CLRunner.GetRunnerForUI(appId);
             clRunner.EndSessionAsync(key, models.SessionEndState.OPEN)
         } catch (error) {
             HandleError(res, error)
@@ -831,7 +831,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const trainDialog: models.TrainDialog = req.body
 
             const memory = CLMemory.GetMemory(key)
-            const clRunner = CLRunner.Get(appId);
+            const clRunner = CLRunner.GetRunnerForUI(appId);
             const teachWithHistory = await clRunner.GetHistory(appId, trainDialog, userName, userId, memory)
 
             // Clear bot memory generated with this
@@ -868,7 +868,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const memoryBackup = await memory.BotMemory.FilledEntityMap()
 
             // Get history and replay to put bot into last round
-            const clRunner = CLRunner.Get(appId);
+            const clRunner = CLRunner.GetRunnerForUI(appId);
             const teachWithHistory = await clRunner.GetHistory(appId, trainDialog, userName, userId, memory)
             if (!teachWithHistory) {
                 throw new Error(`Attempted to undo last action of teach session, but could not get session history`)

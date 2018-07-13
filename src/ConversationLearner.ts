@@ -17,7 +17,6 @@ export class ConversationLearner {
     public static options: ICLOptions | null = null;
     public static clClient: CLClient
     public clRunner: CLRunner
-    public appId: string | undefined
 
     public static Init(options: ICLOptions, storage: BB.Storage | null = null): express.Router {
         ConversationLearner.options = options
@@ -32,7 +31,7 @@ export class ConversationLearner {
         return getRouter(this.clClient, options)
     }
 
-    constructor(appId: string | undefined, maxTimeout?: number) {
+    constructor(modelId: string | undefined, maxTimeout?: number) {
         if (!ConversationLearner.options) {
             throw new Error("Init() must be called on ConversationLearner before instances are created")
         }
@@ -41,8 +40,7 @@ export class ConversationLearner {
             maxTimeout = DEFAULT_MAX_SESSION_LENGTH
         }
 
-        this.appId = appId;
-        this.clRunner = CLRunner.Create(appId, maxTimeout, ConversationLearner.clClient)
+        this.clRunner = CLRunner.Create(modelId, maxTimeout, ConversationLearner.clClient)
     }
 
     public async recognize(turnContext: BB.TurnContext, force?: boolean): Promise<CLRecognizerResult | null> {
