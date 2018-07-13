@@ -131,7 +131,10 @@ function parseFile(filePath: string): Promise<Object|undefined> {
             return undefined;
         })
         .catch((err) => {
-            console.warn(`FileStorage: error reading "${filePath}": ${err.toString()}`);
+            // File could legitimately have been deleted
+            if (err.code != "ENOENT") {
+                console.warn(`FileStorage: error reading "${filePath}": ${err.toString()}`);
+            }
             return undefined;
         });
 }
