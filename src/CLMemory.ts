@@ -122,11 +122,11 @@ export class CLMemory {
         }
     }
 
-    public async SetAppAsync(newApp: AppBase | null): Promise<void> {
-        const prevApp = await this.BotState.GetApp();
-        await this.BotState._SetAppAsync(newApp, prevApp)
+    public async SetAppAsync(app: AppBase | null): Promise<void> {
+        const curApp = await this.BotState.GetApp();
+        await this.BotState._SetAppAsync(app)
 
-        if (!newApp || !prevApp || prevApp.appId !== newApp.appId) {
+        if (!app || !curApp || curApp.appId !== app.appId) {
             await this.BotMemory.ClearAsync()
         }
     }

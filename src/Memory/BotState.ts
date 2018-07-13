@@ -105,23 +105,19 @@ export class BotState {
     }
 
     // NOTE: CLMemory should be the only one to call this
-    public async _SetAppAsync(newApp: AppBase | null, prevApp: AppBase | null = null): Promise<void> {
-        await this.SetApp(newApp)
-
-        // If no app or I had a previous app, reset my state
-        if (newApp == null || prevApp) {
-            await this.SetConversationId(null)
-            await this.SetConversationReference(null)
-            await this.SetLastActive(0);
-            await this.SetMessageProcessing(null);
-            await this.SetOrgSessionId(null)
-            await this.SetNeedSessionStartCall(false)
-            await this.SetNeedSessionEndCall(false)
-            await this.SetInTeach(false)
-            await this.SetSessionId(null)
-            await this.SetLogDialogId(null);
-            await this.ClearEditingPackageAsync();
-        }
+    public async _SetAppAsync(app: AppBase | null): Promise<void> {
+        await this.SetApp(app)
+        await this.SetConversationId(null)
+        await this.SetConversationReference(null)
+        await this.SetLastActive(0);
+        await this.SetMessageProcessing(null);
+        await this.SetOrgSessionId(null)
+        await this.SetNeedSessionStartCall(false)
+        await this.SetNeedSessionEndCall(false)
+        await this.SetInTeach(false)
+        await this.SetSessionId(null)
+        await this.SetLogDialogId(null);
+        await this.ClearEditingPackageAsync();
     }
 
     // ------------------------------------------------
