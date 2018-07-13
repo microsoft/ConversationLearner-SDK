@@ -8,6 +8,9 @@ import { EntityBase, MemoryValue, FilledEntityMap, EntityType } from '@conversat
 
 const errMsg = "called after your function has already returned. You must await results within your code rather than use callbacks"
 
+/**
+ * Allows for viewing and manipulating Bot's memory
+ */
 export class ClientMemoryManager {
     protected allEntities: EntityBase[] = []
     private sessionInfo: SessionInfo

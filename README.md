@@ -6,9 +6,10 @@ Conversation Learner Software Development Kit
 [![CircleCI](https://circleci.com/gh/Microsoft/ConversationLearner-SDK.svg?style=shield)](https://circleci.com/gh/Microsoft/ConversationLearner-SDK)
 [![AppVeyor](https://ci.appveyor.com/api/projects/status/github/Microsoft/ConversationLearner-SDK?branch=master&svg=true)](https://ci.appveyor.com/project/conversationlearner/conversationlearner-sdk)
 
-This repo is intended to be consumed by your bot. The library exposes middleware which can be used within [BotBuilder](https://github.com/Microsoft/botbuilder-js) message pipeline.  The SDK runs a server and the middleware communicates with it while processing messages which enables the Conversation Learner track the bot's state/memory and reply with messages, adaptive cards, and more.
-
-This repo also includes a way to host the Conversation Learner adminstration website which provides graphical interface to manage, traind, and test your bot.
+This repo is intended to be consumed by your bot. The SDK contains 3 major components:
+1. Administration UI - provides graphical interface to manage, train, and test your bot
+2. [Express](https://expressjs.com/en/guide/routing.html) Router - The router is mounted to your server in development and used by the UI (above) during training
+3. Recognizer - Similar to other [BotBuilder](https://github.com/Microsoft/botbuilder-js) recognizers like [LUIS](https://github.com/Microsoft/botbuilder-js/blob/master/samples/luis-bot-es6/app.js#L64) the CL recognizer processes the given Bot context and returns results such as messages, adaptive cards, and more.
 
 # Getting started
 
@@ -20,23 +21,27 @@ npm install @conversationlearner/sdk --save-exact
 
 > Note: We recommend using --save-exact to lock the version since we are NOT following SemVer at this time. This can help prevent accidental package updates which may contain breaking changes if you are not using package-lock.json. We will move to following SemVer soon as we improve our release process.
 
-Using the middleware:
+Using the recognizer:
 
 ```typescript
 import { ConversationLearner, ICLOptions, ClientMemoryManager } from '@conversationlearner/sdk'
 
 ...
 
-ConversationLearner.Init({
+const sdkRouter = ConversationLearner.Init({
     CONVERSATION_LEARNER_SERVICE_URI: process.env.CONVERSATION_LEARNER_SERVICE_URI
-});
+})
+if (isDevelopment) {
+    server.use('/sdk', sdkRouter)
+}
 
 ...
-let cl = new ConversationLearner(modelId);
+
+const cl = new ConversationLearner(modelId);
 
 server.post('/api/messages', (req, res) => {
     adapter.processActivity(req, res, async context => {
-        let result = await cl.recognize(context)
+        const result = await cl.recognize(context)
         
         if (result) {
             cl.SendResult(result);
