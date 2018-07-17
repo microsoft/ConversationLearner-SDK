@@ -4,6 +4,9 @@
  */
 import * as BB from 'botbuilder'
 import * as request from 'request'
+import * as semver from 'semver'
+import * as fs from 'fs-extra'
+import * as path from 'path'
 import { FilledEntityMap } from '@conversationlearner/models'
 
 export class Utils {
@@ -111,6 +114,15 @@ export function replace<T>(xs: T[], updatedX: T, getId: (x: T) => any): T[] {
     return [...xs.slice(0, index), updatedX, ...xs.slice(index + 1)]
 }
 
+/* Returns true is SDK version in package is less than passed in version */
+const packageJsonPath = path.join(__dirname, '..', 'package.json')
+export async function isSDKOld(curVersion: string): Promise<boolean> {
+    const packageJson = await fs.readJson(packageJsonPath)    
+    if (packageJson.version === "0.0.0-development") {
+        return false
+    }  
+    return semver.lt(packageJson.version, curVersion)
+}
 
 export function generateGUID(): string {
     let d = new Date().getTime()

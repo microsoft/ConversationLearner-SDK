@@ -11,7 +11,7 @@ import { ConversationLearner } from '../ConversationLearner'
 import { CLMemory } from '../CLMemory'
 import { CLRecognizerResult } from '../CLRecognizeResult'
 import { TemplateProvider } from '../TemplateProvider'
-import { replace, CL_DEVELOPER } from '../Utils'
+import { replace, isSDKOld, CL_DEVELOPER } from '../Utils'
 import { BrowserSlot } from '../Memory/BrowserSlot'
 import * as Request from 'request'
 import * as XMLDom from 'xmldom'
@@ -74,13 +74,14 @@ export const HandleError = (response: express.Response, err: any): void => {
     CLDebug.Error(log)
 }
 
-const bannerEndpoint = "https://blisstorage.blob.core.windows.net/status/status.json";
+const statusEndpoint = "https://blisstorage.blob.core.windows.net/status/status.json";
+const versionEndpoint = "https://blisstorage.blob.core.windows.net/version/version.json";
 
-const getBanner = () : Promise<models.Banner | null> => {
+const getBanner = (source: string) : Promise<models.Banner | null> => {
     return new Promise((resolve, reject) => {
         const options = {
             method: 'GET',
-            uri: bannerEndpoint,
+            uri: source,
             json: true 
         }
         ​
@@ -166,8 +167,20 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const hashedKey = key ? crypto.createHash('sha256').update(key).digest('hex') : ""
             const id = `${browserSlot}-${hashedKey}`
 
-            // Retrieve any banner info
-            const banner = await getBanner();
+            // Retrieve any status message
+            let banner = await getBanner(statusEndpoint);
+            
+            // If no status message, check if version update mesage is needed
+            if (!banner) {
+                // Display version banner if SDK is obsolete
+                let versionBanner = await getBanner(versionEndpoint)
+                if (versionBanner && versionBanner.sdkversion) {
+                    const isOld = await isSDKOld(versionBanner.sdkversion)
+                    if (isOld) {
+                        banner = versionBanner
+                    }
+                }
+            }
 
             const botInfo: models.BotInfo = {
                 user: {
