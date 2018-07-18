@@ -6,7 +6,7 @@ import * as express from 'express'
 import * as url from 'url'
 import { CLDebug } from '../CLDebug'
 import { CLClient, ICLClientOptions } from '../CLClient'
-import { CLRunner } from '../CLRunner'
+import { CLRunner, SessionStartFlags } from '../CLRunner'
 import { ConversationLearner } from '../ConversationLearner'
 import { CLMemory } from '../CLMemory'
 import { CLRecognizerResult } from '../CLRecognizeResult'
@@ -487,7 +487,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 const teachResponse = await client.StartTeach(appId, createTeachParams)
 
                 // Start Session - with "true" to save the memory from the History
-                await clRunner.InitSessionAsync(memory, teachResponse.teachId, null, null, { inTeach: true, isContinued: true })
+                await clRunner.InitSessionAsync(memory, teachResponse.teachId, null, null, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE)
                 teachWithHistory.teach = models.ModelUtils.ToTeach(teachResponse)
             }
             res.send(teachWithHistory)
@@ -513,7 +513,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const memory = CLMemory.GetMemory(key)
             memory.BotMemory.ClearAsync()
             
-            clRunner.InitSessionAsync(memory, sessionResponse.sessionId, sessionResponse.logDialogId, null, { inTeach: false, isContinued: false })
+            clRunner.InitSessionAsync(memory, sessionResponse.sessionId, sessionResponse.logDialogId, null, SessionStartFlags.NONE)
         } catch (error) {
             HandleError(res, error)
         }
@@ -530,6 +530,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 return
             }
 
+            // Check that sessions match
             const curSessionId = await memory.BotState.GetSessionIdAndSetConversationId(conversationId);
 
             // Session may be a replacement for an expired one
@@ -591,7 +592,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
             const clRunner = CLRunner.GetRunnerForUI(appId);
             const memory = CLMemory.GetMemory(key)
-            clRunner.InitSessionAsync(memory, teachResponse.teachId, null, null, { inTeach: true, isContinued: false })
+            clRunner.InitSessionAsync(memory, teachResponse.teachId, null, null, SessionStartFlags.IN_TEACH)
 
             // Clear the memory
             await memory.BotMemory.ClearAsync()
@@ -643,7 +644,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 const teachResponse = await client.StartTeach(appId, createTeachParams)
 
                 // Start Session - with "true" to save the memory from the History
-                await clRunner.InitSessionAsync(memory, teachResponse.teachId, null, null, { inTeach: true, isContinued: true })
+                await clRunner.InitSessionAsync(memory, teachResponse.teachId, null, null, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE)
                 teachWithHistory.teach = models.ModelUtils.ToTeach(teachResponse)
 
                 // If last action wasn't terminal need to score
@@ -906,7 +907,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 const teachResponse = await client.StartTeach(appId, createTeachParams)
 
                 // Start Sesion - with "true" to save the memory from the History
-                await clRunner.InitSessionAsync(memory, teachResponse.teachId, null, null, { inTeach: true, isContinued: true })
+                await clRunner.InitSessionAsync(memory, teachResponse.teachId, null, null, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE)
                  teachWithHistory.teach = models.ModelUtils.ToTeach(teachResponse)
             } else {
                 // Failed, so restore the old memory

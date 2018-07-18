@@ -20,9 +20,14 @@ interface RunnerLookup {
     [appId: string] : CLRunner
 }
 
-export interface ISessionStartParams {
-    inTeach: boolean
-    isContinued: boolean
+export enum SessionStartFlags {
+    NONE = 0,
+    /* Start a teaching session */
+    IN_TEACH = 1 << 0,
+    /* Session is an edit and continue with existing turns */
+    IS_EDIT_CONTINUE = 1 << 1,
+    /* Session created by manual timeout by user in UI */
+    IS_MANUAL_TIMEOUT = 1 << 2
 }
 
 /**
@@ -191,7 +196,7 @@ export class CLRunner {
         let sessionCreateParams = {saveToLog, packageId} as CLM.SessionCreateParams
         let sessionResponse = await this.clClient.StartSession(appId, sessionCreateParams)
 
-        await this.InitSessionAsync(memory, sessionResponse.sessionId, sessionResponse.logDialogId, conversationId, { inTeach: false, isContinued: false })
+        await this.InitSessionAsync(memory, sessionResponse.sessionId, sessionResponse.logDialogId, conversationId, SessionStartFlags.NONE)
         CLDebug.Verbose(`Started Session: ${sessionResponse.sessionId} - ${conversationId}`)
         return sessionResponse.sessionId
     }
@@ -223,17 +228,17 @@ export class CLRunner {
 
 
     // Initialize a log or teach session 
-    public async InitSessionAsync(clMemory: CLMemory, sessionId: string, logDialogId: string | null, conversationId: string | null, params: ISessionStartParams): Promise<void> {
+    public async InitSessionAsync(clMemory: CLMemory, sessionId: string, logDialogId: string | null, conversationId: string | null, sessionStartFlags: SessionStartFlags): Promise<void> {
     
         let app = await clMemory.BotState.GetApp()
 
         // If not continuing an edited session, call endSession 
-        if (!params.isContinued) {
+        if (!(sessionStartFlags && SessionStartFlags.IS_EDIT_CONTINUE)) {
             // Default callback will clear the bot memory.
             // END_SESSION action was never triggered, so SessionEndState.OPEN
             await this.CheckSessionEndCallback(clMemory, app ? app.appId : null, CLM.SessionEndState.OPEN);
         }
-        await clMemory.BotState.StartSessionAsync(sessionId, logDialogId, conversationId, params.inTeach)
+        await clMemory.BotState.StartSessionAsync(sessionId, logDialogId, conversationId, sessionStartFlags)
     }
 
     // End a teach or log session
@@ -328,7 +333,7 @@ export class CLRunner {
                     // Update Memory, passing in original sessionId for reference
                     let conversationId = await clMemory.BotState.GetConversationId()
 
-                    await this.InitSessionAsync(clMemory, sessionResponse.sessionId, sessionResponse.logDialogId, conversationId, { inTeach: inTeach, isContinued: false })
+                    await this.InitSessionAsync(clMemory, sessionResponse.sessionId, sessionResponse.logDialogId, conversationId, SessionStartFlags.IS_MANUAL_TIMEOUT | (inTeach ? SessionStartFlags.IN_TEACH : 0))
 
                     // Set new sessionId
                     sessionId = sessionResponse.sessionId;
