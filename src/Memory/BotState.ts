@@ -7,6 +7,7 @@ import { ConversationLearner } from '../ConversationLearner'
 import { CLMemory } from '../CLMemory'
 import { AppBase } from '@conversationlearner/models'
 import { QueuedInput } from './InputQueue';
+import { SessionStartFlags } from '../CLRunner';
 
 export interface ConversationSession {
     sessionId: string | null
@@ -266,16 +267,23 @@ export class BotState {
         await this.SetStateAsync(BotStateType.SESSION_ID, sessionId)
     }
 
-    public async StartSessionAsync(sessionId: string | null, logDialogId: string | null, conversationId: string | null, inTeach: boolean): Promise<void> {
+    public async StartSessionAsync(sessionId: string | null, logDialogId: string | null, conversationId: string | null, sessionStartFlags: SessionStartFlags): Promise<void> {
         await this.SetSessionId(sessionId);
-        // NOTE: Do not clear OrgSessionId, as this could be a restart
+
+        // Do not clear OrgSessionId, if user did manual timeout, so UI can properly delete
+        if (!(sessionStartFlags & SessionStartFlags.IS_MANUAL_TIMEOUT)) {
+            await this.SetOrgSessionId(null)
+        }
+
         await this.SetLogDialogId(logDialogId)
         await this.SetNeedSessionStartCall(true)
         await this.SetNeedSessionEndCall(true)
         await this.SetConversationId(conversationId)
         await this.SetLastActive(new Date().getTime())
-        await this.SetInTeach(inTeach)
+        await this.SetInTeach((sessionStartFlags & SessionStartFlags.IN_TEACH) > 0)
         await this.SetMessageProcessing(null)   
+
+      
     }
 
     // End a session.  
