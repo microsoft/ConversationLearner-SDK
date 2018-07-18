@@ -328,7 +328,7 @@ export class CLRunner {
                     // Update Memory, passing in original sessionId for reference
                     let conversationId = await clMemory.BotState.GetConversationId()
 
-                    this.InitSessionAsync(clMemory, sessionResponse.sessionId, sessionResponse.logDialogId, conversationId, { inTeach: inTeach, isContinued: false })
+                    await this.InitSessionAsync(clMemory, sessionResponse.sessionId, sessionResponse.logDialogId, conversationId, { inTeach: inTeach, isContinued: false })
 
                     // Set new sessionId
                     sessionId = sessionResponse.sessionId;
@@ -392,8 +392,6 @@ export class CLRunner {
             }
             return null
         } catch (error) {
-            CLDebug.Log(`Error during ProcessInput: ${error.message}`)
-
             // Try to end the session, so use can potentially recover
             try {
                 await this.EndSessionAsync(activity.from.id, CLM.SessionEndState.OPEN)
