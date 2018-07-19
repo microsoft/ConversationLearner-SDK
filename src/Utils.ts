@@ -39,7 +39,12 @@ export class Utils {
         try {
             if (!error) {
                 return prefix + 'Unknown'
-            } else if (!error.body) {
+            } 
+            // Special message for 403 as it's like a bad ModelId
+            else if (error.statusCode === 403) {
+                            return `403 Forbidden:  Please check you have set a valid CONVERSATION_LEARNER_MODEL_ID`
+            }
+            else if (!error.body) {
                 if (typeof error == 'string') {
                     return prefix + error
                 } else {
