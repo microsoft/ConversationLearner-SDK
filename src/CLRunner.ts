@@ -134,8 +134,8 @@ export class CLRunner {
         }
 
         try {
+            let app = await this.GetRunningApp(activity.from.id, false);
             let clMemory = await CLMemory.InitMemory(activity.from, conversationReference)
-            let app = await clMemory.BotState.GetApp()
         
             if (app) {
                 let packageId = (app.livePackageId || app.devPackageId)
