@@ -133,14 +133,19 @@ export class CLRunner {
             return;
         }
 
-        let clMemory = await CLMemory.InitMemory(activity.from, conversationReference)
-        let app = await clMemory.BotState.GetApp()
-     
-        if (app) {
-            let packageId = (app.livePackageId || app.devPackageId)
-            if (packageId) {
-                await this.StartSessionAsync(clMemory, activity.conversation.id, app.appId, app.metadata.isLoggingOn !== false, packageId)
+        try {
+            let clMemory = await CLMemory.InitMemory(activity.from, conversationReference)
+            let app = await clMemory.BotState.GetApp()
+        
+            if (app) {
+                let packageId = (app.livePackageId || app.devPackageId)
+                if (packageId) {
+                    await this.StartSessionAsync(clMemory, activity.conversation.id, app.appId, app.metadata.isLoggingOn !== false, packageId)
+                }
             }
+        }
+        catch (error) {
+            CLDebug.Error(error) 
         }
     }
 
@@ -404,13 +409,7 @@ export class CLRunner {
                 CLDebug.Log(`Failed to End Session`)
             }
 
-            // Special message for 403 as it's like a bad ModelId
-            let customError = null;
-            if (error.statusCode === 403) {
-                customError = `403 Forbidden:  Please check you have set a valid CONVERSATION_LEARNER_MODEL_ID`
-            }
-
-            CLDebug.Error(customError || error, errComponent)
+            CLDebug.Error(error, errComponent)
             return null
         }
     }
