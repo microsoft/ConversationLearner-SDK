@@ -156,8 +156,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
     /** Retrieves information about the running bot */
     router.get('/bot', async (req, res, next) => {
         try {
-            const { browserId } = getQuery(req)
-            const clRunner = CLRunner.GetRunnerForUI()
+            const { browserId, appId } = getQuery(req)
+            const clRunner = CLRunner.GetRunnerForUI(appId)
             const apiParams = clRunner.apiParams
             const validationErrors = clRunner.clClient.ValidationErrors();
 

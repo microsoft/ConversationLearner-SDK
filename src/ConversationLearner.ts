@@ -9,7 +9,7 @@ import { CLMemory } from './CLMemory'
 import { CLDebug } from './CLDebug'
 import { CLClient } from './CLClient'
 import getRouter from './http/router'
-import { CL_DEVELOPER, DEFAULT_MAX_SESSION_LENGTH } from './Utils'
+import { DEFAULT_MAX_SESSION_LENGTH } from './Utils'
 import { CLRecognizerResult } from './CLRecognizeResult'
 import * as express from 'express'
 
@@ -81,9 +81,9 @@ export class ConversationLearner {
     /** Returns true is bot is running in the Training UI
      * @param turnContext BotBuilder Context
      */
-    public inTrainingUI(turnContext: BB.TurnContext): boolean {
+    public async InTrainingUI(turnContext: BB.TurnContext): Promise<boolean> {
         // TODO: This always returns false for onConversationUpdate as 'from' is not set
-        return (turnContext.activity.from && turnContext.activity.from.name === CL_DEVELOPER);
+        return await this.clRunner.InTrainingUI(turnContext)
     }
 
     /** Define an API callback that can be used by the Model 
