@@ -121,6 +121,18 @@ export class CLRunner {
         })
     }
 
+    public async InTrainingUI(turnContext: BB.TurnContext): Promise<boolean> {
+        if (turnContext.activity.from && turnContext.activity.from.name === CL_DEVELOPER) {
+            let clMemory = CLMemory.GetMemory(turnContext.activity.from.id)
+            let app = await clMemory.BotState.GetApp() 
+            // If no app selected in UI or no app set in config, or they match return true
+            if (!app || !this.configModelId || app.appId === this.configModelId) {
+                return true
+            }
+        }
+        return false
+    }
+    
     // Allows Bot developer to start a new Session with initial parameters (never in Teach)
     public async BotStartSession(turnContext: BB.TurnContext): Promise<void> {
 
