@@ -170,7 +170,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             // Retrieve any status message
             let banner = await getBanner(statusEndpoint);
             
-            // If no status message, check if version update mesage is needed
+            // If no status message, check if version update message is needed
             if (!banner) {
                 // Display version banner if SDK is obsolete
                 let versionBanner = await getBanner(versionEndpoint)

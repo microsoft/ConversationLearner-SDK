@@ -51,7 +51,6 @@
     "filenamify": "^2.0.0",
     "fs-extra": "^5.0.0",
     "http-proxy-middleware": "0.18.0",
-    "offline-directline": "^1.2.3",
     "redis": "^2.7.1",
     "request": "^2.79.0",
     "semver": "^5.5.0",
