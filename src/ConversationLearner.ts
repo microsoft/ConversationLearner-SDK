@@ -3,7 +3,7 @@
  * Licensed under the MIT License.
  */
 import * as BB from 'botbuilder'
-import { CLRunner, ApiCallback, EntityDetectionCallback, OnSessionStartCallback, OnSessionEndCallback } from './CLRunner'
+import { CLRunner, ApiCallback, EntityDetectionCallback, OnSessionStartCallback, OnSessionEndCallback, RenderCallback } from './CLRunner'
 import { ICLOptions } from './CLOptions'
 import { CLMemory } from './CLMemory'
 import { CLDebug } from './CLDebug'
@@ -86,12 +86,20 @@ export class ConversationLearner {
         return await this.clRunner.InTrainingUI(turnContext)
     }
 
-    /** Define an API callback that can be used by the Model 
+    /** 
+     * Define an API callback that can be used by the Model
      * @param name Name of function that will be displayed in CL UI
      * @param target Callback of the form (memoryManager: ClientMemoryManager, ...args: string[]) => Promise<Partial<BB.Activity> | string | void>
      */
     public AddAPICallback(name: string, target: ApiCallback) {
-        this.clRunner.AddAPICallback(name, target);
+        this.clRunner.AddAPICallback(name, target)
+    }
+
+    /**
+     * Define a Render callback that will be used by the model
+     */
+    public AddRenderCallback(name: string, target: RenderCallback) {
+        this.clRunner.AddRenderCallback(name, target)
     }
 
     /** Define an Callback that will be called after Entity Detection

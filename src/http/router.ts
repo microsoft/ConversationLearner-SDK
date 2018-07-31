@@ -158,7 +158,6 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
         try {
             const { browserId, appId } = getQuery(req)
             const clRunner = CLRunner.GetRunnerForUI(appId)
-            const apiParams = clRunner.apiParams
             const validationErrors = clRunner.clClient.ValidationErrors();
 
             // Generate id
@@ -189,7 +188,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                     name: CL_DEVELOPER,
                     id: id
                 },
-                callbacks: apiParams,
+                apiCallbacks: clRunner.apiParams,
+                renderCallbacks: clRunner.renderParams,
                 templates: TemplateProvider.GetTemplates(),
                 validationErrors: validationErrors,
                 banner: banner
