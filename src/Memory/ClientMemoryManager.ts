@@ -142,6 +142,10 @@ export class ClientMemoryManager extends ReadOnlyClientMemoryManager {
     public constructor(prevMemories: FilledEntityMap, curMemories: FilledEntityMap, allEntities: EntityBase[], sessionInfo: SessionInfo) {
         super(prevMemories, curMemories, allEntities, sessionInfo)
     }
+
+    public AsReadOnly(): ReadOnlyClientMemoryManager {
+        return this
+    }
     
     public RememberEntity(entityName: string, entityValue: string | number | object): void {
         if (this.__expired) {
