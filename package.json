@@ -95,7 +95,8 @@
   "jest": {
     "testMatch": [
       "**/lib/**/?(*.)(spec|test).js?(x)"
-    ]
+    ],
+    "testEnvironment": "node"
   },
   "prettier": {
     "tabWidth": 4,
