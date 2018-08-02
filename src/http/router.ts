@@ -622,15 +622,14 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
         try {
             const key = getMemoryKey(req)
             const appId = req.params.appId
-            const { username: userName, userid: userId, ignoreLastExtract } = getQuery(req)
-            const ignoreLastExtractBoolean = ignoreLastExtract === 'true'
+            const { username: userName, userid: userId, deleteTeach: deleteTeach } = getQuery(req)
             const trainDialog: models.TrainDialog = req.body
 
             // Get history and replay to put bot into last round
             const memory = CLMemory.GetMemory(key)
 
             const clRunner = CLRunner.GetRunnerForUI(appId);
-            const teachWithHistory = await clRunner.GetHistory(appId, trainDialog, userName, userId, memory, ignoreLastExtractBoolean)
+            const teachWithHistory = await clRunner.GetHistory(appId, trainDialog, userName, userId, memory, true /*LARS remove me*/)
             if (!teachWithHistory) {
                 res.status(500)
                 res.send(new Error(`Could not find teach session history for given train dialog`))
@@ -665,6 +664,13 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                     )
                 }
             }
+
+            // If TeachSession not required / delete it
+            if (deleteTeach && teachWithHistory.teach) {
+                await client.EndTeach(appId, teachWithHistory.teach.teachId, `saveDialog=false`)
+                teachWithHistory.teach = undefined
+            }
+
             res.send(teachWithHistory)
         } catch (error) {
             HandleError(res, error)
