@@ -4,7 +4,7 @@
  */
 import { ConversationLearner } from './ConversationLearner'
 import { ICLOptions } from './CLOptions'
-import { ClientMemoryManager } from './Memory/ClientMemoryManager'
+import { ClientMemoryManager, ReadOnlyClientMemoryManager } from './Memory/ClientMemoryManager'
 import { RedisStorage } from './RedisStorage'
 import { FileStorage } from './FileStorage'
 import startUiServer from './clUi'
@@ -16,6 +16,7 @@ export {
     ConversationLearner,
     ICLOptions,
     ClientMemoryManager,
+    ReadOnlyClientMemoryManager,
     RedisStorage,
     FileStorage,
     SessionEndState,

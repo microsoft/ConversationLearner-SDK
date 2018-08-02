@@ -1,6 +1,10 @@
 {
     "compileOnSave": true,
     "compilerOptions": {
+        "lib": [
+            "es2017",
+            "dom"
+        ],
         "noUnusedLocals": true,
         "forceConsistentCasingInFileNames": true,  
         "noImplicitReturns": true,
