@@ -9,7 +9,7 @@ import { CLDebug } from './CLDebug'
 import { CLClient } from './CLClient'
 import { TemplateProvider } from './TemplateProvider'
 import * as CLM from '@conversationlearner/models'
-import { ClientMemoryManager } from './Memory/ClientMemoryManager'
+import { ReadOnlyClientMemoryManager, ClientMemoryManager } from './Memory/ClientMemoryManager'
 import { addEntitiesById, CL_DEVELOPER, UI_RUNNER_APPID, generateGUID } from './Utils'
 import { CLRecognizerResult } from './CLRecognizeResult'
 import { ConversationLearner } from './ConversationLearner'
@@ -28,6 +28,10 @@ export enum SessionStartFlags {
     IS_EDIT_CONTINUE = 1 << 1,
     /* Session created by manual timeout by user in UI */
     IS_MANUAL_TIMEOUT = 1 << 2
+}
+
+export interface InternalCallback<T extends Function> extends CLM.Callback {
+    fn: T
 }
 
 /**
@@ -53,7 +57,13 @@ export type OnSessionEndCallback = (context: BB.TurnContext, memoryManager: Clie
  * Called when the associated API Action in your bot is sent.
  * Common use cases are to call external APIs to gather data and save into entities for usage later.
  */
-export type ApiCallback = (memoryManager: ClientMemoryManager, ...args: string[]) => Promise<Partial<BB.Activity> | string | void>
+export type ApiCallback = (memoryManager: ClientMemoryManager, ...args: string[]) => void
+
+/**
+ * Called when the associated Renderer Action in your bot is sent.
+ * Common use cases are to construct text or card messages based on current entity values.
+ */
+export type RenderCallback = (memoryManager: ReadOnlyClientMemoryManager, ...args: string[]) => Promise<Partial<BB.Activity> | string>
 
 export class CLRunner {
 
@@ -69,8 +79,8 @@ export class CLRunner {
     private maxTimeout: number | undefined;  // TODO: Move timeout to app settings
 
     /* Mapping between user defined API names and functions */
-    public apiCallbacks: { [name: string]: (memoryManager: ClientMemoryManager, ...args: string[]) => Promise<Partial<BB.Activity> | string | void> } = {}
-    public apiParams: CLM.CallbackAPI[] = []   
+    public apiCallbacks: { [name: string]: InternalCallback<ApiCallback> } = {}
+    public renderCallbacks: { [name: string]: InternalCallback<RenderCallback> } = {}
 
     public static Create(configModelId: string | undefined, maxTimeout: number | undefined, client: CLClient): CLRunner {
 
@@ -502,8 +512,14 @@ export class CLRunner {
         name: string,
         target: ApiCallback
     ) {
-        this.apiCallbacks[name] = target
-        this.apiParams.push({ name, arguments: this.GetArguments(target) })
+        this.apiCallbacks[name] = { name, fn: target, arguments: this.GetArguments(target) }
+    }
+
+    public AddRenderCallback(
+        name: string,
+        target: RenderCallback
+    ) {
+        this.renderCallbacks[name] = { name, fn: target, arguments: this.GetArguments(target) }
     }
 
     private GetArguments(func: any): string[] {
@@ -701,6 +717,15 @@ export class CLRunner {
                     inTeach
                 )
                 break
+            case CLM.ActionTypes.RENDER:
+                const rendererAction = new CLM.RenderAction(clRecognizeResult.scoredAction as any)
+                message = await this.TakeRenderAction(
+                    rendererAction,
+                    filledEntityMap,
+                    clRecognizeResult.memory,
+                    clRecognizeResult.clEntities
+                )
+                break
             case CLM.ActionTypes.CARD:
                 const cardAction = new CLM.CardAction(clRecognizeResult.scoredAction as any)
                 message = await this.TakeCardAction(cardAction, filledEntityMap)
@@ -804,28 +829,14 @@ export class CLRunner {
         });
     }
 
-    public async TakeLocalAPIAction(apiAction: CLM.ApiAction, filledEntityMap: CLM.FilledEntityMap, memory: CLMemory, allEntities: CLM.EntityBase[], inTeach: boolean): Promise<Partial<BB.Activity> | string | null> {
-        if (!this.apiCallbacks) {
-            CLDebug.Error('No Local APIs defined.')
-            return null
-        }
-
-        // Extract API name and args
-        const apiName = apiAction.name
-        const api = this.apiCallbacks[apiName]
-        const callbackParams = this.apiParams.find(apiParam => apiParam.name == apiName)
-        if (!api || !callbackParams) {
-            return CLDebug.Error(`API "${apiName}" is undefined`)
-        }
-
-        // TODO: This issue arises because we only save non-null non-empty argument values on the actions
-        // which means callback may accept more arguments than is actually available on the action.arguments
-        // To me, it seems it would make more sense to always have these be same length, but perhaps there is
-        // dependency on action not being defined somewhere else in the application like ActionCreatorEditor
-        let missingEntities: string[] = []
-        // Get arguments in order specified by the API
-        const argArray = callbackParams.arguments.map((param: string) => {
-            let argument = apiAction.arguments.find(arg => arg.parameter === param)
+    // TODO: This issue arises because we only save non-null non-empty argument values on the actions
+    // which means callback may accept more arguments than is actually available on the action.arguments
+    // To me, it seems it would make more sense to always have these be same length, but perhaps there is
+    // dependency on action not being defined somewhere else in the application like ActionCreatorEditor
+    private GetRenderedArguments(callback: CLM.Callback, codeAction: CLM.CodeAction, filledEntityMap: CLM.FilledEntityMap): string[] {
+        const missingEntityNames: string[] = []
+        const renderedArgumentValues = callback.arguments.map(param => {
+            const argument = codeAction.arguments.find(arg => arg.parameter === param)
             if (!argument) {
                 return ''
             }
@@ -834,30 +845,86 @@ export class CLRunner {
                 return argument.renderValue(CLM.getEntityDisplayValueMap(filledEntityMap))
             }
             catch (error) {
-                missingEntities.push(param);
-                return '';
+                missingEntityNames.push(param)
+                return ''
             }
-        }, missingEntities)
+        }, missingEntityNames)
 
-        if (missingEntities.length > 0) {
-            return `ERROR: Missing Entity value(s) for ${missingEntities.join(', ')}`;
+        if (missingEntityNames.length > 0) {
+            throw new Error(`ERROR: Missing Entity value(s) for ${missingEntityNames.join(', ')}`)
+        }
+
+        return renderedArgumentValues
+    }
+
+    public async TakeLocalAPIAction(apiAction: CLM.ApiAction, filledEntityMap: CLM.FilledEntityMap, memory: CLMemory, allEntities: CLM.EntityBase[], inTeach: boolean): Promise<Partial<BB.Activity> | string | null> {
+        // Extract API name and args
+        const callback = this.apiCallbacks[apiAction.name]
+        if (!callback) {
+            return CLDebug.Error(`API callback with name "${apiAction.name}" is not defined`)
+        }
+
+        let renderedArgumentValues: string[] = []
+        try {
+            renderedArgumentValues = this.GetRenderedArguments(callback, apiAction, filledEntityMap)
+        }
+        catch (e) {
+            const error = e as Error
+            return error.message
         }
 
         let memoryManager = await this.CreateMemoryManagerAsync(memory, allEntities)
 
         try {
             try {
-                let response = await api(memoryManager, ...argArray)
+                await callback.fn(memoryManager, ...renderedArgumentValues)
                 await memory.BotMemory.RestoreFromMemoryManagerAsync(memoryManager)
 
-                // API may not have output, but need to show something to user in WebChat so they can edit
-                if (!response && inTeach) {
-                    response = this.APICard(apiAction);
+                // If not in teach session return null,
+                // Otherwise generate a placeholder card in WebChat so they can click it to edit
+                if (!inTeach) {
+                    return null
                 }
-                return response ? response : null;
+                
+                return this.APICard(callback)
             }
             catch (err) {
-                await this.SendMessage(memory, `Exception hit in Bot's API Callback: '${apiName}'`)
+                await this.SendMessage(memory, `Exception hit in Bot's API Callback: '${apiAction.name}'`)
+                let errMsg = CLDebug.Error(err);
+                return errMsg;
+            }
+        }
+        catch (err) {
+            return CLDebug.Error(err)
+        }
+    }
+
+    public async TakeRenderAction(renderAction: CLM.RenderAction, filledEntityMap: CLM.FilledEntityMap, memory: CLMemory, allEntities: CLM.EntityBase[]): Promise<Partial<BB.Activity> | string> {
+        // Extract Render name and args
+        const renderName = renderAction.name
+        const callback = this.renderCallbacks[renderName]
+        if (!callback) {
+            return `Render callback "${renderName}" is undefined`
+        }
+
+        let renderedArgumentValues: string[] = [] 
+        try {
+            renderedArgumentValues = this.GetRenderedArguments(callback, renderAction, filledEntityMap)
+        }
+        catch (e) {
+            const error = e as Error
+            return error.message
+        }
+
+        let memoryManager = await this.CreateMemoryManagerAsync(memory, allEntities)
+
+        try {
+            try {
+                const response = await callback.fn(memoryManager.AsReadOnly(), ...renderedArgumentValues)
+                return response
+            }
+            catch (err) {
+                await this.SendMessage(memory, `Exception hit in Bot's Render Callback: '${renderName}'`)
                 let errMsg = CLDebug.Error(err);
                 return errMsg;
             }
@@ -906,7 +973,7 @@ export class CLRunner {
 
         // If inTeach, show something to user in WebChat so they can edit
         if (inTeach) {
-            let payload = await sessionAction.renderValue(CLM.getEntityDisplayValueMap(filledEntityMap))
+            let payload = sessionAction.renderValue(CLM.getEntityDisplayValueMap(filledEntityMap))
             let card = {
                 type: "AdaptiveCard",
                 version: "1.0",
@@ -1217,6 +1284,9 @@ export class CLRunner {
                     } else if (lastAction.actionType === CLM.ActionTypes.API_LOCAL) {
                         const apiAction = new CLM.ApiAction(lastAction)
                         botResponse = await this.TakeLocalAPIAction(apiAction, filledEntityMap, clMemory, entityList.entities, true)
+                    } else if (lastAction.actionType === CLM.ActionTypes.RENDER) {
+                        const renderAction = new CLM.RenderAction(lastAction)
+                        botResponse = await this.TakeRenderAction(renderAction, filledEntityMap, clMemory, entityList.entities)
                     } else if (lastAction.actionType === CLM.ActionTypes.TEXT) {
                         const textAction = new CLM.TextAction(lastAction)
                         botResponse = await this.TakeTextAction(textAction, filledEntityMap)
@@ -1311,14 +1381,14 @@ export class CLRunner {
     }
 
     // Generate a card to show for an API action w/o output
-    private APICard(apiAction: CLM.ApiAction): Partial<BB.Activity> {
+    private APICard(callback: CLM.Callback): Partial<BB.Activity> {
         let card = {
             type: "AdaptiveCard",
             version: "1.0",
             body: [
                 {
                     type: "TextBlock",
-                    text: `API Call: *${apiAction.name}*`
+                    text: `API Call: *${callback.name}(memoryManager${callback.arguments.length > 0 ? `, ${callback.arguments.join(', ')}` : ''})*`
                 }
             ]
         }

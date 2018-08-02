@@ -6,7 +6,7 @@ import * as express from 'express'
 import * as url from 'url'
 import { CLDebug } from '../CLDebug'
 import { CLClient, ICLClientOptions } from '../CLClient'
-import { CLRunner, SessionStartFlags } from '../CLRunner'
+import { CLRunner, SessionStartFlags, InternalCallback } from '../CLRunner'
 import { ConversationLearner } from '../ConversationLearner'
 import { CLMemory } from '../CLMemory'
 import { CLRecognizerResult } from '../CLRecognizeResult'
@@ -158,7 +158,6 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
         try {
             const { browserId, appId } = getQuery(req)
             const clRunner = CLRunner.GetRunnerForUI(appId)
-            const apiParams = clRunner.apiParams
             const validationErrors = clRunner.clClient.ValidationErrors();
 
             // Generate id
@@ -182,6 +181,10 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 }
             }
 
+            const convertInternalCallbackToCallback = <T extends Function>(c: InternalCallback<T>): models.Callback => {
+                const { fn, ...callback } = c
+                return callback
+            }
             const botInfo: models.BotInfo = {
                 user: {
                     // We keep track that the editing  UI is running by putting this as the name of the user
@@ -189,7 +192,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                     name: CL_DEVELOPER,
                     id: id
                 },
-                callbacks: apiParams,
+                apiCallbacks: Object.values(clRunner.apiCallbacks).map(convertInternalCallbackToCallback),
+                renderCallbacks: Object.values(clRunner.renderCallbacks).map(convertInternalCallbackToCallback),
                 templates: TemplateProvider.GetTemplates(),
                 validationErrors: validationErrors,
                 banner: banner
