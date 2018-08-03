@@ -57,6 +57,7 @@ export type OnSessionEndCallback = (context: BB.TurnContext, memoryManager: Clie
  * Common use cases are to call external APIs to gather data and save into entities for usage later.
  */
 export type LogicCallback<T> = (memoryManager: ClientMemoryManager, ...args: string[]) => Promise<T | void>
+// tslint:disable-next-line:no-empty
 export const defaultLogicCallback = async () => {}
 /**
  * Called when the associated action in your bot is sent AND during dialog replay.
