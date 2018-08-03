@@ -626,8 +626,14 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
         try {
             const key = getMemoryKey(req)
             const appId = req.params.appId
-            const { username: userName, userid: userId, deleteTeach: deleteTeach } = getQuery(req)
-            const trainDialog: models.TrainDialog = req.body
+            const { 
+                username: userName, 
+                userid: userId, 
+                historyMode: modeString } = getQuery(req)
+
+            const trainDialog: models.TrainDialog = req.body.trainDialog
+            const userInput: models.UserInput = req.body.userInput
+            const historyMode: models.HistoryMode = (<any>models.HistoryMode)[modeString];
 
             // Get history and replay to put bot into last round
             const memory = CLMemory.GetMemory(key)
@@ -640,8 +646,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 return
             }
 
-            // Start session if API returned consistent results during replay
-            if (teachWithHistory.replayErrors.length === 0) {
+            // If CONTINUING session, only start if there were no replay Errors
+            if (historyMode !== models.HistoryMode.CONTINUE || teachWithHistory.replayErrors.length === 0) {
                 // Start new teach session from the old train dialog
                 const createTeachParams = models.ModelUtils.ToCreateTeachParams(trainDialog)
                 const teachResponse = await client.StartTeach(appId, createTeachParams)
@@ -650,8 +656,9 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 await clRunner.InitSessionAsync(memory, teachResponse.teachId, null, null, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE)
                 teachWithHistory.teach = models.ModelUtils.ToTeach(teachResponse)
 
-                // If last action wasn't terminal need to score
-                if (teachWithHistory.dialogMode === models.DialogMode.Scorer) {
+                // If last action wasn't terminal or just asking to score
+                if (historyMode === models.HistoryMode.SCORE_ONLY || 
+                    (historyMode === models.HistoryMode.CONTINUE && teachWithHistory.dialogMode === models.DialogMode.Scorer)) {
 
                     // Get entities from my memory
                     const filledEntities = await memory.BotMemory.FilledEntitiesAsync()
@@ -667,10 +674,14 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                         teachWithHistory.scoreInput
                     )
                 }
+                else if (historyMode === models.HistoryMode.EXTRACT_ONLY && userInput) {
+                    teachWithHistory.extractResponse = await client.TeachExtract(appId, teachWithHistory.teach.teachId, userInput)
+                }
             }
 
-            // If TeachSession not required / delete it
-            if (deleteTeach && teachWithHistory.teach) {
+            // If not continuing delete the teach session
+            if (historyMode !== models.HistoryMode.CONTINUE && 
+                teachWithHistory.teach) {
                 await client.EndTeach(appId, teachWithHistory.teach.teachId, `saveDialog=false`)
                 teachWithHistory.teach = undefined
             }

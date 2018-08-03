@@ -1206,13 +1206,20 @@ export class CLRunner {
                     replayErrors.push()
                 }
             }  
-
-            // Check that previous Activity wasn't uer input
+       
             if (roundNum > 0) {
                 const previousRound = trainDialog.rounds[roundNum -1]
+
+                // Check that previous Activity wasn't user input
                 if (previousRound.scorerSteps.length === 0) {
                     highlight = "error";
                     replayError = new CLM.ReplayErrorTwoUserInputs()
+                    replayErrors.push(replayError)
+                }
+                // Check that previous action wasn't non-wait
+                else if (curAction && !curAction.isTerminal) {
+                    highlight = "error";
+                    replayError = new CLM.ReplayErrorInputAfterNonWait()
                     replayErrors.push(replayError)
                 }
             }   
@@ -1249,7 +1256,7 @@ export class CLRunner {
 
             // LARS remove this call
             await this.CallEntityDetectionCallback(textVariation.text, predictedEntities, clMemory, entities)
-/*
+/* LARS - get rid of this check
             // Look for discrepancies when replaying API calls
             // Unless asked to ignore the last as user trigged an edit by editing last extract step
             if (!ignoreLastExtract || roundNum != trainDialog.rounds.length - 1) {
@@ -1403,6 +1410,7 @@ export class CLRunner {
             scoreInput: undefined,
             scoreResponse: undefined,
             uiScoreInput: uiScoreInput,
+            extractResponse: undefined,
             lastAction: curAction,
             history: activities,
             memories: memories,
