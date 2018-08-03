@@ -181,8 +181,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 }
             }
 
-            const convertInternalCallbackToCallback = <T extends Function>(c: InternalCallback<T>): models.Callback => {
-                const { fn, ...callback } = c
+            const convertInternalCallbackToCallback = <T>(c: InternalCallback<T>): models.Callback => {
+                const { logic, render, ...callback } = c
                 return callback
             }
             const botInfo: models.BotInfo = {
@@ -192,8 +192,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                     name: CL_DEVELOPER,
                     id: id
                 },
-                apiCallbacks: Object.values(clRunner.apiCallbacks).map(convertInternalCallbackToCallback),
-                renderCallbacks: Object.values(clRunner.renderCallbacks).map(convertInternalCallbackToCallback),
+                callbacks: Object.values(clRunner.callbacks).map(convertInternalCallbackToCallback),
                 templates: TemplateProvider.GetTemplates(),
                 validationErrors: validationErrors,
                 banner: banner
