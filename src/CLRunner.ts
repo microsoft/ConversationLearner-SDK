@@ -78,6 +78,16 @@ interface ICallback<T> {
     render: RenderCallback<T>
 }
 
+interface IActionInputLogic {
+    skipLogic: true
+    value: any
+}
+interface IActionInputSkipLogic {
+    skipLogic: false
+}
+
+type IActinInput = IActionInputSkipLogic | IActionInputLogic
+
 export interface IActionResult {
     logicResult: object | void
     response: Partial<BB.Activity> | string | null
@@ -745,7 +755,10 @@ export class CLRunner {
                     filledEntityMap,
                     clRecognizeResult.memory,
                     clRecognizeResult.clEntities, 
-                    inTeach
+                    inTeach,
+                    {
+                        skipLogic: false
+                    }
                 )
                 break
             }
@@ -892,7 +905,7 @@ export class CLRunner {
         return renderedArgumentValues
     }
 
-    public async TakeLocalAPIAction(apiAction: CLM.ApiAction, filledEntityMap: CLM.FilledEntityMap, memory: CLMemory, allEntities: CLM.EntityBase[], inTeach: boolean): Promise<IActionResult> {
+    public async TakeLocalAPIAction(apiAction: CLM.ApiAction, filledEntityMap: CLM.FilledEntityMap, memory: CLMemory, allEntities: CLM.EntityBase[], inTeach: boolean, actionInput: IActinInput): Promise<IActionResult> {
         // Extract API name and args
         const callback = this.callbacks[apiAction.name]
         if (!callback) {
@@ -907,12 +920,18 @@ export class CLRunner {
                 // Invoke Logic part of callback
                 const renderedLogicArgumentValues = this.GetRenderedArguments(callback.logicArguments, apiAction.logicArguments, filledEntityMap)
                 const memoryManager = await this.CreateMemoryManagerAsync(memory, allEntities)
-                const logicResult = await callback.logic(memoryManager, ...renderedLogicArgumentValues)
+
+                // If we're skip logic is true use given logic
+                // This happens when replaying dialog to recreated action outputs
+                const logicResult = actionInput.skipLogic
+                    ? actionInput.value
+                    : await callback.logic(memoryManager, ...renderedLogicArgumentValues)
 
                 await memory.BotMemory.RestoreFromMemoryManagerAsync(memoryManager)
 
                 // Invoke Render part of callback
                 const renderedRenderArgumentValues = this.GetRenderedArguments(callback.renderArguments, apiAction.renderArguments, filledEntityMap)
+
                 let response = await callback.render(logicResult, memoryManager.AsReadOnly(), ...renderedRenderArgumentValues)
 
                 // If response is empty, but we're in teach session return a placeholder card in WebChat so they can click it to edit
@@ -1297,7 +1316,11 @@ export class CLRunner {
                         }
                     } else if (lastAction.actionType === CLM.ActionTypes.API_LOCAL) {
                         const apiAction = new CLM.ApiAction(lastAction)
-                        botResponse = await this.TakeLocalAPIAction(apiAction, filledEntityMap, clMemory, entityList.entities, true)
+                        const actionInput: IActinInput = {
+                            skipLogic: true,
+                            value: scorerStep.logicResult
+                        }
+                        botResponse = await this.TakeLocalAPIAction(apiAction, filledEntityMap, clMemory, entityList.entities, true, actionInput)
                     } else if (lastAction.actionType === CLM.ActionTypes.TEXT) {
                         const textAction = new CLM.TextAction(lastAction)
                         botResponse = {
