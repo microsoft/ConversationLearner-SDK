@@ -78,6 +78,21 @@ interface ICallback<T> {
     render: RenderCallback<T>
 }
 
+interface IActionInputLogic {
+    skipLogic: true
+    value: any
+}
+interface IActionInputSkipLogic {
+    skipLogic: false
+}
+
+type IActinInput = IActionInputSkipLogic | IActionInputLogic
+
+export interface IActionResult {
+    logicResult: object | void
+    response: Partial<BB.Activity> | string | null
+}
+
 export class CLRunner {
 
     /* Lookup table for CLRunners.  One CLRunner per CL Model */
@@ -704,7 +719,7 @@ export class CLRunner {
         }
     }
 
-    public async RenderTemplateAsync(conversationReference: Partial<BB.ConversationReference>, clRecognizeResult: CLRecognizerResult, inTeach = false): Promise<Partial<BB.Activity> | string | null> {
+    public async RenderTemplateAsync(conversationReference: Partial<BB.ConversationReference>, clRecognizeResult: CLRecognizerResult, inTeach = false): Promise<IActionResult> {
         // Get filled entities from memory
         let filledEntityMap = await clRecognizeResult.memory.BotMemory.FilledEntityMap()
         filledEntityMap = addEntitiesById(filledEntityMap)
@@ -719,40 +734,59 @@ export class CLRunner {
             throw new Error(`ConversationReference contains no conversation`)
         }
 
-        let message = null
+        let actionResult: IActionResult
         switch (clRecognizeResult.scoredAction.actionType) {
-            case CLM.ActionTypes.TEXT:
+            case CLM.ActionTypes.TEXT: {
                 // This is hack to allow ScoredAction to be accepted as ActionBase
                 // TODO: Remove extra properties from ScoredAction so it only had actionId and up service to return actions definitions of scored/unscored actions
                 // so UI can link the two together instead of having "partial" actions being incorrectly treated as full actions
                 const textAction = new CLM.TextAction(clRecognizeResult.scoredAction as any)
-                message = await this.TakeTextAction(textAction, filledEntityMap)
+                const response = await this.TakeTextAction(textAction, filledEntityMap)
+                actionResult = {
+                    logicResult: undefined,
+                    response
+                }
                 break
-            case CLM.ActionTypes.API_LOCAL:
+            }
+            case CLM.ActionTypes.API_LOCAL: {
                 const apiAction = new CLM.ApiAction(clRecognizeResult.scoredAction as any)
-                message = await this.TakeLocalAPIAction(
+                actionResult = await this.TakeLocalAPIAction(
                     apiAction,
                     filledEntityMap,
                     clRecognizeResult.memory,
                     clRecognizeResult.clEntities, 
-                    inTeach
+                    inTeach,
+                    {
+                        skipLogic: false
+                    }
                 )
                 break
-            case CLM.ActionTypes.CARD:
+            }
+            case CLM.ActionTypes.CARD: {
                 const cardAction = new CLM.CardAction(clRecognizeResult.scoredAction as any)
-                message = await this.TakeCardAction(cardAction, filledEntityMap)
+                const response = await this.TakeCardAction(cardAction, filledEntityMap)
+                actionResult = {
+                    logicResult: undefined,
+                    response
+                }
                 break
-            case CLM.ActionTypes.END_SESSION:
+            }
+            case CLM.ActionTypes.END_SESSION: {
                 const sessionAction = new CLM.SessionAction(clRecognizeResult.scoredAction as any)
                 let sessionInfo = await clRecognizeResult.memory.BotState.SessionInfoAsync()
                 let sessionId = await clRecognizeResult.memory.BotState.GetSessionIdAndSetConversationId(conversationReference.conversation.id)
-                message = await this.TakeSessionAction(sessionAction, filledEntityMap, inTeach, sessionInfo.userId, sessionId);
+                const response = await this.TakeSessionAction(sessionAction, filledEntityMap, inTeach, sessionInfo.userId, sessionId);
+                actionResult = {
+                    logicResult: undefined,
+                    response
+                }
                 break
+            }
             default:
                 throw new Error(`Could not find matching renderer for action type: ${clRecognizeResult.scoredAction.actionType}`)
         }
 
-        // If action wasn't terminal loop, through Conversation Learner again after a short delay
+        // If action wasn't terminal loop through Conversation Learner again after a short delay
         if (!clRecognizeResult.scoredAction.isTerminal) {
             setTimeout(async () => {
                 let app = await clRecognizeResult.memory.BotState.GetApp()
@@ -783,17 +817,17 @@ export class CLRunner {
                     )
 
                     clRecognizeResult.scoredAction = bestAction
-                    message = await this.RenderTemplateAsync(conversationReference, clRecognizeResult)
-                    if (message != null) {
-                        this.SendMessage(clRecognizeResult.memory, message)
+                    actionResult = await this.RenderTemplateAsync(conversationReference, clRecognizeResult)
+                    if (actionResult.response != null) {
+                        this.SendMessage(clRecognizeResult.memory, actionResult.response)
                     }
                 }
             }, 100)
         }
-        return message
+        return actionResult
     }
 
-    public async SendIntent(intent: CLRecognizerResult, inTeach = false): Promise<void> {
+    public async SendIntent(intent: CLRecognizerResult, inTeach = false): Promise<IActionResult | undefined> {
 
         let conversationReference = await intent.memory.BotState.GetConversationReverence();
 
@@ -806,16 +840,18 @@ export class CLRunner {
             return
         }
 
-        let message = await this.RenderTemplateAsync(conversationReference, intent, inTeach)
+        const actionResult = await this.RenderTemplateAsync(conversationReference, intent, inTeach)
     
-        if (message != null) {
+        if (actionResult.response != null) {
             await this.adapter.continueConversation(conversationReference, async (context) => {
                 // Need to repeat null check as compiler is catching one above for explicit null
-                if (message != null) {
-                    await context.sendActivity(message)
+                if (actionResult.response != null) {
+                    await context.sendActivity(actionResult.response)
                 }
             });
         }
+
+        return actionResult
     }
 
     public async SendMessage(memory: CLMemory, message: string | Partial<BB.Activity>, incomingActivityId?: string | undefined): Promise<void> {
@@ -869,11 +905,14 @@ export class CLRunner {
         return renderedArgumentValues
     }
 
-    public async TakeLocalAPIAction(apiAction: CLM.ApiAction, filledEntityMap: CLM.FilledEntityMap, memory: CLMemory, allEntities: CLM.EntityBase[], inTeach: boolean): Promise<Partial<BB.Activity> | string | null> {
+    public async TakeLocalAPIAction(apiAction: CLM.ApiAction, filledEntityMap: CLM.FilledEntityMap, memory: CLMemory, allEntities: CLM.EntityBase[], inTeach: boolean, actionInput: IActinInput): Promise<IActionResult> {
         // Extract API name and args
         const callback = this.callbacks[apiAction.name]
         if (!callback) {
-            return CLDebug.Error(`API callback with name "${apiAction.name}" is not defined`)
+            return {
+                logicResult: undefined,
+                response: CLDebug.Error(`API callback with name "${apiAction.name}" is not defined`)
+            }
         }
 
         try {
@@ -881,30 +920,44 @@ export class CLRunner {
                 // Invoke Logic part of callback
                 const renderedLogicArgumentValues = this.GetRenderedArguments(callback.logicArguments, apiAction.logicArguments, filledEntityMap)
                 const memoryManager = await this.CreateMemoryManagerAsync(memory, allEntities)
-                const result = await callback.logic(memoryManager, ...renderedLogicArgumentValues)
+
+                // If we're skip logic is true use given logic
+                // This happens when replaying dialog to recreated action outputs
+                const logicResult = actionInput.skipLogic
+                    ? actionInput.value
+                    : await callback.logic(memoryManager, ...renderedLogicArgumentValues)
 
                 await memory.BotMemory.RestoreFromMemoryManagerAsync(memoryManager)
 
                 // Invoke Render part of callback
                 const renderedRenderArgumentValues = this.GetRenderedArguments(callback.renderArguments, apiAction.renderArguments, filledEntityMap)
-                const response = await callback.render(result, memoryManager.AsReadOnly(), ...renderedRenderArgumentValues)
+
+                let response = await callback.render(logicResult, memoryManager.AsReadOnly(), ...renderedRenderArgumentValues)
 
                 // If response is empty, but we're in teach session return a placeholder card in WebChat so they can click it to edit
                 // Otherwise return the response as is.
                 if (!response && inTeach) {
-                    return this.APICard(callback)
+                    response = this.APICard(callback)
                 }
                 
-                return response
+                return {
+                    logicResult,
+                    response
+                }
             }
             catch (err) {
                 await this.SendMessage(memory, `Exception hit in Bot's API Callback: '${apiAction.name}'`)
-                const errMsg = CLDebug.Error(err);
-                return errMsg;
+                return {
+                    logicResult: undefined,
+                    response: CLDebug.Error(err)
+                }
             }
         }
         catch (err) {
-            return CLDebug.Error(err)
+            return {
+                logicResult: undefined,
+                response: CLDebug.Error(err)
+            }
         }
     }
 
@@ -1217,7 +1270,6 @@ export class CLRunner {
 
             for (let [scoreNum, scorerStep] of round.scorerSteps.entries()) {
                 let labelAction = scorerStep.labelAction
-                let botResponse = null
 
                 // VALIDATION
                 chatHighlight = null;
@@ -1245,8 +1297,12 @@ export class CLRunner {
 
                 // Generate bot response
                 lastAction = actions.filter((a: CLM.ActionBase) => a.actionId === labelAction)[0]
+                let botResponse: IActionResult
                 if (!lastAction) {
-                    botResponse = CLDebug.Error(`Can't find Action Id ${labelAction}`);
+                    botResponse = {
+                        logicResult: undefined,
+                        response: CLDebug.Error(`Can't find Action Id ${labelAction}`)
+                    }
                 }
                 else {
 
@@ -1254,17 +1310,30 @@ export class CLRunner {
 
                     if (lastAction.actionType === CLM.ActionTypes.CARD) {
                         const cardAction = new CLM.CardAction(lastAction)
-                        botResponse = await this.TakeCardAction(cardAction, filledEntityMap)
+                        botResponse = {
+                            logicResult: undefined,
+                            response: await this.TakeCardAction(cardAction, filledEntityMap)
+                        }
                     } else if (lastAction.actionType === CLM.ActionTypes.API_LOCAL) {
                         const apiAction = new CLM.ApiAction(lastAction)
-                        botResponse = await this.TakeLocalAPIAction(apiAction, filledEntityMap, clMemory, entityList.entities, true)
+                        const actionInput: IActinInput = {
+                            skipLogic: true,
+                            value: scorerStep.logicResult
+                        }
+                        botResponse = await this.TakeLocalAPIAction(apiAction, filledEntityMap, clMemory, entityList.entities, true, actionInput)
                     } else if (lastAction.actionType === CLM.ActionTypes.TEXT) {
                         const textAction = new CLM.TextAction(lastAction)
-                        botResponse = await this.TakeTextAction(textAction, filledEntityMap)
+                        botResponse = {
+                            logicResult: undefined,
+                            response: await this.TakeTextAction(textAction, filledEntityMap)
+                        }
                     } else if (lastAction.actionType === CLM.ActionTypes.END_SESSION) {
                         const sessionAction = new CLM.SessionAction(lastAction)
                         let sessionInfo = await clMemory.BotState.SessionInfoAsync();
-                        botResponse = await this.TakeSessionAction(sessionAction, filledEntityMap, true, sessionInfo.userId, null)
+                        botResponse = {
+                            logicResult: undefined,
+                            response: await this.TakeSessionAction(sessionAction, filledEntityMap, true, sessionInfo.userId, null)
+                        }
                     }
                     // TODO
                     //  TakeAzureAPIAction
@@ -1275,16 +1344,16 @@ export class CLRunner {
 
                 let botActivity: Partial<BB.Activity> | null = null
                 let botId = `BOT-${userId}`
-                if (typeof botResponse == 'string') {
+                if (typeof botResponse.response == 'string') {
                     botActivity = {
                         id: generateGUID(),
                         from: { id: botId, name: CLM.CL_USER_NAME_ID, role: BB.RoleTypes.Bot },
                         type: 'message',
-                        text: botResponse,
+                        text: botResponse.response,
                         channelData: channelData
                     }
                 } else if (botResponse) {
-                    botActivity = botResponse as BB.Activity
+                    botActivity = botResponse.response as BB.Activity
                     botActivity.id = generateGUID()
                     botActivity.from = { id: botId, name: CLM.CL_USER_NAME_ID, role: BB.RoleTypes.Bot }
                     botActivity.channelData = channelData
