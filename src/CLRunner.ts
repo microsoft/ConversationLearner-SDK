@@ -80,7 +80,7 @@ interface ICallback<T> {
 
 interface IActionInputLogic {
     skipLogic: true
-    value: any
+    value: string | undefined
 }
 interface IActionInputSkipLogic {
     skipLogic: false
@@ -925,6 +925,8 @@ export class CLRunner {
                 // This happens when replaying dialog to recreated action outputs
                 const logicResult = actionInput.skipLogic
                     ? actionInput.value
+                        ? JSON.parse(actionInput.value)
+                        : undefined
                     : await callback.logic(memoryManager, ...renderedLogicArgumentValues)
 
                 await memory.BotMemory.RestoreFromMemoryManagerAsync(memoryManager)
