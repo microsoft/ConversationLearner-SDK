@@ -112,7 +112,9 @@ const getBanner = (source: string) : Promise<models.Banner | null> => {
 export const getRouter = (client: CLClient, options: ICLClientOptions): express.Router => {
     const router = express.Router({ caseSensitive: false })
     router.use(cors())
-    router.use(bodyParser.json())
+    router.use(bodyParser.json({
+        limit: '10mb'
+    }))
 
     router.get('/', (req, res, next) => {
         res.status(200).send({
