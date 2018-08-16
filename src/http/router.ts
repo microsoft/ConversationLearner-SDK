@@ -112,7 +112,9 @@ const getBanner = (source: string) : Promise<models.Banner | null> => {
 export const getRouter = (client: CLClient, options: ICLClientOptions): express.Router => {
     const router = express.Router({ caseSensitive: false })
     router.use(cors())
-    router.use(bodyParser.json())
+    router.use(bodyParser.json({
+        limit: '10mb'
+    }))
 
     router.get('/', (req, res, next) => {
         res.status(200).send({
@@ -749,7 +751,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const uiScoreInput: models.UIScoreInput = req.body
             const memory = CLMemory.GetMemory(key)
 
-            // There will be no extraction step if performing a 2nd scorer round after a non-termial action
+            // There will be no extraction step if performing a 2nd scorer round after a non-terminal action
             if (uiScoreInput.trainExtractorStep) {
                 // Send teach feedback;
                 await client.TeachExtractFeedback(appId, teachId, uiScoreInput.trainExtractorStep)
@@ -817,8 +819,6 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             }
             delete uiTrainScorerStep.trainScorerStep.scoredAction
 
-            const teachResponse = await client.TeachScoreFeedback(appId, teachId, uiTrainScorerStep.trainScorerStep)
-
             const memory = CLMemory.GetMemory(key)
 
             // Now send the trained intent
@@ -830,7 +830,13 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             } as CLRecognizerResult
 
             const clRunner = CLRunner.GetRunnerForUI(appId);
-            await clRunner.SendIntent(intent, true)
+            const actionResult = await clRunner.SendIntent(intent, true)
+
+            // Set logicResult on scorer step
+            if (actionResult) {
+                uiTrainScorerStep.trainScorerStep.logicResult = JSON.stringify(actionResult.logicResult)
+            }
+            const teachResponse = await client.TeachScoreFeedback(appId, teachId, uiTrainScorerStep.trainScorerStep)
 
             const memories = await memory.BotMemory.DumpMemory()
             const isEndTask = scoredAction.actionType === models.ActionTypes.END_SESSION

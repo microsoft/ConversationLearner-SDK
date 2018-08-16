@@ -75,7 +75,7 @@ export class ConversationLearner {
     }
 
     public async SendResult(result: CLRecognizerResult): Promise<void> {
-        return this.clRunner.SendIntent(result)
+        await this.clRunner.SendIntent(result)
     }
 
     /** Returns true is bot is running in the Training UI
