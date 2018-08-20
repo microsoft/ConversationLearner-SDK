@@ -1,5 +1,5 @@
 /**
- * Copyright (c) Microsoft Corporation. All rights reserved.  
+ * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License.
  */
 import * as Request from 'request'
@@ -19,7 +19,7 @@ export class AzureFunctions {
         return new Promise((resolve, reject) => {
             const requestData = {
                 url: azureFunctionsUrl + funcName + '/' + args,
-                /*          TODO - auth          
+                /*          TODO - auth
                     headers: {
                         'Cookie' : this.credentials.Cookiestring(),
                     },*/

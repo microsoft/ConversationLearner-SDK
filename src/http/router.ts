@@ -1,5 +1,5 @@
 /**
- * Copyright (c) Microsoft Corporation. All rights reserved.  
+ * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License.
  */
 import * as express from 'express'
@@ -82,7 +82,7 @@ const getBanner = (source: string) : Promise<models.Banner | null> => {
         const options = {
             method: 'GET',
             uri: source,
-            json: true 
+            json: true
         }
         ​
         // Never fail this request
@@ -170,7 +170,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
             // Retrieve any status message
             let banner = await getBanner(statusEndpoint);
-            
+
             // If no status message, check if version update message is needed
             if (!banner) {
                 // Display version banner if SDK is obsolete
@@ -217,7 +217,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const appId = await client.AddApp(newApp, query)
             const app = await client.GetApp(appId)
             res.send(app)
-            
+
             // Initialize memory
             await CLMemory.GetMemory(key).SetAppAsync(app)
         } catch (error) {
@@ -395,7 +395,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const entity: models.EntityBase = req.body
             const { packageId } = getQuery(req)
             const appDefinition = await client.GetAppSource(appId, packageId)
-            
+
             // Replace the entity with new one
             appDefinition.entities = replace(appDefinition.entities, entity, e => e.entityId)
 
@@ -445,7 +445,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
     //========================================================
     // TrainDialogs
     //========================================================
-    /** 
+    /**
      * RUN EXTRACTOR: Runs entity extraction on a train dialog
      */
     router.put('/app/:appId/traindialog/:trainDialogId/extractor/:turnIndex', async (req, res, next) => {
@@ -517,7 +517,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const clRunner = CLRunner.GetRunnerForUI(appId);
             const memory = CLMemory.GetMemory(key)
             memory.BotMemory.ClearAsync()
-            
+
             clRunner.InitSessionAsync(memory, sessionResponse.sessionId, sessionResponse.logDialogId, null, SessionStartFlags.NONE)
         } catch (error) {
             HandleError(res, error)
@@ -565,7 +565,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
             let response : string
             if (!originalSessionId) {
-                // This can happen when a LogDialog End_Session Action is called and the 
+                // This can happen when a LogDialog End_Session Action is called and the
                 // user subsequently presses the DONE button
                 response = await client.EndSession(appId, sessionId)
 
@@ -868,7 +868,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
             // Clear bot memory generated with this
             memory.BotMemory.ClearAsync();
-            
+
             if (teachWithHistory) {
                 res.send(teachWithHistory)
             }
@@ -946,9 +946,9 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
              * Currently there is conflict of interest.  For the custom routes we define, we want the body parsed
              * so we need bodyParser.json() middleware above it in the pipeline; however, when bodyParser is above/before
              * the http-proxy-middleware then it can't properly stream the body through.
-             * 
+             *
              * This code explicitly re-streams the data by calling .write()
-             * 
+             *
              * Ideally we could find a way to only use bodyParser.json() on our custom routes so it's no in the pipeline above
              * the proxy
              */

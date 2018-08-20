@@ -1,5 +1,5 @@
 /**
- * Copyright (c) Microsoft Corporation. All rights reserved.  
+ * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License.
  */
 import * as BB from 'botbuilder'
@@ -22,14 +22,14 @@ export interface SessionInfo {
 
 // TODO - move to models
 export interface ActiveApps {
-    [appId: string]: string 
+    [appId: string]: string
 }
 
 export enum BotStateType {
 
     // Currently running application
     APP = 'APP',  //public app: AppBase | null = null
-    
+
     // Conversation Id associated with this session
     CONVERSATION_ID = 'CONVERSATION_ID',
 
@@ -38,30 +38,30 @@ export enum BotStateType {
 
     // Which packages are active for editing
     EDITING_PACKAGE = 'EDITING_PACKAGE',
-    
+
     // Is current session a teach session
-    IN_TEACH = 'IN_TEACH', 
+    IN_TEACH = 'IN_TEACH',
 
     // Last time active session was used (in ticks)
-    LAST_ACTIVE = 'LAST_ACTIVE', 
+    LAST_ACTIVE = 'LAST_ACTIVE',
 
     // If session is a chat session what is logDialogId
-    LOG_DIALOG_ID = 'LOG_DIALOG_ID', 
+    LOG_DIALOG_ID = 'LOG_DIALOG_ID',
 
     // Current message being processed
     MESSAGE_MUTEX = 'MESSAGE_MUTEX',
 
     // True if onStartSession needs to be called
-    NEED_SESSIONSTART_CALL = 'ON_STARTSESSION_CALLED', 
+    NEED_SESSIONSTART_CALL = 'ON_STARTSESSION_CALLED',
 
     // True if onEndSession needs to be called
-    NEED_SESSIONEND_CALL = 'ON_ENDSESSION_CALLED', 
+    NEED_SESSIONEND_CALL = 'ON_ENDSESSION_CALLED',
 
     // If session is continuation of times out session, what was the original sessionId
     ORIG_SESSION = 'ORIG_SESSION',
 
     // Currently active session
-    SESSION_ID = 'SESSION_ID'  
+    SESSION_ID = 'SESSION_ID'
 }
 
 export class BotState {
@@ -84,7 +84,7 @@ export class BotState {
         if (!this.memory) {
             throw new Error('BotState called without initializing memory')
         }
-        
+
         try {
             let data = await this.memory.GetAsync(botStateType);
             return JSON.parse(data) as T;
@@ -101,7 +101,7 @@ export class BotState {
         if (!this.memory) {
             throw new Error('BotState called without initializing memory')
         }
-        const json = JSON.stringify(value) 
+        const json = JSON.stringify(value)
         await this.memory.SetAsync(botStateType, json)
     }
 
@@ -139,7 +139,7 @@ export class BotState {
         else {
             // Store only needed data
             let smallApp = {
-                appId: app.appId, 
+                appId: app.appId,
                 appName: app.appName,
                 livePackageId: app.livePackageId,
                 devPackageId: app.devPackageId,
@@ -254,7 +254,7 @@ export class BotState {
         if (!existingConversationId) {
             await this.SetConversationId(conversationId)
             return await this.GetStateAsync<string | null>(BotStateType.SESSION_ID)
-        } 
+        }
         // If conversation Id matches return the sessionId
         else if (existingConversationId == conversationId) {
             return await this.GetStateAsync<string | null>(BotStateType.SESSION_ID)
@@ -281,12 +281,12 @@ export class BotState {
         await this.SetConversationId(conversationId)
         await this.SetLastActive(new Date().getTime())
         await this.SetInTeach((sessionStartFlags & SessionStartFlags.IN_TEACH) > 0)
-        await this.SetMessageProcessing(null)   
+        await this.SetMessageProcessing(null)
 
-      
+
     }
 
-    // End a session.  
+    // End a session.
     // originalSessionId is sent when session terminated from EndSession action or expiration
     public async EndSessionAsync(originalSessionId: string | null = null): Promise<void> {
         await this.SetSessionId(null);
@@ -344,7 +344,7 @@ export class BotState {
         } as Partial<BB.ConversationReference>
         this.SetConversationReference(conversationReference)
     }
-    
+
     // ------------------------------------------------
     //  LOG_DIALOG_ID
     // ------------------------------------------------

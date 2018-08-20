@@ -1,5 +1,5 @@
 /**
- * Copyright (c) Microsoft Corporation. All rights reserved.  
+ * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License.
  */
 import * as BB from 'botbuilder'
@@ -27,7 +27,7 @@ export class ConversationLearner {
         } catch (error) {
             CLDebug.Error(error, 'Conversation Learner Initialization')
         }
-        
+
         return getRouter(this.clClient, options)
     }
 
@@ -49,7 +49,7 @@ export class ConversationLearner {
 
     /**
      * OPTIONAL: Sessions are started automatically, StartSession call is only needed if bot needs
-     * to start Conversation Learner Session with initial entity values.  
+     * to start Conversation Learner Session with initial entity values.
      * Results in clearing of existing Entity values, and a call to the OnSessionStartCallback
      * @param turnContext BotBuilder Context
      */
@@ -64,7 +64,7 @@ export class ConversationLearner {
     public OnSessionStartCallback(target: OnSessionStartCallback) {
         this.clRunner.onSessionStartCallback = target
     }
-    
+
     /**
      * Provide a callback that will be invoked whenever a Session ends.  Sessions
      * can end because of a timeout or the selection of an EndSession activity
@@ -86,7 +86,7 @@ export class ConversationLearner {
         return await this.clRunner.InTrainingUI(turnContext)
     }
 
-    /** 
+    /**
      * Define an API callback that can be used by the Model
      * @param callback Object with callback name, optional logic function, and optional render function.
      */

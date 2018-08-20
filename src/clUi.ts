@@ -1,5 +1,5 @@
 /**
- * Copyright (c) Microsoft Corporation. All rights reserved.  
+ * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License.
  */
 import * as express from 'express'
@@ -20,7 +20,7 @@ export default function(port: number = 5050): { app: express.Express; listener: 
             console.log(`ERROR: The UI is already running or the port (${port}) is in use by another process`)
             return
         }
-        
+
         throw error
     });
 

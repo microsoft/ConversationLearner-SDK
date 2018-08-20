@@ -1,5 +1,5 @@
 /**
- * Copyright (c) Microsoft Corporation. All rights reserved.  
+ * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License.
  */
 import * as BB from 'botbuilder'
@@ -39,7 +39,7 @@ export class Utils {
         try {
             if (!error) {
                 return prefix + 'Unknown'
-            } 
+            }
             // Special message for 403 as it's like a bad ModelId
             else if (error.statusCode === 403) {
                             return `403 Forbidden:  Please check you have set a valid CONVERSATION_LEARNER_MODEL_ID`
@@ -106,7 +106,7 @@ export const addEntitiesById = (valuesByName: FilledEntityMap): FilledEntityMap 
         ...valuesByName.map,
         ...valuesById.map
     }
-    
+
     return new FilledEntityMap({ map })
 }
 
@@ -122,10 +122,10 @@ export function replace<T>(xs: T[], updatedX: T, getId: (x: T) => any): T[] {
 /* Returns true is SDK version in package is less than passed in version */
 const packageJsonPath = path.join(__dirname, '..', 'package.json')
 export async function isSDKOld(curVersion: string): Promise<boolean> {
-    const packageJson = await fs.readJson(packageJsonPath)    
+    const packageJson = await fs.readJson(packageJsonPath)
     if (packageJson.version === "0.0.0-development") {
         return false
-    }  
+    }
     return semver.lt(packageJson.version, curVersion)
 }
 
