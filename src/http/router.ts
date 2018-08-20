@@ -21,6 +21,7 @@ import * as proxy from 'http-proxy-middleware'
 import * as constants from '../constants'
 import * as bodyParser from 'body-parser'
 import * as cors from 'cors'
+import getUpdatedAppDefinition from '../GetUpdatedAppDefinition'
 
 // Extract error text from HTML error
 export const HTML2Error = (htmlText: string): string => {
@@ -279,6 +280,23 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
         try {
             const appIds = await client.CopyApps(srcUserId, destUserId, appId, luisSubscriptionKey)
             res.send(appIds)
+        } catch (error) {
+            HandleError(res, error)
+        }
+    })
+
+    router.get('/app/:appId/source', async (req, res, next) => {
+        const { appId } = req.params
+        const { packageId } = getQuery(req)
+        try {
+            const appDefinition = await client.GetAppSource(appId, packageId)
+
+            const appDefinitionChange: models.AppDefinitionChange = {
+                currentAppDefinition: appDefinition,
+                updatedAppDefinition: getUpdatedAppDefinition(appDefinition)
+            }
+
+            res.send(appDefinitionChange)
         } catch (error) {
             HandleError(res, error)
         }
