@@ -1,5 +1,5 @@
 /**
- * Copyright (c) Microsoft Corporation. All rights reserved.  
+ * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License.
  */
 import * as BB from 'botbuilder'
@@ -21,7 +21,7 @@ export class InputQueue {
     public static async AddInput(botState: BotState, request: BB.Activity, conversationReference: Partial<BB.ConversationReference>, callback: Function) : Promise<any> {
 
         if (!request.id) {
-            return null;    
+            return null;
         }
 
         // Add to queue
@@ -34,9 +34,9 @@ export class InputQueue {
     // Add message to queue
     private static async InputQueueAdd(conversationId: string, callback: Function): Promise<void> {
         const now = new Date().getTime();
-        const queuedInput = 
+        const queuedInput =
         {
-            conversationId: conversationId, 
+            conversationId: conversationId,
             timestamp: now,
             callback: callback
         } as QueuedInput

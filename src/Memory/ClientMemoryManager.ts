@@ -1,5 +1,5 @@
 /**
- * Copyright (c) Microsoft Corporation. All rights reserved.  
+ * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License.
  */
 import { SessionInfo } from '../Memory/BotState'
@@ -35,7 +35,7 @@ export class ReadOnlyClientMemoryManager {
     }
 
     /**
-     * Get value of entity 
+     * Get value of entity
      * @param entityName Name of Entity
      */
     public EntityValue(entityName: string): string | null {
@@ -51,7 +51,7 @@ export class ReadOnlyClientMemoryManager {
     }
 
     /**
-     * Get value of entity as a Prebuilt Entity 
+     * Get value of entity as a Prebuilt Entity
      * @param entityName Name of Entity
      */
     public EntityValueAsPrebuilt(entityName: string): MemoryValue[] {
@@ -59,7 +59,7 @@ export class ReadOnlyClientMemoryManager {
     }
 
     /**
-     * Get value of entity before most recent input as a Prebuilt Entity 
+     * Get value of entity before most recent input as a Prebuilt Entity
      * @param entityName Name of Entity
      */
     public PrevEntityValueAsPrebuilt(entityName: string): MemoryValue[] {
@@ -146,7 +146,7 @@ export class ClientMemoryManager extends ReadOnlyClientMemoryManager {
     public AsReadOnly(): ReadOnlyClientMemoryManager {
         return this
     }
-    
+
     public RememberEntity(entityName: string, entityValue: string | number | object): void {
         if (this.__expired) {
             CLDebug.Error(`ClientMemoryManager: RememberEntity "${entityName}" ${errMsg}`)
@@ -216,7 +216,7 @@ export class ClientMemoryManager extends ReadOnlyClientMemoryManager {
         this.curMemories.Forget(entity.entityName, value, entity.isMultivalue)
     }
 
-    /** Clear all entity values apart from any included in the list of saveEntityNames 
+    /** Clear all entity values apart from any included in the list of saveEntityNames
      * @param saveEntityNames Array of entity names not to forget
      */
     public ForgetAllEntities(saveEntityNames: string[]): void {

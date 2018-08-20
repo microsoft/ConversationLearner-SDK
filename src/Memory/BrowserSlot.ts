@@ -1,5 +1,5 @@
 /**
- * Copyright (c) Microsoft Corporation. All rights reserved.  
+ * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License.
  */
 import { CLMemory } from '../CLMemory'
@@ -22,7 +22,7 @@ export class BrowserSlot {
         this.lastUsed = new Date().getTime();
         this.id = String.fromCharCode(offset + 65)
     }
-    
+
     public static async GetSlot(browserId: string) : Promise<string> {
         let browserSlots = await this.BrowserSlots();
 
@@ -47,7 +47,7 @@ export class BrowserSlot {
         if (!oldestSlot) {
             throw new Error("Slot not found. This should never happen.")
         }
-        
+
         // Claim this slot
         oldestSlot.lastUsed = new Date().getTime();
         oldestSlot.browserId = browserId;
