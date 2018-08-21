@@ -622,7 +622,6 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
         }
     })
 
-    //LARS todo - clean this up.  type not needed any more
     /** START TEACH SESSION: Creates a new teaching session from existing train dialog */
     router.post('/app/:appId/teachwithhistory', async (req, res, next) => {
         try {
@@ -630,12 +629,9 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const appId = req.params.appId
             const { 
                 username: userName, 
-                userid: userId, 
-                historyMode: modeString } = getQuery(req)
+                userid: userId } = getQuery(req)
 
-            const trainDialog: models.TrainDialog = req.body.trainDialog
-            const userInput: models.UserInput = req.body.userInput
-            const historyMode: models.HistoryMode = (<any>models.HistoryMode)[modeString];
+            const trainDialog: models.TrainDialog = req.body
 
             // Get history and replay to put bot into last round
             const clMemory = CLMemory.GetMemory(key)
@@ -652,19 +648,18 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 return
             }
 
-            // If CONTINUING session, only start if there were no replay Errors
-            if (historyMode !== models.HistoryMode.CONTINUE || teachWithHistory.replayErrors.length === 0) {
+            // Only start if there were no replay Errors
+            if (teachWithHistory.replayErrors.length === 0) {
                 // Start new teach session from the old train dialog
                 const createTeachParams = models.ModelUtils.ToCreateTeachParams(trainDialog)
                 const teachResponse = await client.StartTeach(appId, createTeachParams)
 
-                // Start Session - with "true" to save the memory from the History
+                // Start Session
                 await clRunner.InitSessionAsync(clMemory, teachResponse.teachId, null, null, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE)
                 teachWithHistory.teach = models.ModelUtils.ToTeach(teachResponse)
 
-                // If last action wasn't terminal or just asking to score
-                if (historyMode === models.HistoryMode.SCORE_ONLY || 
-                    (historyMode === models.HistoryMode.CONTINUE && teachWithHistory.dialogMode === models.DialogMode.Scorer)) {
+                // If last action wasn't terminal then score
+                if (teachWithHistory.dialogMode === models.DialogMode.Scorer) {
 
                     // Get entities from my memory
                     const filledEntities = await clMemory.BotMemory.FilledEntitiesAsync()
@@ -680,16 +675,6 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                         teachWithHistory.scoreInput
                     )
                 }
-                else if (historyMode === models.HistoryMode.EXTRACT_ONLY && userInput) {
-                    teachWithHistory.extractResponse = await client.TeachExtract(appId, teachWithHistory.teach.teachId, userInput)
-                }
-            }
-
-            // If not continuing delete the teach session
-            if (historyMode !== models.HistoryMode.CONTINUE && 
-                teachWithHistory.teach) {
-                await client.EndTeach(appId, teachWithHistory.teach.teachId, `saveDialog=false`)
-                teachWithHistory.teach = undefined
             }
 
             res.send(teachWithHistory)
@@ -711,8 +696,12 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             // and set clMemory entities for the history
             await clRunner.ReplayTrainDialogLogic(trainDialog, clMemory)
 
+            // When editing, may need to run Scorer or Extrator on TrainDialog with invalid rounds
+            // This cleans up the TrainDialog removing bad data so the extractor can run
+            let cleanTrainDialog = clRunner.CleanseTrainDialog(trainDialog)
+
             // Start new teach session from the old train dialog
-            const createTeachParams = models.ModelUtils.ToCreateTeachParams(trainDialog)
+            const createTeachParams = models.ModelUtils.ToCreateTeachParams(cleanTrainDialog)
             const teachResponse = await client.StartTeach(appId, createTeachParams)
 
             // Start Session 
@@ -763,8 +752,12 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             // and set clMemory entities for the history
             await clRunner.ReplayTrainDialogLogic(trainDialog, clMemory)
                 
+            // When editing, may need to run Scorer or Extrator on TrainDialog with invalid rounds
+            // This cleans up the TrainDialog removing bad data so the extractor can run
+            let cleanTrainDialog = clRunner.CleanseTrainDialog(trainDialog)
+
             // Start new teach session from the old train dialog
-            const createTeachParams = models.ModelUtils.ToCreateTeachParams(trainDialog)
+            const createTeachParams = models.ModelUtils.ToCreateTeachParams(cleanTrainDialog)
             const teachResponse = await client.StartTeach(appId, createTeachParams)
 
             // Start Session 
@@ -782,7 +775,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             HandleError(res, error)
         }
     })
-//LARS post to get
+
     /** Replay a train dialog */
     router.post('/app/:appId/traindialogreplay', async (req, res, next) => {
         try {
