@@ -192,5 +192,54 @@ describe('upgrade', () => {
             expect(appChange.isChanged).toBe(false)
             expect(appChange.currentAppDefinition).toEqual(appDefinition)
         })
+
+        test('given app definition without changes return object as is without changes', () => {
+            // Arrange
+            const action: models.ActionBase = {
+                actionId: 'fakeActionId',
+                actionType: models.ActionTypes.API_LOCAL,
+                createdDateTime: new Date().toJSON(),
+                isTerminal: false,
+                negativeEntities: [],
+                payload: JSON.stringify({
+                    payload: "myCallback",
+                    arguments: [
+                        {
+                            parameter: "logicArg",
+                            value: {
+                                json: {}
+                            }
+                        },
+                        {
+                            parameter: "renderArg",
+                            value: {
+                                json: {}
+                            }
+                        }
+                    ]
+                } as models.ActionPayloadSingleArguments),
+                requiredEntities: [],
+                requiredEntitiesFromPayload: [],
+                suggestedEntity: null,
+                version: 0,
+                packageCreationId: 0,
+                packageDeletionId: 0
+            }
+
+            const appDefinition: models.AppDefinition = {
+                actions: [
+                    action
+                ],
+                entities: [],
+                trainDialogs: []
+            }
+
+            // Act
+            const appChange = upgrade.default(appDefinition, {})
+
+            // Assert
+            expect(appChange.isChanged).toBe(true)
+            expect(appChange.currentAppDefinition).toEqual(appDefinition)
+        })
     })
 })
