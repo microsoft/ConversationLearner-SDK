@@ -149,6 +149,13 @@ export class CLClient {
         return this.send('GET', this.MakeURL(apiPath))
     }
 
+    public PostAppSource(appId: string, appDefinition: models.AppDefinition): Promise<void> {
+        let apiPath = `app/${appId}/source`
+        return this.send('POST', this.MakeURL(apiPath), appDefinition)
+            // tslint:disable-next-line:no-empty
+            .then(response => {})
+    }
+
     /** Retrieve a list of (active) applications */
     public GetApps(query: string): Promise<models.AppList> {
         let apiPath = `apps`

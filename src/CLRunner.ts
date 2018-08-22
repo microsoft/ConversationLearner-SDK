@@ -93,6 +93,8 @@ export interface IActionResult {
     response: Partial<BB.Activity> | string | null
 }
 
+export type CallbackMap = { [name: string]: InternalCallback<any> }
+
 export class CLRunner {
 
     /* Lookup table for CLRunners.  One CLRunner per CL Model */
@@ -107,7 +109,7 @@ export class CLRunner {
     private maxTimeout: number | undefined;  // TODO: Move timeout to app settings
 
     /* Mapping between user defined API names and functions */
-    public callbacks: { [name: string]: InternalCallback<any> } = {}
+    public callbacks: CallbackMap = {}
 
     public static Create(configModelId: string | undefined, maxTimeout: number | undefined, client: CLClient): CLRunner {
 
