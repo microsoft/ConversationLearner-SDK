@@ -21,7 +21,7 @@ import * as proxy from 'http-proxy-middleware'
 import * as constants from '../constants'
 import * as bodyParser from 'body-parser'
 import * as cors from 'cors'
-import getAppDefinitionChange from '../GetUpdatedAppDefinition'
+import getAppDefinitionChange from '../upgrade'
 
 // Extract error text from HTML error
 export const HTML2Error = (htmlText: string): string => {

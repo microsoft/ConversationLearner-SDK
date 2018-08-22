@@ -3,7 +3,7 @@
  * Licensed under the MIT License.
  */
 import * as models from '@conversationlearner/models'
-import { CallbackMap, InternalCallback } from './CLRunner'
+import { CallbackMap } from './CLRunner'
 
 /**
  * Given an app definition return an updated app definition.
@@ -81,7 +81,7 @@ export function getActionChangeResult (action: models.ActionBase, callbackMap: C
     return changeResult
 }
 
-export function getActionPayload(legacyActionPayload: models.ActionPayloadSingleArguments, callback: InternalCallback<any>): models.ActionPayload {
+export function getActionPayload(legacyActionPayload: models.ActionPayloadSingleArguments, callback: models.Callback): models.ActionPayload {
     return legacyActionPayload.arguments.reduce<models.ActionPayload>((actionPayload, argument) => {
         const isMovedToLogicArgument = callback.logicArguments.some(la => la === argument.parameter)
         if (isMovedToLogicArgument) {
