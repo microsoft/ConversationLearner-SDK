@@ -21,6 +21,7 @@ import * as proxy from 'http-proxy-middleware'
 import * as constants from '../constants'
 import * as bodyParser from 'body-parser'
 import * as cors from 'cors'
+import getAppDefinitionChange from '../upgrade'
 
 // Extract error text from HTML error
 export const HTML2Error = (htmlText: string): string => {
@@ -53,7 +54,7 @@ export const HandleError = (response: express.Response, err: any): void => {
     }
     if (err.body && typeof err.body == 'string') {
         // Handle HTML error
-        if (err.body.indexOf('!DOCTYPE html')) {
+        if ((err.body as string).includes('!DOCTYPE html')) {
             error += HTML2Error(err.body)
         } else {
             error += `${err.body}\n`
@@ -279,6 +280,45 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
         try {
             const appIds = await client.CopyApps(srcUserId, destUserId, appId, luisSubscriptionKey)
             res.send(appIds)
+        } catch (error) {
+            HandleError(res, error)
+        }
+    })
+
+    router.get('/app/:appId/source', async (req, res, next) => {
+        const { appId } = req.params
+        const { packageId } = getQuery(req)
+        try {
+            const clRunner = CLRunner.GetRunnerForUI(appId)
+            const appDetails = await client.GetApp(appId)
+            const appDefinition = await client.GetAppSource(appId, packageId)
+
+            let appDefinitionChange = getAppDefinitionChange(appDefinition, clRunner.callbacks)
+            if (appDefinitionChange.isChanged) {
+                console.warn(`⚠ Local package upgraded to enable viewing.`)
+                if (packageId === appDetails.devPackageId) {
+                    console.log(`⚪ Requested package id is the same the latest package id. This package is a candidate for saving.`)
+                    if (packageId !== appDetails.livePackageId) {
+                        console.log(`⚪ Request package id is not the live package id. Qualifies for auto upgrade.`)
+                        await client.PostAppSource(appId, appDefinitionChange.updatedAppDefinition)
+                        console.log(`✔ Saved updated package successfully!`)
+                        
+                        // Save the updated source and return with no change.
+                        // TODO: Allow user to see that application was auto updated?
+                        // The current solution hides the fact that package was updated as there isn't any useful intervention the user can do
+                        // other than acknowledge and continue, but perhaps they would wish to know.
+                        appDefinitionChange = {
+                            isChanged: false,
+                            currentAppDefinition: appDefinitionChange.updatedAppDefinition
+                        }
+                    }
+                    else {
+                        console.log(`⚠ Requested package id is also the live package id. Cannot safely auto upgrade. User must confirm in UI to save.`)
+                    }
+                }
+            }
+
+            res.send(appDefinitionChange)
         } catch (error) {
             HandleError(res, error)
         }
