@@ -1174,8 +1174,8 @@ export class CLRunner {
     private async InitReplayMemory(clMemory: CLMemory, trainDialog: CLM.TrainDialog, entities: CLM.EntityBase[]) {
 
         // Reset the memory
-        await clMemory.BotMemory.ClearAsync()
-
+        await  clMemory.BotMemory.ClearAsync()
+        /* LARS - Disable until InitialFilledEntities is supported  
         // Set initial entities
         // TODO: Currently mixes initial values (from SessionStartCallback) with those extracted in first round
         // need to update schema to include storing of init values
@@ -1185,6 +1185,7 @@ export class CLRunner {
             let map = CLM.FilledEntityMap.FromFilledEntities(filledEntities, entities)
             await clMemory.BotMemory.RestoreFromMapAsync(map)
         }
+        */
     }
 
     /**
@@ -1248,6 +1249,9 @@ export class CLRunner {
                         // Fill in missing entities with a warning
                         this.PopulateMissingFilledEntities(curAction, filledEntityMap, entities)
 
+                        // Update filled entities
+                        round.scorerSteps[scoreIndex].input.filledEntities = await clMemory.BotMemory.FilledEntitiesAsync()
+
                         // Run logic part of APIAction to update the FilledEntities
                         if (curAction.actionType === CLM.ActionTypes.API_LOCAL) {
                             const apiAction = new CLM.ApiAction(curAction)
@@ -1255,7 +1259,6 @@ export class CLRunner {
                                 type: ActionInputType.LOGIC_ONLY
                             }
                             await this.TakeAPIAction(apiAction, filledEntityMap, clMemory, entityList.entities, true, actionInput)
-                            round.scorerSteps[scoreIndex].input.filledEntities = await clMemory.BotMemory.FilledEntitiesAsync()
                         } else if (curAction.actionType === CLM.ActionTypes.END_SESSION) {
                             // LARS - todo, what is needed here
                             const sessionAction = new CLM.SessionAction(curAction)
