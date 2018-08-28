@@ -1,5 +1,5 @@
 /**
- * Copyright (c) Microsoft Corporation. All rights reserved.  
+ * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License.
  */
 import * as BB from 'botbuilder'
@@ -99,6 +99,8 @@ export interface IActionResult {
     response: Partial<BB.Activity> | string | null
 }
 
+export type CallbackMap = { [name: string]: InternalCallback<any> }
+
 export class CLRunner {
 
     /* Lookup table for CLRunners.  One CLRunner per CL Model */
@@ -113,11 +115,11 @@ export class CLRunner {
     private maxTimeout: number | undefined;  // TODO: Move timeout to app settings
 
     /* Mapping between user defined API names and functions */
-    public callbacks: { [name: string]: InternalCallback<any> } = {}
+    public callbacks: CallbackMap = {}
 
     public static Create(configModelId: string | undefined, maxTimeout: number | undefined, client: CLClient): CLRunner {
 
-        // Ok to not provide modelId when just running in training UI.  
+        // Ok to not provide modelId when just running in training UI.
         // If not, Use UI_RUNNER_APPID const as lookup value
         let newRunner = new CLRunner(configModelId, maxTimeout, client);
         CLRunner.Runners[configModelId || UI_RUNNER_APPID] = newRunner;
@@ -167,7 +169,7 @@ export class CLRunner {
     public async InTrainingUI(turnContext: BB.TurnContext): Promise<boolean> {
         if (turnContext.activity.from && turnContext.activity.from.name === CL_DEVELOPER) {
             let clMemory = CLMemory.GetMemory(turnContext.activity.from.id)
-            let app = await clMemory.BotState.GetApp() 
+            let app = await clMemory.BotState.GetApp()
             // If no app selected in UI or no app set in config, or they match return true
             if (!app || !this.configModelId || app.appId === this.configModelId) {
                 return true
@@ -175,7 +177,7 @@ export class CLRunner {
         }
         return false
     }
-    
+
     // Allows Bot developer to start a new Session with initial parameters (never in Teach)
     public async BotStartSession(turnContext: BB.TurnContext): Promise<void> {
 
@@ -191,7 +193,7 @@ export class CLRunner {
         try {
             let app = await this.GetRunningApp(activity.from.id, false);
             let clMemory = await CLMemory.InitMemory(activity.from, conversationReference)
-        
+
             if (app) {
                 let packageId = (app.livePackageId || app.devPackageId)
                 if (packageId) {
@@ -200,7 +202,7 @@ export class CLRunner {
             }
         }
         catch (error) {
-            CLDebug.Error(error) 
+            CLDebug.Error(error)
         }
     }
 
@@ -240,13 +242,13 @@ export class CLRunner {
         else {
             let addInputPromise = util.promisify(InputQueue.AddInput);
             let isReady = await addInputPromise(botState, turnContext.activity, conversationReference);
-            
+
             if (isReady)
             {
                 let intents = await this.ProcessInput(turnContext.activity, conversationReference);
                 return intents;
             }
-            // Message has expired 
+            // Message has expired
             return null;
         }
     }
@@ -267,8 +269,8 @@ export class CLRunner {
         let clMemory = CLMemory.GetMemory(key)
         let app = await clMemory.BotState.GetApp()
 
-        if (app) {  
-            // If I'm not in the editing UI, always use app specified by options       
+        if (app) {
+            // If I'm not in the editing UI, always use app specified by options
             if (!inEditingUI && this.configModelId && this.configModelId != app.appId)
             {
                 // Use config value
@@ -287,12 +289,12 @@ export class CLRunner {
     }
 
 
-    // Initialize a log or teach session 
+    // Initialize a log or teach session
     public async InitSessionAsync(clMemory: CLMemory, sessionId: string, logDialogId: string | null, conversationId: string | null, sessionStartFlags: SessionStartFlags): Promise<void> {
-    
+
         let app = await clMemory.BotState.GetApp()
 
-        // If not continuing an edited session, call endSession 
+        // If not continuing an edited session, call endSession
         if (!(sessionStartFlags && SessionStartFlags.IS_EDIT_CONTINUE)) {
             // Default callback will clear the bot memory.
             // END_SESSION action was never triggered, so SessionEndState.OPEN
@@ -324,8 +326,8 @@ export class CLRunner {
         }
 
         try {
-            
-            let inEditingUI = 
+
+            let inEditingUI =
                 conversationReference.user &&
                 conversationReference.user.name === CL_DEVELOPER || false;
 
@@ -360,7 +362,7 @@ export class CLRunner {
                 const currentTicks = new Date().getTime();
                 let lastActive = await clMemory.BotState.GetLastActive()
                 let passedTicks = currentTicks - lastActive;
-                if (passedTicks > this.maxTimeout!) { 
+                if (passedTicks > this.maxTimeout!) {
 
                     // End the current session, clear the memory
                     await this.clClient.EndSession(app.appId, sessionId)
@@ -379,17 +381,17 @@ export class CLRunner {
 
                         app = await this.clClient.GetApp(this.configModelId)
                         await clMemory.SetAppAsync(app)
-            
+
                         if (!app) {
                             let error = "ERROR: Failed to find Model specified by CONVERSATION_LEARNER_MODEL_ID"
                             await this.SendMessage(clMemory, error, activity.id)
                             return null
                         }
                     }
-                    
-                    // Start a new session 
+
+                    // Start a new session
                     let sessionResponse = await this.clClient.StartSession(app.appId, {saveToLog: app.metadata.isLoggingOn})
-        
+
                     // Update Memory, passing in original sessionId for reference
                     let conversationId = await clMemory.BotState.GetConversationId()
 
@@ -424,7 +426,7 @@ export class CLRunner {
 
             // Check if StartSession call is required
             await this.CheckSessionStartCallback(clMemory, app ? app.appId : null);
-        
+
             // Process any form data
             let buttonResponse = await this.ProcessFormData(activity, clMemory, app.appId)
 
@@ -656,7 +658,7 @@ export class CLRunner {
             if (appId && this.onSessionStartCallback && this.adapter) {
                 let entityList = await this.clClient.GetEntities(appId)
                 let memoryManager = await this.CreateMemoryManagerAsync(clMemory, entityList.entities)
-                
+
                 // Get conversation ref, so I can generate context and send it back to bot dev
                 let conversationReference = await clMemory.BotState.GetConversationReverence()
                 if (!conversationReference) {
@@ -688,7 +690,7 @@ export class CLRunner {
         let needEndSession = await clMemory.BotState.GetNeedSessionEndCall();
 
         if (needEndSession) {
-          
+
             // If bot has callback, call it to determine which entities to clear / edit
             if (appId && this.onSessionEndCallback && this.adapter) {
                 let entityList = await this.clClient.GetEntities(appId)
@@ -716,7 +718,7 @@ export class CLRunner {
                         this.SendMessage(clMemory, errMsg);
                     }
                 })
-            } 
+            }
             // Otherwise just clear the memory
             else {
                 await clMemory.BotMemory.ClearAsync()
@@ -761,7 +763,7 @@ export class CLRunner {
                     apiAction,
                     filledEntityMap,
                     clRecognizeResult.memory,
-                    clRecognizeResult.clEntities, 
+                    clRecognizeResult.clEntities,
                     inTeach,
                     {
                         type: ActionInputType.LOGIC_AND_RENDER
@@ -848,7 +850,7 @@ export class CLRunner {
         }
 
         const actionResult = await this.RenderTemplateAsync(conversationReference, intent, inTeach)
-    
+
         if (actionResult.response != null) {
             await this.adapter.continueConversation(conversationReference, async (context) => {
                 // Need to repeat null check as compiler is catching one above for explicit null
@@ -867,7 +869,7 @@ export class CLRunner {
         if (incomingActivityId) {
             await InputQueue.MessageHandled(memory.BotState, incomingActivityId);
         }
-                
+
         let conversationReference = await memory.BotState.GetConversationReverence()
         if (!conversationReference) {
             CLDebug.Error('Missing ConversationReference')
@@ -1012,10 +1014,10 @@ export class CLRunner {
     }
 
     public async TakeSessionAction(sessionAction: CLM.SessionAction, filledEntityMap: CLM.FilledEntityMap, inTeach: boolean, userId: string, sessionId: string | null): Promise<Partial<BB.Activity> | null> {
-        
+
         // Get any context from the action
         let content = sessionAction.renderValue(CLM.getEntityDisplayValueMap(filledEntityMap))
-    
+
         // Send original session Id. Used for continuing sessions
         await this.EndSessionAsync(userId, CLM.SessionEndState.COMPLETED, sessionId, content);
 
@@ -1071,7 +1073,7 @@ export class CLRunner {
     }
 
     /**
-     * Identify any validation issues 
+     * Identify any validation issues
      * Missing Entities
      * Missing Actions
      * Unavailable Actions
@@ -1132,7 +1134,7 @@ export class CLRunner {
     private PopulatePrebuilts(predictedEntities: CLM.PredictedEntity[], filledEntities: CLM.FilledEntity[]) {
         for (let pe of predictedEntities) {
             let filledEnt = filledEntities.find(fe => fe.entityId === pe.entityId);
-            if (filledEnt) { 
+            if (filledEnt) {
                 let value = filledEnt.values.find(v => v.userText === pe.entityText)
                 if (value) {
                     pe.resolution = value.resolution;
@@ -1145,10 +1147,10 @@ export class CLRunner {
     }
 
     /**
-     * Ensure that all entities have values for History rendering
+     * Get Activities generated by trainDialog.
      */
     private PopulateMissingFilledEntities(action: CLM.ActionBase, filledEntityMap: CLM.FilledEntityMap, allEntities: CLM.EntityBase[]): void {
-        action.requiredEntitiesFromPayload.forEach(entityId => {
+        action.requiredEntitiesFromPayload.forEach((entityId: string) => {
             let entity = allEntities.find(e => e.entityId === entityId)
             if (entity) {
                 if (!filledEntityMap.map[entity.entityName]) {
@@ -1504,7 +1506,7 @@ export class CLRunner {
         let hasRounds = trainDialog.rounds.length > 0;
         let hasScorerRound = (hasRounds && trainDialog.rounds[trainDialog.rounds.length-1].scorerSteps.length > 0)
         let dialogMode =  CLM.DialogMode.Scorer;
-        
+
         // If I have no rounds, I'm waiting for input
         if (!hasRounds) {
             dialogMode = CLM.DialogMode.Wait;
@@ -1535,8 +1537,7 @@ export class CLRunner {
             } as CLM.UIScoreInput
         }
 
-
-        // Make errors unique using Set operator 
+        // Make errors unique using Set operator
         replayErrors = [...new Set(replayErrors)]
 
         let teachWithHistory: CLM.TeachWithHistory = {

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) Microsoft Corporation. All rights reserved.  
+ * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License.
  */
 import * as express from 'express'
@@ -21,6 +21,7 @@ import * as proxy from 'http-proxy-middleware'
 import * as constants from '../constants'
 import * as bodyParser from 'body-parser'
 import * as cors from 'cors'
+import getAppDefinitionChange from '../upgrade'
 
 // Extract error text from HTML error
 export const HTML2Error = (htmlText: string): string => {
@@ -53,7 +54,7 @@ export const HandleError = (response: express.Response, err: any): void => {
     }
     if (err.body && typeof err.body == 'string') {
         // Handle HTML error
-        if (err.body.indexOf('!DOCTYPE html')) {
+        if ((err.body as string).includes('!DOCTYPE html')) {
             error += HTML2Error(err.body)
         } else {
             error += `${err.body}\n`
@@ -82,7 +83,7 @@ const getBanner = (source: string) : Promise<CLM.Banner | null> => {
         const options = {
             method: 'GET',
             uri: source,
-            json: true 
+            json: true
         }
         ​
         // Never fail this request
@@ -170,7 +171,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
             // Retrieve any status message
             let banner = await getBanner(statusEndpoint);
-            
+
             // If no status message, check if version update message is needed
             if (!banner) {
                 // Display version banner if SDK is obsolete
@@ -217,7 +218,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const appId = await client.AddApp(newApp, query)
             const app = await client.GetApp(appId)
             res.send(app)
-            
+
             // Initialize memory
             await CLMemory.GetMemory(key).SetAppAsync(app)
         } catch (error) {
@@ -279,6 +280,45 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
         try {
             const appIds = await client.CopyApps(srcUserId, destUserId, appId, luisSubscriptionKey)
             res.send(appIds)
+        } catch (error) {
+            HandleError(res, error)
+        }
+    })
+
+    router.get('/app/:appId/source', async (req, res, next) => {
+        const { appId } = req.params
+        const { packageId } = getQuery(req)
+        try {
+            const clRunner = CLRunner.GetRunnerForUI(appId)
+            const appDetails = await client.GetApp(appId)
+            const appDefinition = await client.GetAppSource(appId, packageId)
+
+            let appDefinitionChange = getAppDefinitionChange(appDefinition, clRunner.callbacks)
+            if (appDefinitionChange.isChanged) {
+                console.warn(`⚠ Local package upgraded to enable viewing.`)
+                if (packageId === appDetails.devPackageId) {
+                    console.log(`⚪ Requested package id is the same the latest package id. This package is a candidate for saving.`)
+                    if (packageId !== appDetails.livePackageId) {
+                        console.log(`⚪ Request package id is not the live package id. Qualifies for auto upgrade.`)
+                        await client.PostAppSource(appId, appDefinitionChange.updatedAppDefinition)
+                        console.log(`✔ Saved updated package successfully!`)
+                        
+                        // Save the updated source and return with no change.
+                        // TODO: Allow user to see that application was auto updated?
+                        // The current solution hides the fact that package was updated as there isn't any useful intervention the user can do
+                        // other than acknowledge and continue, but perhaps they would wish to know.
+                        appDefinitionChange = {
+                            isChanged: false,
+                            currentAppDefinition: appDefinitionChange.updatedAppDefinition
+                        }
+                    }
+                    else {
+                        console.log(`⚠ Requested package id is also the live package id. Cannot safely auto upgrade. User must confirm in UI to save.`)
+                    }
+                }
+            }
+
+            res.send(appDefinitionChange)
         } catch (error) {
             HandleError(res, error)
         }
@@ -395,7 +435,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const entity: CLM.EntityBase = req.body
             const { packageId } = getQuery(req)
             const appDefinition = await client.GetAppSource(appId, packageId)
-            
+
             // Replace the entity with new one
             appDefinition.entities = replace(appDefinition.entities, entity, e => e.entityId)
 
@@ -445,7 +485,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
     //========================================================
     // TrainDialogs
     //========================================================
-    /** 
+    /**
      * RUN EXTRACTOR: Runs entity extraction on a train dialog
      */
     router.put('/app/:appId/traindialog/:trainDialogId/extractor/:turnIndex', async (req, res, next) => {
@@ -517,7 +557,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const clRunner = CLRunner.GetRunnerForUI(appId);
             const memory = CLMemory.GetMemory(key)
             memory.BotMemory.ClearAsync()
-            
+
             clRunner.InitSessionAsync(memory, sessionResponse.sessionId, sessionResponse.logDialogId, null, SessionStartFlags.NONE)
         } catch (error) {
             HandleError(res, error)
@@ -565,7 +605,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
             let response : string
             if (!originalSessionId) {
-                // This can happen when a LogDialog End_Session Action is called and the 
+                // This can happen when a LogDialog End_Session Action is called and the
                 // user subsequently presses the DONE button
                 response = await client.EndSession(appId, sessionId)
 
@@ -1002,7 +1042,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
             // Clear bot memory generated with this
             memory.BotMemory.ClearAsync();
-            
+
             if (teachWithHistory) {
                 res.send(teachWithHistory)
             }
@@ -1080,9 +1120,9 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
              * Currently there is conflict of interest.  For the custom routes we define, we want the body parsed
              * so we need bodyParser.json() middleware above it in the pipeline; however, when bodyParser is above/before
              * the http-proxy-middleware then it can't properly stream the body through.
-             * 
+             *
              * This code explicitly re-streams the data by calling .write()
-             * 
+             *
              * Ideally we could find a way to only use bodyParser.json() on our custom routes so it's no in the pipeline above
              * the proxy
              */

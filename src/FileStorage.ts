@@ -1,12 +1,12 @@
 /**
- * Copyright (c) Microsoft Corporation. All rights reserved.  
+ * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License.
  */
 /**
  * @module botbuilder-node
  */
 /**
- * Copyright (c) Microsoft Corporation. All rights reserved.  
+ * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License.
  */
 import { Storage, StoreItems, StoreItem } from 'botbuilder';
@@ -17,7 +17,7 @@ import * as filenamify from 'filenamify';
 
 /**
  * :package: **botbuilder**
- * 
+ *
  * A file based storage provider. Items will be persisted to a folder on disk.
  *
  * **Usage Example**
@@ -25,7 +25,7 @@ import * as filenamify from 'filenamify';
  * ```JavaScript
  * const { FileStorage } = require('botbuilder');
  * const path = require('path');
- *  
+ *
  * const storage = new FileStorage(path.join(__dirname, './state'));
  * ```
  */

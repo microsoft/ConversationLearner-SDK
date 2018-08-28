@@ -1,5 +1,5 @@
 /**
- * Copyright (c) Microsoft Corporation. All rights reserved.  
+ * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License.
  */
 import * as BB from 'botbuilder'
@@ -38,7 +38,7 @@ export class CLMemory {
         if (!user.id) {
             throw new Error(`Attempted to initialize memory, but user.id was not provided which is required for use as memory key.`)
         }
-        
+
         let memory = new CLMemory(user.id)
         await memory.BotState.SetConversationReference(conversationReference)
         return memory
@@ -52,7 +52,7 @@ export class CLMemory {
         if (!CLMemory.memoryStorage) {
             throw new Error('Memory storage not found')
         }
-        
+
         let key = this.Key(datakey)
         let cacheData = this.memCache[key]
         if (cacheData) {

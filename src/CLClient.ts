@@ -1,5 +1,5 @@
 /**
- * Copyright (c) Microsoft Corporation. All rights reserved.  
+ * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License.
  */
 import * as CLM from '@conversationlearner/models'
@@ -67,25 +67,25 @@ export class CLClient {
         // check if request is bypassing cognitive services APIM
         if(!this.options.CONVERSATION_LEARNER_SERVICE_URI.includes('api.cognitive.microsoft.com'))
         {
-            // In this case we are not chaning the serviceUrl and it stays the same, 
+            // In this case we are not chaning the serviceUrl and it stays the same,
             // for example: https://localhost:37936/api/v1/ -> https://localhost:37936/api/v1/
             return this.MakeURL(apiPath, query)
         }
-        
+
         // The base uri for session API in cognitive services APIM is in the form of '<service url>/conversationlearner/session/v1.0/'
-        // Session API are the following api: 
+        // Session API are the following api:
         //  1) POST /app/<appId>/session
         //  2) PUT /app/<appId>/session/extract
         //  3) PUT /app/<appId>/session/score
         //  4) DELETE /app/<appId>/session
-        let baseUri = this.options.CONVERSATION_LEARNER_SERVICE_URI.endsWith('/') ? 
-            this.options.CONVERSATION_LEARNER_SERVICE_URI : 
+        let baseUri = this.options.CONVERSATION_LEARNER_SERVICE_URI.endsWith('/') ?
+            this.options.CONVERSATION_LEARNER_SERVICE_URI :
             `${this.options.CONVERSATION_LEARNER_SERVICE_URI}/`
         const apimVersionSuffix = '/v1.0/'
         if(baseUri.endsWith(apimVersionSuffix))
         {
             // In this case, serviceurl has api version information in it; "session" will be inserted before /v1.0
-            // this means that https://westus.api.cognitive.microsoft.com/conversationlearner/v1.0/ becomes 
+            // this means that https://westus.api.cognitive.microsoft.com/conversationlearner/v1.0/ becomes
             // https://westus.api.cognitive.microsoft.com/conversationlearner/session/v1.0/
             baseUri = `${baseUri.substring(0, baseUri.lastIndexOf(apimVersionSuffix))}/session${apimVersionSuffix}`
         }
@@ -118,7 +118,7 @@ export class CLClient {
             if(!requestMethod) {
                 throw new Error(`Request method not found for http verb: ${method}`)
             }
-    
+
             requestMethod(requestData, (error, response, responseBody) => {
                 if (error) {
                     reject(error)
@@ -134,7 +134,7 @@ export class CLClient {
     //==============================================================================
     // App
     //=============================================================================
-    /** 
+    /**
      * Retrieve information about a specific application
      * If the app ID isn't found in the set of (non-archived) apps,
      * returns 404 error ("not found")
@@ -149,6 +149,13 @@ export class CLClient {
         return this.send('GET', this.MakeURL(apiPath))
     }
 
+    public PostAppSource(appId: string, appDefinition: CLM.AppDefinition): Promise<void> {
+        let apiPath = `app/${appId}/source`
+        return this.send('POST', this.MakeURL(apiPath), appDefinition)
+            // tslint:disable-next-line:no-empty
+            .then(response => {})
+    }
+
     /** Retrieve a list of (active) applications */
     public GetApps(query: string): Promise<CLM.AppList> {
         let apiPath = `apps`
@@ -161,7 +168,7 @@ export class CLClient {
         return this.send('POST', this.MakeURL(apiPath))
     }
 
-    /** 
+    /**
      * Archive an existing application
      * Note: "deleting" an application doesn't destroy it, but rather archives
      * it for a period (eg 30 days).  During the archive period, the application
@@ -173,7 +180,7 @@ export class CLClient {
         return this.send('DELETE', this.MakeURL(apiPath))
     }
 
-    /** 
+    /**
      * Create a new application
      */
     // TODO: Fix API to return full object
@@ -278,7 +285,7 @@ export class CLClient {
     /** End a session. */
     public EndSession(appId: string, sessionId: string): Promise<string> {
         let apiPath = `app/${appId}/session/${sessionId}`
-        //TODO: remove this when redundant query parameter is removed 
+        //TODO: remove this when redundant query parameter is removed
         let query = 'saveDialog=false'
         return this.send('DELETE', this.MakeSessionURL(apiPath, query))
     }

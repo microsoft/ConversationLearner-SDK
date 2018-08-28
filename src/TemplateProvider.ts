@@ -1,5 +1,5 @@
 /**
- * Copyright (c) Microsoft Corporation. All rights reserved.  
+ * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License.
  */
 import * as fs from 'fs'
@@ -113,7 +113,7 @@ export class TemplateProvider {
     public static GetTemplate(templateName: string): any {
 
         const filename = path.join(this.TemplateDirectory(), `${templateName}.json`);
-        
+
         try {
             const templateString = fs.readFileSync(filename, 'utf-8')
 
