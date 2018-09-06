@@ -12,7 +12,7 @@ const NEGATIVE_PREFIX = '~'
 export class BotMemory {
     private static _instance: BotMemory | undefined
     private static MEMKEY = 'BOTMEMORY'
-    private memory: CLMemory | undefined
+    private clMemory: CLMemory | undefined
     public filledEntityMap: FilledEntityMap
 
     private constructor(init?: Partial<BotMemory>) {
@@ -24,7 +24,7 @@ export class BotMemory {
         if (!BotMemory._instance) {
             BotMemory._instance = new BotMemory()
         }
-        BotMemory._instance.memory = clMemory
+        BotMemory._instance.clMemory = clMemory
         return BotMemory._instance
     }
 
@@ -34,11 +34,11 @@ export class BotMemory {
     }
 
     private async Init(): Promise<void> {
-        if (!this.memory) {
+        if (!this.clMemory) {
             throw new Error('BotMemory called without initializing memory')
         }
 
-        let data = await this.memory.GetAsync(BotMemory.MEMKEY)
+        let data = await this.clMemory.GetAsync(BotMemory.MEMKEY)
         if (data) {
             this.Deserialize(data)
         } else {
@@ -59,10 +59,10 @@ export class BotMemory {
     }
 
     private async Set(): Promise<void> {
-        if (!this.memory) {
+        if (!this.clMemory) {
             throw new Error('BotMemory called without initializing memory')
         }
-        await this.memory.SetAsync(BotMemory.MEMKEY, this.Serialize())
+        await this.clMemory.SetAsync(BotMemory.MEMKEY, this.Serialize())
     }
 
     public async RestoreFromMapAsync(filledEntityMap: FilledEntityMap): Promise<void> {
