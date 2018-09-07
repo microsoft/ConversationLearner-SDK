@@ -295,9 +295,9 @@ export class CLClient {
     //=============================================================================
 
     /** Creates a new teaching session and a corresponding trainDialog */
-    public StartTeach(appId: string, createTeachParams: CLM.CreateTeachParams | null): Promise<CLM.TeachResponse> {
+    public StartTeach(appId: string, createTeachParams: CLM.CreateTeachParams): Promise<CLM.TeachResponse> {
         let apiPath = `app/${appId}/teach`
-        return this.send('POST', this.MakeURL(apiPath), createTeachParams ? createTeachParams : {})
+        return this.send('POST', this.MakeURL(apiPath), createTeachParams)
     }
 
     /**
