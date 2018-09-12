@@ -10,7 +10,7 @@ import { CLClient } from './CLClient'
 import { TemplateProvider } from './TemplateProvider'
 import * as CLM from '@conversationlearner/models'
 import { ReadOnlyClientMemoryManager, ClientMemoryManager } from './Memory/ClientMemoryManager'
-import { addEntitiesById, CL_DEVELOPER, UI_RUNNER_APPID, generateGUID } from './Utils'
+import { addEntitiesById, CL_DEVELOPER, UI_RUNNER_APPID } from './Utils'
 import { CLRecognizerResult } from './CLRecognizeResult'
 import { ConversationLearner } from './ConversationLearner'
 import { InputQueue } from './Memory/InputQueue'
@@ -78,15 +78,21 @@ interface ICallback<T> {
     render: RenderCallback<T>
 }
 
-interface IActionInputLogic {
-    skipLogic: true
-    value: string | undefined
-}
-interface IActionInputSkipLogic {
-    skipLogic: false
+enum ActionInputType {
+    LOGIC_ONLY,
+    RENDER_ONLY,
+    LOGIC_AND_RENDER
 }
 
-type IActinInput = IActionInputSkipLogic | IActionInputLogic
+interface IActionInputLogic {
+    type: ActionInputType.RENDER_ONLY
+    value: string | undefined
+}
+interface IActionInputRenderOnly {
+    type: ActionInputType
+}
+
+type IActionInput = IActionInputRenderOnly | IActionInputLogic
 
 export interface IActionResult {
     logicResult: object | void
@@ -164,8 +170,8 @@ export class CLRunner {
         if (turnContext.activity.from && turnContext.activity.from.name === CL_DEVELOPER) {
             let clMemory = CLMemory.GetMemory(turnContext.activity.from.id)
             let app = await clMemory.BotState.GetApp()
-            // If no app selected in UI or no app set in config, or they match return true
-            if (!app || !this.configModelId || app.appId === this.configModelId) {
+            // If no app selected in UI or no app set in config, or they don't match return true
+            if (!app || !this.configModelId || app.appId !== this.configModelId) {
                 return true
             }
         }
@@ -191,7 +197,12 @@ export class CLRunner {
             if (app) {
                 let packageId = (app.livePackageId || app.devPackageId)
                 if (packageId) {
-                    await this.StartSessionAsync(clMemory, activity.conversation.id, app.appId, app.metadata.isLoggingOn !== false, packageId)
+                    const sessionCreateParams: CLM.SessionCreateParams = {
+                        saveToLog: app.metadata.isLoggingOn !== false,
+                        packageId: packageId,
+                        initialFilledEntities: []  // LARS TODO put inti entities in here
+                    }
+                    await this.StartSessionAsync(clMemory, activity.conversation.id, app.appId, SessionStartFlags.NONE, sessionCreateParams)
                 }
             }
         }
@@ -247,14 +258,50 @@ export class CLRunner {
         }
     }
 
-    private async StartSessionAsync(memory: CLMemory, conversationId: string, appId: string, saveToLog: boolean, packageId: string): Promise<string> {
+    public async StartSessionAsync(clMemory: CLMemory, conversationId: string | null, appId: string, sessionStartFlags: SessionStartFlags, createParams: CLM.SessionCreateParams | CLM.CreateTeachParams): Promise<CLM.Teach | CLM.Session> {
 
-        let sessionCreateParams = {saveToLog, packageId} as CLM.SessionCreateParams
-        let sessionResponse = await this.clClient.StartSession(appId, sessionCreateParams)
+        const inTeach = ((sessionStartFlags & SessionStartFlags.IN_TEACH) > 0) 
+        let entityList = await this.clClient.GetEntities(appId)   // LARS can this be passed in?
 
-        await this.InitSessionAsync(memory, sessionResponse.sessionId, sessionResponse.logDialogId, conversationId, SessionStartFlags.NONE)
-        CLDebug.Verbose(`Started Session: ${sessionResponse.sessionId} - ${conversationId}`)
-        return sessionResponse.sessionId
+        // If not continuing an edited session, call endSession
+        if (!(sessionStartFlags && SessionStartFlags.IS_EDIT_CONTINUE)) {
+            // Default callback will clear the bot memory.
+            // END_SESSION action was never triggered, so SessionEndState.OPEN
+            await this.CheckSessionEndCallback(clMemory, entityList.entities, CLM.SessionEndState.OPEN);
+        }
+
+        // LARS - may need to clear memory here?  check
+
+        // LARS check that this works = should it be inside loop above
+        // Check if StartSession call is required
+        await this.CheckSessionStartCallback(clMemory, entityList.entities);
+        const startSessionEntities = await clMemory.BotMemory.FilledEntitiesAsync()
+        createParams.initialFilledEntities = [...createParams.initialFilledEntities || [], ...startSessionEntities]
+
+        const filledEntityMap = CLM.FilledEntityMap.FromFilledEntities(createParams.initialFilledEntities, entityList.entities)
+        clMemory.BotMemory.RestoreFromMapAsync(filledEntityMap)
+
+        // Start the new session
+        let sessionId: string
+        let logDialogId: string | null
+        let startResponse: CLM.Teach | CLM.Session
+        if (inTeach) {
+            const teachResponse = await this.clClient.StartTeach(appId, createParams as CLM.CreateTeachParams)
+            startResponse = CLM.ModelUtils.ToTeach(teachResponse)
+            sessionId = teachResponse.teachId
+            logDialogId = null
+        }
+        else {
+            startResponse = await this.clClient.StartSession(appId, createParams as CLM.SessionCreateParams)
+            sessionId = startResponse.sessionId
+            logDialogId = startResponse.logDialogId
+        }
+
+        // Initizize Bot State
+        await clMemory.BotState.InitSessionAsync(sessionId, logDialogId, conversationId, sessionStartFlags)
+
+        CLDebug.Verbose(`Started Session: ${sessionId} - ${conversationId}`)
+        return startResponse
     }
 
     // Get the currently running app
@@ -282,21 +329,6 @@ export class CLRunner {
         return app;
     }
 
-
-    // Initialize a log or teach session
-    public async InitSessionAsync(clMemory: CLMemory, sessionId: string, logDialogId: string | null, conversationId: string | null, sessionStartFlags: SessionStartFlags): Promise<void> {
-
-        let app = await clMemory.BotState.GetApp()
-
-        // If not continuing an edited session, call endSession
-        if (!(sessionStartFlags && SessionStartFlags.IS_EDIT_CONTINUE)) {
-            // Default callback will clear the bot memory.
-            // END_SESSION action was never triggered, so SessionEndState.OPEN
-            await this.CheckSessionEndCallback(clMemory, app ? app.appId : null, CLM.SessionEndState.OPEN);
-        }
-        await clMemory.BotState.StartSessionAsync(sessionId, logDialogId, conversationId, sessionStartFlags)
-    }
-
     // End a teach or log session
     // originalSessionId is sent when session terminated from EndSession action or expiration
     public async EndSessionAsync(key: string, sessionEndState: CLM.SessionEndState, originalSessionId: string | null = null, data?: string): Promise<void> {
@@ -304,10 +336,14 @@ export class CLRunner {
         let memory = CLMemory.GetMemory(key)
         let app = await memory.BotState.GetApp()
 
-        // Default callback will clear the bot memory
-        await this.CheckSessionEndCallback(memory, app ? app.appId : null, sessionEndState, data);
+        if (app) {
+            let entityList = await this.clClient.GetEntities(app.appId) 
 
-        await memory.BotState.EndSessionAsync(originalSessionId);
+            // Default callback will clear the bot memory
+            await this.CheckSessionEndCallback(memory, entityList.entities, sessionEndState, data);
+
+            await memory.BotState.EndSessionAsync(originalSessionId);
+        }
     }
 
     // Process user input
@@ -383,16 +419,15 @@ export class CLRunner {
                         }
                     }
 
-                    // Start a new session
-                    let sessionResponse = await this.clClient.StartSession(app.appId, {saveToLog: app.metadata.isLoggingOn})
-
-                    // Update Memory, passing in original sessionId for reference
                     let conversationId = await clMemory.BotState.GetConversationId()
 
-                    await this.InitSessionAsync(clMemory, sessionResponse.sessionId, sessionResponse.logDialogId, conversationId, SessionStartFlags.IS_MANUAL_TIMEOUT | (inTeach ? SessionStartFlags.IN_TEACH : 0))
-
-                    // Set new sessionId
-                    sessionId = sessionResponse.sessionId;
+                    // Start a new session
+                    const sessionCreateParams: CLM.SessionCreateParams = {
+                        saveToLog: app.metadata.isLoggingOn,
+                        initialFilledEntities: []
+                    }
+                    let session = await this.StartSessionAsync(clMemory, conversationId, app.appId, SessionStartFlags.IS_MANUAL_TIMEOUT, sessionCreateParams) as CLM.Session
+                    sessionId = session.sessionId
                 }
                 // Otherwise update last access time
                 else {
@@ -415,11 +450,14 @@ export class CLRunner {
 
             // If no session for this conversation, create a new one
             if (!sessionId) {
-                sessionId = await this.StartSessionAsync(clMemory, activity.conversation.id, app.appId, app.metadata.isLoggingOn !== false, packageId)
+                const sessionCreateParams: CLM.SessionCreateParams = {
+                    saveToLog: app.metadata.isLoggingOn !== false,
+                    packageId: packageId,
+                    initialFilledEntities: []
+                }
+                let session = await this.StartSessionAsync(clMemory, activity.conversation.id, app.appId, SessionStartFlags.NONE, sessionCreateParams) as CLM.Session
+                sessionId = session.sessionId
             }
-
-            // Check if StartSession call is required
-            await this.CheckSessionStartCallback(clMemory, app ? app.appId : null);
 
             // Process any form data
             let buttonResponse = await this.ProcessFormData(activity, clMemory, app.appId)
@@ -479,7 +517,7 @@ export class CLRunner {
                 }
 
                 // Find the entity
-                let entity = entityList.entities.find(e => e.entityName == entityName)
+                let entity = entityList.entities.find((e: CLM.EntityBase) => e.entityName == entityName)
 
                 if (!entity) {
                     CLDebug.Error(`Form - Can't find Entity named: ${entityName}`)
@@ -597,15 +635,15 @@ export class CLRunner {
         }
     }
 
-    public async CallEntityDetectionCallback(text: string, predictedEntities: CLM.PredictedEntity[], memory: CLMemory, allEntities: CLM.EntityBase[]): Promise<CLM.ScoreInput> {
+    public async CallEntityDetectionCallback(text: string, predictedEntities: CLM.PredictedEntity[], clMemory: CLMemory, allEntities: CLM.EntityBase[]): Promise<CLM.ScoreInput> {
 
         // Entities before processing
-        let prevMemories = new CLM.FilledEntityMap(await memory.BotMemory.FilledEntityMap());
+        let prevMemories = new CLM.FilledEntityMap(await clMemory.BotMemory.FilledEntityMap());
 
         // Update memory with predicted entities
-        await this.ProcessPredictedEntities(text, memory.BotMemory, predictedEntities, allEntities)
+        await this.ProcessPredictedEntities(text, clMemory.BotMemory, predictedEntities, allEntities)
 
-        let memoryManager = await this.CreateMemoryManagerAsync(memory, allEntities, prevMemories)
+        let memoryManager = await this.CreateMemoryManagerAsync(clMemory, allEntities, prevMemories)
 
         // If bot has callback, call it
         if (this.entityDetectionCallback) {
@@ -613,17 +651,17 @@ export class CLRunner {
                 await this.entityDetectionCallback(text, memoryManager)
 
                 // Update Memory
-                await memory.BotMemory.RestoreFromMemoryManagerAsync(memoryManager)
+                await clMemory.BotMemory.RestoreFromMemoryManagerAsync(memoryManager)
             }
             catch (err) {
-                await this.SendMessage(memory, "Exception hit in Bot's EntityDetectionCallback")
+                await this.SendMessage(clMemory, "Exception hit in Bot's EntityDetectionCallback")
                 let errMsg = CLDebug.Error(err);
-                this.SendMessage(memory, errMsg);
+                this.SendMessage(clMemory, errMsg);
             }
         }
 
         // Get entities from my memory
-        const filledEntities = await memory.BotMemory.FilledEntitiesAsync()
+        const filledEntities = await clMemory.BotMemory.FilledEntitiesAsync()
 
         let scoreInput: CLM.ScoreInput = {
             filledEntities,
@@ -642,16 +680,16 @@ export class CLRunner {
         return new ClientMemoryManager(prevMemories, curMemories, allEntities, sessionInfo);
     }
 
-    public async CheckSessionStartCallback(clMemory: CLMemory, appId: string | null): Promise<void> {
+    // Call session start callback, set memory and return list of filled entities coming from callback
+    public async CheckSessionStartCallback(clMemory: CLMemory, entities: CLM.EntityBase[]): Promise<void> {
 
         // If onStartSession hasn't been called yet, call it
-        let needStartSession = await clMemory.BotState.GetNeedSessionStartCall();
+   //  LARS   let needStartSession = await clMemory.BotState.GetNeedSessionStartCall();
 
-        if (needStartSession) {
+  //      if (needStartSession) {
             // If bot has callback, call it
-            if (appId && this.onSessionStartCallback && this.adapter) {
-                let entityList = await this.clClient.GetEntities(appId)
-                let memoryManager = await this.CreateMemoryManagerAsync(clMemory, entityList.entities)
+            if (this.onSessionStartCallback && this.adapter) {
+                let memoryManager = await this.CreateMemoryManagerAsync(clMemory, entities)
 
                 // Get conversation ref, so I can generate context and send it back to bot dev
                 let conversationReference = await clMemory.BotState.GetConversationReverence()
@@ -673,12 +711,12 @@ export class CLRunner {
                         }
                     }
                 })
-            }
-            await clMemory.BotState.SetNeedSessionStartCall(false);
+          //  }
+        // LARS    await clMemory.BotState.SetNeedSessionStartCall(false);
         }
     }
 
-    public async CheckSessionEndCallback(clMemory: CLMemory, appId: string | null, sessionEndState: CLM.SessionEndState, data?: string): Promise<void> {
+    public async CheckSessionEndCallback(clMemory: CLMemory, entities: CLM.EntityBase[], sessionEndState: CLM.SessionEndState, data?: string): Promise<void> {
 
         // If onEndSession hasn't been called yet, call it
         let needEndSession = await clMemory.BotState.GetNeedSessionEndCall();
@@ -686,10 +724,9 @@ export class CLRunner {
         if (needEndSession) {
 
             // If bot has callback, call it to determine which entities to clear / edit
-            if (appId && this.onSessionEndCallback && this.adapter) {
-                let entityList = await this.clClient.GetEntities(appId)
+            if (this.onSessionEndCallback && this.adapter) {
 
-                let memoryManager = await this.CreateMemoryManagerAsync(clMemory, entityList.entities)
+                let memoryManager = await this.CreateMemoryManagerAsync(clMemory, entities)
 
                 // Get conversation ref, so I can generate context and send it back to bot dev
                 let conversationReference = await clMemory.BotState.GetConversationReverence()
@@ -721,7 +758,7 @@ export class CLRunner {
         }
     }
 
-    public async RenderTemplateAsync(conversationReference: Partial<BB.ConversationReference>, clRecognizeResult: CLRecognizerResult, inTeach = false): Promise<IActionResult> {
+    public async RenderTemplateAsync(conversationReference: Partial<BB.ConversationReference>, clRecognizeResult: CLRecognizerResult, channelData: {} | null): Promise<IActionResult> {
         // Get filled entities from memory
         let filledEntityMap = await clRecognizeResult.memory.BotMemory.FilledEntityMap()
         filledEntityMap = addEntitiesById(filledEntityMap)
@@ -737,6 +774,7 @@ export class CLRunner {
         }
 
         let actionResult: IActionResult
+        const inTeach = channelData !== null
         switch (clRecognizeResult.scoredAction.actionType) {
             case CLM.ActionTypes.TEXT: {
                 // This is hack to allow ScoredAction to be accepted as ActionBase
@@ -752,14 +790,15 @@ export class CLRunner {
             }
             case CLM.ActionTypes.API_LOCAL: {
                 const apiAction = new CLM.ApiAction(clRecognizeResult.scoredAction as any)
-                actionResult = await this.TakeLocalAPIAction(
+
+                actionResult = await this.TakeAPIAction(
                     apiAction,
                     filledEntityMap,
                     clRecognizeResult.memory,
                     clRecognizeResult.clEntities,
                     inTeach,
                     {
-                        skipLogic: false
+                        type: ActionInputType.LOGIC_AND_RENDER
                     }
                 )
                 break
@@ -786,6 +825,15 @@ export class CLRunner {
             }
             default:
                 throw new Error(`Could not find matching renderer for action type: ${clRecognizeResult.scoredAction.actionType}`)
+        }
+
+        // Convert string actions to activities
+        if (typeof actionResult.response === 'string' ) {
+            actionResult.response = BB.MessageFactory.text(actionResult.response)
+        }
+        if (actionResult.response && channelData) {
+            
+            actionResult.response.channelData = channelData
         }
 
         // If action wasn't terminal loop through Conversation Learner again after a short delay
@@ -819,7 +867,8 @@ export class CLRunner {
                     )
 
                     clRecognizeResult.scoredAction = bestAction
-                    actionResult = await this.RenderTemplateAsync(conversationReference, clRecognizeResult)
+                    // LARS - need to increment scorere step in channel data
+                    actionResult = await this.RenderTemplateAsync(conversationReference, clRecognizeResult, channelData)
                     if (actionResult.response != null) {
                         this.SendMessage(clRecognizeResult.memory, actionResult.response)
                     }
@@ -829,7 +878,7 @@ export class CLRunner {
         return actionResult
     }
 
-    public async SendIntent(intent: CLRecognizerResult, inTeach = false): Promise<IActionResult | undefined> {
+    public async SendIntent(intent: CLRecognizerResult, channelData: {} | null = null): Promise<IActionResult | undefined> {
 
         let conversationReference = await intent.memory.BotState.GetConversationReverence();
 
@@ -842,7 +891,7 @@ export class CLRunner {
             return
         }
 
-        const actionResult = await this.RenderTemplateAsync(conversationReference, intent, inTeach)
+        const actionResult = await this.RenderTemplateAsync(conversationReference, intent, channelData)
 
         if (actionResult.response != null) {
             await this.adapter.continueConversation(conversationReference, async (context) => {
@@ -907,7 +956,7 @@ export class CLRunner {
         return renderedArgumentValues
     }
 
-    public async TakeLocalAPIAction(apiAction: CLM.ApiAction, filledEntityMap: CLM.FilledEntityMap, memory: CLMemory, allEntities: CLM.EntityBase[], inTeach: boolean, actionInput: IActinInput): Promise<IActionResult> {
+    public async TakeAPIAction(apiAction: CLM.ApiAction, filledEntityMap: CLM.FilledEntityMap, clMemory: CLMemory, allEntities: CLM.EntityBase[], inTeach: boolean, actionInput: IActionInput): Promise<IActionResult> {
         // Extract API name and args
         const callback = this.callbacks[apiAction.name]
         if (!callback) {
@@ -921,36 +970,48 @@ export class CLRunner {
             try {
                 // Invoke Logic part of callback
                 const renderedLogicArgumentValues = this.GetRenderedArguments(callback.logicArguments, apiAction.logicArguments, filledEntityMap)
-                const memoryManager = await this.CreateMemoryManagerAsync(memory, allEntities)
+                const memoryManager = await this.CreateMemoryManagerAsync(clMemory, allEntities)
 
-                // If we're skip logic is true use given logic
+                // If we're only doing the render part, used stored input value
                 // This happens when replaying dialog to recreated action outputs
-                const logicResult = actionInput.skipLogic
-                    ? actionInput.value
-                        ? JSON.parse(actionInput.value)
-                        : undefined
-                    : await callback.logic(memoryManager, ...renderedLogicArgumentValues)
+                let logicResult : any
+                if (actionInput.type === ActionInputType.RENDER_ONLY) {
+                    const value = (actionInput as IActionInputLogic).value
+                    logicResult = value ? JSON.parse(value) : undefined
+                }   
+                else {
+                    logicResult = await callback.logic(memoryManager, ...renderedLogicArgumentValues)
+                }           
 
-                await memory.BotMemory.RestoreFromMemoryManagerAsync(memoryManager)
+                await clMemory.BotMemory.RestoreFromMemoryManagerAsync(memoryManager)
 
-                // Invoke Render part of callback
-                const renderedRenderArgumentValues = this.GetRenderedArguments(callback.renderArguments, apiAction.renderArguments, filledEntityMap)
-
-                let response = await callback.render(logicResult, memoryManager.AsReadOnly(), ...renderedRenderArgumentValues)
-
-                // If response is empty, but we're in teach session return a placeholder card in WebChat so they can click it to edit
-                // Otherwise return the response as is.
-                if (!response && inTeach) {
-                    response = this.APICard(callback)
+                // Render the action unless only doing logic part
+                if (actionInput.type === ActionInputType.LOGIC_ONLY) {
+                    return {
+                        logicResult,
+                        response: null
+                    }
                 }
+                else {
+                    // Invoke Render part of callback
+                    const renderedRenderArgumentValues = this.GetRenderedArguments(callback.renderArguments, apiAction.renderArguments, filledEntityMap)
 
-                return {
-                    logicResult,
-                    response
+                    let response = await callback.render(logicResult, memoryManager.AsReadOnly(), ...renderedRenderArgumentValues)
+
+                    // If response is empty, but we're in teach session return a placeholder card in WebChat so they can click it to edit
+                    // Otherwise return the response as is.
+                    if (!response && inTeach) {
+                        response = this.APICard(callback)
+                    }
+
+                    return {
+                        logicResult,
+                        response
+                    }
                 }
             }
             catch (err) {
-                await this.SendMessage(memory, `Exception hit in Bot's API Callback: '${apiAction.name}'`)
+                await this.SendMessage(clMemory, `Exception hit in Bot's API Callback: '${apiAction.name}'`)
                 return {
                     logicResult: undefined,
                     response: CLDebug.Error(err)
@@ -1020,60 +1081,6 @@ export class CLRunner {
             return message
         }
         return null
-    }
-
-    // Validate that training round memory is the same as what in the bot's memory
-    // This checks that API calls didn't change when restoring the bot's state
-    private EntityDiscrepancy(userInput: string, round: CLM.TrainRound, memory: CLMemory, entities: CLM.EntityBase[]): CLM.ReplayErrorEntityDiscrepancy | null {
-        let isSame = true
-        let oldEntities = round.scorerSteps[0] && round.scorerSteps[0].input ? round.scorerSteps[0].input.filledEntities : []
-        let newEntities = Object.keys(memory.BotMemory.filledEntityMap.map).map(k => memory.BotMemory.filledEntityMap.map[k] as CLM.FilledEntity)
-
-        if (oldEntities.length != newEntities.length) {
-            isSame = false
-        } else {
-            for (let oldEntity of oldEntities) {
-                let newEntity = newEntities.find(ne => ne.entityId == oldEntity.entityId)
-                if (!newEntity) {
-                    isSame = false
-                } else if (oldEntity.values.length != newEntity.values.length) {
-                    isSame = false
-                } else {
-                    for (let oldValue of oldEntity.values) {
-                        let newValue = newEntity.values.find(v => v.userText == oldValue.userText)
-                        if (!newValue) {
-                            isSame = false
-                        }
-                        else if (oldValue.userText !== newValue.userText) {
-                            isSame = false
-                        }
-                    }
-                }
-            }
-        }
-        if (isSame) {
-            return null;
-        }
-
-        let originalEntities = [];
-        for (let oldEntity of oldEntities) {
-            const entity = entities.find(e => e.entityId == oldEntity.entityId)
-
-            let name = entity ? entity.entityName : "MISSING ENTITY";
-            let values = CLM.filledEntityValueAsString(oldEntity)
-            originalEntities.push(`${name} = (${values})`)
-        }
-
-        let updatedEntities = [];
-        for (let newEntity of newEntities) {
-            const entity = entities.find(e => e.entityId == newEntity.entityId)
-
-            let name = entity? entity.entityName : "MISSING ENTITY"
-            let values = CLM.filledEntityValueAsString(newEntity)
-            updatedEntities.push(`${name} = (${values})`)
-        }
-
-        return new CLM.ReplayErrorEntityDiscrepancy(userInput, originalEntities, updatedEntities);
     }
 
     // Returns true if Action is available given Entities in Memory
@@ -1182,78 +1189,203 @@ export class CLRunner {
     }
 
     /**
+     * Provide dummy data for any missing entities so they can still be rendered
+     */
+    private PopulateMissingFilledEntities(action: CLM.ActionBase, filledEntityMap: CLM.FilledEntityMap, allEntities: CLM.EntityBase[]): void {
+        action.requiredEntitiesFromPayload.forEach((entityId: string) => {
+            let entity = allEntities.find(e => e.entityId === entityId)
+            if (entity) {
+                if (!filledEntityMap.map[entity.entityName]) {
+                    let memoryValue = {
+                        userText: `["$${entity.entityName}"]`
+                    } as CLM.MemoryValue
+                    let filledEntity = {
+                        entityId : entityId,
+                        values : [memoryValue]
+                    } as CLM.FilledEntity
+                    filledEntityMap.map[entity.entityName] = filledEntity
+                    filledEntityMap.map[entity.entityId] = filledEntity
+                }
+            } else {
+                throw new Error(`ENTITY ${entityId} DOES NOT EXIST`)
+            }
+        })
+    }
+
+    /**
+     * Initialize memory for replay
+     */
+    private async InitReplayMemory(clMemory: CLMemory, trainDialog: CLM.TrainDialog, entities: CLM.EntityBase[]) {
+
+        // Reset the memory
+        await  clMemory.BotMemory.ClearAsync()
+
+        let map = CLM.FilledEntityMap.FromFilledEntities(trainDialog.initialFilledEntities || [], entities)
+        await clMemory.BotMemory.RestoreFromMapAsync(map)
+    }
+
+    /** 
+     * Replay a TrainDialog, calling EntityDetection callback and API Logic,
+     * recalculating FilledEntities along the way
+     */
+    public async ReplayTrainDialogLogic(trainDialog: CLM.TrainDialog, clMemory: CLMemory, cleanse: boolean): Promise<CLM.TrainDialog> {
+
+        if (!trainDialog || !trainDialog.rounds) {
+            return trainDialog
+        }
+
+        // Copy train dialog
+        let newTrainDialog: CLM.TrainDialog = JSON.parse(JSON.stringify(trainDialog))
+
+        let entities: CLM.EntityBase[] = trainDialog.definitions ? trainDialog.definitions.entities : []
+        let actions: CLM.ActionBase[] = trainDialog.definitions ? trainDialog.definitions.actions : []
+        let entityList: CLM.EntityList = { entities }
+
+        await this.InitReplayMemory(clMemory, newTrainDialog, entities)
+
+        for (let round of newTrainDialog.rounds) {
+
+            // Call entity detection callback with first text Variation
+            let textVariation = round.extractorStep.textVariations[0]
+            let predictedEntities = CLM.ModelUtils.ToPredictedEntities(textVariation.labelEntities)
+
+            // Call EntityDetectionCallback and populate filledEntities with the result
+            let scoreInput = await this.CallEntityDetectionCallback(textVariation.text, predictedEntities, clMemory, entities)
+
+            // Use scorer step to populate pre-built data (when)
+            if (round.scorerSteps && round.scorerSteps.length > 0) {
+                // LARS - check this - value not used?
+                this.PopulatePrebuilts(predictedEntities, scoreInput.filledEntities)
+            
+                round.scorerSteps[0].input.filledEntities = scoreInput.filledEntities
+
+                // Go through each scorer step
+                for (let [scoreIndex, scorerStep] of round.scorerSteps.entries()) {
+
+                    let curAction = actions.filter((a: CLM.ActionBase) => a.actionId === scorerStep.labelAction)[0]
+                    if (curAction) {
+
+                        let filledEntityMap = await clMemory.BotMemory.FilledEntityMap()
+
+                        // Fill in missing entities with a warning
+                        this.PopulateMissingFilledEntities(curAction, filledEntityMap, entities)
+
+                        round.scorerSteps[scoreIndex].input.filledEntities = filledEntityMap.FilledEntities()
+
+                        // Run logic part of APIAction to update the FilledEntities
+                        if (curAction.actionType === CLM.ActionTypes.API_LOCAL) {
+                            const apiAction = new CLM.ApiAction(curAction)
+                            const actionInput: IActionInput = {
+                                type: ActionInputType.LOGIC_ONLY
+                            }
+                            await this.TakeAPIAction(apiAction, filledEntityMap, clMemory, entityList.entities, true, actionInput)
+                        } else if (curAction.actionType === CLM.ActionTypes.END_SESSION) {
+                            // LARS - todo, what is needed here
+                            const sessionAction = new CLM.SessionAction(curAction)
+                            let sessionInfo = await clMemory.BotState.SessionInfoAsync();
+                            await this.TakeSessionAction(sessionAction, filledEntityMap, true, sessionInfo.userId, null)
+                        }
+                    }
+                }
+            } 
+            else {
+                // Otherwise create a dummy scorer step with the filled entities
+                const scorerStep: CLM.TrainScorerStep = {
+                    input: { 
+                        filledEntities: await clMemory.BotMemory.FilledEntitiesAsync(),
+                        context: {},
+                        maskedActions: []
+                    },
+                    labelAction: undefined,
+                    logicResult: undefined,
+                    scoredAction: undefined
+                }
+                if (!round.scorerSteps) {
+                    round.scorerSteps = []
+                }
+                round.scorerSteps.push(scorerStep)
+            }
+        }
+
+        // When editing, may need to run Scorer or Extrator on TrainDialog with invalid rounds
+        //This cleans up the TrainDialog removing bad data so the extractor can run  
+        if (cleanse) {
+            // Remove rounds with two user inputs in a row (they'll have a dummy scorer round)
+             newTrainDialog.rounds = newTrainDialog.rounds.filter(r => {
+            return !r.scorerSteps[0] || r.scorerSteps[0].labelAction != undefined
+            })
+
+        }
+        return newTrainDialog
+    }
+
+    /** 
      * Get Activities generated by trainDialog.
+     * Return any errors in TrainDialog  
      * NOTE: Will set bot memory to state at end of history
      */
-    public async GetHistory(
-        appId: string,
-        trainDialog: CLM.TrainDialog,
-        userName: string,
-        userId: string,
-        clMemory: CLMemory,
-        ignoreLastExtract: boolean = false
-    ): Promise<CLM.TeachWithHistory | null> {
+    public async GetHistory(trainDialog: CLM.TrainDialog, userName: string, userId: string, clMemory: CLMemory): Promise<CLM.TeachWithHistory | null> {
+        
         let entities: CLM.EntityBase[] = trainDialog.definitions ? trainDialog.definitions.entities : []
         let actions: CLM.ActionBase[] = trainDialog.definitions ? trainDialog.definitions.actions : []
         let entityList: CLM.EntityList = { entities }
         let prevMemories: CLM.Memory[] = []
 
-        // Reset the memory
-        await clMemory.BotMemory.ClearAsync()
-
         if (!trainDialog || !trainDialog.rounds) {
             return null
         }
 
-        // Set initial entities
-        // TODO: Currently mixes initial values (from SessionStartCallback) with those extracted in first round
-        // need to update schema to include storing of init values
-        if (trainDialog.rounds && trainDialog.rounds.length > 0) {
-            let firstRound = trainDialog.rounds[0]
-            let filledEntities = firstRound.scorerSteps[0] && firstRound.scorerSteps[0].input ? firstRound.scorerSteps[0].input.filledEntities : []
-            let map = CLM.FilledEntityMap.FromFilledEntities(filledEntities, entities)
-            await clMemory.BotMemory.RestoreFromMapAsync(map)
-        }
+        await this.InitReplayMemory(clMemory, trainDialog, entities)
 
         let activities = []
+        let replayError : CLM.ReplayError | null = null
+        let highlight: string | null = null
         let replayErrors: CLM.ReplayError[] = [];
-        let lastAction = null
+        let curAction = null
 
         for (let [roundNum, round] of trainDialog.rounds.entries()) {
             let userText = round.extractorStep.textVariations[0].text
             let filledEntities = round.scorerSteps[0] && round.scorerSteps[0].input ? round.scorerSteps[0].input.filledEntities : []
 
             // VALIDATION
+            highlight = null
+            replayError = null
+
             // Check that entities exist
-            let chatHighlight = null;
             for (let filledEntity of filledEntities) {
                 if (!entities.find(e => e.entityId == filledEntity.entityId)) {
-                    replayErrors.push(new CLM.ReplayErrorMissingEntity(CLM.filledEntityValueAsString(filledEntity)));
-                    chatHighlight = "warning"
+                    highlight = "warning"
+                    replayError = new CLM.ReplayErrorMissingEntity(CLM.filledEntityValueAsString(filledEntity))
+                    replayErrors.push()
                 }
-            }
+            }  
 
+            // Check for double user inputs
+            if (roundNum != trainDialog.rounds.length - 1 && 
+                (round.scorerSteps.length === 0 || !round.scorerSteps[0].labelAction)) {
+                highlight = "error";
+                replayError = new CLM.ReplayErrorTwoUserInputs()
+                replayErrors.push(replayError)
+            }
+       
+            // Check for user input when previous action wasn't wait
+            if (curAction && !curAction.isTerminal) {
+                highlight = "error";
+                replayError = new CLM.ReplayErrorInputAfterNonWait()
+                replayErrors.push(replayError)
+            }
+      
             // Generate activity
-            let userActivity = {
-                id: generateGUID(),
-                from: { id: userId, name: userName },
-                channelData: {
-                    senderType: CLM.SenderType.User,
-                    roundIndex: roundNum,
-                    scoreIndex: 0,
-                    clientActivityId: generateGUID(),
-                    highlight: chatHighlight},
-                type: 'message',
-                text: userText
-            } as BB.Activity
+            let userActivity = CLM.ModelUtils.InputToActivity(userText, userName, userId, roundNum)
+            userActivity.channelData.highlight = highlight
+            userActivity.channelData.replayError = replayError
             activities.push(userActivity)
 
-            // If I'm updating the bot's state, save memory before this step (used to show changes in UI)
+            // Save memory before this step (used to show changes in UI)
             prevMemories = await clMemory.BotMemory.DumpMemory()
 
-            // Call entity detection callback
+            // Call entity detection callback - LARS REVIEW COMMENTS
             let textVariation = round.extractorStep.textVariations[0]
-
             let predictedEntities = CLM.ModelUtils.ToPredictedEntities(textVariation.labelEntities)
 
             // Use scorer step to populate pre-built data (when)
@@ -1261,110 +1393,129 @@ export class CLRunner {
                 this.PopulatePrebuilts(predictedEntities, round.scorerSteps[0].input.filledEntities)
             }
 
-            await this.CallEntityDetectionCallback(textVariation.text, predictedEntities, clMemory, entities)
+            for (let [scoreIndex, scorerStep] of round.scorerSteps.entries()) {
 
-            // Look for discrepancies when replaying API calls
-            // Unless asked to ignore the last as user trigged an edit by editing last extract step
-            if (!ignoreLastExtract || roundNum != trainDialog.rounds.length - 1) {
-                let discrepancyError = this.EntityDiscrepancy(userText, round, clMemory, entities)
-                if (discrepancyError) {
-                    replayErrors.push(discrepancyError);
-                }
-            }
-
-            for (let [scoreNum, scorerStep] of round.scorerSteps.entries()) {
                 let labelAction = scorerStep.labelAction
 
-                // VALIDATION
-                chatHighlight = null;
-                // Check that action exists
-                let selectedAction = actions.find(a => a.actionId == labelAction)
-                if (!selectedAction)
-                {
-                    chatHighlight = "error";
-                    replayErrors.push(new CLM.ReplayErrorMissingAction(userText));
-                }
-                else {
-                    // Check action availability
-                    if (!this.isActionAvailable(selectedAction, scorerStep.input.filledEntities)) {
-                        chatHighlight = "error";
-                        replayErrors.push(new CLM.ReplayErrorActionUnavailable(userText));
+                // Scorer rounds w/o labelActions may exist to store extraction result for rendering
+                if (labelAction) {
+
+                    let scoreFilledEntities = scorerStep.input.filledEntities
+
+                    // VALIDATION
+                    highlight = null
+                    replayError = null
+
+                    // Check that action exists
+                    let selectedAction = actions.find(a => a.actionId == labelAction)
+                    if (!selectedAction)
+                    {
+                        highlight = "error";
+                        replayError = new CLM.ReplayErrorMissingAction(userText)
+                        replayErrors.push(replayError);
                     }
-                }
-
-                let channelData = {
-                    senderType: CLM.SenderType.Bot,
-                    roundIndex: roundNum,
-                    scoreIndex: scoreNum,
-                    highlight: chatHighlight
-                }
-
-                // Generate bot response
-                lastAction = actions.filter((a: CLM.ActionBase) => a.actionId === labelAction)[0]
-                let botResponse: IActionResult
-                if (!lastAction) {
-                    botResponse = {
-                        logicResult: undefined,
-                        response: CLDebug.Error(`Can't find Action Id ${labelAction}`)
-                    }
-                }
-                else {
-
-                    let filledEntityMap = this.CreateFilledEntityMap(scorerStep.input.filledEntities, entityList)
-
-                    if (lastAction.actionType === CLM.ActionTypes.CARD) {
-                        const cardAction = new CLM.CardAction(lastAction)
-                        botResponse = {
-                            logicResult: undefined,
-                            response: await this.TakeCardAction(cardAction, filledEntityMap)
-                        }
-                    } else if (lastAction.actionType === CLM.ActionTypes.API_LOCAL) {
-                        const apiAction = new CLM.ApiAction(lastAction)
-                        const actionInput: IActinInput = {
-                            skipLogic: true,
-                            value: scorerStep.logicResult
-                        }
-                        botResponse = await this.TakeLocalAPIAction(apiAction, filledEntityMap, clMemory, entityList.entities, true, actionInput)
-                    } else if (lastAction.actionType === CLM.ActionTypes.TEXT) {
-                        const textAction = new CLM.TextAction(lastAction)
-                        botResponse = {
-                            logicResult: undefined,
-                            response: await this.TakeTextAction(textAction, filledEntityMap)
-                        }
-                    } else if (lastAction.actionType === CLM.ActionTypes.END_SESSION) {
-                        const sessionAction = new CLM.SessionAction(lastAction)
-                        let sessionInfo = await clMemory.BotState.SessionInfoAsync();
-                        botResponse = {
-                            logicResult: undefined,
-                            response: await this.TakeSessionAction(sessionAction, filledEntityMap, true, sessionInfo.userId, null)
-                        }
-                    }
-                    // TODO
-                    //  TakeAzureAPIAction
                     else {
-                        throw new Error(`Cannot construct bot response for unknown action type: ${lastAction.actionType}`)
+                        // Check action availability
+                        if (!this.isActionAvailable(selectedAction, scoreFilledEntities)) {
+                            highlight = "error";
+                            replayError = new CLM.ReplayErrorActionUnavailable(userText)
+                            replayErrors.push(replayError);
+                        }
                     }
-                }
-
-                let botActivity: Partial<BB.Activity> | null = null
-                let botId = `BOT-${userId}`
-                if (typeof botResponse.response == 'string') {
-                    botActivity = {
-                        id: generateGUID(),
-                        from: { id: botId, name: CLM.CL_USER_NAME_ID, role: BB.RoleTypes.Bot },
-                        type: 'message',
-                        text: botResponse.response,
-                        channelData: channelData
+                    // Check that action (if not first) is after a wait action
+                    if (scoreIndex > 0) {
+                        const lastScoredAction = round.scorerSteps[scoreIndex - 1].labelAction
+                        let lastAction = actions.find(a => a.actionId == lastScoredAction)
+                        if (lastAction && lastAction.isTerminal) {
+                            highlight = "error";
+                            replayError = new CLM.ReplayErrorActionAfterWait()
+                            replayErrors.push(replayError);
+                        }
                     }
-                } else if (botResponse) {
-                    botActivity = botResponse.response as BB.Activity
-                    botActivity.id = generateGUID()
-                    botActivity.from = { id: botId, name: CLM.CL_USER_NAME_ID, role: BB.RoleTypes.Bot }
-                    botActivity.channelData = channelData
-                }
 
-                if (botActivity) {
-                    activities.push(botActivity)
+                    let channelData = { 
+                        senderType: CLM.SenderType.Bot, 
+                        roundIndex: roundNum, 
+                        scoreIndex,
+                        highlight,
+                        replayError
+                    }
+
+                    // Generate bot response
+                    curAction = actions.filter((a: CLM.ActionBase) => a.actionId === labelAction)[0]
+                    let botResponse: IActionResult
+                    if (!curAction) {
+                        botResponse = {
+                            logicResult: undefined,
+                            response: CLDebug.Error(`Can't find Action Id ${labelAction}`)
+                        }
+                    }
+                    else {
+
+                        // Create map with names and ids
+                        let filledEntityMap = this.CreateFilledEntityMap(scoreFilledEntities, entityList)
+
+                        // Fill in missing entities with a warning
+                        this.PopulateMissingFilledEntities(curAction, filledEntityMap, entities)
+
+                        // Set memory from map with names only (since not calling APIs)
+                        let memoryMap = CLM.FilledEntityMap.FromFilledEntities(scoreFilledEntities, entities)
+                        await clMemory.BotMemory.RestoreFromMapAsync(memoryMap)
+
+                        if (curAction.actionType === CLM.ActionTypes.CARD) {
+                            const cardAction = new CLM.CardAction(curAction)
+                            botResponse = {
+                                logicResult: undefined,
+                                response: await this.TakeCardAction(cardAction, filledEntityMap)
+                            }
+                        } else if (curAction.actionType === CLM.ActionTypes.API_LOCAL) {
+                            const apiAction = new CLM.ApiAction(curAction)
+                            const actionInput: IActionInput = {
+                                type: ActionInputType.RENDER_ONLY,
+                                value: scorerStep.logicResult
+                            }
+                            botResponse = await this.TakeAPIAction(apiAction, filledEntityMap, clMemory, entityList.entities, true, actionInput)
+                        } else if (curAction.actionType === CLM.ActionTypes.TEXT) {
+                            const textAction = new CLM.TextAction(curAction)
+                            botResponse = {
+                                logicResult: undefined,
+                                response: await this.TakeTextAction(textAction, filledEntityMap)
+                            }
+                        } else if (curAction.actionType === CLM.ActionTypes.END_SESSION) {
+                            const sessionAction = new CLM.SessionAction(curAction)
+                            let sessionInfo = await clMemory.BotState.SessionInfoAsync();
+                            botResponse = {
+                                logicResult: undefined,
+                                response: await this.TakeSessionAction(sessionAction, filledEntityMap, true, sessionInfo.userId, null)
+                            }
+                        }
+                        // TODO
+                        //  TakeAzureAPIAction
+                        else {
+                            throw new Error(`Cannot construct bot response for unknown action type: ${curAction.actionType}`)
+                        }
+                    }
+                
+                    let botActivity: Partial<BB.Activity> | null = null
+                    let botId = `BOT-${userId}`
+                    if (typeof botResponse.response == 'string') {
+                        botActivity = {
+                            id: CLM.ModelUtils.generateGUID(),
+                            from: { id: botId, name: CLM.CL_USER_NAME_ID, role: BB.RoleTypes.Bot },
+                            type: 'message',
+                            text: botResponse.response,
+                            channelData: channelData
+                        }
+                    } else if (botResponse) {
+                        botActivity = botResponse.response as BB.Activity
+                        botActivity.id = CLM.ModelUtils.generateGUID()
+                        botActivity.from = { id: botId, name: CLM.CL_USER_NAME_ID, role: BB.RoleTypes.Bot }
+                        botActivity.channelData = channelData
+                    }
+
+                    if (botActivity) {
+                        activities.push(botActivity)
+                    }
                 }
             }
         }
@@ -1379,13 +1530,13 @@ export class CLRunner {
         if (!hasRounds) {
             dialogMode = CLM.DialogMode.Wait;
         }
-        else if (lastAction) {
+        else if (curAction) {
             // If last action is session end
-            if (lastAction.actionType === CLM.ActionTypes.END_SESSION) {
+            if (curAction.actionType === CLM.ActionTypes.END_SESSION) {
                 dialogMode = CLM.DialogMode.EndSession;
             }
             // If I have a scorer round, wait
-            else if (lastAction.isTerminal && hasScorerRound) {
+            else if (curAction.isTerminal && hasScorerRound) {
                 dialogMode = CLM.DialogMode.Wait;
             }
         }
@@ -1405,7 +1556,6 @@ export class CLRunner {
             } as CLM.UIScoreInput
         }
 
-
         // Make errors unique using Set operator
         replayErrors = [...new Set(replayErrors)]
 
@@ -1414,7 +1564,8 @@ export class CLRunner {
             scoreInput: undefined,
             scoreResponse: undefined,
             uiScoreInput: uiScoreInput,
-            lastAction: lastAction,
+            extractResponse: undefined,
+            lastAction: curAction,
             history: activities,
             memories: memories,
             prevMemories: prevMemories,

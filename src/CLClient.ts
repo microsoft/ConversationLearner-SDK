@@ -2,7 +2,7 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License.
  */
-import * as models from '@conversationlearner/models'
+import * as CLM from '@conversationlearner/models'
 import { CLDebug } from './CLDebug'
 import * as Request from 'request'
 import * as constants from './constants'
@@ -139,17 +139,17 @@ export class CLClient {
      * If the app ID isn't found in the set of (non-archived) apps,
      * returns 404 error ("not found")
      */
-    public GetApp(appId: string): Promise<models.AppBase> {
+    public GetApp(appId: string): Promise<CLM.AppBase> {
         let apiPath = `app/${appId}`
         return this.send('GET', this.MakeURL(apiPath))
     }
 
-    public GetAppSource(appId: string, packageId: string): Promise<models.AppDefinition> {
+    public GetAppSource(appId: string, packageId: string): Promise<CLM.AppDefinition> {
         let apiPath = `app/${appId}/source?package=${packageId}`
         return this.send('GET', this.MakeURL(apiPath))
     }
 
-    public PostAppSource(appId: string, appDefinition: models.AppDefinition): Promise<void> {
+    public PostAppSource(appId: string, appDefinition: CLM.AppDefinition): Promise<void> {
         let apiPath = `app/${appId}/source`
         return this.send('POST', this.MakeURL(apiPath), appDefinition)
             // tslint:disable-next-line:no-empty
@@ -157,7 +157,7 @@ export class CLClient {
     }
 
     /** Retrieve a list of (active) applications */
-    public GetApps(query: string): Promise<models.AppList> {
+    public GetApps(query: string): Promise<CLM.AppList> {
         let apiPath = `apps`
         return this.send('GET', this.MakeURL(apiPath, query))
     }
@@ -184,15 +184,15 @@ export class CLClient {
      * Create a new application
      */
     // TODO: Fix API to return full object
-    public async AddApp(app: models.AppBase, query: string): Promise<string> {
+    public async AddApp(app: CLM.AppBase, query: string): Promise<string> {
         const apiPath = `app`
         // Note: This isn't an actual AppBase, but just { appId, packageId }
-        const appResponse = await this.send<models.AppBase>('POST', this.MakeURL(apiPath, query), app)
+        const appResponse = await this.send<CLM.AppBase>('POST', this.MakeURL(apiPath, query), app)
         return appResponse.appId
     }
 
     /** Creates a new package tag */
-    public PublishApp(appId: string, tagName: string): Promise<models.PackageReference> {
+    public PublishApp(appId: string, tagName: string): Promise<CLM.PackageReference> {
         let apiPath = `app/${appId}/publish?version=${tagName}`
         return this.send('PUT', this.MakeURL(apiPath))
     }
@@ -211,7 +211,7 @@ export class CLClient {
      * (or the specified package, if provided).  To retrieve just the IDs
      * of all entities, see the GetEntityIds method
      */
-    public GetEntities(appId: string, query?: string): Promise<models.EntityList> {
+    public GetEntities(appId: string, query?: string): Promise<CLM.EntityList> {
         let apiPath = `app/${appId}/entities`
         return this.send('GET', this.MakeURL(apiPath, query))
     }
@@ -224,7 +224,7 @@ export class CLClient {
      * To retrieve just a list of IDs of all logDialogs,
      * see the GET GetLogDialogIds method.
      */
-    public GetLogDialogs(appId: string, packageIds: string[]): Promise<models.LogDialogList> {
+    public GetLogDialogs(appId: string, packageIds: string[]): Promise<CLM.LogDialogList> {
         const packages = packageIds.map(p => `package=${p}`).join("&")
         const apiPath = `app/${appId}/logdialogs?includeDefinitions=false&${packages}`
         return this.send('GET', this.MakeURL(apiPath))
@@ -237,7 +237,7 @@ export class CLClient {
      * Retrieves information about a specific trainDialog in the current package
      * (or the specified package, if provided)
      */
-    public GetTrainDialog(appId: string, trainDialogId: string, includeDefinitions: boolean = false): Promise<models.TrainDialog> {
+    public GetTrainDialog(appId: string, trainDialogId: string, includeDefinitions: boolean = false): Promise<CLM.TrainDialog> {
         let query = `includeDefinitions=${includeDefinitions}`
         let apiPath = `app/${appId}/traindialog/${trainDialogId}`
         return this.send('GET', this.MakeURL(apiPath, query))
@@ -248,8 +248,8 @@ export class CLClient {
         appId: string,
         trainDialogId: string,
         turnIndex: string,
-        userInput: models.UserInput
-    ): Promise<models.ExtractResponse> {
+        userInput: CLM.UserInput
+    ): Promise<CLM.ExtractResponse> {
         let apiPath = `app/${appId}/traindialog/${trainDialogId}/extractor/${turnIndex}`
         // Always retrieve entity list
         let query = 'includeDefinitions=true'
@@ -261,13 +261,13 @@ export class CLClient {
     //=============================================================================
 
     /** Creates a new session and a corresponding logDialog */
-    public StartSession(appId: string, sessionCreateParams: models.SessionCreateParams): Promise<models.Session> {
+    public StartSession(appId: string, sessionCreateParams: CLM.SessionCreateParams): Promise<CLM.Session> {
         let apiPath = `app/${appId}/session`
         return this.send('POST', this.MakeSessionURL(apiPath), sessionCreateParams)
     }
 
     /** Runs entity extraction (prediction). */
-    public SessionExtract(appId: string, sessionId: string, userInput: models.UserInput): Promise<models.ExtractResponse> {
+    public SessionExtract(appId: string, sessionId: string, userInput: CLM.UserInput): Promise<CLM.ExtractResponse> {
         let apiPath = `app/${appId}/session/${sessionId}/extractor`
 
         // Always retrieve entity list
@@ -277,7 +277,7 @@ export class CLClient {
     }
 
     /** Take a turn and returns chosen action */
-    public SessionScore(appId: string, sessionId: string, scorerInput: models.ScoreInput): Promise<models.ScoreResponse> {
+    public SessionScore(appId: string, sessionId: string, scorerInput: CLM.ScoreInput): Promise<CLM.ScoreResponse> {
         let apiPath = `app/${appId}/session/${sessionId}/scorer`
         return this.send('PUT', this.MakeSessionURL(apiPath), scorerInput)
     }
@@ -295,9 +295,9 @@ export class CLClient {
     //=============================================================================
 
     /** Creates a new teaching session and a corresponding trainDialog */
-    public StartTeach(appId: string, createTeachParams: models.CreateTeachParams | null): Promise<models.TeachResponse> {
+    public StartTeach(appId: string, createTeachParams: CLM.CreateTeachParams): Promise<CLM.TeachResponse> {
         let apiPath = `app/${appId}/teach`
-        return this.send('POST', this.MakeURL(apiPath), createTeachParams ? createTeachParams : {})
+        return this.send('POST', this.MakeURL(apiPath), createTeachParams)
     }
 
     /**
@@ -306,7 +306,7 @@ export class CLClient {
      * the server, the session will first migrate to that newer version.  This
      * doesn't affect the trainDialog maintained.
      */
-    public TeachExtract(appId: string, teachId: string, userInput: models.UserInput): Promise<models.ExtractResponse> {
+    public TeachExtract(appId: string, teachId: string, userInput: CLM.UserInput): Promise<CLM.ExtractResponse> {
         let apiPath = `app/${appId}/teach/${teachId}/extractor`
         let query = 'includeDefinitions=true'
         return this.send('PUT', this.MakeURL(apiPath, query), { text: userInput.text })
@@ -317,7 +317,7 @@ export class CLClient {
      * ie "commits" an entity extraction label, appending it to the teach session's
      * trainDialog, and advancing the dialog. This may yield produce a new package.
      */
-    public TeachExtractFeedback(appId: string, teachId: string, extractorStep: models.TrainExtractorStep): Promise<models.TeachResponse> {
+    public TeachExtractFeedback(appId: string, teachId: string, extractorStep: CLM.TrainExtractorStep): Promise<CLM.TeachResponse> {
         let apiPath = `app/${appId}/teach/${teachId}/extractor`
         return this.send('POST', this.MakeURL(apiPath), extractorStep)
     }
@@ -328,7 +328,7 @@ export class CLClient {
      * available on the server, the session will first migrate to that newer version.
      * This doesn't affect the trainDialog maintained by the teaching session.
      */
-    public TeachScore(appId: string, teachId: string, scorerInput: models.ScoreInput): Promise<models.ScoreResponse> {
+    public TeachScore(appId: string, teachId: string, scorerInput: CLM.ScoreInput): Promise<CLM.ScoreResponse> {
         let apiPath = `app/${appId}/teach/${teachId}/scorer`
         return this.send('PUT', this.MakeURL(apiPath), scorerInput)
     }
@@ -338,7 +338,7 @@ export class CLClient {
      * – ie "commits" a scorer label, appending it to the teach session's
      * trainDialog, and advancing the dialog. This may yield produce a new package.
      */
-    public TeachScoreFeedback(appId: string, teachId: string, scorerResponse: models.TrainScorerStep): Promise<models.TeachResponse> {
+    public TeachScoreFeedback(appId: string, teachId: string, scorerResponse: CLM.TrainScorerStep): Promise<CLM.TeachResponse> {
         let apiPath = `app/${appId}/teach/${teachId}/scorer`
         return this.send('POST', this.MakeURL(apiPath), scorerResponse)
     }
@@ -348,7 +348,7 @@ export class CLClient {
      * For Teach sessions, does NOT delete the associated trainDialog.
      * To delete the associated trainDialog, call DELETE on the trainDialog.
      */
-    public EndTeach(appId: string, teachId: string, query: string): Promise<models.TrainResponse> {
+    public EndTeach(appId: string, teachId: string, query: string): Promise<CLM.TrainResponse> {
         let apiPath = `app/${appId}/teach/${teachId}`
         return this.send('DELETE', this.MakeURL(apiPath, query))
     }

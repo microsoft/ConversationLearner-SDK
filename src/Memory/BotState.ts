@@ -52,7 +52,7 @@ export enum BotStateType {
     MESSAGE_MUTEX = 'MESSAGE_MUTEX',
 
     // True if onStartSession needs to be called
-    NEED_SESSIONSTART_CALL = 'ON_STARTSESSION_CALLED',
+ // LARS delete   NEED_SESSIONSTART_CALL = 'ON_STARTSESSION_CALLED',
 
     // True if onEndSession needs to be called
     NEED_SESSIONEND_CALL = 'ON_ENDSESSION_CALLED',
@@ -113,7 +113,7 @@ export class BotState {
         await this.SetLastActive(0);
         await this.SetMessageProcessing(null);
         await this.SetOrgSessionId(null)
-        await this.SetNeedSessionStartCall(false)
+    //LARS    await this.SetNeedSessionStartCall(false)
         await this.SetNeedSessionEndCall(false)
         await this.SetInTeach(false)
         await this.SetSessionId(null)
@@ -206,7 +206,7 @@ export class BotState {
     public async SetOrgSessionId(sessionId: string | null): Promise<void> {
         await this.SetStateAsync(BotStateType.ORIG_SESSION, sessionId)
     }
-
+/*LARS
     // ------------------------------------------------
     // NEED_SESSIONSTART_CALL
     // ------------------------------------------------
@@ -219,7 +219,7 @@ export class BotState {
         needed = needed ? needed : false;
         await this.SetStateAsync(BotStateType.NEED_SESSIONSTART_CALL, needed)
     }
-
+*/
     // ------------------------------------------------
     // NEED_SESSIONEND_CALL
     // ------------------------------------------------
@@ -267,23 +267,20 @@ export class BotState {
         await this.SetStateAsync(BotStateType.SESSION_ID, sessionId)
     }
 
-    public async StartSessionAsync(sessionId: string | null, logDialogId: string | null, conversationId: string | null, sessionStartFlags: SessionStartFlags): Promise<void> {
+    public async InitSessionAsync(sessionId: string | null, logDialogId: string | null, conversationId: string | null, sessionStartFlags: SessionStartFlags): Promise<void> {
         await this.SetSessionId(sessionId);
 
         // Do not clear OrgSessionId, if user did manual timeout, so UI can properly delete
         if (!(sessionStartFlags & SessionStartFlags.IS_MANUAL_TIMEOUT)) {
             await this.SetOrgSessionId(null)
         }
-
         await this.SetLogDialogId(logDialogId)
-        await this.SetNeedSessionStartCall(true)
+     // LARS   await this.SetNeedSessionStartCall(true)
         await this.SetNeedSessionEndCall(true)
         await this.SetConversationId(conversationId)
         await this.SetLastActive(new Date().getTime())
         await this.SetInTeach((sessionStartFlags & SessionStartFlags.IN_TEACH) > 0)
         await this.SetMessageProcessing(null)
-
-
     }
 
     // End a session.
