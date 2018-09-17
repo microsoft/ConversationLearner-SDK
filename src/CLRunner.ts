@@ -1191,8 +1191,12 @@ export class CLRunner {
     /**
      * Provide dummy data for any missing entities so they can still be rendered
      */
-    private PopulateMissingFilledEntities(action: CLM.ActionBase, filledEntityMap: CLM.FilledEntityMap, allEntities: CLM.EntityBase[]): void {
-        action.requiredEntitiesFromPayload.forEach((entityId: string) => {
+    private PopulateMissingFilledEntities(action: CLM.ActionBase, filledEntityMap: CLM.FilledEntityMap, allEntities: CLM.EntityBase[]): string[] {
+        // For backwards compatibiliity need to check requieredEntities too.  In new version all in requiredEntitiesFromPayload
+        const allRequiredEntities = [...action.requiredEntities, ...action.requiredEntitiesFromPayload]
+        let missingEntities: string[] = []
+
+        allRequiredEntities.forEach((entityId: string) => {
             let entity = allEntities.find(e => e.entityId === entityId)
             if (entity) {
                 if (!filledEntityMap.map[entity.entityName]) {
@@ -1205,11 +1209,19 @@ export class CLRunner {
                     } as CLM.FilledEntity
                     filledEntityMap.map[entity.entityName] = filledEntity
                     filledEntityMap.map[entity.entityId] = filledEntity
+                    missingEntities.push(entity.entityName)
+                }
+                else {
+                    const value = filledEntityMap.ValueAsString(entity.entityName)
+                    if (value && value.startsWith(`["$`)) {
+                        missingEntities.push(entity.entityName)
+                    }
                 }
             } else {
                 throw new Error(`ENTITY ${entityId} DOES NOT EXIST`)
             }
         })
+        return missingEntities
     }
 
     /**
@@ -1355,7 +1367,7 @@ export class CLRunner {
             for (let filledEntity of filledEntities) {
                 if (!entities.find(e => e.entityId == filledEntity.entityId)) {
                     highlight = "warning"
-                    replayError = new CLM.ReplayErrorMissingEntity(CLM.filledEntityValueAsString(filledEntity))
+                    replayError = new CLM.ReplayErrorEntityUndefined(CLM.filledEntityValueAsString(filledEntity))
                     replayErrors.push()
                 }
             }  
@@ -1411,7 +1423,7 @@ export class CLRunner {
                     if (!selectedAction)
                     {
                         highlight = "error";
-                        replayError = new CLM.ReplayErrorMissingAction(userText)
+                        replayError = new CLM.ReplayErrorActionUndefined(userText)
                         replayErrors.push(replayError);
                     }
                     else {
@@ -1433,14 +1445,6 @@ export class CLRunner {
                         }
                     }
 
-                    let channelData = { 
-                        senderType: CLM.SenderType.Bot, 
-                        roundIndex: roundNum, 
-                        scoreIndex,
-                        highlight,
-                        replayError
-                    }
-
                     // Generate bot response
                     curAction = actions.filter((a: CLM.ActionBase) => a.actionId === labelAction)[0]
                     let botResponse: IActionResult
@@ -1456,7 +1460,14 @@ export class CLRunner {
                         let filledEntityMap = this.CreateFilledEntityMap(scoreFilledEntities, entityList)
 
                         // Fill in missing entities with a warning
-                        this.PopulateMissingFilledEntities(curAction, filledEntityMap, entities)
+                        const missingEntities = this.PopulateMissingFilledEntities(curAction, filledEntityMap, entities)
+
+                        // Entity required for Action isn't filled in
+                        if (missingEntities.length > 0) {
+                            highlight = "error";
+                            replayError = new CLM.ReplayErrorEntityEmpty(missingEntities)
+                            replayErrors.push(replayError);
+                        }
 
                         // Set memory from map with names only (since not calling APIs)
                         let memoryMap = CLM.FilledEntityMap.FromFilledEntities(scoreFilledEntities, entities)
@@ -1496,6 +1507,14 @@ export class CLRunner {
                         }
                     }
                 
+                    let channelData = { 
+                        senderType: CLM.SenderType.Bot, 
+                        roundIndex: roundNum, 
+                        scoreIndex,
+                        highlight,
+                        replayError
+                    }
+
                     let botActivity: Partial<BB.Activity> | null = null
                     let botId = `BOT-${userId}`
                     if (typeof botResponse.response == 'string') {
