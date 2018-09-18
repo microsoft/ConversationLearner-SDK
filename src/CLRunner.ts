@@ -270,9 +270,10 @@ export class CLRunner {
             await this.CheckSessionEndCallback(clMemory, entityList.entities, CLM.SessionEndState.OPEN);
         }
 
-        // LARS - may need to clear memory here?  check
+        // Clear memory after SessionEndCallback
+        await clMemory.BotMemory.ClearAsync()
 
-        // LARS check that this works = should it be inside loop above
+        // LARS check that this works = should it be inside edit continue above
         // Check if StartSession call is required
         await this.CheckSessionStartCallback(clMemory, entityList.entities);
         const startSessionEntities = await clMemory.BotMemory.FilledEntitiesAsync()
