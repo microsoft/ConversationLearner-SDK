@@ -230,6 +230,20 @@ export class CLClient {
         return this.send('GET', this.MakeURL(apiPath))
     }
 
+    /** Runs entity extraction (prediction). */
+    public LogDialogExtract(
+        appId: string,
+        logDialogId: string,
+        turnIndex: string,
+        userInput: CLM.UserInput
+    ): Promise<CLM.ExtractResponse> {
+        let apiPath = `app/${appId}/logdialog/${logDialogId}/extractor/${turnIndex}`
+        // Always retrieve entity list
+        let query = 'includeDefinitions=true'
+        return this.send('PUT', this.MakeURL(apiPath, query), userInput)
+    }
+
+
     //=============================================================================
     // Train Dialogs
     //=============================================================================
