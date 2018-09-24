@@ -469,6 +469,25 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
     //========================================================
     // LogDialogs
     //========================================================
+    /**
+     * RUN EXTRACTOR: Runs entity extraction on a log dialog
+     */
+    router.put('/app/:appId/logdialog/:logDialogId/extractor/:turnIndex', async (req, res, next) => {
+        try {
+            const key = getMemoryKey(req)
+            const { appId, logDialogId, turnIndex } = req.params
+            const userInput: CLM.UserInput = req.body
+            const extractResponse = await client.LogDialogExtract(appId, logDialogId, turnIndex, userInput)
+
+            const memory = CLMemory.GetMemory(key)
+            const memories = await memory.BotMemory.DumpMemory()
+            const uiExtractResponse: CLM.UIExtractResponse = { extractResponse, memories }
+            res.send(uiExtractResponse)
+        } catch (error) {
+            HandleError(res, error)
+        }
+    })
+
     router.get('/app/:appId/logdialogs', async (req, res, next) => {
         const { appId } = req.params
 

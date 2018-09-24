@@ -200,7 +200,7 @@ export class CLRunner {
                     const sessionCreateParams: CLM.SessionCreateParams = {
                         saveToLog: app.metadata.isLoggingOn !== false,
                         packageId: packageId,
-                        initialFilledEntities: []  // LARS TODO put inti entities in here
+                        initialFilledEntities: []
                     }
                     await this.StartSessionAsync(clMemory, activity.conversation.id, app.appId, SessionStartFlags.NONE, sessionCreateParams)
                 }
@@ -261,24 +261,25 @@ export class CLRunner {
     public async StartSessionAsync(clMemory: CLMemory, conversationId: string | null, appId: string, sessionStartFlags: SessionStartFlags, createParams: CLM.SessionCreateParams | CLM.CreateTeachParams): Promise<CLM.Teach | CLM.Session> {
 
         const inTeach = ((sessionStartFlags & SessionStartFlags.IN_TEACH) > 0) 
-        let entityList = await this.clClient.GetEntities(appId)   // LARS can this be passed in?
+        let entityList = await this.clClient.GetEntities(appId)   
 
         // If not continuing an edited session, call endSession
         if (!(sessionStartFlags && SessionStartFlags.IS_EDIT_CONTINUE)) {
             // Default callback will clear the bot memory.
             // END_SESSION action was never triggered, so SessionEndState.OPEN
             await this.CheckSessionEndCallback(clMemory, entityList.entities, CLM.SessionEndState.OPEN);
+   
+            // Clear memory after SessionEndCallback
+            await clMemory.BotMemory.ClearAsync()
         }
 
-        // LARS - may need to clear memory here?  check
-
-        // LARS check that this works = should it be inside loop above
+        //  check that this works = should it be inside edit continue above
         // Check if StartSession call is required
         await this.CheckSessionStartCallback(clMemory, entityList.entities);
-        const startSessionEntities = await clMemory.BotMemory.FilledEntitiesAsync()
-        createParams.initialFilledEntities = [...createParams.initialFilledEntities || [], ...startSessionEntities]
+        let startSessionEntities = await clMemory.BotMemory.FilledEntitiesAsync()
+        startSessionEntities = [...createParams.initialFilledEntities || [], ...startSessionEntities]
 
-        const filledEntityMap = CLM.FilledEntityMap.FromFilledEntities(createParams.initialFilledEntities, entityList.entities)
+        const filledEntityMap = CLM.FilledEntityMap.FromFilledEntities(startSessionEntities, entityList.entities)
         clMemory.BotMemory.RestoreFromMapAsync(filledEntityMap)
 
         // Start the new session
@@ -683,36 +684,30 @@ export class CLRunner {
     // Call session start callback, set memory and return list of filled entities coming from callback
     public async CheckSessionStartCallback(clMemory: CLMemory, entities: CLM.EntityBase[]): Promise<void> {
 
-        // If onStartSession hasn't been called yet, call it
-   //  LARS   let needStartSession = await clMemory.BotState.GetNeedSessionStartCall();
+        // If bot has callback, call it
+        if (this.onSessionStartCallback && this.adapter) {
+            let memoryManager = await this.CreateMemoryManagerAsync(clMemory, entities)
 
-  //      if (needStartSession) {
-            // If bot has callback, call it
-            if (this.onSessionStartCallback && this.adapter) {
-                let memoryManager = await this.CreateMemoryManagerAsync(clMemory, entities)
+            // Get conversation ref, so I can generate context and send it back to bot dev
+            let conversationReference = await clMemory.BotState.GetConversationReverence()
+            if (!conversationReference) {
+                CLDebug.Error('Missing ConversationReference')
+                return
+            }
 
-                // Get conversation ref, so I can generate context and send it back to bot dev
-                let conversationReference = await clMemory.BotState.GetConversationReverence()
-                if (!conversationReference) {
-                    CLDebug.Error('Missing ConversationReference')
-                    return
-                }
-
-                await this.adapter.continueConversation(conversationReference, async (context) => {
-                    if (this.onSessionStartCallback) {
-                        try {
-                            await this.onSessionStartCallback(context, memoryManager)
-                            await clMemory.BotMemory.RestoreFromMemoryManagerAsync(memoryManager)
-                        }
-                        catch (err) {
-                            await this.SendMessage(clMemory, "Exception hit in Bot's OnSessionStartCallback")
-                            let errMsg = CLDebug.Error(err);
-                            this.SendMessage(clMemory, errMsg);
-                        }
+            await this.adapter.continueConversation(conversationReference, async (context) => {
+                if (this.onSessionStartCallback) {
+                    try {
+                        await this.onSessionStartCallback(context, memoryManager)
+                        await clMemory.BotMemory.RestoreFromMemoryManagerAsync(memoryManager)
                     }
-                })
-          //  }
-        // LARS    await clMemory.BotState.SetNeedSessionStartCall(false);
+                    catch (err) {
+                        await this.SendMessage(clMemory, "Exception hit in Bot's OnSessionStartCallback")
+                        let errMsg = CLDebug.Error(err);
+                        this.SendMessage(clMemory, errMsg);
+                    }
+                }
+            })
         }
     }
 
