@@ -772,7 +772,6 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const teach = await clRunner.StartSessionAsync(clMemory, null, appId, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE, createTeachParams) as CLM.Teach
                
             // LARS todo  - check that round needs to be scored
-            // LARS todo  - check works on 2nd score round
 
             // Get entities from my memory
             const filledEntities = await clMemory.BotMemory.FilledEntitiesAsync()
