@@ -1501,12 +1501,23 @@ export class CLRunner {
                             throw new Error(`Cannot construct bot response for unknown action type: ${curAction.actionType}`)
                         }
                     }
+
+                    let downarrow = null
+                    if (curAction && !curAction.isTerminal) {
+                        if (round.scorerSteps.length === scoreIndex + 1) {
+                            downarrow = "wc-message-downarrow-points-red"
+                        }
+                        else {
+                            downarrow = "wc-message-downarrow-points"
+                        }
+                    }
                 
                     let channelData = { 
                         senderType: CLM.SenderType.Bot, 
                         roundIndex: roundNum, 
                         scoreIndex,
                         highlight,
+                        downarrow: downarrow,
                         replayError
                     }
 
