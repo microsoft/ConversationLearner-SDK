@@ -1502,13 +1502,13 @@ export class CLRunner {
                         }
                     }
 
-                    let downarrow = null
+                    let validWaitAction
                     if (curAction && !curAction.isTerminal) {
                         if (round.scorerSteps.length === scoreIndex + 1) {
-                            downarrow = "wc-message-downarrow-points-red"
+                            validWaitAction = false
                         }
                         else {
-                            downarrow = "wc-message-downarrow-points"
+                            validWaitAction = true
                         }
                     }
                 
@@ -1517,7 +1517,7 @@ export class CLRunner {
                         roundIndex: roundNum, 
                         scoreIndex,
                         highlight,
-                        downarrow: downarrow,
+                        validWaitAction: validWaitAction,
                         replayError
                     }
 
