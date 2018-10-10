@@ -1196,7 +1196,7 @@ export class CLRunner {
             if (entity) {
                 if (!filledEntityMap.map[entity.entityName]) {
                     let memoryValue = {
-                        userText: `["$${entity.entityName}"]`
+                        userText: `${CLM.DUMMY_ENTITY_PREFIX}${entity.entityName}"]`
                     } as CLM.MemoryValue
                     let filledEntity = {
                         entityId : entityId,
@@ -1208,7 +1208,7 @@ export class CLRunner {
                 }
                 else {
                     const value = filledEntityMap.ValueAsString(entity.entityName)
-                    if (value && value.startsWith(`["$`)) {
+                    if (value && value.startsWith(CLM.DUMMY_ENTITY_PREFIX)) {
                         missingEntities.push(entity.entityName)
                     }
                 }
@@ -1502,13 +1502,13 @@ export class CLRunner {
                         }
                     }
 
-                    let downarrow = null
+                    let validWaitAction
                     if (curAction && !curAction.isTerminal) {
                         if (round.scorerSteps.length === scoreIndex + 1) {
-                            downarrow = "wc-message-downarrow-points-red"
+                            validWaitAction = false
                         }
                         else {
-                            downarrow = "wc-message-downarrow-points"
+                            validWaitAction = true
                         }
                     }
                 
@@ -1517,7 +1517,7 @@ export class CLRunner {
                         roundIndex: roundNum, 
                         scoreIndex,
                         highlight,
-                        downarrow: downarrow,
+                        validWaitAction: validWaitAction,
                         replayError
                     }
 
