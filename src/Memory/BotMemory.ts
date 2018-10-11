@@ -148,14 +148,8 @@ export class BotMemory {
     }
 
     public async DumpMemory(): Promise<Memory[]> {
-        // Check if entity buckets values
         await this.Init()
-
-        let memory: Memory[] = []
-        for (let entityName in this.filledEntityMap.map) {
-            memory.push({ entityName: entityName, entityValues: this.MemoryValues(entityName) })
-        }
-        return memory
+        return this.filledEntityMap.ToMemory()
     }
 
     public async Value(entityName: string): Promise<string | null> {
