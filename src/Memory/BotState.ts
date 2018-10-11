@@ -242,6 +242,13 @@ export class BotState {
         else if (existingConversationId == conversationId) {
             return await this.GetStateAsync<string | null>(BotStateType.SESSION_ID)
         }
+        // If existingConversationId Id is a object - TEAMs Channel 
+        else if (typeof existingConversationId === 'object'){ 
+            if (existingConversationId["user"]["id"] == conversationId){ 
+                return await this.GetStateAsync<string | null>(BotStateType.SESSION_ID)
+            } 
+        } 
+    
         // Otherwise session is for another conversation
         return null
     }
