@@ -520,12 +520,10 @@ export class CLRunner {
                 // Find the entity
                 let entity = entityList.entities.find((e: CLM.EntityBase) => e.entityName == entityName)
 
-                if (!entity) {
-                    CLDebug.Error(`Form - Can't find Entity named: ${entityName}`)
-                    return null
+                // If it exists, set it
+                if (entity) {
+                    await clMemory.BotMemory.RememberEntity(entity.entityName, entity.entityId, data[entityName], entity.isMultivalue)
                 }
-                // Set it
-                await clMemory.BotMemory.RememberEntity(entity.entityName, entity.entityId, data[entityName], entity.isMultivalue)
             }
 
             // If submit type return as a response
