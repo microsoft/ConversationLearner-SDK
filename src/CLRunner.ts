@@ -679,6 +679,15 @@ export class CLRunner {
         return new ClientMemoryManager(prevMemories, curMemories, allEntities, sessionInfo);
     }
 
+    private async CreateReadOnlyMemoryManagerAsync(clMemory: CLMemory, allEntities: CLM.EntityBase[], prevMemories?: CLM.FilledEntityMap): Promise<ReadOnlyClientMemoryManager> {
+        let sessionInfo = await clMemory.BotState.SessionInfoAsync()
+        let curMemories = new CLM.FilledEntityMap(await clMemory.BotMemory.FilledEntityMap());
+        if (!prevMemories) {
+            prevMemories = curMemories;
+        }
+        return new ReadOnlyClientMemoryManager(prevMemories, curMemories, allEntities, sessionInfo);
+    }
+
     // Call session start callback, set memory and return list of filled entities coming from callback
     public async CheckSessionStartCallback(clMemory: CLMemory, entities: CLM.EntityBase[]): Promise<void> {
 
@@ -989,7 +998,9 @@ export class CLRunner {
                     // Invoke Render part of callback
                     const renderedRenderArgumentValues = this.GetRenderedArguments(callback.renderArguments, apiAction.renderArguments, filledEntityMap)
 
-                    let response = await callback.render(logicResult, memoryManager.AsReadOnly(), ...renderedRenderArgumentValues)
+                    const readOnlyMemoryManager = await this.CreateReadOnlyMemoryManagerAsync(clMemory, allEntities)
+
+                    let response = await callback.render(logicResult, readOnlyMemoryManager, ...renderedRenderArgumentValues)
 
                     // If response is empty, but we're in teach session return a placeholder card in WebChat so they can click it to edit
                     // Otherwise return the response as is.
