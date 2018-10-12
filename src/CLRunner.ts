@@ -621,7 +621,7 @@ export class CLRunner {
             // If negative entity will have a positive counter entity
             if (entity.positiveId) {
                 await memory.ForgetEntity(entity.entityName, predictedEntity.entityText, entity.isMultivalue)
-            } else {
+            } else if(!entity.doNotMemorize) {
                 await memory.RememberEntity(
                     entity.entityName,
                     entity.entityId,
