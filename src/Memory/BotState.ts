@@ -139,6 +139,8 @@ export class BotState {
                 appName: app.appName,
                 livePackageId: app.livePackageId,
                 devPackageId: app.devPackageId,
+                trainingFailureMessage: app.trainingFailureMessage,
+                trainingStatus: app.trainingStatus,
                 metadata: {
                     isLoggingOn: app.metadata.isLoggingOn
                 }}
