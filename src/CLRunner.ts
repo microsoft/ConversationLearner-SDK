@@ -1166,7 +1166,7 @@ export class CLRunner {
         let invalidTrainDialogIds = [];
         for (let trainDialog of appDefinition.trainDialogs) {
             // Ignore train dialogs that are already invalid
-            if (!trainDialog.invalid) {
+            if (trainDialog.validity !== CLM.Validity.INVALID) {
                 let validationErrors = this.DialogValidationErrors(trainDialog, appDefinition.entities, appDefinition.actions);
                 if (validationErrors.length > 0) {
                     invalidTrainDialogIds.push(trainDialog.trainDialogId);
