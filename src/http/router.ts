@@ -545,7 +545,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             }
 
             // Start teach session if replay of API was consistent
-            if (teachWithHistory.replayErrors.length === 0) {
+            if (teachWithHistory.replayErrors.length === 0) {  // LARS TODO, disable when cant replay in UI
                 // Start new teach session from the old train dialog
                 const createTeachParams = CLM.ModelUtils.ToCreateTeachParams(trainDialog)
                 teachWithHistory.teach = await clRunner.StartSessionAsync(clMemory, null, appId, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE, createTeachParams) as CLM.Teach
@@ -713,9 +713,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 return
             }
 
-            // Only start if there were no replay Errors
-            if (teachWithHistory.replayErrors.length === 0) {
-
+            try {
                 // Start new teach session from the old train dialog
                 const createTeachParams = CLM.ModelUtils.ToCreateTeachParams(cleanTrainDialog)
                 teachWithHistory.teach = await clRunner.StartSessionAsync(clMemory, null, appId, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE, createTeachParams) as CLM.Teach
@@ -746,9 +744,10 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                     teachWithHistory.extractResponse = await client.TeachExtract(appId, teachWithHistory.teach.teachId, userInput)
                     teachWithHistory.dialogMode = CLM.DialogMode.Extractor
                 }
+                res.send(teachWithHistory)
+            } catch (error) {
+                res.send(teachWithHistory)
             }
-
-            res.send(teachWithHistory)
         } catch (error) {
             HandleError(res, error)
         }
