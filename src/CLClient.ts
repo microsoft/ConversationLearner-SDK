@@ -296,6 +296,12 @@ export class CLClient {
         return this.send('PUT', this.MakeSessionURL(apiPath), scorerInput)
     }
 
+    public SessionLogicResult(appId: string, sessionId: string, actionId: string, logicResult: CLM.LogicResult)
+    {
+        let apiPath = `app/${appId}/session/${sessionId}/scorerSteps/action/${actionId}/logicResult`
+        return this.send('PUT', this.MakeSessionURL(apiPath), logicResult)
+    }
+
     /** End a session. */
     public EndSession(appId: string, sessionId: string): Promise<string> {
         let apiPath = `app/${appId}/session/${sessionId}`
