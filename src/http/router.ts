@@ -18,6 +18,7 @@ import * as XMLDom from 'xmldom'
 import * as CLM from '@conversationlearner/models'
 import * as crypto from 'crypto'
 import * as proxy from 'http-proxy-middleware'
+import * as HttpStatus from 'http-status-codes'
 import * as constants from '../constants'
 import * as bodyParser from 'body-parser'
 import * as cors from 'cors'
@@ -66,7 +67,7 @@ export const HandleError = (response: express.Response, err: any): void => {
     if (err.body && err.body.errorMessages && err.body.errorMessages.length > 0) {
         error += err.body.errorMessages.map((em: any) => JSON.stringify(em)).join()
     }
-    let statusCode = err.statusCode ? err.statusCode : 500
+    let statusCode = err.statusCode ? err.statusCode : HttpStatus.INTERNAL_SERVER_ERROR
 
     response.status(statusCode)
     response.send(error)
@@ -118,7 +119,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
     }))
 
     router.get('/', (req, res, next) => {
-        res.status(200).send({
+        res.status(HttpStatus.OK).send({
             message: `Conversation Learner SDK: ${new Date().toJSON()}`
         })
     })
@@ -380,13 +381,13 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const action: CLM.ActionBase = req.body
             const { packageId } = getQuery(req)
             if (!packageId) {
-                res.status(400)
+                res.status(HttpStatus.BAD_REQUEST)
                 res.send({ error: 'packageId query parameter must be provided' })
                 return
             }
 
             if (actionId !== action.actionId) {
-                res.status(400)
+                res.status(HttpStatus.BAD_REQUEST)
                 res.send(new Error(`ActionId in body: ${action.actionId} does not match id from URI: ${actionId}`))
                 return
             }
@@ -539,17 +540,15 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const clRunner = CLRunner.GetRunnerForUI(appId);
             const teachWithHistory = await clRunner.GetHistory(trainDialog, userName, userId, clMemory)
             if (!teachWithHistory) {
-                res.status(500)
+                res.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 res.send(new Error(`Could not find teach session history for given train dialog`))
                 return
             }
 
-            // Start teach session if replay of API was consistent
-            if (teachWithHistory.replayErrors.length === 0) {  // LARS TODO, disable when cant replay in UI
-                // Start new teach session from the old train dialog
-                const createTeachParams = CLM.ModelUtils.ToCreateTeachParams(trainDialog)
-                teachWithHistory.teach = await clRunner.StartSessionAsync(clMemory, null, appId, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE, createTeachParams) as CLM.Teach
-            }
+            // Start new teach session from the old train dialog
+            const createTeachParams = CLM.ModelUtils.ToCreateTeachParams(trainDialog)
+            teachWithHistory.teach = await clRunner.StartSessionAsync(clMemory, null, appId, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE, createTeachParams) as CLM.Teach
+
             res.send(teachWithHistory)
         } catch (error) {
             HandleError(res, error)
@@ -708,7 +707,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
             const teachWithHistory = await clRunner.GetHistory(cleanTrainDialog, userName, userId, clMemory)
             if (!teachWithHistory) {
-                res.status(500)
+                res.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 res.send(new Error(`Could not find teach session history for given train dialog`))
                 return
             }
@@ -893,8 +892,22 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
             // There will be no extraction step if performing a 2nd scorer round after a non-terminal action
             if (uiScoreInput.trainExtractorStep) {
-                // Send teach feedback;
-                await client.TeachExtractFeedback(appId, teachId, uiScoreInput.trainExtractorStep)
+                try {
+                    // Send teach feedback;
+                    await client.TeachExtractFeedback(appId, teachId, uiScoreInput.trainExtractorStep)
+                }
+                catch (error) {
+                    if (error.statusCode === HttpStatus.CONFLICT) {
+                        const textVariation : CLM.TextVariation = error.body.reason
+                        const extractConflict = CLM.ModelUtils.ToExtractResponses([textVariation])[0]
+                        const uiConflictResponse: CLM.UIScoreResponse = { extractConflict }
+                        res.send(uiConflictResponse)
+                        return
+                    }
+                    else {
+                        throw error
+                    }
+                }
             }
 
             // Call LUIS callback to get scoreInput
@@ -916,6 +929,32 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             HandleError(res, error)
         }
     })
+
+    router.post('/app/:appId/traindialog/:trainDialogId/extractor/textvariation', async (req, res, next) => {
+        try {
+            const { appId, trainDialogId } = req.params
+            const textVariation: CLM.TextVariation = req.body
+
+            try {
+                // Send teach feedback;
+                await client.TrainDialogValidateTextVariation(appId, trainDialogId, textVariation)
+            }
+            catch (error) {
+                if (error.statusCode === HttpStatus.CONFLICT) {
+                    const variationConflict : CLM.TextVariation = error.body.reason
+                    const extractConflict = CLM.ModelUtils.ToExtractResponses([variationConflict])[0]
+                    res.send(extractConflict)
+                    return
+                }
+                else {
+                    throw error
+                }
+            }
+            res.send(null)
+        } catch (error) {
+            HandleError(res, error)
+        }
+    }) 
 
     /**
      * Re-run scorer given previous score input

@@ -270,6 +270,14 @@ export class CLClient {
         return this.send('PUT', this.MakeURL(apiPath, query), userInput)
     }
 
+    /**
+     * Returns a 409 if text variation conflicts with existing labels, otherwise 200
+     */
+    public TrainDialogValidateTextVariation(appId: string, trainDialogId: string, textVariation: CLM.TextVariation): Promise<null> { 
+        let apiPath = `app/${appId}/traindialog/${trainDialogId}/extractor/textvariation`
+        return this.send('POST', this.MakeURL(apiPath), textVariation)
+    }
+
     //=============================================================================
     // Session
     //=============================================================================
