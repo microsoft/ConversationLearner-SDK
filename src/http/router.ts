@@ -1009,7 +1009,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             } as CLRecognizerResult
 
             const clRunner = CLRunner.GetRunnerForUI(appId);
-            const actionResult = await clRunner.SendIntent(intent, uiTrainScorerStep.channelData)
+            const actionResult = await clRunner.SendIntent(intent, uiTrainScorerStep.clData)
 
             // Set logicResult on scorer step
             if (actionResult) {

@@ -758,7 +758,7 @@ export class CLRunner {
         }
     }
 
-    public async RenderTemplateAsync(conversationReference: Partial<BB.ConversationReference>, clRecognizeResult: CLRecognizerResult, channelData: {} | null): Promise<IActionResult> {
+    public async RenderTemplateAsync(conversationReference: Partial<BB.ConversationReference>, clRecognizeResult: CLRecognizerResult, clData: CLM.CLChannelData | null): Promise<IActionResult> {
         // Get filled entities from memory
         let filledEntityMap = await clRecognizeResult.memory.BotMemory.FilledEntityMap()
         filledEntityMap = addEntitiesById(filledEntityMap)
@@ -776,7 +776,7 @@ export class CLRunner {
         let actionResult: IActionResult
         let app: CLM.AppBase | null = null
         let sessionId: string | null = null
-        const inTeach = channelData !== null
+        const inTeach = clData !== null
         switch (clRecognizeResult.scoredAction.actionType) {
             case CLM.ActionTypes.TEXT: {
                 // This is hack to allow ScoredAction to be accepted as ActionBase
@@ -850,9 +850,8 @@ export class CLRunner {
         if (typeof actionResult.response === 'string') {
             actionResult.response = BB.MessageFactory.text(actionResult.response)
         }
-        if (actionResult.response && channelData) {
-
-            actionResult.response.channelData = channelData
+        if (actionResult.response && typeof actionResult.response !== 'string' && clData) {
+            actionResult.response.channelData = {...actionResult.response.channelData, clData}
         }
 
         // If action wasn't terminal loop through Conversation Learner again after a short delay
@@ -891,7 +890,7 @@ export class CLRunner {
 
                     clRecognizeResult.scoredAction = bestAction
                     // LARS - need to increment scorere step in channel data
-                    actionResult = await this.RenderTemplateAsync(conversationReference, clRecognizeResult, channelData)
+                    actionResult = await this.RenderTemplateAsync(conversationReference, clRecognizeResult, clData)
                     if (actionResult.response != null) {
                         this.SendMessage(clRecognizeResult.memory, actionResult.response)
                     }
@@ -901,7 +900,7 @@ export class CLRunner {
         return actionResult
     }
 
-    public async SendIntent(intent: CLRecognizerResult, channelData: {} | null = null): Promise<IActionResult | undefined> {
+    public async SendIntent(intent: CLRecognizerResult, clData: CLM.CLChannelData | null = null): Promise<IActionResult | undefined> {
 
         let conversationReference = await intent.memory.BotState.GetConversationReverence();
 
@@ -914,7 +913,7 @@ export class CLRunner {
             return
         }
 
-        const actionResult = await this.RenderTemplateAsync(conversationReference, intent, channelData)
+        const actionResult = await this.RenderTemplateAsync(conversationReference, intent, clData)
 
         if (actionResult.response != null) {
             await this.adapter.continueConversation(conversationReference, async (context) => {
@@ -1375,7 +1374,6 @@ export class CLRunner {
 
         let activities = []
         let replayError: CLM.ReplayError | null = null
-        let highlight: string | null = null
         let replayErrors: CLM.ReplayError[] = [];
         let curAction = null
 
@@ -1384,13 +1382,10 @@ export class CLRunner {
             let filledEntities = round.scorerSteps[0] && round.scorerSteps[0].input ? round.scorerSteps[0].input.filledEntities : []
 
             // VALIDATION
-            highlight = null
             replayError = null
-
             // Check that entities exist
             for (let filledEntity of filledEntities) {
                 if (!entities.find(e => e.entityId == filledEntity.entityId)) {
-                    highlight = "warning"
                     replayError = new CLM.ReplayErrorEntityUndefined(CLM.filledEntityValueAsString(filledEntity))
                     replayErrors.push()
                 }
@@ -1399,22 +1394,27 @@ export class CLRunner {
             // Check for double user inputs
             if (roundNum != trainDialog.rounds.length - 1 &&
                 (round.scorerSteps.length === 0 || !round.scorerSteps[0].labelAction)) {
-                highlight = "error";
                 replayError = new CLM.ReplayErrorTwoUserInputs()
                 replayErrors.push(replayError)
             }
 
             // Check for user input when previous action wasn't wait
             if (curAction && !curAction.isTerminal) {
-                highlight = "error";
                 replayError = new CLM.ReplayErrorInputAfterNonWait()
                 replayErrors.push(replayError)
             }
 
             // Generate activity
             let userActivity = CLM.ModelUtils.InputToActivity(userText, userName, userId, roundNum)
-            userActivity.channelData.highlight = highlight
-            userActivity.channelData.replayError = replayError
+            
+            let clUserData: CLM.CLChannelData = {
+                senderType: CLM.SenderType.User,
+                roundIndex: roundNum,
+                replayError,
+                activityIndex: activities.length
+            }
+
+            userActivity.channelData.clData = clUserData
             activities.push(userActivity)
 
             // Save memory before this step (used to show changes in UI)
@@ -1439,20 +1439,17 @@ export class CLRunner {
                     let scoreFilledEntities = scorerStep.input.filledEntities
 
                     // VALIDATION
-                    highlight = null
                     replayError = null
 
                     // Check that action exists
                     let selectedAction = actions.find(a => a.actionId == labelAction)
                     if (!selectedAction) {
-                        highlight = "error";
                         replayError = new CLM.ReplayErrorActionUndefined(userText)
                         replayErrors.push(replayError);
                     }
                     else {
                         // Check action availability
                         if (!this.isActionAvailable(selectedAction, scoreFilledEntities)) {
-                            highlight = "error";
                             replayError = new CLM.ReplayErrorActionUnavailable(userText)
                             replayErrors.push(replayError);
                         }
@@ -1462,7 +1459,6 @@ export class CLRunner {
                         const lastScoredAction = round.scorerSteps[scoreIndex - 1].labelAction
                         let lastAction = actions.find(a => a.actionId == lastScoredAction)
                         if (lastAction && lastAction.isTerminal) {
-                            highlight = "error";
                             replayError = new CLM.ReplayErrorActionAfterWait()
                             replayErrors.push(replayError);
                         }
@@ -1487,7 +1483,6 @@ export class CLRunner {
 
                         // Entity required for Action isn't filled in
                         if (missingEntities.length > 0) {
-                            highlight = "error";
                             replayError = new CLM.ReplayErrorEntityEmpty(missingEntities)
                             replayErrors.push(replayError);
                         }
@@ -1540,13 +1535,13 @@ export class CLRunner {
                         }
                     }
 
-                    let channelData = {
+                    let clBotData: CLM.CLChannelData = {
                         senderType: CLM.SenderType.Bot,
                         roundIndex: roundNum,
                         scoreIndex,
-                        highlight,
                         validWaitAction: validWaitAction,
-                        replayError
+                        replayError,
+                        activityIndex: activities.length
                     }
 
                     let botActivity: Partial<BB.Activity> | null = null
@@ -1557,13 +1552,13 @@ export class CLRunner {
                             from: { id: botId, name: CLM.CL_USER_NAME_ID, role: BB.RoleTypes.Bot },
                             type: 'message',
                             text: botResponse.response,
-                            channelData: channelData
+                            channelData: {clData: clBotData}
                         }
                     } else if (botResponse) {
                         botActivity = botResponse.response as BB.Activity
                         botActivity.id = CLM.ModelUtils.generateGUID()
                         botActivity.from = { id: botId, name: CLM.CL_USER_NAME_ID, role: BB.RoleTypes.Bot }
-                        botActivity.channelData = channelData
+                        botActivity.channelData = {clData: clBotData}
                     }
 
                     if (botActivity) {
