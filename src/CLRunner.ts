@@ -1112,13 +1112,13 @@ export class CLRunner {
 
         for (let entityId of action.requiredEntities) {
             let found = filledEntities.find(e => e.entityId == entityId);
-            if (!found) {
+            if (!found || found.values.length === 0) {
                 return false;
             }
         }
         for (let entityId of action.negativeEntities) {
             let found = filledEntities.find(e => e.entityId == entityId);
-            if (found) {
+            if (found && found.values.length > 0) {
                 return false;
             }
         }
@@ -1212,7 +1212,7 @@ export class CLRunner {
     }
 
     /**
-     * Provide dummy data for any missing entities so they can still be rendered
+     * Provide empty FilledEntity for any missing entities so they can still be rendered
      */
     private PopulateMissingFilledEntities(action: CLM.ActionBase, filledEntityMap: CLM.FilledEntityMap, allEntities: CLM.EntityBase[]): string[] {
         // For backwards compatibiliity need to check requieredEntities too.  In new version all in requiredEntitiesFromPayload
@@ -1223,20 +1223,18 @@ export class CLRunner {
             let entity = allEntities.find(e => e.entityId === entityId)
             if (entity) {
                 if (!filledEntityMap.map[entity.entityName]) {
-                    let memoryValue = {
-                        userText: `${CLM.DUMMY_ENTITY_PREFIX}${entity.entityName}"]`
-                    } as CLM.MemoryValue
+                    // Add an empty filledEntity if requried and has no values
                     let filledEntity = {
                         entityId: entityId,
-                        values: [memoryValue]
+                        values: []
                     } as CLM.FilledEntity
                     filledEntityMap.map[entity.entityName] = filledEntity
                     filledEntityMap.map[entity.entityId] = filledEntity
                     missingEntities.push(entity.entityName)
                 }
                 else {
-                    const value = filledEntityMap.ValueAsString(entity.entityName)
-                    if (value && value.startsWith(CLM.DUMMY_ENTITY_PREFIX)) {
+                    const filledEntity = filledEntityMap.map[entity.entityName]
+                    if (filledEntity && filledEntity.values.length == 0) {
                         missingEntities.push(entity.entityName)
                     }
                 }
@@ -1302,8 +1300,10 @@ export class CLRunner {
 
                         let filledEntityMap = await clMemory.BotMemory.FilledEntityMap()
 
-                        // Fill in missing entities with a warning
-                        this.PopulateMissingFilledEntities(curAction, filledEntityMap, entities)
+                         // Provide empty FilledEntity for missing entities
+                        if (!cleanse) {
+                            this.PopulateMissingFilledEntities(curAction, filledEntityMap, entities)
+                        }
 
                         round.scorerSteps[scoreIndex].input.filledEntities = filledEntityMap.FilledEntities()
 
@@ -1420,7 +1420,6 @@ export class CLRunner {
             // Save memory before this step (used to show changes in UI)
             prevMemories = await clMemory.BotMemory.DumpMemory()
 
-            // Call entity detection callback - LARS REVIEW COMMENTS
             let textVariation = round.extractorStep.textVariations[0]
             let predictedEntities = CLM.ModelUtils.ToPredictedEntities(textVariation.labelEntities)
 
@@ -1483,7 +1482,7 @@ export class CLRunner {
 
                         // Entity required for Action isn't filled in
                         if (missingEntities.length > 0) {
-                            replayError = new CLM.ReplayErrorEntityEmpty(missingEntities)
+                            replayError = replayError || new CLM.ReplayErrorEntityEmpty(missingEntities)
                             replayErrors.push(replayError);
                         }
 
@@ -1518,8 +1517,6 @@ export class CLRunner {
                                 response: await this.TakeSessionAction(sessionAction, filledEntityMap, true, sessionInfo.userId, null)
                             }
                         }
-                        // TODO
-                        //  TakeAzureAPIAction
                         else {
                             throw new Error(`Cannot construct bot response for unknown action type: ${curAction.actionType}`)
                         }
