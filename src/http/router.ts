@@ -471,7 +471,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
     // LogDialogs
     //========================================================
     /**
-     * RUN EXTRACTOR: Runs entity extraction on a log dialog
+     * RUN EXTRACTOR: Runs entity extraction on a log dialog  
      */
     router.put('/app/:appId/logdialog/:logDialogId/extractor/:turnIndex', async (req, res, next) => {
         try {
@@ -740,7 +740,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                     teachWithHistory.history.push(userActivity)
 
                     // Extract responses
-                    teachWithHistory.extractResponse = await client.TeachExtract(appId, teachWithHistory.teach.teachId, userInput)
+                    teachWithHistory.extractResponse = await client.TeachExtract(appId, teachWithHistory.teach.teachId, userInput, null)
                     teachWithHistory.dialogMode = CLM.DialogMode.Extractor
                 }
                 res.send(teachWithHistory)
@@ -815,7 +815,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const teach = await clRunner.StartSessionAsync(clMemory, null, appId, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE, createTeachParams) as CLM.Teach
                
             // Do extraction
-            const extractResponse = await client.TeachExtract(appId, teach.teachId, userInput)
+            const extractResponse = await client.TeachExtract(appId, teach.teachId, userInput, null)
 
             // Delete the teach session w/o save
             await client.EndTeach(appId, teach.teachId, `saveDialog=false`)
@@ -855,13 +855,15 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
         try {
             const key = getMemoryKey(req)
             const { appId, teachId } = req.params
+             // Dialog to ignore when checking for conflicting labels
+            const { filteredDialog } = getQuery(req)
             const userInput: CLM.UserInput = req.body
 
             // If a form text could be null
             if (!userInput.text) {
                 userInput.text = '  '
             }
-            const extractResponse = await client.TeachExtract(appId, teachId, userInput)
+            const extractResponse = await client.TeachExtract(appId, teachId, userInput, filteredDialog)
 
             const memory = CLMemory.GetMemory(key)
             const memories = await memory.BotMemory.DumpMemory()
@@ -932,10 +934,12 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
         try {
             const { appId, trainDialogId } = req.params
             const textVariation: CLM.TextVariation = req.body
+            // Dialog to ignore when checking for conflicting labels
+            const { filteredDialog } = getQuery(req)
 
             try {
                 // Send teach feedback;
-                await client.TrainDialogValidateTextVariation(appId, trainDialogId, textVariation)
+                await client.TrainDialogValidateTextVariation(appId, trainDialogId, textVariation, filteredDialog)
             }
             catch (error) {
                 if (error.statusCode === HttpStatus.CONFLICT) {
