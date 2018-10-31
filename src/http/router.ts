@@ -1011,8 +1011,9 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
             // Set logicResult on scorer step
             if (actionResult) {
-                uiTrainScorerStep.trainScorerStep.logicResult = JSON.stringify(actionResult.logicResult)
+                uiTrainScorerStep.trainScorerStep.logicResult = actionResult.logicResult
             }
+
             const teachResponse = await client.TeachScoreFeedback(appId, teachId, uiTrainScorerStep.trainScorerStep)
 
             const memories = await memory.BotMemory.DumpMemory()

@@ -79,14 +79,14 @@ interface ICallback<T> {
 }
 
 enum ActionInputType {
-    LOGIC_ONLY,
-    RENDER_ONLY,
-    LOGIC_AND_RENDER
+    LOGIC_ONLY = "LOGIC_ONLY",
+    RENDER_ONLY = "RENDER_ONLY",
+    LOGIC_AND_RENDER = "LOGIC_AND_RENDER"
 }
 
 interface IActionInputLogic {
     type: ActionInputType.RENDER_ONLY
-    value: string | undefined
+    logicResult: CLM.LogicResult | undefined
 }
 interface IActionInputRenderOnly {
     type: ActionInputType
@@ -95,7 +95,7 @@ interface IActionInputRenderOnly {
 type IActionInput = IActionInputRenderOnly | IActionInputLogic
 
 export interface IActionResult {
-    logicResult: object | void
+    logicResult: CLM.LogicResult | undefined
     response: Partial<BB.Activity> | string | null
 }
 
@@ -817,7 +817,7 @@ export class CLRunner {
                         if (!sessionId) {
                             throw new Error(`Attempted to get session by conversation id: ${conversationReference.conversation.id} but session was not found`)
                         }
-                        await this.clClient.SessionLogicResult(app.appId, sessionId, apiAction.actionId, { logicResult: JSON.stringify(actionResult.logicResult) } as CLM.LogicResult);
+                        await this.clClient.SessionLogicResult(app.appId, sessionId, apiAction.actionId, actionResult.logicResult);
                     }
                 }
                 break
@@ -994,18 +994,29 @@ export class CLRunner {
                 const renderedLogicArgumentValues = this.GetRenderedArguments(callback.logicArguments, apiAction.logicArguments, filledEntityMap)
                 const memoryManager = await this.CreateMemoryManagerAsync(clMemory, allEntities)
 
-                // If we're only doing the render part, used stored input value
+                // If we're only doing the render part, used stored values
                 // This happens when replaying dialog to recreated action outputs
-                let logicResult: any
+                let logicResult: CLM.LogicResult = {logicValue: undefined, changedFilledEntities: []}
                 if (actionInput.type === ActionInputType.RENDER_ONLY) {
-                    const value = (actionInput as IActionInputLogic).value
-                    logicResult = value ? JSON.parse(value) : undefined
+                    let storedResult = (actionInput as IActionInputLogic).logicResult
+                    logicResult = storedResult || logicResult
+
+                    // Logic result holds delta from before after logic callback, use it to update memory
+                    memoryManager.curMemories.UpdateFilledEntities(logicResult.changedFilledEntities, allEntities)
+
+                    // Update memory with changes from logic callback
+                    await clMemory.BotMemory.RestoreFromMemoryManagerAsync(memoryManager)
                 }
                 else {
-                    logicResult = await callback.logic(memoryManager, ...renderedLogicArgumentValues)
-                }
+                    // Store logic callback value
+                    logicResult.logicValue = JSON.stringify(await callback.logic(memoryManager, ...renderedLogicArgumentValues))
 
-                await clMemory.BotMemory.RestoreFromMemoryManagerAsync(memoryManager)
+                    // Update memory with changes from logic callback
+                    await clMemory.BotMemory.RestoreFromMemoryManagerAsync(memoryManager)
+
+                    // Store changes to filled entities
+                    logicResult.changedFilledEntities = CLM.ModelUtils.changedFilledEntities(filledEntityMap, memoryManager.curMemories)
+                }
 
                 // Render the action unless only doing logic part
                 if (actionInput.type === ActionInputType.LOGIC_ONLY) {
@@ -1020,7 +1031,8 @@ export class CLRunner {
 
                     const readOnlyMemoryManager = await this.CreateReadOnlyMemoryManagerAsync(clMemory, allEntities)
 
-                    let response = await callback.render(logicResult, readOnlyMemoryManager, ...renderedRenderArgumentValues)
+                    let logicObject = logicResult.logicValue ? JSON.parse(logicResult.logicValue) : undefined
+                    let response = await callback.render(logicObject, readOnlyMemoryManager, ...renderedRenderArgumentValues)
 
                     // If response is empty, but we're in teach session return a placeholder card in WebChat so they can click it to edit
                     // Otherwise return the response as is.
@@ -1500,7 +1512,7 @@ export class CLRunner {
                             const apiAction = new CLM.ApiAction(curAction)
                             const actionInput: IActionInput = {
                                 type: ActionInputType.RENDER_ONLY,
-                                value: scorerStep.logicResult
+                                logicResult: scorerStep.logicResult
                             }
                             botResponse = await this.TakeAPIAction(apiAction, filledEntityMap, clMemory, entityList.entities, true, actionInput)
                         } else if (curAction.actionType === CLM.ActionTypes.TEXT) {
