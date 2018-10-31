@@ -1003,15 +1003,20 @@ export class CLRunner {
 
                     // Logic result holds delta from before after logic callback, use it to update memory
                     memoryManager.curMemories.UpdateFilledEntities(logicResult.changedFilledEntities, allEntities)
+
+                    // Update memory with changes from logic callback
+                    await clMemory.BotMemory.RestoreFromMemoryManagerAsync(memoryManager)
                 }
                 else {
                     // Store logic callback value
                     logicResult.logicValue = JSON.stringify(await callback.logic(memoryManager, ...renderedLogicArgumentValues))
+
+                    // Update memory with changes from logic callback
+                    await clMemory.BotMemory.RestoreFromMemoryManagerAsync(memoryManager)
+
                     // Store changes to filled entities
                     logicResult.changedFilledEntities = CLM.ModelUtils.changedFilledEntities(filledEntityMap, memoryManager.curMemories)
                 }
-
-                await clMemory.BotMemory.RestoreFromMemoryManagerAsync(memoryManager)
 
                 // Render the action unless only doing logic part
                 if (actionInput.type === ActionInputType.LOGIC_ONLY) {
