@@ -49,7 +49,7 @@ export class CLDebug {
 
                 for (let logMessage of cachedMessages) {
                     if (logMessage.logType === LogType.Error) {
-                        await context.sendActivity({text: logMessage.message/*LARS not needed?, channelData: {highlight: "error"}*/})
+                        await context.sendActivity({text: logMessage.message/*LARS add back, channelData: {highlight: "error"}*/})
                     }
                     else {
                         await context.sendActivity(logMessage.message)
