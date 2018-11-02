@@ -4,6 +4,7 @@
  */
 import { Utils } from './Utils'
 import * as BB from 'botbuilder'
+import * as CLM from '@conversationlearner/models'
 
 export enum DebugType {
     Client = 1 << 0,
@@ -49,7 +50,8 @@ export class CLDebug {
 
                 for (let logMessage of cachedMessages) {
                     if (logMessage.logType === LogType.Error) {
-                        await context.sendActivity({text: logMessage.message/*LARS add back, channelData: {highlight: "error"}*/})
+                        const clData: CLM.CLChannelData = { replayError: new CLM.ReplayErrorException() }
+                        await context.sendActivity({text: logMessage.message, channelData: {clData: clData}})
                     }
                     else {
                         await context.sendActivity(logMessage.message)
