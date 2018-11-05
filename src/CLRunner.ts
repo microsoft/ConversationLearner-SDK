@@ -393,6 +393,19 @@ export class CLRunner {
                 let passedTicks = currentTicks - lastActive;
                 if (passedTicks > this.maxTimeout!) {
 
+                    // Parameters for new session
+                    const sessionCreateParams: CLM.SessionCreateParams = {
+                        saveToLog: app.metadata.isLoggingOn,
+                        initialFilledEntities: []
+                    }
+
+                    // If I'm running in the editing UI I need to retreive the packageId as
+                    // may not be running live package
+                    if (inEditingUI) {
+                        const result = await this.clClient.GetSession(app.appId, sessionId)
+                        sessionCreateParams.packageId = result.packageId
+                    }
+
                     // End the current session, clear the memory
                     await this.clClient.EndSession(app.appId, sessionId)
 
@@ -416,15 +429,14 @@ export class CLRunner {
                             await this.SendMessage(clMemory, error, activity.id)
                             return null
                         }
+                        
+                        // Update logging state 
+                        sessionCreateParams.saveToLog = app.metadata.isLoggingOn
                     }
 
                     let conversationId = await clMemory.BotState.GetConversationId()
 
                     // Start a new session
-                    const sessionCreateParams: CLM.SessionCreateParams = {
-                        saveToLog: app.metadata.isLoggingOn,
-                        initialFilledEntities: []
-                    }
                     let session = await this.StartSessionAsync(clMemory, conversationId, app.appId, SessionStartFlags.IS_MANUAL_TIMEOUT, sessionCreateParams) as CLM.Session
                     sessionId = session.sessionId
                 }
