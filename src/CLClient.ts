@@ -291,6 +291,12 @@ export class CLClient {
         return this.send('POST', this.MakeSessionURL(apiPath), sessionCreateParams)
     }
 
+    /** Gets information about a session */
+    public GetSession(appId: string, sessionId: string): Promise<CLM.Session> {
+        let apiPath = `app/${appId}/session/${sessionId}`
+        return this.send('GET', this.MakeSessionURL(apiPath))
+    }
+
     /** Runs entity extraction (prediction). */
     public SessionExtract(appId: string, sessionId: string, userInput: CLM.UserInput): Promise<CLM.ExtractResponse> {
         let apiPath = `app/${appId}/session/${sessionId}/extractor`

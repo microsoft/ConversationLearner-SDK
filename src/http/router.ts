@@ -601,7 +601,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 throw new Error("Attempting to expire sessionId not in use")
             }
 
-            // Force sesion to expire
+            // Force session to expire
             await memory.BotState.SetLastActive(0);
             res.sendStatus(200)
         } catch (error) {
