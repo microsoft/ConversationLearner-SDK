@@ -242,7 +242,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 await memory.SetAppAsync(null)
 
                 const clRunner = CLRunner.GetRunnerForUI(appId);
-                await clRunner.EndSessionAsync(key, CLM.SessionEndState.OPEN);
+                await clRunner.EndSessionAsync(memory, CLM.SessionEndState.OPEN);
             }
             res.sendStatus(200)
         } catch (error) {
@@ -634,7 +634,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             res.send(response)
 
             const clRunner = CLRunner.GetRunnerForUI(appId);
-            clRunner.EndSessionAsync(key, CLM.SessionEndState.OPEN)
+            clRunner.EndSessionAsync(memory, CLM.SessionEndState.OPEN)
         } catch (error) {
             HandleError(res, error)
         }
@@ -1043,8 +1043,9 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const response = await client.EndTeach(appId, teachId, saveQuery)
             res.send(response)
 
+            const memory = CLMemory.GetMemory(key)
             const clRunner = CLRunner.GetRunnerForUI(appId);
-            clRunner.EndSessionAsync(key, CLM.SessionEndState.OPEN)
+            clRunner.EndSessionAsync(memory, CLM.SessionEndState.OPEN)
         } catch (error) {
             HandleError(res, error)
         }
