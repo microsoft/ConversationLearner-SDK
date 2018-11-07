@@ -1429,6 +1429,26 @@ export class CLRunner {
 
             // VALIDATION
             replayError = null
+
+            // Check that non-multivalue isn't labelled twice
+            for (let tv of round.extractorStep.textVariations) {
+                let usedEntities: string[] = []
+                for (let labelEntity of tv.labelEntities) {
+                    // If already used, make sure it's multi-value
+                    if (usedEntities.find(e => e === labelEntity.entityId)) {
+                        let entity = entities.find(e => e.entityId == labelEntity.entityId)
+                        if (entity && !entity.isMultivalue) {
+                            replayError = replayError || new CLM.EntityUnexpectedMultivalue(entity.entityName)
+                            replayErrors.push(replayError);
+                        }
+                    }
+                    // Otherwise add to list of used entities
+                    else {
+                        usedEntities.push(labelEntity.entityId)
+                    }
+                }
+            }
+
             // Check that entities exist
             for (let filledEntity of filledEntities) {
                 if (!entities.find(e => e.entityId == filledEntity.entityId)) {
