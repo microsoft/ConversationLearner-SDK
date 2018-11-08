@@ -551,17 +551,18 @@ export class CLRunner {
         return null
     }
 
-    public async Score(
+    private async Score(
         appId: string,
         sessionId: string,
         memory: CLMemory,
         text: string,
         predictedEntities: CLM.PredictedEntity[],
         allEntities: CLM.EntityBase[],
-        inTeach: boolean
+        inTeach: boolean,
+        skipEntityDetectionCallBack: boolean = false
     ): Promise<CLM.ScoredAction> {
         // Call LUIS callback
-        let scoreInput = await this.CallEntityDetectionCallback(text, predictedEntities, memory, allEntities)
+        let scoreInput = await this.CallEntityDetectionCallback(text, predictedEntities, memory, allEntities, skipEntityDetectionCallBack)
 
         // Call the scorer
         let scoreResponse = null
@@ -648,7 +649,7 @@ export class CLRunner {
         }
     }
 
-    public async CallEntityDetectionCallback(text: string, predictedEntities: CLM.PredictedEntity[], clMemory: CLMemory, allEntities: CLM.EntityBase[]): Promise<CLM.ScoreInput> {
+    public async CallEntityDetectionCallback(text: string, predictedEntities: CLM.PredictedEntity[], clMemory: CLMemory, allEntities: CLM.EntityBase[], skipEntityDetectionCallBack: boolean = false): Promise<CLM.ScoreInput> {
 
         // Entities before processing
         let prevMemories = new CLM.FilledEntityMap(await clMemory.BotMemory.FilledEntityMap());
@@ -656,10 +657,9 @@ export class CLRunner {
         // Update memory with predicted entities
         await this.ProcessPredictedEntities(text, clMemory.BotMemory, predictedEntities, allEntities)
 
-        let memoryManager = await this.CreateMemoryManagerAsync(clMemory, allEntities, prevMemories)
-
-        // If bot has callback, call it
-        if (this.entityDetectionCallback) {
+        // If bot has callback and callback should not be skipped, call it
+        if (this.entityDetectionCallback && !skipEntityDetectionCallBack) {
+            let memoryManager = await this.CreateMemoryManagerAsync(clMemory, allEntities, prevMemories)
             try {
                 await this.entityDetectionCallback(text, memoryManager)
 
@@ -896,7 +896,7 @@ export class CLRunner {
         }
 
         // If action wasn't terminal loop through Conversation Learner again after a short delay
-        if (!clRecognizeResult.scoredAction.isTerminal) {
+        if (!clRecognizeResult.inTeach && !clRecognizeResult.scoredAction.isTerminal) {
             if (app === null) {
                 app = await clRecognizeResult.memory.BotState.GetApp()
             }
@@ -915,28 +915,26 @@ export class CLRunner {
                 throw new Error(`Attempted to get session by conversation id: ${conversationReference.conversation.id} but session was not found`)
             }
 
-            // If not inTeach, send message to user
-            if (!clRecognizeResult.inTeach) {
-                // send the current response to user before score for the next turn
-                if (actionResult.response != null) {
-                    await this.SendMessage(clRecognizeResult.memory, actionResult.response)
-                }
-                await delay(100)
-
-                let bestAction = await this.Score(
-                    app.appId,
-                    sessionId,
-                    clRecognizeResult.memory,
-                    '',
-                    [],
-                    clRecognizeResult.clEntities,
-                    clRecognizeResult.inTeach
-                )
-
-                clRecognizeResult.scoredAction = bestAction
-                // LARS - need to increment scorere step in channel data
-                actionResult = await this.RenderTemplateAsync(conversationReference, clRecognizeResult, clData)
+            // send the current response to user before score for the next turn
+            if (actionResult.response != null) {
+                await this.SendMessage(clRecognizeResult.memory, actionResult.response)
             }
+            await delay(100)
+
+            let bestAction = await this.Score(
+                app.appId,
+                sessionId,
+                clRecognizeResult.memory,
+                '',
+                [],
+                clRecognizeResult.clEntities,
+                clRecognizeResult.inTeach,
+                true
+            )
+
+            clRecognizeResult.scoredAction = bestAction
+            // LARS - need to increment scorere step in channel data
+            actionResult = await this.RenderTemplateAsync(conversationReference, clRecognizeResult, clData)
         }
         return actionResult
     }
@@ -964,7 +962,7 @@ export class CLRunner {
         return actionResult
     }
 
-    public async SendMessage(memory: CLMemory, message: string | Partial<BB.Activity>, incomingActivityId?: string | undefined): Promise<void> {
+    private async SendMessage(memory: CLMemory, message: string | Partial<BB.Activity>, incomingActivityId?: string | undefined): Promise<void> {
 
         // If requested, pop incoming activity from message queue
         if (incomingActivityId) {
