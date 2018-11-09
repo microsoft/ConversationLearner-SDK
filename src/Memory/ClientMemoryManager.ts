@@ -3,7 +3,7 @@
  * Licensed under the MIT License.
  */
 import { SessionInfo } from '../Memory/BotState'
-import { CLDebug } from '../CLDebug'
+import { CLStrings } from '../CLStrings'
 import { EntityBase, MemoryValue, FilledEntityMap, EntityType } from '@conversationlearner/models'
 
 const errMsg = "called after your function has already returned. You must await results within your code rather than use callbacks"
@@ -149,19 +149,16 @@ export class ClientMemoryManager extends ReadOnlyClientMemoryManager {
 
     public RememberEntity(entityName: string, entityValue: string | number | object): void {
         if (this.__expired) {
-            CLDebug.Error(`ClientMemoryManager: RememberEntity "${entityName}" ${errMsg}`)
-            return
+            throw new Error(`ClientMemoryManager: RememberEntity "${entityName}" ${errMsg}`)
         }
 
         let entity = this.__FindEntity(entityName)
 
         if (!entity) {
-            CLDebug.Error(`Can't find Entity named: ${entityName}`)
-            return
+            throw new Error(`${CLStrings.API_MISSING_ENTITY} ${entityName}`)
         }
         if (entity.entityType != EntityType.LOCAL && entity.entityType != EntityType.LUIS) {
-            CLDebug.Error(`Not allowed to set values of pre-built Entities: ${entityName}`)
-            return
+            throw new Error(`Not allowed to set values of pre-built Entities: ${entityName}`)
         }
 
         if (typeof entityValue == 'object') {
@@ -177,22 +174,19 @@ export class ClientMemoryManager extends ReadOnlyClientMemoryManager {
     public RememberEntities(entityName: string, entityValues: string[]): void {
 
         if (this.__expired) {
-            CLDebug.Error(`ClientMemoryManager: RememberEntities "${entityName}" ${errMsg}`)
-            return
+            throw new Error(`ClientMemoryManager: RememberEntities "${entityName}" ${errMsg}`)
         }
 
         let entity = this.__FindEntity(entityName)
 
         if (!entity) {
-            CLDebug.Error(`Can't find Entity named: ${entityName}`)
-            return
+            throw new Error(`${CLStrings.API_MISSING_ENTITY} ${entityName}`)
         }
         if (entity.entityType != EntityType.LOCAL && entity.entityType != EntityType.LUIS) {
-            CLDebug.Error(`Not allowed to set values of pre-built Entities: ${entityName}`)
-            return
+            throw new Error(`Not allowed to set values of pre-built Entities: ${entityName}`)
         }
         if (!entity.isMultivalue) {
-            CLDebug.Error(`RememberEntities called on entity (${entityName}) that isn't Multi-Value.  Only the last value will be remembered`)
+            throw new Error(`RememberEntities called on entity (${entityName}) that isn't Multi-Value.  Only the last value will be remembered`)
         }
 
         this.curMemories.RememberMany(entity.entityName, entity.entityId, entityValues, entity.isMultivalue)
@@ -201,15 +195,13 @@ export class ClientMemoryManager extends ReadOnlyClientMemoryManager {
     public ForgetEntity(entityName: string, value: string | null = null): void {
 
         if (this.__expired) {
-            CLDebug.Error(`ClientMemoryManager: ForgetEntity "${entityName}" ${errMsg}`)
-            return
+            throw new Error(`ClientMemoryManager: ForgetEntity "${entityName}" ${errMsg}`)
         }
 
         let entity = this.__FindEntity(entityName)
 
         if (!entity) {
-            CLDebug.Error(`Can't find Entity named: ${entityName}`)
-            return
+            throw new Error(`${CLStrings.API_MISSING_ENTITY} ${entityName}`)
         }
 
         // If no value given, wipe all entites from buckets
@@ -221,8 +213,7 @@ export class ClientMemoryManager extends ReadOnlyClientMemoryManager {
      */
     public ForgetAllEntities(saveEntityNames: string[]): void {
         if (this.__expired) {
-            CLDebug.Error(`ClientMemoryManager: ForgetAllEntities ${errMsg}`)
-            return
+            throw new Error(`ClientMemoryManager: ForgetAllEntities ${errMsg}`)
         }
 
         for (let entity of this.allEntities) {
@@ -240,25 +231,20 @@ export class ClientMemoryManager extends ReadOnlyClientMemoryManager {
     public CopyEntity(entityNameFrom: string, entityNameTo: string): void {
 
         if (this.__expired) {
-            CLDebug.Error(`ClientMemoryManager: CopyEntity ${errMsg}`)
-            return
+            throw new Error(`ClientMemoryManager: CopyEntity ${errMsg}`)
         }
 
         let entityFrom = this.__FindEntity(entityNameFrom)
         let entityTo = this.__FindEntity(entityNameTo)
 
         if (!entityFrom) {
-            CLDebug.Error(`Can't find Entity named: ${entityNameFrom}`)
-            return
+            throw new Error(`${CLStrings.API_MISSING_ENTITY} ${entityNameFrom}`)
         }
         if (!entityTo) {
-            CLDebug.Error(`Can't find Entity named: ${entityNameTo}`)
-            return
+            throw new Error(`${CLStrings.API_MISSING_ENTITY} ${entityNameTo}`)
         }
-
         if (entityFrom.isMultivalue != entityTo.isMultivalue) {
-            CLDebug.Error(`Can't copy between Bucket and Non-Bucket Entities`)
-            return
+            throw new Error(`Can't copy between multivalue and non-multivalue Entity (${entityNameFrom} -> ${entityNameTo})`)
         }
 
         // Clear "To" entity

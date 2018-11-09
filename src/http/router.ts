@@ -23,6 +23,7 @@ import * as constants from '../constants'
 import * as bodyParser from 'body-parser'
 import * as cors from 'cors'
 import getAppDefinitionChange from '../upgrade'
+import { CLStrings } from '../CLStrings';
 
 // Extract error text from HTML error
 export const HTML2Error = (htmlText: string): string => {
@@ -913,17 +914,36 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             // Call LUIS callback to get scoreInput
             const extractResponse = uiScoreInput.extractResponse
             const clRunner = CLRunner.GetRunnerForUI(appId);
-            const scoreInput = await clRunner.CallEntityDetectionCallback(
-                extractResponse.text,
-                extractResponse.predictedEntities,
-                clMemory,
-                extractResponse.definitions.entities
-            )
+
+            let scoreInput: CLM.ScoreInput
+            let botAPIError: CLM.BotAPIError | null = null
+            try {
+                scoreInput = await clRunner.CallEntityDetectionCallback(
+                    extractResponse.text,
+                    extractResponse.predictedEntities,
+                    clMemory,
+                    extractResponse.definitions.entities
+                )
+            }
+            catch (err) {
+                // Hit exception in Bot's Entity Detection Callback
+                // Use existing memory before callback
+                const filledEntities = await clMemory.BotMemory.FilledEntitiesAsync()
+                scoreInput = {
+                    filledEntities,
+                    context: {},
+                    maskedActions: []
+                }
+
+                // Create error to show to user
+                let errMessage = `${CLStrings.BOT_EXCEPTION} ${err.message}`
+                botAPIError = {APIError: errMessage}
+            }
 
             // Get score response
             const scoreResponse = await client.TeachScore(appId, teachId, scoreInput)
             const memories = await clMemory.BotMemory.DumpMemory()
-            const uiScoreResponse: CLM.UIScoreResponse = { scoreInput, scoreResponse, memories }
+            const uiScoreResponse: CLM.UIScoreResponse = { scoreInput, scoreResponse, memories, botAPIError }
             res.send(uiScoreResponse)
         } catch (error) {
             HandleError(res, error)
