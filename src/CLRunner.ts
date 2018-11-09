@@ -7,6 +7,7 @@ import { CLMemory } from './CLMemory'
 import { BotMemory } from './Memory/BotMemory'
 import { CLDebug } from './CLDebug'
 import { CLClient } from './CLClient'
+import { CLStrings } from './CLStrings'
 import { TemplateProvider } from './TemplateProvider'
 import * as CLM from '@conversationlearner/models'
 import { ReadOnlyClientMemoryManager, ClientMemoryManager } from './Memory/ClientMemoryManager'
@@ -660,17 +661,11 @@ export class CLRunner {
         // If bot has callback and callback should not be skipped, call it
         if (this.entityDetectionCallback && !skipEntityDetectionCallBack) {
             let memoryManager = await this.CreateMemoryManagerAsync(clMemory, allEntities, prevMemories)
-            try {
-                await this.entityDetectionCallback(text, memoryManager)
 
-                // Update Memory
-                await clMemory.BotMemory.RestoreFromMemoryManagerAsync(memoryManager)
-            }
-            catch (err) {
-                await this.SendMessage(clMemory, "Exception hit in Bot's EntityDetectionCallback")
-                let errMsg = CLDebug.Error(err);
-                this.SendMessage(clMemory, errMsg);
-            }
+            await this.entityDetectionCallback(text, memoryManager)
+
+            // Update Memory
+            await clMemory.BotMemory.RestoreFromMemoryManagerAsync(memoryManager)
         }
 
         // Get entities from my memory
@@ -1041,8 +1036,15 @@ export class CLRunner {
                     await clMemory.BotMemory.RestoreFromMemoryManagerAsync(memoryManager)
                 }
                 else {
-                    // Store logic callback value
-                    logicResult.logicValue = JSON.stringify(await callback.logic(memoryManager, ...renderedLogicArgumentValues))
+                    try {
+                        // Store logic callback value
+                        const logicObject = await callback.logic(memoryManager, ...renderedLogicArgumentValues)
+                        logicResult.logicValue = JSON.stringify(logicObject)
+                    }
+                    catch (error) {
+                        let botAPIError: CLM.BotAPIError = {APIError: error.message}
+                        logicResult.logicValue = JSON.stringify(botAPIError)
+                    }
 
                     // Update memory with changes from logic callback
                     await clMemory.BotMemory.RestoreFromMemoryManagerAsync(memoryManager)
@@ -1059,20 +1061,28 @@ export class CLRunner {
                     }
                 }
                 else {
-                    // Invoke Render part of callback
-                    const renderedRenderArgumentValues = this.GetRenderedArguments(callback.renderArguments, apiAction.renderArguments, filledEntityMap)
+                    let response: Partial<BB.Activity> | string | null
+                    let botAPIError = CLM.GetBotAPIError(logicResult)
 
-                    const readOnlyMemoryManager = await this.CreateReadOnlyMemoryManagerAsync(clMemory, allEntities)
-
-                    let logicObject = logicResult.logicValue ? JSON.parse(logicResult.logicValue) : undefined
-                    let response = await callback.render(logicObject, readOnlyMemoryManager, ...renderedRenderArgumentValues)
-
-                    // If response is empty, but we're in teach session return a placeholder card in WebChat so they can click it to edit
-                    // Otherwise return the response as is.
-                    if (!response && inTeach) {
-                        response = this.APICard(callback)
+                    // If there was an api Error show card to user
+                    if (botAPIError) {
+                        response = this.APICard(callback, botAPIError.APIError)
                     }
+                    else {
+                        // Invoke Render part of callback
+                        const renderedRenderArgumentValues = this.GetRenderedArguments(callback.renderArguments, apiAction.renderArguments, filledEntityMap)
 
+                        const readOnlyMemoryManager = await this.CreateReadOnlyMemoryManagerAsync(clMemory, allEntities)
+
+                        let logicObject = logicResult.logicValue ? JSON.parse(logicResult.logicValue) : undefined
+                        response = await callback.render(logicObject, readOnlyMemoryManager, ...renderedRenderArgumentValues)
+
+                        // If response is empty, but we're in teach session return a placeholder card in WebChat so they can click it to edit
+                        // Otherwise return the response as is.
+                        if (!response && inTeach) {
+                            response = this.APICard(callback)
+                        }
+                    }
                     return {
                         logicResult,
                         response
@@ -1328,7 +1338,25 @@ export class CLRunner {
             let predictedEntities = CLM.ModelUtils.ToPredictedEntities(textVariation.labelEntities)
 
             // Call EntityDetectionCallback and populate filledEntities with the result
-            let scoreInput = await this.CallEntityDetectionCallback(textVariation.text, predictedEntities, clMemory, entities)
+            let scoreInput: CLM.ScoreInput
+            let botAPIError: CLM.BotAPIError | null = null
+            try {
+                scoreInput = await this.CallEntityDetectionCallback(textVariation.text, predictedEntities, clMemory, entities)
+            }
+            catch (err) {
+                // Hit exception in Bot's Entity Detection Callback
+                // Use existing memory before callback
+                const filledEntities = await clMemory.BotMemory.FilledEntitiesAsync()
+                scoreInput = {
+                    filledEntities,
+                    context: {},
+                    maskedActions: []
+                }
+
+                // Create error to show to user
+                let errMessage = `${CLStrings.BOT_EXCEPTION} ${err.message}`
+                botAPIError = {APIError: errMessage}
+            }
 
             // Use scorer step to populate pre-built data (when)
             if (round.scorerSteps && round.scorerSteps.length > 0) {
@@ -1358,12 +1386,19 @@ export class CLRunner {
                             const actionInput: IActionInput = {
                                 type: ActionInputType.LOGIC_ONLY
                             }
-                            await this.TakeAPIAction(apiAction, filledEntityMap, clMemory, entityList.entities, true, actionInput)
+                            // Calculate and store new logic result
+                            let actionResult = await this.TakeAPIAction(apiAction, filledEntityMap, clMemory, entityList.entities, true, actionInput)
+                            round.scorerSteps[scoreIndex].logicResult = actionResult.logicResult
                         } else if (curAction.actionType === CLM.ActionTypes.END_SESSION) {
                             // LARS - todo, what is needed here
                             const sessionAction = new CLM.SessionAction(curAction)
                             await this.TakeSessionAction(sessionAction, filledEntityMap, true, clMemory, null)
                         }
+                    }
+
+                    // If ran into API error inject into first scorer step so it gets displayed to the user
+                    if (botAPIError && scoreIndex === 0) {
+                        round.scorerSteps[scoreIndex].logicResult = {logicValue: JSON.stringify(botAPIError), changedFilledEntities: []}
                     }
                 }
             }
@@ -1517,6 +1552,7 @@ export class CLRunner {
                             replayErrors.push(replayError);
                         }
                     }
+
                     // Check that action (if not first) is after a wait action
                     if (scoreIndex > 0) {
                         const lastScoredAction = round.scorerSteps[scoreIndex - 1].labelAction
@@ -1530,7 +1566,18 @@ export class CLRunner {
                     // Generate bot response
                     curAction = actions.filter((a: CLM.ActionBase) => a.actionId === labelAction)[0]
                     let botResponse: IActionResult
-                    if (!curAction) {
+
+                    // Check for exceptions on API call (specificaly EntityDetectionCallback)
+                    let botAPIError = CLM.GetBotAPIError(scorerStep.logicResult)
+                    if (botAPIError) {
+                        replayError = new CLM.ReplayErrorException()
+                        replayErrors.push(replayError);
+                        botResponse = {
+                            logicResult: undefined,
+                            response: botAPIError.APIError
+                        }
+                    }
+                    else if (!curAction) {
                         botResponse = {
                             logicResult: undefined,
                             response: CLDebug.Error(`Can't find Action Id ${labelAction}`)
@@ -1567,6 +1614,14 @@ export class CLRunner {
                                 logicResult: scorerStep.logicResult
                             }
                             botResponse = await this.TakeAPIAction(apiAction, filledEntityMap, clMemory, entityList.entities, true, actionInput)
+
+                            // Check for API errors on callback
+                            let callbackAPIError = CLM.GetBotAPIError(botResponse.logicResult)
+                            if (callbackAPIError) {
+                                replayError = new CLM.ReplayErrorException()
+                                replayErrors.push(replayError);
+                            }
+
                         } else if (curAction.actionType === CLM.ActionTypes.TEXT) {
                             const textAction = new CLM.TextAction(curAction)
                             botResponse = {
@@ -1684,7 +1739,7 @@ export class CLRunner {
     }
 
     // Generate a card to show for an API action w/o output
-    private APICard(callback: CLM.Callback): Partial<BB.Activity> {
+    private APICard(callback: CLM.Callback, text?: string): Partial<BB.Activity> {
         let card = {
             type: "AdaptiveCard",
             version: "1.0",
@@ -1701,6 +1756,7 @@ export class CLRunner {
         }
         const attachment = BB.CardFactory.adaptiveCard(card)
         const message = BB.MessageFactory.attachment(attachment)
+        message.text = text
         return message;
     }
 }
