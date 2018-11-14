@@ -627,6 +627,38 @@ export class CLRunner {
 
     private async ProcessPredictedEntities(text: string, memory: BotMemory, predictedEntities: CLM.PredictedEntity[], allEntities: CLM.EntityBase[]): Promise<void> {
 
+        // update resolution for pre-built entities 
+
+        // group entities with the same start and end index
+        const entityMap: Map<string, CLM.PredictedEntity[]> = predictedEntities.reduce((m, v) => {
+            const key = `${v.startCharIndex}:${v.endCharIndex}`
+            if (!m.has(key)) {
+                m.set(key, [v])
+            } else {
+                let values: CLM.PredictedEntity[] = <any>m.get(key)
+                values.push(v)
+            }
+            return m;
+        }, new Map<string, CLM.PredictedEntity[]>())
+
+        // for those group with more than one entities update resolution for entities to be the same
+        // this only happens when we have built-in and named pre-built entities
+        entityMap.forEach(entities => {
+            if (entities.length > 1) {
+                let entityWithResolution = entities.filter(e => Object.keys(e.resolution).length !== 0)[0]
+                if (entityWithResolution !== undefined) {
+                    let entitiesWithoutResolution = entities.filter(e => e.resolution === undefined || Object.keys(e.resolution).length === 0)
+                    entitiesWithoutResolution
+                        .filter(entity => entity.entityId !== entityWithResolution.entityId)
+                        .forEach(entity =>  {
+                            entity.resolution = entityWithResolution.resolution
+                            entity.builtinType = entityWithResolution.builtinType
+                        })
+                }
+            }
+        })
+
+
         // Update entities in my memory
         for (let predictedEntity of predictedEntities) {
             let entity = allEntities.find(e => e.entityId == predictedEntity.entityId)
