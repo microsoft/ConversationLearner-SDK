@@ -627,37 +627,14 @@ export class CLRunner {
 
     private async ProcessPredictedEntities(text: string, memory: BotMemory, predictedEntities: CLM.PredictedEntity[], allEntities: CLM.EntityBase[]): Promise<void> {
 
-        // update resolution for pre-built entities 
-
-        // group entities with the same start and end index
-        const entityMap: Map<string, CLM.PredictedEntity[]> = predictedEntities.reduce((m, v) => {
-            const key = `${v.startCharIndex}:${v.endCharIndex}`
-            if (!m.has(key)) {
-                m.set(key, [v])
+        const predictedEntitiesWithType = predictedEntities.map(pe => {
+            let entity = allEntities.find(e => e.entityId == pe.entityId)
+            if (entity) {
+                return { entityType: entity.entityType, ...pe }
             } else {
-                let values: CLM.PredictedEntity[] = <any>m.get(key)
-                values.push(v)
-            }
-            return m;
-        }, new Map<string, CLM.PredictedEntity[]>())
-
-        // for those group with more than one entities update resolution for entities to be the same
-        // this only happens when we have built-in and named pre-built entities
-        entityMap.forEach(entities => {
-            if (entities.length > 1) {
-                let entityWithResolution = entities.filter(e => Object.keys(e.resolution).length !== 0)[0]
-                if (entityWithResolution !== undefined) {
-                    let entitiesWithoutResolution = entities.filter(e => e.resolution === undefined || Object.keys(e.resolution).length === 0)
-                    entitiesWithoutResolution
-                        .filter(entity => entity.entityId !== entityWithResolution.entityId)
-                        .forEach(entity =>  {
-                            entity.resolution = entityWithResolution.resolution
-                            entity.builtinType = entityWithResolution.builtinType
-                        })
-                }
+                return { entityType: null, ...pe }
             }
         })
-
 
         // Update entities in my memory
         for (let predictedEntity of predictedEntities) {
@@ -666,6 +643,20 @@ export class CLRunner {
                 CLDebug.Error(`Could not find entity by id: ${predictedEntity.entityId}`)
                 return;
             }
+
+            // Update resolution for entities with resolver type
+            if (entity.resolverType !== undefined 
+                && entity.resolverType !== null 
+                && (predictedEntity.resolution === undefined || Object.keys(predictedEntity.resolution).length === 0)) {
+                const builtInEntity = predictedEntitiesWithType.find(pe => pe.startCharIndex >= predictedEntity.startCharIndex
+                    && pe.endCharIndex <= predictedEntity.endCharIndex
+                    && pe.entityType === (<any>entity).resolverType)
+                if (builtInEntity) {
+                    predictedEntity.resolution = builtInEntity.resolution
+                    predictedEntity.builtinType = builtInEntity.builtinType
+                }
+            }
+
             // If negative entity will have a positive counter entity
             if (entity.positiveId) {
                 await memory.ForgetEntity(entity.entityName, predictedEntity.entityText, entity.isMultivalue)
@@ -1074,7 +1065,7 @@ export class CLRunner {
                         logicResult.logicValue = JSON.stringify(logicObject)
                     }
                     catch (error) {
-                        let botAPIError: CLM.BotAPIError = {APIError: error.message}
+                        let botAPIError: CLM.BotAPIError = { APIError: error.message }
                         logicResult.logicValue = JSON.stringify(botAPIError)
                     }
 
@@ -1387,7 +1378,7 @@ export class CLRunner {
 
                 // Create error to show to user
                 let errMessage = `${CLStrings.BOT_EXCEPTION} ${err.message}`
-                botAPIError = {APIError: errMessage}
+                botAPIError = { APIError: errMessage }
             }
 
             // Use scorer step to populate pre-built data (when)
@@ -1430,7 +1421,7 @@ export class CLRunner {
 
                     // If ran into API error inject into first scorer step so it gets displayed to the user
                     if (botAPIError && scoreIndex === 0) {
-                        round.scorerSteps[scoreIndex].logicResult = {logicValue: JSON.stringify(botAPIError), changedFilledEntities: []}
+                        round.scorerSteps[scoreIndex].logicResult = { logicValue: JSON.stringify(botAPIError), changedFilledEntities: [] }
                     }
                 }
             }
