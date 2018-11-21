@@ -877,7 +877,7 @@ export class CLRunner {
                         if (!sessionId) {
                             throw new Error(`Attempted to get session by conversation id: ${conversationReference.conversation.id} but session was not found`)
                         }
-                        await this.clClient.SessionLogicResult(app.appId, sessionId, apiAction.actionId, actionResult.logicResult);
+                        await this.clClient.SessionLogicResult(app.appId, sessionId, apiAction.actionId, actionResult);
                     }
                 }
                 break
@@ -1060,20 +1060,20 @@ export class CLRunner {
                 }
                 else {
                     try {
+                        // create a copy of the map before calling into logic api
+                        const entityMapBeforeCall = new CLM.FilledEntityMap(await clMemory.BotMemory.FilledEntityMap())
                         // Store logic callback value
                         const logicObject = await callback.logic(memoryManager, ...renderedLogicArgumentValues)
                         logicResult.logicValue = JSON.stringify(logicObject)
+                        // Update memory with changes from logic callback
+                        await clMemory.BotMemory.RestoreFromMemoryManagerAsync(memoryManager)
+                        // Store changes to filled entities
+                        logicResult.changedFilledEntities = CLM.ModelUtils.changedFilledEntities(entityMapBeforeCall, memoryManager.curMemories)
                     }
                     catch (error) {
                         let botAPIError: CLM.BotAPIError = { APIError: error.message }
                         logicResult.logicValue = JSON.stringify(botAPIError)
                     }
-
-                    // Update memory with changes from logic callback
-                    await clMemory.BotMemory.RestoreFromMemoryManagerAsync(memoryManager)
-
-                    // Store changes to filled entities
-                    logicResult.changedFilledEntities = CLM.ModelUtils.changedFilledEntities(filledEntityMap, memoryManager.curMemories)
                 }
 
                 // Render the action unless only doing logic part
