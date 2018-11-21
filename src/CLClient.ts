@@ -6,6 +6,7 @@ import * as CLM from '@conversationlearner/models'
 import { CLDebug } from './CLDebug'
 import * as Request from 'request'
 import * as constants from './constants'
+import { IActionResult } from './CLRunner'
 
 type HTTP_METHOD = 'GET' | 'PUT' | 'POST' | 'DELETE'
 const requestMethodMap = new Map<HTTP_METHOD, typeof Request.get | typeof Request.post>([
@@ -50,8 +51,7 @@ export class CLClient {
         return this.options.LUIS_AUTHORING_KEY;
     }
 
-    private BuildURL(baseUri: string, apiPath: string, query?: string)
-    {
+    private BuildURL(baseUri: string, apiPath: string, query?: string) {
         let uri = baseUri + (!baseUri.endsWith('/') ? '/' : '') + apiPath
         if (query) {
             uri += `?${query}`
@@ -65,8 +65,7 @@ export class CLClient {
 
     private MakeSessionURL(apiPath: string, query?: string) {
         // check if request is bypassing cognitive services APIM
-        if(!this.options.CONVERSATION_LEARNER_SERVICE_URI.includes('api.cognitive.microsoft.com'))
-        {
+        if (!this.options.CONVERSATION_LEARNER_SERVICE_URI.includes('api.cognitive.microsoft.com')) {
             // In this case we are not chaning the serviceUrl and it stays the same,
             // for example: https://localhost:37936/api/v1/ -> https://localhost:37936/api/v1/
             return this.MakeURL(apiPath, query)
@@ -82,15 +81,13 @@ export class CLClient {
             this.options.CONVERSATION_LEARNER_SERVICE_URI :
             `${this.options.CONVERSATION_LEARNER_SERVICE_URI}/`
         const apimVersionSuffix = '/v1.0/'
-        if(baseUri.endsWith(apimVersionSuffix))
-        {
+        if (baseUri.endsWith(apimVersionSuffix)) {
             // In this case, serviceurl has api version information in it; "session" will be inserted before /v1.0
             // this means that https://westus.api.cognitive.microsoft.com/conversationlearner/v1.0/ becomes
             // https://westus.api.cognitive.microsoft.com/conversationlearner/session/v1.0/
             baseUri = `${baseUri.substring(0, baseUri.lastIndexOf(apimVersionSuffix))}/session${apimVersionSuffix}`
         }
-        else
-        {
+        else {
             // When api version information is not part of the serviceUrl, we simply add /session/ to end of the api
             // example: https://westus.api.cognitive.microsoft.com/conversationlearner/ -> https://westus.api.cognitive.microsoft.com/conversationlearner/session/
             baseUri += 'session/'
@@ -115,7 +112,7 @@ export class CLClient {
 
             CLDebug.LogRequest(method, url, requestData)
             const requestMethod = requestMethodMap.get(method)
-            if(!requestMethod) {
+            if (!requestMethod) {
                 throw new Error(`Request method not found for http verb: ${method}`)
             }
 
@@ -153,7 +150,7 @@ export class CLClient {
         let apiPath = `app/${appId}/source`
         return this.send('POST', this.MakeURL(apiPath), appDefinition)
             // tslint:disable-next-line:no-empty
-            .then(response => {})
+            .then(response => { })
     }
 
     /** Retrieve a list of (active) applications */
@@ -274,7 +271,7 @@ export class CLClient {
      * Returns a 409 if text variation conflicts with existing labels, otherwise 200
      * filteredDialog is dialog to ignore when checking for conflicts
      */
-    public TrainDialogValidateTextVariation(appId: string, trainDialogId: string, textVariation: CLM.TextVariation, filteredDialog: string): Promise<null> { 
+    public TrainDialogValidateTextVariation(appId: string, trainDialogId: string, textVariation: CLM.TextVariation, filteredDialog: string): Promise<null> {
         let apiPath = `app/${appId}/traindialog/${trainDialogId}/extractor/textvariation`
         // Note: service can take a list of filteredDialogs, but we just use one for now
         let query = filteredDialog ? `filteredDialogs[]=${filteredDialog}` : undefined
@@ -313,10 +310,9 @@ export class CLClient {
         return this.send('PUT', this.MakeSessionURL(apiPath), scorerInput)
     }
 
-    public SessionLogicResult(appId: string, sessionId: string, actionId: string, logicResult: CLM.LogicResult)
-    {
+    public SessionLogicResult(appId: string, sessionId: string, actionId: string, actionResult: IActionResult) {
         let apiPath = `app/${appId}/session/${sessionId}/scorerSteps/action/${actionId}/logicResult`
-        return this.send('PUT', this.MakeSessionURL(apiPath), logicResult)
+        return this.send('PUT', this.MakeSessionURL(apiPath), { logicResult: actionResult.logicResult })
     }
 
     /** End a session. */
@@ -344,7 +340,7 @@ export class CLClient {
      * doesn't affect the trainDialog maintained.
      */
     public TeachExtract(appId: string, teachId: string, userInput: CLM.UserInput, filteredDialog: string | null): Promise<CLM.ExtractResponse> {
-        let apiPath = `app/${appId}/teach/${teachId}/extractor` 
+        let apiPath = `app/${appId}/teach/${teachId}/extractor`
         // Note: service can take a list of filteredDialogs, but we just use one for now
         let query = `includeDefinitions=true`
         if (filteredDialog) {
