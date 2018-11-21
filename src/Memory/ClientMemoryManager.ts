@@ -35,35 +35,35 @@ export class ReadOnlyClientMemoryManager {
     }
 
     /**
-     * Get value of entity
+     * Get value of entity as a string
      * @param entityName Name of Entity
      */
-    public EntityValue(entityName: string): string | null {
+    public EntityValueAsString(entityName: string): string | null {
         return this.curMemories.ValueAsString(entityName)
     }
 
     /**
-     * Get value of entity before most recent input
+     * Get value of entity as string before most recent input
      * @param entityName Name of Entity
      */
-    public PrevEntityValue(entityName: string): (string | null) {
+    public PrevEntityValueAsString(entityName: string): (string | null) {
         return this.prevMemories.ValueAsString(entityName)
     }
 
     /**
-     * Get value of entity as a Prebuilt Entity
+     * Get array of MemoryValues 
      * @param entityName Name of Entity
      */
-    public EntityValueAsPrebuilt(entityName: string): MemoryValue[] {
-        return this.curMemories.ValueAsPrebuilt(entityName)
+    public EntityValues(entityName: string): MemoryValue[] {
+        return this.curMemories.Values(entityName)
     }
 
     /**
-     * Get value of entity before most recent input as a Prebuilt Entity
+     * Get array of MemoryValues before most recent input as a Prebuilt Entity
      * @param entityName Name of Entity
      */
-    public PrevEntityValueAsPrebuilt(entityName: string): MemoryValue[] {
-        return this.prevMemories.ValueAsPrebuilt(entityName)
+    public PrevEntityValues(entityName: string): MemoryValue[] {
+        return this.prevMemories.Values(entityName)
     }
 
     /**

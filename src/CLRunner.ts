@@ -1493,7 +1493,8 @@ export class CLRunner {
                     // If already used, make sure it's multi-value
                     if (usedEntities.find(e => e === labelEntity.entityId)) {
                         let entity = entities.find(e => e.entityId == labelEntity.entityId)
-                        if (entity && !entity.isMultivalue) {
+                        if (entity && !entity.isMultivalue 
+                            && (entity.entityType === CLM.EntityType.LUIS || entity.entityType === CLM.EntityType.LOCAL)) {
                             replayError = replayError || new CLM.EntityUnexpectedMultivalue(entity.entityName)
                             replayErrors.push(replayError);
                         }
