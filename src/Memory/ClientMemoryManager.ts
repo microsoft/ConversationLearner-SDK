@@ -62,25 +62,22 @@ export class ReadOnlyClientMemoryManager {
         return this.sessionInfo;
     }
 
-    public AS_VALUE(memoryValues: MemoryValue[]): MemoryValue {
+    public static AS_VALUE(memoryValues: MemoryValue[]): MemoryValue {
         if (memoryValues.length > 0) {
             throw new Error(CLStrings.MEMORY_MANAGER_VALUE_LIST_EXCEPTION)
         }
         return memoryValues[0]
     }
 
-    public AS_VALUE_LIST(memoryValues: MemoryValue[]): MemoryValue[] {
+    public static AS_VALUE_LIST(memoryValues: MemoryValue[]): MemoryValue[] {
         return memoryValues
     }
 
-    public AS_STRING(memoryValues: MemoryValue[]): string {
-        if (memoryValues.length > 0) {
-            throw new Error(CLStrings.MEMORY_MANAGER_STRING_LIST_EXCEPTION)
-        }
+    public static AS_STRING(memoryValues: MemoryValue[]): string {
         return memoryValuesAsString(memoryValues)
     }
 
-    public AS_STRING_LIST(memoryValues: MemoryValue[]): string[] {
+    public static AS_STRING_LIST(memoryValues: MemoryValue[]): string[] {
         return memoryValues.map(mv => {
             if (typeof mv.userText !== 'string') {
                 throw new Error(CLStrings.MEMORY_MANAGER_NOT_A_STRING_EXCEPTION)
@@ -89,7 +86,7 @@ export class ReadOnlyClientMemoryManager {
         })
     }
 
-    public AS_NUMBER(memoryValues: MemoryValue[]): number {
+    public static AS_NUMBER(memoryValues: MemoryValue[]): number {
         if (memoryValues.length > 0) {
             throw new Error(CLStrings.MEMORY_MANAGER_NUMBER_LIST_EXCEPTION)
         }
@@ -100,7 +97,7 @@ export class ReadOnlyClientMemoryManager {
         return number
     }
 
-    public AS_NUMBER_LIST(memoryValues: MemoryValue[]): number[] {
+    public static AS_NUMBER_LIST(memoryValues: MemoryValue[]): number[] {
         return memoryValues.map(mv => {
             let number = Number(mv.userText)
             if (isNaN(number)) {
@@ -110,7 +107,7 @@ export class ReadOnlyClientMemoryManager {
         })
     }
 
-    public AS_BOOLEAN(memoryValues: MemoryValue[]): boolean {
+    public static AS_BOOLEAN(memoryValues: MemoryValue[]): boolean {
         if (memoryValues.length > 0) {
             throw new Error(CLStrings.MEMORY_MANAGER_BOOLEAN_LIST_EXCEPTION)
         }
@@ -124,7 +121,7 @@ export class ReadOnlyClientMemoryManager {
         throw new Error(CLStrings.MEMORY_MANAGER_NOT_A_BOOLEAN_EXCEPTION)
     }
 
-    public AS_BOOLEAN_LIST(memoryValues: MemoryValue[]): boolean[] {
+    public static AS_BOOLEAN_LIST(memoryValues: MemoryValue[]): boolean[] {
         return memoryValues.map(mv => {
             if (!mv.userText) {
                 throw new Error(CLStrings.MEMORY_MANAGER_NOT_A_BOOLEAN_EXCEPTION)
