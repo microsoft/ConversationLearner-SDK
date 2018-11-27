@@ -544,9 +544,6 @@ export class CLRunner {
             // If submit type return as a response
             if (data['submit']) {
                 return data['submit']
-            } else {
-                CLDebug.Error(`Adaptive Card has no Submit data`)
-                return null
             }
         }
         return null
