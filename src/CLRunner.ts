@@ -1647,9 +1647,20 @@ export class CLRunner {
 
                         } else if (curAction.actionType === CLM.ActionTypes.TEXT) {
                             const textAction = new CLM.TextAction(curAction)
-                            botResponse = {
-                                logicResult: undefined,
-                                response: await this.TakeTextAction(textAction, filledEntityMap)
+                            try {
+                                botResponse = {
+                                    logicResult: undefined,
+                                    response: await this.TakeTextAction(textAction, filledEntityMap)
+                                }
+                            }
+                            catch (error) {
+                                // Payload is invalid
+                                replayError = new CLM.ReplayErrorEntityUndefined("")
+                                replayErrors.push(replayError);
+                                botResponse = {
+                                    logicResult: undefined,
+                                    response: JSON.parse(textAction.payload).text // Show raw text
+                                }
                             }
                         } else if (curAction.actionType === CLM.ActionTypes.END_SESSION) {
                             const sessionAction = new CLM.SessionAction(curAction)
