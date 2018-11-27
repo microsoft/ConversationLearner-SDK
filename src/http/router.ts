@@ -80,14 +80,14 @@ export const HandleError = (response: express.Response, err: any): void => {
 const statusEndpoint = "https://blisstorage.blob.core.windows.net/status/status.json";
 const versionEndpoint = "https://blisstorage.blob.core.windows.net/version/version.json";
 
-const getBanner = (source: string) : Promise<CLM.Banner | null> => {
+const getBanner = (source: string): Promise<CLM.Banner | null> => {
     return new Promise((resolve, reject) => {
         const options = {
             method: 'GET',
             uri: source,
             json: true
         }
-        ​
+
         // Never fail this request
         Request(options, (error, response, banner) => {
             if (error) {
@@ -110,7 +110,7 @@ const getBanner = (source: string) : Promise<CLM.Banner | null> => {
             }
         })
     })
-  }
+}
 
 export const getRouter = (client: CLClient, options: ICLClientOptions): express.Router => {
     const router = express.Router({ caseSensitive: false })
@@ -304,7 +304,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                         console.log(`⚪ Request package id is not the live package id. Qualifies for auto upgrade.`)
                         await client.PostAppSource(appId, appDefinitionChange.updatedAppDefinition)
                         console.log(`✔ Saved updated package successfully!`)
-                        
+
                         // Save the updated source and return with no change.
                         // TODO: Allow user to see that application was auto updated?
                         // The current solution hides the fact that package was updated as there isn't any useful intervention the user can do
@@ -620,7 +620,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const memory = CLMemory.GetMemory(key)
             const originalSessionId = await memory.BotState.OrgSessionIdAsync(sessionId)
 
-            let response : string
+            let response: string
             if (!originalSessionId) {
                 // This can happen when a LogDialog End_Session Action is called and the
                 // user subsequently presses the DONE button
@@ -629,7 +629,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 // TODO: Once log dialog interface goes away, throw error here instead
                 //throw new Error(`original session id not found for session id: ${sessionId}`)
             } else {
-                 response = await client.EndSession(appId, originalSessionId)
+                response = await client.EndSession(appId, originalSessionId)
             }
 
             res.send(response)
@@ -691,8 +691,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
         try {
             const key = getMemoryKey(req)
             const appId = req.params.appId
-            const { 
-                username: userName, 
+            const {
+                username: userName,
                 userid: userId } = getQuery(req)
 
             const trainDialog: CLM.TrainDialog = req.body.trainDialog
@@ -769,7 +769,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             // Start new teach session from the old train dialog
             const createTeachParams = CLM.ModelUtils.ToCreateTeachParams(newTrainDialog)
             const teach = await clRunner.StartSessionAsync(clMemory, null, appId, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE, createTeachParams) as CLM.Teach
-               
+
             // Get entities from my memory
             const filledEntities = await clMemory.BotMemory.FilledEntitiesAsync()
             const scoreInput: CLM.ScoreInput = {
@@ -777,13 +777,13 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 context: {},
                 maskedActions: []
             }
-            
+
             const scoreResponse = await client.TeachScore(
                 appId,
                 teach.teachId,
                 scoreInput
             )
-            
+
             // Delete the teach session w/o save
             await client.EndTeach(appId, teach.teachId, `saveDialog=false`)
 
@@ -809,12 +809,12 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
             // Replay the TrainDialog logic (API calls and EntityDetectionCallback)
             // and set clMemory entities for the history
-            let newTrainDialog  = await clRunner.ReplayTrainDialogLogic(trainDialog, clMemory, true)
+            let newTrainDialog = await clRunner.ReplayTrainDialogLogic(trainDialog, clMemory, true)
 
             // Start new teach session from the old train dialog
             const createTeachParams = CLM.ModelUtils.ToCreateTeachParams(newTrainDialog)
             const teach = await clRunner.StartSessionAsync(clMemory, null, appId, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE, createTeachParams) as CLM.Teach
-               
+
             // Do extraction
             const extractResponse = await client.TeachExtract(appId, teach.teachId, userInput, null)
 
@@ -856,7 +856,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
         try {
             const key = getMemoryKey(req)
             const { appId, teachId } = req.params
-             // Dialog to ignore when checking for conflicting labels
+            // Dialog to ignore when checking for conflicting labels
             const { filteredDialog } = getQuery(req)
             const userInput: CLM.UserInput = req.body
 
@@ -899,7 +899,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 }
                 catch (error) {
                     if (error.statusCode === HttpStatus.CONFLICT) {
-                        const textVariation : CLM.TextVariation = error.body.reason
+                        const textVariation: CLM.TextVariation = error.body.reason
                         const extractConflict = CLM.ModelUtils.ToExtractResponses([textVariation])[0]
                         const uiConflictResponse: CLM.UIScoreResponse = { extractConflict }
                         res.send(uiConflictResponse)
@@ -922,7 +922,9 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                     extractResponse.text,
                     extractResponse.predictedEntities,
                     clMemory,
-                    extractResponse.definitions.entities
+                    extractResponse.definitions.entities,
+                    // If the previous action is a non-terminal action, the trainExtractorStep is null and the entity detection callback should be skipped. 
+                    uiScoreInput.trainExtractorStep == null
                 )
             }
             catch (err) {
@@ -937,7 +939,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
                 // Create error to show to user
                 let errMessage = `${CLStrings.BOT_EXCEPTION} ${err.message}`
-                botAPIError = {APIError: errMessage}
+                botAPIError = { APIError: errMessage }
             }
 
             // Get score response
@@ -963,7 +965,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             }
             catch (error) {
                 if (error.statusCode === HttpStatus.CONFLICT) {
-                    const variationConflict : CLM.TextVariation = error.body.reason
+                    const variationConflict: CLM.TextVariation = error.body.reason
                     const extractConflict = CLM.ModelUtils.ToExtractResponses([variationConflict])[0]
                     res.send(extractConflict)
                     return
@@ -976,7 +978,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
         } catch (error) {
             HandleError(res, error)
         }
-    }) 
+    })
 
     /**
      * Re-run scorer given previous score input
@@ -1128,7 +1130,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             if (anyReq.body) {
                 let bodyData = JSON.stringify(anyReq.body)
                 // incase if content-type is application/x-www-form-urlencoded -> we need to change to application/json
-                proxyReq.setHeader('Content-Type','application/json')
+                proxyReq.setHeader('Content-Type', 'application/json')
                 proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData))
                 // stream the content
                 proxyReq.write(bodyData)
@@ -1141,7 +1143,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
     return router
 }
 
-function getMemoryKey (req: express.Request, throwError: boolean = true): string {
+function getMemoryKey(req: express.Request, throwError: boolean = true): string {
     const key = req.header(CLM.MEMORY_KEY_HEADER_NAME)
     if (!key) {
         throw new Error(`Header ${CLM.MEMORY_KEY_HEADER_NAME} must be provided. Url: ${req.url}`)
@@ -1150,7 +1152,7 @@ function getMemoryKey (req: express.Request, throwError: boolean = true): string
     return key
 }
 
-function getQuery (req: express.Request): any {
+function getQuery(req: express.Request): any {
     return url.parse(req.url, true).query || {}
 }
 

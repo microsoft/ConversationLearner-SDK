@@ -645,8 +645,8 @@ export class CLRunner {
             }
 
             // Update resolution for entities with resolver type
-            if (entity.resolverType !== undefined 
-                && entity.resolverType !== null 
+            if (entity.resolverType !== undefined
+                && entity.resolverType !== null
                 && (predictedEntity.resolution === undefined || Object.keys(predictedEntity.resolution).length === 0)) {
                 const builtInEntity = predictedEntitiesWithType.find(pe => pe.startCharIndex >= predictedEntity.startCharIndex
                     && pe.endCharIndex <= predictedEntity.endCharIndex
@@ -1061,6 +1061,8 @@ export class CLRunner {
                 else {
                     try {
                         // create a copy of the map before calling into logic api
+                        // the copy of map is created because the passed infilledEntityMap contains "filledEntities by Id" too
+                        // and this causes issues when calculating changedFilledEntities.
                         const entityMapBeforeCall = new CLM.FilledEntityMap(await clMemory.BotMemory.FilledEntityMap())
                         // Store logic callback value
                         const logicObject = await callback.logic(memoryManager, ...renderedLogicArgumentValues)
@@ -1493,7 +1495,7 @@ export class CLRunner {
                     // If already used, make sure it's multi-value
                     if (usedEntities.find(e => e === labelEntity.entityId)) {
                         let entity = entities.find(e => e.entityId == labelEntity.entityId)
-                        if (entity && !entity.isMultivalue 
+                        if (entity && !entity.isMultivalue
                             && (entity.entityType === CLM.EntityType.LUIS || entity.entityType === CLM.EntityType.LOCAL)) {
                             replayError = replayError || new CLM.EntityUnexpectedMultivalue(entity.entityName)
                             replayErrors.push(replayError);
