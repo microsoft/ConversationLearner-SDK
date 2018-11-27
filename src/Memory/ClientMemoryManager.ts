@@ -4,7 +4,7 @@
  */
 import { SessionInfo } from '../Memory/BotState'
 import { CLStrings } from '../CLStrings'
-import { EntityBase, MemoryValue, FilledEntityMap, EntityType } from '@conversationlearner/models'
+import { EntityBase, MemoryValue, FilledEntityMap, EntityType, memoryValuesAsString } from '@conversationlearner/models'
 
 const errMsg = "called after your function has already returned. You must await results within your code rather than use callbacks"
 
@@ -34,100 +34,25 @@ export class ReadOnlyClientMemoryManager {
         return match
     }
 
-    /**
-     * Get value of entity as a string
-     * @param entityName Name of Entity
-     */
-    public EntityValueAsString(entityName: string): string | null {
-        return this.curMemories.ValueAsString(entityName)
+    protected __ToString(value: string | number | boolean | object): string {
+        if (typeof value == 'object') {
+            return JSON.stringify(value);
+        }
+        return value.toString()
     }
 
     /**
-     * Get value of entity as string before most recent input
-     * @param entityName Name of Entity
+     * Get current value of entity 
      */
-    public PrevEntityValueAsString(entityName: string): (string | null) {
-        return this.prevMemories.ValueAsString(entityName)
+    public Get<T>(entityName: string, converter: (memoryValues: MemoryValue[]) => T): T {
+        return converter(this.curMemories.Values(entityName))
     }
 
     /**
-     * Get array of MemoryValues 
-     * @param entityName Name of Entity
+     * Get value of entity before most recent input
      */
-    public EntityValues(entityName: string): MemoryValue[] {
-        return this.curMemories.Values(entityName)
-    }
-
-    /**
-     * Get array of MemoryValues before most recent input as a Prebuilt Entity
-     * @param entityName Name of Entity
-     */
-    public PrevEntityValues(entityName: string): MemoryValue[] {
-        return this.prevMemories.Values(entityName)
-    }
-
-    /**
-     * Get entity values a comma delminated string
-     * @param entityName Name of Entity
-     */
-    public EntityValueAsList(entityName: string): string[] {
-        return this.curMemories.ValueAsList(entityName)
-    }
-
-    /**
-     * Get entity values before most recent input a comma delminated string
-     * @param entityName Name of Entity
-     */
-    public PrevEntityValueAsList(entityName: string): string[] {
-        return this.prevMemories.ValueAsList(entityName)
-    }
-
-    /**
-     * Get entity value as a number
-     * @param entityName Name of Entity
-     */
-    public EntityValueAsNumber(entityName: string): number | null {
-        return this.curMemories.ValueAsNumber(entityName)
-    }
-
-    /**
-     * Get entity value before most recent input as a number
-     * @param entityName Name of Entity
-     */
-    public PrevValueAsNumber(entityName: string): number | null {
-        return this.prevMemories.ValueAsNumber(entityName)
-    }
-
-    /**
-     * Get entity value as a boolean
-     * @param entityName Name of Entity
-     */
-    public EntityValueAsBoolean(entityName: string): boolean | null {
-        return this.curMemories.ValueAsBoolean(entityName)
-    }
-
-    /**
-     * Get entity value before most recent input as a boolean
-     * @param entityName Name of Entity
-     */
-    public PrevValueAsBoolean(entityName: string): boolean | null {
-        return this.prevMemories.ValueAsBoolean(entityName)
-    }
-
-    /**
-     * Get entity value as object of type T
-     * @param entityName Name of Entity
-     */
-    public EntityValueAsObject<T>(entityName: string): T | null {
-        return this.curMemories.ValueAsObject(entityName)
-    }
-
-    /**
-     * Get entity value before most recent input as object of type T
-     * @param entityName Name of Entity
-     */
-    public PrevEntityValueAsObject<T>(entityName: string): (T | null) {
-        return this.prevMemories.ValueAsObject(entityName)
+    public GetPrevious<T>(entityName: string, converter: (memoryValues: MemoryValue[]) => T): T {
+        return converter(this.prevMemories.Values(entityName))
     }
 
     /**
@@ -135,6 +60,83 @@ export class ReadOnlyClientMemoryManager {
      */
     public SessionInfo(): SessionInfo {
         return this.sessionInfo;
+    }
+
+    public AS_VALUE(memoryValues: MemoryValue[]): MemoryValue {
+        if (memoryValues.length > 0) {
+            throw new Error(CLStrings.MEMORY_MANAGER_VALUE_LIST_EXCEPTION)
+        }
+        return memoryValues[0]
+    }
+
+    public AS_VALUE_LIST(memoryValues: MemoryValue[]): MemoryValue[] {
+        return memoryValues
+    }
+
+    public AS_STRING(memoryValues: MemoryValue[]): string {
+        if (memoryValues.length > 0) {
+            throw new Error(CLStrings.MEMORY_MANAGER_STRING_LIST_EXCEPTION)
+        }
+        return memoryValuesAsString(memoryValues)
+    }
+
+    public AS_STRING_LIST(memoryValues: MemoryValue[]): string[] {
+        return memoryValues.map(mv => {
+            if (typeof mv.userText !== 'string') {
+                throw new Error(CLStrings.MEMORY_MANAGER_NOT_A_STRING_EXCEPTION)
+            }
+            return mv.userText
+        })
+    }
+
+    public AS_NUMBER(memoryValues: MemoryValue[]): number {
+        if (memoryValues.length > 0) {
+            throw new Error(CLStrings.MEMORY_MANAGER_NUMBER_LIST_EXCEPTION)
+        }
+        let number = Number(memoryValues[0].userText)
+        if (isNaN(number)) {
+            throw new Error(CLStrings.MEMORY_MANAGER_NOT_A_NUMBER_EXCEPTION)
+        }
+        return number
+    }
+
+    public AS_NUMBER_LIST(memoryValues: MemoryValue[]): number[] {
+        return memoryValues.map(mv => {
+            let number = Number(mv.userText)
+            if (isNaN(number)) {
+                throw new Error(CLStrings.MEMORY_MANAGER_NOT_A_NUMBER_EXCEPTION)
+            }
+            return number
+        })
+    }
+
+    public AS_BOOLEAN(memoryValues: MemoryValue[]): boolean {
+        if (memoryValues.length > 0) {
+            throw new Error(CLStrings.MEMORY_MANAGER_BOOLEAN_LIST_EXCEPTION)
+        }
+        let text = memoryValuesAsString(memoryValues)
+        if (text.toLowerCase() === 'true') {
+            return true
+        }
+        if (text.toLowerCase() === 'false') {
+            return false
+        }
+        throw new Error(CLStrings.MEMORY_MANAGER_NOT_A_BOOLEAN_EXCEPTION)
+    }
+
+    public AS_BOOLEAN_LIST(memoryValues: MemoryValue[]): boolean[] {
+        return memoryValues.map(mv => {
+            if (!mv.userText) {
+                throw new Error(CLStrings.MEMORY_MANAGER_NOT_A_BOOLEAN_EXCEPTION)
+            }
+            if (mv.userText.toLowerCase() === 'true') {
+                return true
+            }
+            if (mv.userText.toLowerCase() === 'false') {
+                return false
+            }
+            throw new Error(CLStrings.MEMORY_MANAGER_NOT_A_BOOLEAN_EXCEPTION)
+        })
     }
 }
 
@@ -147,7 +149,7 @@ export class ClientMemoryManager extends ReadOnlyClientMemoryManager {
         return this
     }
 
-    public RememberEntity(entityName: string, entityValue: string | number | object): void {
+    public Set(entityName: string, value: string | number | boolean | object | string[] | number[] | boolean[] | object[]): void {
         if (this.__expired) {
             throw new Error(`ClientMemoryManager: RememberEntity "${entityName}" ${errMsg}`)
         }
@@ -158,42 +160,25 @@ export class ClientMemoryManager extends ReadOnlyClientMemoryManager {
             throw new Error(`${CLStrings.API_MISSING_ENTITY} ${entityName}`)
         }
         if (entity.entityType != EntityType.LOCAL && entity.entityType != EntityType.LUIS) {
-            throw new Error(`Not allowed to set values of pre-built Entities: ${entityName}`)
+            throw new Error(`${CLStrings.MEMORY_MANAGER_PRETRAINED_EXCEPTION} ${entityName}`)
         }
 
-        if (typeof entityValue == 'object') {
-            entityValue = JSON.stringify(entityValue);
+        if (Array.isArray(value)) {
+            if (!entity.isMultivalue) {
+                throw new Error(`Array passed to Set for entity (${entityName}) that isn't Multi-Value.`)
+            }
+            let stringValues = (value as any).map((v: any) => {
+                return this.__ToString(v)
+            })
+            this.curMemories.RememberMany(entity.entityName, entity.entityId, stringValues, entity.isMultivalue)
         }
-        else if (typeof entityValue == 'number' )
-        {
-            entityValue = entityValue.toString();
+        else {
+            let stringValue = this.__ToString(value)
+            this.curMemories.Remember(entity.entityName, entity.entityId, stringValue, entity.isMultivalue)
         }
-        this.curMemories.Remember(entity.entityName, entity.entityId, entityValue, entity.isMultivalue)
     }
 
-    public RememberEntities(entityName: string, entityValues: string[]): void {
-
-        if (this.__expired) {
-            throw new Error(`ClientMemoryManager: RememberEntities "${entityName}" ${errMsg}`)
-        }
-
-        let entity = this.__FindEntity(entityName)
-
-        if (!entity) {
-            throw new Error(`${CLStrings.API_MISSING_ENTITY} ${entityName}`)
-        }
-        if (entity.entityType != EntityType.LOCAL && entity.entityType != EntityType.LUIS) {
-            throw new Error(`Not allowed to set values of pre-built Entities: ${entityName}`)
-        }
-        if (!entity.isMultivalue) {
-            throw new Error(`RememberEntities called on entity (${entityName}) that isn't Multi-Value.  Only the last value will be remembered`)
-        }
-
-        this.curMemories.RememberMany(entity.entityName, entity.entityId, entityValues, entity.isMultivalue)
-    }
-
-    public ForgetEntity(entityName: string, value: string | null = null): void {
-
+    public Delete(entityName: string, value: string | null = null): void {
         if (this.__expired) {
             throw new Error(`ClientMemoryManager: ForgetEntity "${entityName}" ${errMsg}`)
         }
@@ -204,16 +189,17 @@ export class ClientMemoryManager extends ReadOnlyClientMemoryManager {
             throw new Error(`${CLStrings.API_MISSING_ENTITY} ${entityName}`)
         }
 
-        // If no value given, wipe all entites from buckets
-        this.curMemories.Forget(entity.entityName, value, entity.isMultivalue)
+        if (value) {
+            this.curMemories.Forget(entity.entityName, value, entity.isMultivalue)
+        }
     }
 
     /** Clear all entity values apart from any included in the list of saveEntityNames
      * @param saveEntityNames Array of entity names not to forget
      */
-    public ForgetAllEntities(saveEntityNames: string[]): void {
+    public DeleteAll(saveEntityNames: string[]): void {
         if (this.__expired) {
-            throw new Error(`ClientMemoryManager: ForgetAllEntities ${errMsg}`)
+            throw new Error(`ClientMemoryManager: DeleteAll ${errMsg}`)
         }
 
         for (let entity of this.allEntities) {
@@ -255,7 +241,7 @@ export class ClientMemoryManager extends ReadOnlyClientMemoryManager {
 
         // Copy values from "From"
         for (let value of values) {
-            this.RememberEntity(entityNameTo, value)
+            this.Set(entityNameTo, value)
         }
     }
 }
