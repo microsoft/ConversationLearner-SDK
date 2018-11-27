@@ -64,7 +64,7 @@ export class ReadOnlyClientMemoryManager {
 
     public AS_VALUE(memoryValues: MemoryValue[]): MemoryValue {
         if (memoryValues.length > 0) {
-            throw new Error("Entity is multi-value. Use AS_VALUE_LIST")
+            throw new Error(CLStrings.MEMORY_MANAGER_VALUE_LIST_EXCEPTION)
         }
         return memoryValues[0]
     }
@@ -75,7 +75,7 @@ export class ReadOnlyClientMemoryManager {
 
     public AS_STRING(memoryValues: MemoryValue[]): string {
         if (memoryValues.length > 0) {
-            throw new Error("Entity is multi-value. Use AS_STRING_LIST")
+            throw new Error(CLStrings.MEMORY_MANAGER_STRING_LIST_EXCEPTION)
         }
         return memoryValuesAsString(memoryValues)
     }
@@ -83,7 +83,7 @@ export class ReadOnlyClientMemoryManager {
     public AS_STRING_LIST(memoryValues: MemoryValue[]): string[] {
         return memoryValues.map(mv => {
             if (typeof mv.userText !== 'string') {
-                throw new Error("Memory Value is not a string")
+                throw new Error(CLStrings.MEMORY_MANAGER_NOT_A_STRING_EXCEPTION)
             }
             return mv.userText
         })
@@ -91,11 +91,11 @@ export class ReadOnlyClientMemoryManager {
 
     public AS_NUMBER(memoryValues: MemoryValue[]): number {
         if (memoryValues.length > 0) {
-            throw new Error("Entity is multi-value. Use AS_NUMBER_LIST")
+            throw new Error(CLStrings.MEMORY_MANAGER_NUMBER_LIST_EXCEPTION)
         }
         let number = Number(memoryValues[0].userText)
         if (isNaN(number)) {
-            throw new Error("Memory Value is not a number")
+            throw new Error(CLStrings.MEMORY_MANAGER_NOT_A_NUMBER_EXCEPTION)
         }
         return number
     }
@@ -104,7 +104,7 @@ export class ReadOnlyClientMemoryManager {
         return memoryValues.map(mv => {
             let number = Number(mv.userText)
             if (isNaN(number)) {
-                throw new Error("Memory Value is not a number")
+                throw new Error(CLStrings.MEMORY_MANAGER_NOT_A_NUMBER_EXCEPTION)
             }
             return number
         })
@@ -112,7 +112,7 @@ export class ReadOnlyClientMemoryManager {
 
     public AS_BOOLEAN(memoryValues: MemoryValue[]): boolean {
         if (memoryValues.length > 0) {
-            throw new Error("Entity is multi-value. Use AS_BOOLEAN_LIST")
+            throw new Error(CLStrings.MEMORY_MANAGER_BOOLEAN_LIST_EXCEPTION)
         }
         let text = memoryValuesAsString(memoryValues)
         if (text.toLowerCase() === 'true') {
@@ -121,13 +121,13 @@ export class ReadOnlyClientMemoryManager {
         if (text.toLowerCase() === 'false') {
             return false
         }
-        throw new Error("Memory Value is not a boolean")
+        throw new Error(CLStrings.MEMORY_MANAGER_NOT_A_BOOLEAN_EXCEPTION)
     }
 
     public AS_BOOLEAN_LIST(memoryValues: MemoryValue[]): boolean[] {
         return memoryValues.map(mv => {
             if (!mv.userText) {
-                throw new Error("Memory Value is not a boolean")
+                throw new Error(CLStrings.MEMORY_MANAGER_NOT_A_BOOLEAN_EXCEPTION)
             }
             if (mv.userText.toLowerCase() === 'true') {
                 return true
@@ -135,7 +135,7 @@ export class ReadOnlyClientMemoryManager {
             if (mv.userText.toLowerCase() === 'false') {
                 return false
             }
-            throw new Error("Memory Value is not a boolean")// LARS us CLString fro all of these
+            throw new Error(CLStrings.MEMORY_MANAGER_NOT_A_BOOLEAN_EXCEPTION)
         })
     }
 }
@@ -160,7 +160,7 @@ export class ClientMemoryManager extends ReadOnlyClientMemoryManager {
             throw new Error(`${CLStrings.API_MISSING_ENTITY} ${entityName}`)
         }
         if (entity.entityType != EntityType.LOCAL && entity.entityType != EntityType.LUIS) {
-            throw new Error(`Not allowed to set values of pre-built Entities: ${entityName}`)
+            throw new Error(`${CLStrings.MEMORY_MANAGER_PRETRAINED_EXCEPTION} ${entityName}`)
         }
 
         if (Array.isArray(value)) {
