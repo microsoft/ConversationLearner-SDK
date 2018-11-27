@@ -24,8 +24,7 @@ export class ReadOnlyClientMemoryManager {
         this.__expired = false
     }
 
-    // TODO: Why is this public but prefixed with __ to indicate private
-    public __Expire(): void {
+    public Expire(): void {
         this.__expired = true
     }
 
