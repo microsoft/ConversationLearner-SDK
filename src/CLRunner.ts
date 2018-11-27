@@ -544,9 +544,6 @@ export class CLRunner {
             // If submit type return as a response
             if (data['submit']) {
                 return data['submit']
-            } else {
-                CLDebug.Error(`Adaptive Card has no Submit data`)
-                return null
             }
         }
         return null
@@ -645,8 +642,8 @@ export class CLRunner {
             }
 
             // Update resolution for entities with resolver type
-            if (entity.resolverType !== undefined 
-                && entity.resolverType !== null 
+            if (entity.resolverType !== undefined
+                && entity.resolverType !== null
                 && (predictedEntity.resolution === undefined || Object.keys(predictedEntity.resolution).length === 0)) {
                 const builtInEntity = predictedEntitiesWithType.find(pe => pe.startCharIndex >= predictedEntity.startCharIndex
                     && pe.endCharIndex <= predictedEntity.endCharIndex
@@ -1493,7 +1490,7 @@ export class CLRunner {
                     // If already used, make sure it's multi-value
                     if (usedEntities.find(e => e === labelEntity.entityId)) {
                         let entity = entities.find(e => e.entityId == labelEntity.entityId)
-                        if (entity && !entity.isMultivalue 
+                        if (entity && !entity.isMultivalue
                             && (entity.entityType === CLM.EntityType.LUIS || entity.entityType === CLM.EntityType.LOCAL)) {
                             replayError = replayError || new CLM.EntityUnexpectedMultivalue(entity.entityName)
                             replayErrors.push(replayError);
