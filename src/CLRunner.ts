@@ -1058,6 +1058,8 @@ export class CLRunner {
                 else {
                     try {
                         // create a copy of the map before calling into logic api
+                        // the copy of map is created because the passed infilledEntityMap contains "filledEntities by Id" too
+                        // and this causes issues when calculating changedFilledEntities.
                         const entityMapBeforeCall = new CLM.FilledEntityMap(await clMemory.BotMemory.FilledEntityMap())
                         // Store logic callback value
                         const logicObject = await callback.logic(memoryManager, ...renderedLogicArgumentValues)
