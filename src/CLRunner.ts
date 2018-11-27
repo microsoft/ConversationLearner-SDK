@@ -1694,11 +1694,11 @@ export class CLRunner {
                     }
 
                     let botActivity: Partial<BB.Activity> | null = null
-                    let botId = `BOT-${userId}`
+                    let botAccount = { id: `BOT-${userId}`, name: CLM.CL_USER_NAME_ID, role: BB.RoleTypes.Bot, aadObjectId: '' }
                     if (typeof botResponse.response == 'string') {
                         botActivity = {
                             id: CLM.ModelUtils.generateGUID(),
-                            from: { id: botId, name: CLM.CL_USER_NAME_ID, role: BB.RoleTypes.Bot },
+                            from: botAccount,
                             type: 'message',
                             text: botResponse.response,
                             channelData: { clData: clBotData }
@@ -1706,7 +1706,7 @@ export class CLRunner {
                     } else if (botResponse) {
                         botActivity = botResponse.response as BB.Activity
                         botActivity.id = CLM.ModelUtils.generateGUID()
-                        botActivity.from = { id: botId, name: CLM.CL_USER_NAME_ID, role: BB.RoleTypes.Bot }
+                        botActivity.from = botAccount
                         botActivity.channelData = { clData: clBotData }
                     }
 
