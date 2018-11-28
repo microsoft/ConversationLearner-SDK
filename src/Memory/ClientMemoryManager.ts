@@ -43,15 +43,15 @@ export class ReadOnlyClientMemoryManager {
     /**
      * Get current value of entity 
      */
-    public Get<T>(entityName: string, converter: (memoryValues: MemoryValue[]) => T): T {
-        return converter(this.curMemories.Values(entityName))
+    public Get<T = MemoryValue[]>(entityName: string, converter?: (memoryValues: MemoryValue[]) => T): T extends MemoryValue[] ? MemoryValue[] : T {
+        return this.GetValues(entityName, this.curMemories, converter)
     }
 
     /**
      * Get value of entity before most recent input
      */
-    public GetPrevious<T>(entityName: string, converter: (memoryValues: MemoryValue[]) => T): T {
-        return converter(this.prevMemories.Values(entityName))
+    public GetPrevious<T = MemoryValue[]>(entityName: string, converter?: (memoryValues: MemoryValue[]) => T): T extends MemoryValue[] ? MemoryValue[] : T {
+        return this.GetValues(entityName, this.prevMemories, converter)
     }
 
     /**
@@ -134,6 +134,15 @@ export class ReadOnlyClientMemoryManager {
             throw new Error(CLStrings.MEMORY_MANAGER_NOT_A_BOOLEAN_EXCEPTION)
         })
     }
+
+    private GetValues<T = MemoryValue[]>(entityName: string, entityMap: FilledEntityMap, converter?: (memoryValues: MemoryValue[]) => T): T extends MemoryValue[] ? MemoryValue[] : T {
+        // cast to conditional type is necessary
+        // see here for description https://github.com/Microsoft/TypeScript/issues/22735#issuecomment-376960435
+        if (!converter) {
+            return <T extends MemoryValue[] ? MemoryValue[] : T>entityMap.Values(entityName)
+        }
+        return <T extends MemoryValue[] ? MemoryValue[] : T>converter(entityMap.Values(entityName))
+    }
 }
 
 export class ClientMemoryManager extends ReadOnlyClientMemoryManager {
@@ -185,7 +194,8 @@ export class ClientMemoryManager extends ReadOnlyClientMemoryManager {
             throw new Error(`${CLStrings.API_MISSING_ENTITY} ${entityName}`)
         }
 
-        if (value) {
+        // delete entity if it is single value or specified value if it is multivalue
+        if (value || !entity.isMultivalue) {
             this.curMemories.Forget(entity.entityName, value, entity.isMultivalue)
         }
     }
