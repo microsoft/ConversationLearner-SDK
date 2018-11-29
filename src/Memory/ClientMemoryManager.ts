@@ -8,6 +8,8 @@ import { EntityBase, MemoryValue, FilledEntityMap, EntityType, memoryValuesAsStr
 
 const errMsg = "called after your function has already returned. You must await results within your code rather than use callbacks"
 
+export type MemoryManagerReturnType<T> = T extends MemoryValue[] | MemoryValue ? T extends MemoryValue[] ? MemoryValue[] : MemoryValue : T
+
 export class ReadOnlyClientMemoryManager {
     protected allEntities: EntityBase[] = []
     private sessionInfo: SessionInfo
@@ -29,8 +31,7 @@ export class ReadOnlyClientMemoryManager {
     }
 
     protected __FindEntity(entityName: string): EntityBase | undefined {
-        let match = this.allEntities.find(e => e.entityName == entityName)
-        return match
+        return this.allEntities.find(e => e.entityName == entityName)
     }
 
     protected __ToString(value: string | number | boolean | object): string {
@@ -43,14 +44,14 @@ export class ReadOnlyClientMemoryManager {
     /**
      * Get current value of entity 
      */
-    public Get<T = MemoryValue[]>(entityName: string, converter?: (memoryValues: MemoryValue[]) => T): T extends MemoryValue[] ? MemoryValue[] : T {
+    public Get<T = MemoryValue[] | MemoryValue>(entityName: string, converter?: (memoryValues: MemoryValue[]) => T): MemoryManagerReturnType<T> {
         return this.GetValues(entityName, this.curMemories, converter)
     }
 
     /**
      * Get value of entity before most recent input
      */
-    public GetPrevious<T = MemoryValue[]>(entityName: string, converter?: (memoryValues: MemoryValue[]) => T): T extends MemoryValue[] ? MemoryValue[] : T {
+    public GetPrevious<T = MemoryValue[] | MemoryValue>(entityName: string, converter?: (memoryValues: MemoryValue[]) => T): MemoryManagerReturnType<T> {
         return this.GetValues(entityName, this.prevMemories, converter)
     }
 
@@ -61,19 +62,19 @@ export class ReadOnlyClientMemoryManager {
         return this.sessionInfo;
     }
 
-    public static AS_VALUE(memoryValues: MemoryValue[]): MemoryValue {
-        if (memoryValues.length > 0) {
+    public static AS_VALUE(memoryValues: MemoryValue[]): MemoryValue | null {
+        if (memoryValues.length > 1) {
             throw new Error(CLStrings.MEMORY_MANAGER_VALUE_LIST_EXCEPTION)
         }
-        return memoryValues[0]
+        return memoryValues.length == 0 ? null : memoryValues[0]
     }
 
     public static AS_VALUE_LIST(memoryValues: MemoryValue[]): MemoryValue[] {
         return memoryValues
     }
 
-    public static AS_STRING(memoryValues: MemoryValue[]): string {
-        return memoryValuesAsString(memoryValues)
+    public static AS_STRING(memoryValues: MemoryValue[]): string | null {
+        return memoryValues.length == 0 ? null : memoryValuesAsString(memoryValues)
     }
 
     public static AS_STRING_LIST(memoryValues: MemoryValue[]): string[] {
@@ -85,11 +86,14 @@ export class ReadOnlyClientMemoryManager {
         })
     }
 
-    public static AS_NUMBER(memoryValues: MemoryValue[]): number {
-        if (memoryValues.length > 0) {
+    public static AS_NUMBER(memoryValues: MemoryValue[]): number | null {
+        if (memoryValues.length == 0) {
+            return null
+        }
+        if (memoryValues.length > 1) {
             throw new Error(CLStrings.MEMORY_MANAGER_NUMBER_LIST_EXCEPTION)
         }
-        let number = Number(memoryValues[0].userText)
+        const number = Number(memoryValues[0].userText)
         if (isNaN(number)) {
             throw new Error(CLStrings.MEMORY_MANAGER_NOT_A_NUMBER_EXCEPTION)
         }
@@ -106,8 +110,11 @@ export class ReadOnlyClientMemoryManager {
         })
     }
 
-    public static AS_BOOLEAN(memoryValues: MemoryValue[]): boolean {
-        if (memoryValues.length > 0) {
+    public static AS_BOOLEAN(memoryValues: MemoryValue[]): boolean | null {
+        if (memoryValues.length == 0) {
+            return null
+        }
+        if (memoryValues.length > 1) {
             throw new Error(CLStrings.MEMORY_MANAGER_BOOLEAN_LIST_EXCEPTION)
         }
         let text = memoryValuesAsString(memoryValues)
@@ -135,13 +142,20 @@ export class ReadOnlyClientMemoryManager {
         })
     }
 
-    private GetValues<T = MemoryValue[]>(entityName: string, entityMap: FilledEntityMap, converter?: (memoryValues: MemoryValue[]) => T): T extends MemoryValue[] ? MemoryValue[] : T {
+
+
+    private GetValues<T = MemoryValue[]>(entityName: string, entityMap: FilledEntityMap, converter?: (memoryValues: MemoryValue[]) => T): MemoryManagerReturnType<T> {
         // cast to conditional type is necessary
         // see here for description https://github.com/Microsoft/TypeScript/issues/22735#issuecomment-376960435
         if (!converter) {
-            return <T extends MemoryValue[] ? MemoryValue[] : T>entityMap.Values(entityName)
+            const values = entityMap.Values(entityName)
+            const entity = this.__FindEntity(entityName);
+            if (entity && !entity.isMultivalue) {
+                return <MemoryManagerReturnType<T>>ClientMemoryManager.AS_VALUE(values)
+            }
+            return <MemoryManagerReturnType<T>>values
         }
-        return <T extends MemoryValue[] ? MemoryValue[] : T>converter(entityMap.Values(entityName))
+        return <MemoryManagerReturnType<T>>converter(entityMap.Values(entityName))
     }
 }
 
@@ -194,16 +208,15 @@ export class ClientMemoryManager extends ReadOnlyClientMemoryManager {
             throw new Error(`${CLStrings.API_MISSING_ENTITY} ${entityName}`)
         }
 
-        // delete entity if it is single value or specified value if it is multivalue
-        if (value || !entity.isMultivalue) {
-            this.curMemories.Forget(entity.entityName, value, entity.isMultivalue)
-        }
+        this.curMemories.Forget(entity.entityName, value, entity.isMultivalue)
     }
 
-    /** Clear all entity values apart from any included in the list of saveEntityNames
+    public DeleteAll = () => this.DeleteAllExcept()
+
+    /** Delete all entity values apart from any included in the list of saveEntityNames
      * @param saveEntityNames Array of entity names not to forget
      */
-    public DeleteAll(saveEntityNames: string[]): void {
+    public DeleteAllExcept(...saveEntityNames: string[]): void {
         if (this.__expired) {
             throw new Error(`ClientMemoryManager: DeleteAll ${errMsg}`)
         }
