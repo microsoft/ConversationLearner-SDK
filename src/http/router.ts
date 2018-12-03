@@ -746,7 +746,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 }
                 res.send(teachWithHistory)
             } catch (error) {
-                res.send(teachWithHistory)
+                HandleError(res, error)
             }
         } catch (error) {
             HandleError(res, error)
