@@ -40,7 +40,7 @@
   "author": "Microsoft Conversation Learner Team",
   "license": "MIT",
   "dependencies": {
-    "@conversationlearner/models": "0.187.1",
+    "@conversationlearner/models": "0.187.2",
     "@conversationlearner/ui": "0.325.5",
     "@types/supertest": "2.0.4",
     "async-file": "^2.0.2",
