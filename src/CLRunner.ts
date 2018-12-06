@@ -907,7 +907,7 @@ export class CLRunner {
             actionResult.response = BB.MessageFactory.text(actionResult.response)
         }
         if (actionResult.response && typeof actionResult.response !== 'string' && clData) {
-            actionResult.response.channelData = { ...actionResult.response.channelData, clData }
+            actionResult.response.channelData = { ...actionResult.response.channelData, clData: clData }
         }
 
         // If action wasn't terminal loop through Conversation Learner again after a short delay
@@ -1528,15 +1528,8 @@ export class CLRunner {
 
             // Generate activity
             let userActivity = CLM.ModelUtils.InputToActivity(userText, userName, userId, roundNum)
+            userActivity.channelData.clData.activityIndex = activities.length
 
-            let clUserData: CLM.CLChannelData = {
-                senderType: CLM.SenderType.User,
-                roundIndex: roundNum,
-                replayError,
-                activityIndex: activities.length
-            }
-
-            userActivity.channelData.clData = clUserData
             activities.push(userActivity)
 
             // Save memory before this step (used to show changes in UI)
