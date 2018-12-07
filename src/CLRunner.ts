@@ -1528,6 +1528,7 @@ export class CLRunner {
 
             // Generate activity
             let userActivity = CLM.ModelUtils.InputToActivity(userText, userName, userId, roundNum)
+            userActivity.channelData.clData.replayError = replayError
             userActivity.channelData.clData.activityIndex = activities.length
 
             activities.push(userActivity)
