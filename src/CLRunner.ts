@@ -948,7 +948,6 @@ export class CLRunner {
             )
 
             clRecognizeResult.scoredAction = bestAction
-            // LARS - need to increment scorere step in channel data
             actionResult = await this.RenderTemplateAsync(conversationReference, clRecognizeResult, clData)
         }
         return actionResult
@@ -1202,7 +1201,7 @@ export class CLRunner {
         return true;
     }
 
-    /** Convert list of filled entities into a filled entity map lookup table */
+    // Convert list of filled entities into a filled entity map lookup table 
     private CreateFilledEntityMap(filledEntities: CLM.FilledEntity[], entityList: CLM.EntityList): CLM.FilledEntityMap {
         let filledEntityMap = new CLM.FilledEntityMap()
         for (let filledEntity of filledEntities) {
