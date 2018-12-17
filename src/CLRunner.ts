@@ -282,7 +282,7 @@ export class CLRunner {
         startSessionEntities = [...createParams.initialFilledEntities || [], ...startSessionEntities]
 
         const filledEntityMap = CLM.FilledEntityMap.FromFilledEntities(startSessionEntities, entityList.entities)
-        clMemory.BotMemory.RestoreFromMapAsync(filledEntityMap)
+        await clMemory.BotMemory.RestoreFromMapAsync(filledEntityMap)
 
         // Start the new session
         let sessionId: string
@@ -1324,12 +1324,17 @@ export class CLRunner {
     /**
      * Initialize memory for replay
      */
-    private async InitReplayMemory(clMemory: CLMemory, trainDialog: CLM.TrainDialog, entities: CLM.EntityBase[]) {
+    private async InitReplayMemory(clMemory: CLMemory, trainDialog: CLM.TrainDialog, allEntities: CLM.EntityBase[]) {
 
         // Reset the memory
         await clMemory.BotMemory.ClearAsync()
 
-        let map = CLM.FilledEntityMap.FromFilledEntities(trainDialog.initialFilledEntities || [], entities)
+        // Call start sesssion for initial entities
+        await this.CheckSessionStartCallback(clMemory, allEntities);
+        let startSessionEntities = await clMemory.BotMemory.FilledEntitiesAsync()
+        startSessionEntities = [...trainDialog.initialFilledEntities || [], ...startSessionEntities]
+
+        let map = CLM.FilledEntityMap.FromFilledEntities(startSessionEntities, allEntities)
         await clMemory.BotMemory.RestoreFromMapAsync(map)
     }
 
