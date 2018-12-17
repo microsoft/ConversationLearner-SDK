@@ -233,10 +233,10 @@ export class ClientMemoryManager extends ReadOnlyClientMemoryManager {
      * @param entityNameFrom Source Entity
      * @param entityNameTo Destination Entity
      */
-    public CopyEntity(entityNameFrom: string, entityNameTo: string): void {
+    public Copy(entityNameFrom: string, entityNameTo: string): void {
 
         if (this.__expired) {
-            throw new Error(`ClientMemoryManager: CopyEntity ${errMsg}`)
+            throw new Error(`ClientMemoryManager: Copy ${errMsg}`)
         }
 
         let entityFrom = this.__FindEntity(entityNameFrom)
