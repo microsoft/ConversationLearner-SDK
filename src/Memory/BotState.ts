@@ -54,9 +54,6 @@ export enum BotStateType {
     // True if onEndSession needs to be called
     NEED_SESSIONEND_CALL = 'ON_ENDSESSION_CALLED',
 
-    // If session is continuation of times out session, what was the original sessionId
-    ORIG_SESSION = 'ORIG_SESSION',
-
     // Currently active session
     SESSION_ID = 'SESSION_ID'
 }
@@ -109,7 +106,6 @@ export class BotState {
         await this.SetConversationReference(null)
         await this.SetLastActive(0);
         await this.SetMessageProcessing(null);
-        await this.SetOrgSessionId(null)
         await this.SetNeedSessionEndCall(false)
         await this.SetInTeach(false)
         await this.SetSessionId(null)
@@ -141,7 +137,8 @@ export class BotState {
                 devPackageId: app.devPackageId,
                 metadata: {
                     isLoggingOn: app.metadata.isLoggingOn
-                }}
+                }
+            }
 
             await this.SetStateAsync(BotStateType.APP, smallApp)
         }
@@ -154,7 +151,7 @@ export class BotState {
         return await this.GetStateAsync<string | null>(BotStateType.CONVERSATION_ID)
     }
 
-    public async SetConversationId(conversationId : string | null): Promise<void> {
+    public async SetConversationId(conversationId: string | null): Promise<void> {
         await this.SetStateAsync(BotStateType.CONVERSATION_ID, conversationId)
     }
 
@@ -179,28 +176,6 @@ export class BotState {
 
     public async ClearEditingPackageAsync(): Promise<void> {
         await this.SetStateAsync<ActiveApps>(BotStateType.EDITING_PACKAGE, {});
-    }
-
-    // ------------------------------------------------
-    //  ORIG_SESSION
-    // ------------------------------------------------
-    public async OrgSessionIdAsync(sessionId: string): Promise<string | null> {
-        const origSessionId = await this.GetStateAsync<string | null>(BotStateType.ORIG_SESSION)
-
-        // If session expired and was replaced with a more recent one, return the new sessionId
-        if (origSessionId === sessionId) {
-            const curSessionId = await this.GetStateAsync<string | null>(BotStateType.SESSION_ID)
-            return curSessionId;
-        }
-        return sessionId;
-    }
-
-    public async GetOrgSessionIdAsync(): Promise<string | null> {
-        return await this.GetStateAsync<string|null>(BotStateType.ORIG_SESSION)
-    }
-
-    public async SetOrgSessionId(sessionId: string | null): Promise<void> {
-        await this.SetStateAsync(BotStateType.ORIG_SESSION, sessionId)
     }
 
     // ------------------------------------------------
@@ -243,14 +218,18 @@ export class BotState {
             return await this.GetStateAsync<string | null>(BotStateType.SESSION_ID)
         }
         // If existingConversationId Id is a object - TEAMs Channel 
-        else if (typeof existingConversationId === 'object'){ 
-            if (existingConversationId["user"]["id"] == conversationId){ 
+        else if (typeof existingConversationId === 'object') {
+            if (existingConversationId["user"]["id"] == conversationId) {
                 return await this.GetStateAsync<string | null>(BotStateType.SESSION_ID)
-            } 
-        } 
-    
+            }
+        }
+
         // Otherwise session is for another conversation
         return null
+    }
+
+    public async GetSessionIdAsync(): Promise<string | null> {
+        return await this.GetStateAsync<string | null>(BotStateType.SESSION_ID)
     }
 
     public async SetSessionId(sessionId: string | null): Promise<void> {
@@ -259,11 +238,6 @@ export class BotState {
 
     public async InitSessionAsync(sessionId: string | null, logDialogId: string | null, conversationId: string | null, sessionStartFlags: SessionStartFlags): Promise<void> {
         await this.SetSessionId(sessionId);
-
-        // Do not clear OrgSessionId, if user did manual timeout, so UI can properly delete
-        if (!(sessionStartFlags & SessionStartFlags.IS_MANUAL_TIMEOUT)) {
-            await this.SetOrgSessionId(null)
-        }
         await this.SetLogDialogId(logDialogId)
         await this.SetNeedSessionEndCall(true)
         await this.SetConversationId(conversationId)
@@ -273,21 +247,9 @@ export class BotState {
     }
 
     // End a session.
-    // originalSessionId is sent when session terminated from EndSession action or expiration
-    public async EndSessionAsync(originalSessionId: string | null = null): Promise<void> {
+    public async EndSessionAsync(): Promise<void> {
         await this.SetSessionId(null);
         await this.SetLogDialogId(null);
-
-        if (originalSessionId) {
-            let existingOrigSesionId = await this.GetOrgSessionIdAsync()
-            if (!existingOrigSesionId) {
-                await this.SetOrgSessionId(originalSessionId)
-            }
-        }
-        else {
-            await this.SetOrgSessionId(null);
-        }
-
         await this.SetConversationId(null);
         await this.SetLastActive(0);
         await this.SetInTeach(false);
@@ -365,8 +327,8 @@ export class BotState {
 
         if (conversationReference && conversationReference.conversation) {
             return {
-                userName : conversationReference.user && conversationReference.user.name,
-                userId : conversationReference.user && conversationReference.user.id,
+                userName: conversationReference.user && conversationReference.user.name,
+                userId: conversationReference.user && conversationReference.user.id,
                 logDialogId: await this.GetLogDialogId()
             } as SessionInfo
         }

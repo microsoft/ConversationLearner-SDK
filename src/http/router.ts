@@ -573,6 +573,9 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const clRunner = CLRunner.GetRunnerForUI(appId);
             const clMemory = CLMemory.GetMemory(key)
 
+            // Clear memory when running Log from UI
+            clMemory.BotMemory.ClearAsync()
+
             const session = await clRunner.StartSessionAsync(clMemory, null, appId, SessionStartFlags.NONE, sessionCreateParams) as CLM.Session
             res.send(session)
 
@@ -582,24 +585,23 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
     })
 
     /** EXPIRE SESSION : Expires the current session (timeout) */
-    router.put('/app/:appId/session/:sessionId', async (req, res, next) => {
+    router.put('/app/:appId/session', async (req, res, next) => {
         try {
             const key = getMemoryKey(req)
             const memory = CLMemory.GetMemory(key)
             const conversationId = await memory.BotState.GetConversationId();
+            // If conversation is empty
             if (!conversationId) {
-                // If conversation is empty
                 return
             }
 
-            // Check that sessions match
-            const curSessionId = await memory.BotState.GetSessionIdAndSetConversationId(conversationId);
+            // Look up what the current sessionId 
+            const currentSessionId = await memory.BotState.GetSessionIdAsync()
 
-            // Session may be a replacement for an expired one
-            const uiSessionId = await memory.BotState.OrgSessionIdAsync(req.params.sessionId)
-
-            if (curSessionId != uiSessionId) {
-                throw new Error("Attempting to expire sessionId not in use")
+            // May have already been closed
+            if (!currentSessionId) {
+                res.sendStatus(200)
+                return
             }
 
             // Force session to expire
@@ -610,29 +612,24 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
         }
     })
 
-    /** END SESSION : End a session. */
-    router.delete('/app/:appId/session/:sessionId', async (req, res, next) => {
+    /** END SESSION : End current session. */
+    router.delete('/app/:appId/session', async (req, res, next) => {
         try {
             const key = getMemoryKey(req)
-            const { appId, sessionId } = req.params
+            const { appId } = req.params
 
             // Session may be a replacement for an expired one
             const memory = CLMemory.GetMemory(key)
-            const originalSessionId = await memory.BotState.OrgSessionIdAsync(sessionId)
 
-            let response: string
-            if (!originalSessionId) {
-                // This can happen when a LogDialog End_Session Action is called and the
-                // user subsequently presses the DONE button
-                response = await client.EndSession(appId, sessionId)
-
-                // TODO: Once log dialog interface goes away, throw error here instead
-                //throw new Error(`original session id not found for session id: ${sessionId}`)
-            } else {
-                response = await client.EndSession(appId, originalSessionId)
+            const sessionId = await memory.BotState.GetSessionIdAsync()
+            // May have already been closed
+            if (!sessionId) {
+                res.sendStatus(200)
+                return
             }
 
-            res.send(response)
+            await client.EndSession(appId, sessionId)
+            res.sendStatus(200)
 
             const clRunner = CLRunner.GetRunnerForUI(appId);
             clRunner.EndSessionAsync(memory, CLM.SessionEndState.OPEN)
