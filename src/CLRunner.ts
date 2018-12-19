@@ -1382,9 +1382,7 @@ export class CLRunner {
 
             // Use scorer step to populate pre-built data (when)
             if (round.scorerSteps && round.scorerSteps.length > 0) {
-                // LARS - check this - value not used?
                 this.PopulatePrebuilts(predictedEntities, scoreInput.filledEntities)
-
                 round.scorerSteps[0].input.filledEntities = scoreInput.filledEntities
 
                 // Go through each scorer step
