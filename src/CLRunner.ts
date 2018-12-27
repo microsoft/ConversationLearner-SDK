@@ -1470,13 +1470,12 @@ export class CLRunner {
 
         await this.InitReplayMemory(clMemory, trainDialog, entities)
 
-        let activities = []
+        let activities: Partial<BB.Activity>[] = []
         let replayError: CLM.ReplayError | null = null
         let replayErrors: CLM.ReplayError[] = [];
         let curAction = null
 
         for (let [roundNum, round] of trainDialog.rounds.entries()) {
-            let userText = round.extractorStep.textVariations[0].text
             let filledEntities = round.scorerSteps[0] && round.scorerSteps[0].input ? round.scorerSteps[0].input.filledEntities : []
 
             // VALIDATION
@@ -1524,10 +1523,11 @@ export class CLRunner {
             }
 
             // Generate activity
-            let userActivity = CLM.ModelUtils.InputToActivity(userText, userName, userId, roundNum)
+            let userText = CLM.ModelUtils.textVariationToMarkdown(round.extractorStep.textVariations[0])
+            let userActivity: Partial<BB.Activity> = CLM.ModelUtils.InputToActivity(userText, userName, userId, roundNum)
             userActivity.channelData.clData.replayError = replayError
             userActivity.channelData.clData.activityIndex = activities.length
-
+            userActivity.textFormat = 'markdown'
             activities.push(userActivity)
 
             // Save memory before this step (used to show changes in UI)
