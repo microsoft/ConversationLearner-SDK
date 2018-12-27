@@ -7,7 +7,7 @@ import * as request from 'request'
 import * as semver from 'semver'
 import * as fs from 'fs-extra'
 import * as path from 'path'
-import { FilledEntityMap, TextVariation } from '@conversationlearner/models'
+import { FilledEntityMap } from '@conversationlearner/models'
 
 export class Utils {
     public static SendTyping(adapter: BB.BotAdapter, address: any) {
