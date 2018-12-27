@@ -7,7 +7,7 @@ import * as request from 'request'
 import * as semver from 'semver'
 import * as fs from 'fs-extra'
 import * as path from 'path'
-import { FilledEntityMap } from '@conversationlearner/models'
+import { FilledEntityMap, TextVariation } from '@conversationlearner/models'
 
 export class Utils {
     public static SendTyping(adapter: BB.BotAdapter, address: any) {
@@ -42,7 +42,7 @@ export class Utils {
             }
             // Special message for 403 as it's like a bad ModelId
             else if (error.statusCode === 403) {
-                            return `403 Forbidden:  Please check you have set a valid CONVERSATION_LEARNER_MODEL_ID`
+                return `403 Forbidden:  Please check you have set a valid CONVERSATION_LEARNER_MODEL_ID`
             }
             else if (!error.body) {
                 if (typeof error == 'string') {
