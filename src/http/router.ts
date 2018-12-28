@@ -11,8 +11,8 @@ import { ConversationLearner } from '../ConversationLearner'
 import { CLMemory } from '../CLMemory'
 import { CLRecognizerResult } from '../CLRecognizeResult'
 import { TemplateProvider } from '../TemplateProvider'
-import { replace, isSDKOld, CL_DEVELOPER } from '../Utils'
 import { BrowserSlot } from '../Memory/BrowserSlot'
+import * as Utils from '../Utils'
 import * as Request from 'request'
 import * as XMLDom from 'xmldom'
 import * as CLM from '@conversationlearner/models'
@@ -179,7 +179,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 // Display version banner if SDK is obsolete
                 let versionBanner = await getBanner(versionEndpoint)
                 if (versionBanner && versionBanner.sdkversion) {
-                    const isOld = await isSDKOld(versionBanner.sdkversion)
+                    const isOld = await Utils.isSDKOld(versionBanner.sdkversion)
                     if (isOld) {
                         banner = versionBanner
                     }
@@ -190,15 +190,25 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 const { logic, render, ...callback } = c
                 return callback
             }
+
+            const callbacks = Object.values(clRunner.callbacks).map(convertInternalCallbackToCallback)
+            const templates = TemplateProvider.GetTemplates()
+            const checksum = Utils.botChecksum(callbacks, templates)
+
+            // Store current checksum
+            const memory = CLMemory.GetMemory(id)
+            await memory.BotState.SetBotChecksum(checksum)
+
             const botInfo: CLM.BotInfo = {
                 user: {
-                    // We keep track that the editing  UI is running by putting this as the name of the user
+                    // We keep track that the editing UI is running by putting this as the name of the user
                     // Can't check localhost as can be running localhost and not UI
-                    name: CL_DEVELOPER,
+                    name: Utils.CL_DEVELOPER,
                     id: id
                 },
-                callbacks: Object.values(clRunner.callbacks).map(convertInternalCallbackToCallback),
-                templates: TemplateProvider.GetTemplates(),
+                callbacks,
+                templates,
+                checksum,
                 validationErrors: validationErrors,
                 banner: banner
             }
@@ -396,7 +406,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const appDefinition = await client.GetAppSource(appId, packageId)
 
             // Replace the action with new one
-            appDefinition.actions = replace(appDefinition.actions, action, a => a.actionId)
+            appDefinition.actions = Utils.replace(appDefinition.actions, action, a => a.actionId)
 
             const clRunner = CLRunner.GetRunnerForUI(appId);
             const invalidTrainDialogIds = clRunner.validateTrainDialogs(appDefinition);
@@ -439,7 +449,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const appDefinition = await client.GetAppSource(appId, packageId)
 
             // Replace the entity with new one
-            appDefinition.entities = replace(appDefinition.entities, entity, e => e.entityId)
+            appDefinition.entities = Utils.replace(appDefinition.entities, entity, e => e.entityId)
 
             const clRunner = CLRunner.GetRunnerForUI(appId);
             const invalidTrainDialogIds = clRunner.validateTrainDialogs(appDefinition);
