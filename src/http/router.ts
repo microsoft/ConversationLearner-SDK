@@ -6,7 +6,7 @@ import * as express from 'express'
 import * as url from 'url'
 import { CLDebug } from '../CLDebug'
 import { CLClient, ICLClientOptions } from '../CLClient'
-import { CLRunner, SessionStartFlags, InternalCallback } from '../CLRunner'
+import { CLRunner, SessionStartFlags } from '../CLRunner'
 import { ConversationLearner } from '../ConversationLearner'
 import { CLMemory } from '../CLMemory'
 import { CLRecognizerResult } from '../CLRecognizeResult'
@@ -163,7 +163,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
         try {
             const { browserId, appId } = getQuery(req)
             const clRunner = CLRunner.GetRunnerForUI(appId)
-            const validationErrors = clRunner.clClient.ValidationErrors();
+            const validationError = clRunner.clClient.ValidationError();
 
             // Generate id
             const browserSlot = await BrowserSlot.GetSlot(browserId);
@@ -186,18 +186,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 }
             }
 
-            const convertInternalCallbackToCallback = <T>(c: InternalCallback<T>): CLM.Callback => {
-                const { logic, render, ...callback } = c
-                return callback
-            }
-
-            const callbacks = Object.values(clRunner.callbacks).map(convertInternalCallbackToCallback)
+            const callbacks = Object.values(clRunner.callbacks).map(clRunner.convertInternalCallbackToCallback)
             const templates = TemplateProvider.GetTemplates()
-            const checksum = Utils.botChecksum(callbacks, templates)
-
-            // Store current checksum
-            const memory = CLMemory.GetMemory(id)
-            await memory.BotState.SetBotChecksum(checksum)
 
             const botInfo: CLM.BotInfo = {
                 user: {
@@ -208,8 +198,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 },
                 callbacks,
                 templates,
-                checksum,
-                validationErrors: validationErrors,
+                checksum: clRunner.botChecksum(),
+                validationError: validationError,
                 banner: banner
             }
             res.send(botInfo)
@@ -581,6 +571,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const sessionCreateParams: CLM.SessionCreateParams = req.body
 
             const clRunner = CLRunner.GetRunnerForUI(appId);
+            validateBot(req, clRunner.botChecksum())
+
             const clMemory = CLMemory.GetMemory(key)
 
             // Clear memory when running Log from UI
@@ -660,6 +652,9 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const initialFilledEntities = req.body as CLM.FilledEntity[] || []
 
             const clRunner = CLRunner.GetRunnerForUI(appId);
+
+            validateBot(req, clRunner.botChecksum())
+
             const clMemory = CLMemory.GetMemory(key)
 
             const createTeachParams: CLM.CreateTeachParams = {
@@ -702,6 +697,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 username: userName,
                 userid: userId } = getQuery(req)
 
+
             const trainDialog: CLM.TrainDialog = req.body.trainDialog
             const userInput: CLM.UserInput = req.body.userInput
 
@@ -709,6 +705,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const clMemory = CLMemory.GetMemory(key)
 
             const clRunner = CLRunner.GetRunnerForUI(appId);
+
+            validateBot(req, clRunner.botChecksum())
 
             // Replay the TrainDialog logic (API calls and EntityDetectionCallback)
             let cleanTrainDialog = await clRunner.ReplayTrainDialogLogic(trainDialog, clMemory, true)
@@ -842,6 +840,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const trainDialog: CLM.TrainDialog = req.body
             const clMemory = CLMemory.GetMemory(key)
             const clRunner = CLRunner.GetRunnerForUI(appId);
+            validateBot(req, clRunner.botChecksum())
 
             // Replay the TrainDialog logic (API calls and EntityDetectionCallback)
             // and set clMemory entities for the history
@@ -921,6 +920,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             // Call LUIS callback to get scoreInput
             const extractResponse = uiScoreInput.extractResponse
             const clRunner = CLRunner.GetRunnerForUI(appId);
+            validateBot(req, clRunner.botChecksum())
 
             let scoreInput: CLM.ScoreInput
             let botAPIError: CLM.BotAPIError | null = null
@@ -1093,6 +1093,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
             const memory = CLMemory.GetMemory(key)
             const clRunner = CLRunner.GetRunnerForUI(appId);
+            validateBot(req, clRunner.botChecksum())
+
             const teachWithHistory = await clRunner.GetHistory(trainDialog, userName, userId, memory)
 
             // Clear bot memory generated with this
@@ -1150,13 +1152,23 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
     return router
 }
 
-function getMemoryKey(req: express.Request, throwError: boolean = true): string {
+function getMemoryKey(req: express.Request): string {
     const key = req.header(CLM.MEMORY_KEY_HEADER_NAME)
     if (!key) {
         throw new Error(`Header ${CLM.MEMORY_KEY_HEADER_NAME} must be provided. Url: ${req.url}`)
     }
 
     return key
+}
+
+function validateBot(req: express.Request, botChecksum: string): void {
+    const checksum = req.header(CLM.BOT_CHECKSUM_HEADER_NAME)
+    if (!checksum) {
+        throw new Error(`Header ${CLM.BOT_CHECKSUM_HEADER_NAME} must be provided. Url: ${req.url}`)
+    }
+    if (checksum != botChecksum) {
+        throw new Error(CLM.ErrorCode.INVALID_BOT_CHECKSUM)
+    }
 }
 
 function getQuery(req: express.Request): any {

@@ -30,9 +30,6 @@ export enum BotStateType {
     // Currently running application
     APP = 'APP',  //public app: AppBase | null = null
 
-    // Used to detect changes in running bot's APIs / Templates
-    BOT_CHECKSUM = 'BOT_CHECKSUM',
-
     // Conversation Id associated with this session
     CONVERSATION_ID = 'CONVERSATION_ID',
 
@@ -145,17 +142,6 @@ export class BotState {
 
             await this.SetStateAsync(BotStateType.APP, smallApp)
         }
-    }
-
-    // ------------------------------------------------
-    //  BOT_CHECKSUM
-    // ------------------------------------------------
-    public async GetBotChecksum(): Promise<string | null> {
-        return await this.GetStateAsync<string | null>(BotStateType.BOT_CHECKSUM)
-    }
-
-    public async SetBotChecksum(checksum: string | null): Promise<void> {
-        await this.SetStateAsync(BotStateType.BOT_CHECKSUM, checksum)
     }
 
     // ------------------------------------------------
