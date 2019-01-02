@@ -7,7 +7,8 @@ import * as request from 'request'
 import * as semver from 'semver'
 import * as fs from 'fs-extra'
 import * as path from 'path'
-import { FilledEntityMap } from '@conversationlearner/models'
+import * as crypto from 'crypto'
+import * as CLM from '@conversationlearner/models'
 
 export class Utils {
     public static SendTyping(adapter: BB.BotAdapter, address: any) {
@@ -85,7 +86,7 @@ export class Utils {
     }
 }
 
-const convertToMapById = (entityMap: FilledEntityMap): FilledEntityMap => {
+const convertToMapById = (entityMap: CLM.FilledEntityMap): CLM.FilledEntityMap => {
     const map = Object.keys(entityMap.map).reduce((newMap, key) => {
         const filledEntity = entityMap.map[key]
         if (!filledEntity.entityId) {
@@ -97,17 +98,17 @@ const convertToMapById = (entityMap: FilledEntityMap): FilledEntityMap => {
         return newMap
     }, {})
 
-    return new FilledEntityMap({ map })
+    return new CLM.FilledEntityMap({ map })
 }
 
-export const addEntitiesById = (valuesByName: FilledEntityMap): FilledEntityMap => {
+export const addEntitiesById = (valuesByName: CLM.FilledEntityMap): CLM.FilledEntityMap => {
     const valuesById = convertToMapById(valuesByName)
     const map = {
         ...valuesByName.map,
         ...valuesById.map
     }
 
-    return new FilledEntityMap({ map })
+    return new CLM.FilledEntityMap({ map })
 }
 
 export function replace<T>(xs: T[], updatedX: T, getId: (x: T) => any): T[] {
@@ -117,6 +118,12 @@ export function replace<T>(xs: T[], updatedX: T, getId: (x: T) => any): T[] {
     }
 
     return [...xs.slice(0, index), updatedX, ...xs.slice(index + 1)]
+}
+
+// Create checksum for determining when bot has changed
+export function botChecksum(callbacks: CLM.Callback[], templates: CLM.Template[]): string {
+    const source = `${JSON.stringify(callbacks)}${JSON.stringify(templates)}}`
+    return crypto.createHash('sha256').update(source).digest('hex')
 }
 
 /* Returns true is SDK version in package is less than passed in version */

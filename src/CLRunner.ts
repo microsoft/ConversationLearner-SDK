@@ -10,8 +10,8 @@ import { CLClient } from './CLClient'
 import { CLStrings } from './CLStrings'
 import { TemplateProvider } from './TemplateProvider'
 import * as CLM from '@conversationlearner/models'
+import * as Utils from './Utils'
 import { ReadOnlyClientMemoryManager, ClientMemoryManager } from './Memory/ClientMemoryManager'
-import { addEntitiesById, CL_DEVELOPER, UI_RUNNER_APPID } from './Utils'
 import { CLRecognizerResult } from './CLRecognizeResult'
 import { ConversationLearner } from './ConversationLearner'
 import { InputQueue } from './Memory/InputQueue'
@@ -106,10 +106,12 @@ export class CLRunner {
 
     /* Lookup table for CLRunners.  One CLRunner per CL Model */
     private static Runners: RunnerLookup = {}
-    private static UIRunner: CLRunner;
+    private static UIRunner: CLRunner
 
     public clClient: CLClient
     public adapter: BB.BotAdapter | undefined
+    // Used to detect changes in API callbacks / Templates when bot reloaded and UI running
+    private checksum: string | null = null
 
     /* Model Id passed in from configuration.  Used when not running in Conversation Learner UI */
     private configModelId: string | undefined;
@@ -123,7 +125,7 @@ export class CLRunner {
         // Ok to not provide modelId when just running in training UI.
         // If not, Use UI_RUNNER_APPID const as lookup value
         let newRunner = new CLRunner(configModelId, maxTimeout, client);
-        CLRunner.Runners[configModelId || UI_RUNNER_APPID] = newRunner;
+        CLRunner.Runners[configModelId || Utils.UI_RUNNER_APPID] = newRunner;
 
         // Bot can define multiple CLs.  Always run UI on first CL defined in the bot
         if (!CLRunner.UIRunner) {
@@ -153,6 +155,20 @@ export class CLRunner {
         this.clClient = client
     }
 
+    public botChecksum(): string {
+        // Create bot checksum is doesn't already exist
+        if (!this.checksum) {
+            const callbacks = Object.values(this.callbacks).map(this.convertInternalCallbackToCallback)
+            const templates = TemplateProvider.GetTemplates()
+            this.checksum = Utils.botChecksum(callbacks, templates)
+        }
+        return this.checksum
+    }
+
+    public convertInternalCallbackToCallback = <T>(c: InternalCallback<T>): CLM.Callback => {
+        const { logic, render, ...callback } = c
+        return callback
+    }
 
     public onTurn(turnContext: BB.TurnContext, next: () => Promise<void>): Promise<void> {
         return this.recognize(turnContext, true)
@@ -168,7 +184,7 @@ export class CLRunner {
     }
 
     public async InTrainingUI(turnContext: BB.TurnContext): Promise<boolean> {
-        if (turnContext.activity.from && turnContext.activity.from.name === CL_DEVELOPER) {
+        if (turnContext.activity.from && turnContext.activity.from.name === Utils.CL_DEVELOPER) {
             let clMemory = await CLMemory.InitMemory(turnContext)
             let app = await clMemory.BotState.GetApp()
             // If no app selected in UI or no app set in config, or they don't match return true
@@ -356,7 +372,7 @@ export class CLRunner {
 
             let inEditingUI =
                 conversationReference.user &&
-                conversationReference.user.name === CL_DEVELOPER || false;
+                conversationReference.user.name === Utils.CL_DEVELOPER || false;
 
             // Validate setup
             if (!inEditingUI && !this.configModelId) {
@@ -810,7 +826,7 @@ export class CLRunner {
     public async TakeActionAsync(conversationReference: Partial<BB.ConversationReference>, clRecognizeResult: CLRecognizerResult, clData: CLM.CLChannelData | null): Promise<IActionResult> {
         // Get filled entities from memory
         let filledEntityMap = await clRecognizeResult.memory.BotMemory.FilledEntityMap()
-        filledEntityMap = addEntitiesById(filledEntityMap)
+        filledEntityMap = Utils.addEntitiesById(filledEntityMap)
 
         // If the action was terminal, free up the mutex allowing queued messages to be processed
         // Activity won't be present if running in training as messages aren't queued

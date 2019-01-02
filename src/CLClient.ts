@@ -35,16 +35,15 @@ export class CLClient {
         }
     }
 
-    public ValidationErrors(): string[] {
-        let errors: string[] = []
+    public ValidationError(): string | null {
         if (typeof this.options.CONVERSATION_LEARNER_SERVICE_URI !== 'string' || this.options.CONVERSATION_LEARNER_SERVICE_URI.length === 0) {
-            errors.push(`CONVERSATION_LEARNER_SERVICE_URI must be a non-empty string. You passed: ${this.options.CONVERSATION_LEARNER_SERVICE_URI}`)
+            return `CONVERSATION_LEARNER_SERVICE_URI must be a non-empty string. You passed: ${this.options.CONVERSATION_LEARNER_SERVICE_URI}`
         }
 
         if (typeof this.options.LUIS_AUTHORING_KEY !== 'string' || this.options.LUIS_AUTHORING_KEY.length === 0) {
-            errors.push(`LUIS_AUTHORING_KEY must be a non-empty string. You passed: ${this.options.LUIS_AUTHORING_KEY}`)
+            return `LUIS_AUTHORING_KEY must be a non-empty string. You passed: ${this.options.LUIS_AUTHORING_KEY}`
         }
-        return errors;
+        return null;
     }
 
     public LuisAuthoringKey(): string | undefined {
