@@ -1486,6 +1486,7 @@ export class CLRunner {
 
         await this.InitReplayMemory(clMemory, trainDialog, entities)
 
+        let excludedEntities = entities.filter(e => e.doNotMemorize).map(e => e.entityId)
         let activities: Partial<BB.Activity>[] = []
         let replayError: CLM.ReplayError | null = null
         let replayErrors: CLM.ReplayError[] = [];
@@ -1538,8 +1539,8 @@ export class CLRunner {
                 replayErrors.push(replayError)
             }
 
-            // Generate activity
-            let userText = CLM.ModelUtils.textVariationToMarkdown(round.extractorStep.textVariations[0])
+            // Generate activity.  Add markdown to highlight labelled entities
+            let userText = CLM.ModelUtils.textVariationToMarkdown(round.extractorStep.textVariations[0], excludedEntities)
             let userActivity: Partial<BB.Activity> = CLM.ModelUtils.InputToActivity(userText, userName, userId, roundNum)
             userActivity.channelData.clData.replayError = replayError
             userActivity.channelData.clData.activityIndex = activities.length
