@@ -1029,13 +1029,13 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             }
             delete uiTrainScorerStep.trainScorerStep.scoredAction
 
-            const memory = CLMemory.GetMemory(key)
+            const clMemory = CLMemory.GetMemory(key)
 
             // Now send the trained intent
             const intent = {
                 scoredAction: scoredAction,
                 clEntities: uiTrainScorerStep.entities,
-                memory: memory,
+                memory: clMemory,
                 inTeach: true
             } as CLRecognizerResult
 
@@ -1049,8 +1049,25 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
             const teachResponse = await client.TeachScoreFeedback(appId, teachId, uiTrainScorerStep.trainScorerStep)
 
-            const memories = await memory.BotMemory.DumpMemory()
+            const memories = await clMemory.BotMemory.DumpMemory()
             const isEndTask = scoredAction.actionType === CLM.ActionTypes.END_SESSION
+
+            // End Session call delayed in SendIntent during teach so ScoreFeedback still has a session
+            // so need to end the session now if an EndSession action
+            if (isEndTask) {
+                let sessionId = await clMemory.BotState.GetSessionIdAsync()
+                if (sessionId) {
+                    // Get filled entities from memory, and generate content for end session callback
+                    let filledEntityMap = await clMemory.BotMemory.FilledEntityMap()
+                    filledEntityMap = Utils.addEntitiesById(filledEntityMap)
+                    const sessionAction = new CLM.SessionAction(scoredAction as any)
+                    let content = sessionAction.renderValue(CLM.getEntityDisplayValueMap(filledEntityMap))
+
+                    await client.EndSession(appId, sessionId)
+                    await clRunner.EndSessionAsync(clMemory, CLM.SessionEndState.COMPLETED, content);
+                }
+            }
+
             const uiPostScoreResponse: CLM.UIPostScoreResponse = { teachResponse, memories, isEndTask }
             res.send(uiPostScoreResponse)
         } catch (error) {

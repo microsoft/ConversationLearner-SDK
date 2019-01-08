@@ -1169,12 +1169,6 @@ export class CLRunner {
         // Get any context from the action
         let content = sessionAction.renderValue(CLM.getEntityDisplayValueMap(filledEntityMap))
 
-        // End the current session (if in replay will be no sessionId or app)
-        if (app && sessionId) {
-            await this.clClient.EndSession(app.appId, sessionId)
-            await this.EndSessionAsync(clMemory, CLM.SessionEndState.COMPLETED, content);
-        }
-
         // If inTeach, show something to user in WebChat so they can edit
         if (inTeach) {
             let payload = sessionAction.renderValue(CLM.getEntityDisplayValueMap(filledEntityMap))
@@ -1191,6 +1185,15 @@ export class CLRunner {
             const attachment = BB.CardFactory.adaptiveCard(card)
             const message = BB.MessageFactory.attachment(attachment)
             return message
+        }
+        // If I'm not in Teach end session.  
+        // (In Teach EndSession is handled in ScoreFeedback to keep session alive for TeachScoreFeedback)
+        else {
+            // End the current session (if in replay will be no sessionId or app)
+            if (app && sessionId) {
+                await this.clClient.EndSession(app.appId, sessionId)
+                await this.EndSessionAsync(clMemory, CLM.SessionEndState.COMPLETED, content);
+            }
         }
         return null
     }
