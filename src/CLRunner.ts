@@ -1426,7 +1426,8 @@ export class CLRunner {
                                 type: ActionInputType.LOGIC_ONLY
                             }
                             // Calculate and store new logic result
-                            let actionResult = await this.TakeAPIAction(apiAction, filledEntityMap, clMemory, entityList.entities, true, actionInput)
+                            const filledIdMap = filledEntityMap.EntityMapToIdMap(entities)
+                            let actionResult = await this.TakeAPIAction(apiAction, filledIdMap, clMemory, entityList.entities, true, actionInput)
                             round.scorerSteps[scoreIndex].logicResult = actionResult.logicResult
                         } else if (curAction.actionType === CLM.ActionTypes.END_SESSION) {
                             const sessionAction = new CLM.SessionAction(curAction)
