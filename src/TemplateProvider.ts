@@ -44,7 +44,7 @@ export class TemplateProvider {
 
             // Make sure template has submit item
             let validationError = this.hasSubmitError
-                ? `Template "${file}" has an "Action.Submit" item but no submit data.  Submit item must be of the form: "type": "Action.Submit", "data": { "submit": "{SUBMIT PAYLOAD"}` : null
+                ? `Template "${file}" has an "Action.Submit" item but no data.  Submit item must be of the form: "type": "Action.Submit", "data": string` : null
 
             let templateBody = JSON.stringify(fileContent)
             let template: Template = {
@@ -158,7 +158,7 @@ export class TemplateProvider {
 
     private static GetTemplateVariables(template: any): TemplateVariable[] {
         let tvs: TemplateVariable[] = []
-        if (template && template.type === "Action.Submit" && (!template.data || !template.data.submit)) {
+        if (template && template.type === "Action.Submit" && (typeof template.data !== 'string')) {
             this.hasSubmitError = true
         }
 
