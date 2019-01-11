@@ -1522,7 +1522,17 @@ export class CLRunner {
                 }
             }
 
-            // Check that entities exist
+            // Check that entities exist in text variations
+            for (let tv of round.extractorStep.textVariations) {
+                for (let labelEntity of tv.labelEntities) {
+                    if (!entities.find(e => e.entityId == labelEntity.entityId)) {
+                        replayError = new CLM.ReplayErrorEntityUndefined(labelEntity.entityId)
+                        replayErrors.push()
+                    }
+                }
+            }
+
+            // Check that entities exist in filled entities
             for (let filledEntity of filledEntities) {
                 if (!entities.find(e => e.entityId == filledEntity.entityId)) {
                     replayError = new CLM.ReplayErrorEntityUndefined(CLM.filledEntityValueAsString(filledEntity))
