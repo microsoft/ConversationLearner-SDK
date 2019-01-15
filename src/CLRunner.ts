@@ -1040,7 +1040,7 @@ export class CLRunner {
         if (!callback) {
             return {
                 logicResult: undefined,
-                response: CLDebug.Error(`API callback with name "${apiAction.name}" is not defined`)
+                response: `ERROR: API callback with name "${apiAction.name}" is not defined`
             }
         }
 
@@ -1096,7 +1096,7 @@ export class CLRunner {
 
                     // If there was an api Error show card to user
                     if (botAPIError) {
-                        response = this.APICard(callback, botAPIError.APIError)
+                        response = this.RenderAPICard(callback, botAPIError.APIError)
                     }
                     else {
                         // Invoke Render part of callback
@@ -1110,7 +1110,7 @@ export class CLRunner {
                         // If response is empty, but we're in teach session return a placeholder card in WebChat so they can click it to edit
                         // Otherwise return the response as is.
                         if (!response && inTeach) {
-                            response = this.APICard(callback)
+                            response = this.RenderAPICard(callback)
                         }
                     }
                     return {
@@ -1658,13 +1658,20 @@ export class CLRunner {
                                 type: ActionInputType.RENDER_ONLY,
                                 logicResult: scorerStep.logicResult
                             }
+
                             botResponse = await this.TakeAPIAction(apiAction, filledEntityMap, clMemory, entityList.entities, true, actionInput)
 
-                            // Check for API errors on callback
-                            let callbackAPIError = CLM.GetBotAPIError(botResponse.logicResult)
-                            if (callbackAPIError) {
-                                replayError = new CLM.ReplayErrorException()
-                                replayErrors.push(replayError);
+                            if (!this.callbacks[apiAction.name]) {
+                                replayError = new CLM.ReplayErrorAPIUndefined(apiAction.name)
+                                replayErrors.push(replayError)
+                            }
+                            else {
+                                // Check for API errors on callback
+                                let callbackAPIError = CLM.GetBotAPIError(botResponse.logicResult)
+                                if (callbackAPIError) {
+                                    replayError = new CLM.ReplayErrorException()
+                                    replayErrors.push(replayError);
+                                }
                             }
 
                         } else if (curAction.actionType === CLM.ActionTypes.TEXT) {
@@ -1795,7 +1802,7 @@ export class CLRunner {
     }
 
     // Generate a card to show for an API action w/o output
-    private APICard(callback: CLM.Callback, text?: string): Partial<BB.Activity> {
+    private RenderAPICard(callback: CLM.Callback, text?: string): Partial<BB.Activity> {
         let card = {
             type: "AdaptiveCard",
             version: "1.0",
