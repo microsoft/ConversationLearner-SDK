@@ -136,6 +136,20 @@ export async function isSDKOld(curVersion: string): Promise<boolean> {
     return semver.lt(packageJson.version, curVersion)
 }
 
+export function GetLogicAPIError(logicResult: CLM.LogicResult | undefined): CLM.LogicAPIError | null {
+    if (!logicResult) {
+        return null
+    }
+    if (!logicResult.logicValue) {
+        return null
+    }
+    const logicAPIResult = JSON.parse(logicResult.logicValue) as CLM.LogicAPIError
+    if (!logicAPIResult.APIError) {
+        return null
+    }
+    return logicAPIResult
+}
+
 export const CL_DEVELOPER = 'ConversationLearnerDeveloper';
 export const UI_RUNNER_APPID = 'UIRunner_AppId'
 export const DEFAULT_MAX_SESSION_LENGTH = 20 * 60 * 1000;  // 20 minutes
