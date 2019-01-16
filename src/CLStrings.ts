@@ -4,7 +4,7 @@
  */
 export enum CLStrings {
     API_MISSING_ENTITY = "API references Entity that doesn't exist in this Model:",
-    BOT_EXCEPTION = "Error in Bot's EntityDetectionCallback: ",
+    ENTITYCALLBACK_EXCEPTION = "Error in Bot's EntityDetectionCallback: ",
     MEMORY_MANAGER_VALUE_LIST_EXCEPTION = "Entity is multi-value. Use AS_VALUE_LIST",
     MEMORY_MANAGER_NUMBER_LIST_EXCEPTION = "Entity is multi-value. Use AS_NUMBER_LIST",
     MEMORY_MANAGER_BOOLEAN_LIST_EXCEPTION = "Entity is multi-value. Use AS_BOOLEAN_LIST",

@@ -923,7 +923,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             validateBot(req, clRunner.botChecksum())
 
             let scoreInput: CLM.ScoreInput
-            let botAPIError: CLM.BotAPIError | null = null
+            let botAPIError: CLM.LogicAPIError | null = null
             try {
                 scoreInput = await clRunner.CallEntityDetectionCallback(
                     extractResponse.text,
@@ -945,7 +945,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 }
 
                 // Create error to show to user
-                let errMessage = `${CLStrings.BOT_EXCEPTION} ${err.message}`
+                let errMessage = `${CLStrings.ENTITYCALLBACK_EXCEPTION} ${err.message}`
                 botAPIError = { APIError: errMessage }
             }
 
