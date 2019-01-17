@@ -41,7 +41,7 @@
   "license": "MIT",
   "dependencies": {
     "@conversationlearner/models": "0.193.1",
-    "@conversationlearner/ui": "0.335.8",
+    "@conversationlearner/ui": "0.335.10",
     "@types/supertest": "2.0.4",
     "async-file": "^2.0.2",
     "body-parser": "1.18.3",
