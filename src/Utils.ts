@@ -144,7 +144,7 @@ export function GetLogicAPIError(logicResult: CLM.LogicResult | undefined): CLM.
         return null
     }
     const logicAPIResult = JSON.parse(logicResult.logicValue) as CLM.LogicAPIError
-    if (!logicAPIResult.APIError) {
+    if (!logicAPIResult || !logicAPIResult.APIError) {
         return null
     }
     return logicAPIResult
