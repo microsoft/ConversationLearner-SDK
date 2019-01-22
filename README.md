@@ -50,12 +50,21 @@ server.post('/api/messages', (req, res) => {
 })
 ```
 
-Starting the UI server:
+## Using the UI router.
+Previously the UI was served separately and required to be run on a different port than your bot.  Now the UI is included with your bot! The ui is availble at the `/ui` path of your bot url. The leaves the root `/` available for you to add a Bot landing page. There you can summarize your bot's purpose and capabilities to the user.
 
 ```typescript
-import { startUiServer } from '@conversationlearner/sdk'
+...
+import { uiRouter } from '@conversationlearner/sdk'
 
-startUiServer()
+...
+
+"Mount the router at the root `/` as it internally has the /ui paths."
+server.use(uiRouter)
+
+... 
+
+server.listen(port)
 ```
 
 

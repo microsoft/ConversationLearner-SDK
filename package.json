@@ -17,7 +17,7 @@
     "test": "jest",
     "setpackageversion": "tsc -p ./scripts/tsconfig.json && node ./scripts/setpackageversion.js",
     "verifypackagelock": "tsc -p ./scripts/tsconfig.json && node ./scripts/verifypackagelock.js",
-    "ui": "node ./lib/clUiRunner.js",
+    "ui": "node ./lib/uiServer.js",
     "commit": "git-cz",
     "commitmsg": "commitlint -E GIT_PARAMS"
   },
@@ -41,7 +41,7 @@
   "license": "MIT",
   "dependencies": {
     "@conversationlearner/models": "0.193.2",
-    "@conversationlearner/ui": "0.336.2",
+    "@conversationlearner/ui": "0.337.0",
     "@types/supertest": "2.0.4",
     "async-file": "^2.0.2",
     "body-parser": "1.18.3",
