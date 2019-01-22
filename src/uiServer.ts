@@ -1,0 +1,24 @@
+/**
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License.
+ */
+/**
+ * This is just a convenience for @conversationlearner/sdk developers to test the UI
+ */
+import uiRouter from './uiRouter'
+import * as express from 'express'
+
+const app = express()
+app.use(uiRouter)
+
+const port = 5053
+const listener = app.listen(port, () =>
+    console.log(`Navigate to http://localhost:${listener.address().port}/ui to view Conversation Learner administration application.`)
+).on('error', (error: NodeJS.ErrnoException) => {
+    if (error.code === 'EADDRINUSE') {
+        console.log(`ERROR: The UI is already running or the port (${port}) is in use by another process`)
+        return
+    }
+
+    throw error
+});
