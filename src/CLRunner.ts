@@ -65,7 +65,6 @@ export const defaultLogicCallback = async () => { }
  * Common use cases are to construct text or card messages based on current entity values.
  */
 export type RenderCallback<T> = (logicResult: T, memoryManager: ReadOnlyClientMemoryManager, ...args: string[]) => Promise<Partial<BB.Activity> | string>
-export const defaultRenderCallback = async (x: Partial<BB.Activity> | string) => x
 
 export interface ICallbackInput<T> {
     name: string
@@ -611,14 +610,10 @@ export class CLRunner {
             callback.logic = defaultLogicCallback
         }
 
-        if (!callback.render) {
-            callback.render = defaultRenderCallback
-        }
-
         this.callbacks[callback.name] = {
             ...callback as ICallback<T>,
             logicArguments: this.GetArguments(callback.logic, 1),
-            renderArguments: this.GetArguments(callback.render, 2),
+            renderArguments: callback.render ? this.GetArguments(callback.render, 2) : []
         }
     }
 
@@ -1110,11 +1105,16 @@ export class CLRunner {
                 }
             }
             else {
-                let response: Partial<BB.Activity> | string | null
+                let response: Partial<BB.Activity> | string | null = null
                 let logicAPIError = Utils.GetLogicAPIError(logicResult)
 
+                if (logicResult.logicValue && !callback.render) {
+                    const title = `Malformed API Callback: '${apiAction.name}'`
+                    response = this.RenderErrorCard(title, "Logic portion of callback returns a value, but no Render portion defined")
+                    replayError = new CLM.ReplayErrorAPIMalformed()
+                }
                 // If there was an api Error show card to user
-                if (logicAPIError) {
+                else if (logicAPIError) {
                     const title = `Exception hit in Bot's API Callback: '${apiAction.name}'`
                     response = this.RenderErrorCard(title, logicAPIError.APIError)
                 }
@@ -1125,12 +1125,21 @@ export class CLRunner {
                     const readOnlyMemoryManager = await this.CreateReadOnlyMemoryManagerAsync(clMemory, allEntities)
 
                     let logicObject = logicResult.logicValue ? JSON.parse(logicResult.logicValue) : undefined
-                    response = await callback.render(logicObject, readOnlyMemoryManager, ...renderedRenderArgumentValues)
+                    if (callback.render) {
+                        response = await callback.render(logicObject, readOnlyMemoryManager, ...renderedRenderArgumentValues)
+                    }
+
+                    if (response && !Utils.IsCardValid(response)) {
+                        const title = `Malformed API Callback '${apiAction.name}'`
+                        const error = `Return value in Render function must be a string or BotBuilder Activity`
+                        response = this.RenderErrorCard(title, error)
+                        replayError = new CLM.ReplayErrorAPIBadCard()
+                    }
 
                     // If response is empty, but we're in teach session return a placeholder card in WebChat so they can click it to edit
                     // Otherwise return the response as is.
                     if (!response && inTeach) {
-                        response = this.RenderAPICard(callback)
+                        response = this.RenderAPICard(callback, renderedLogicArgumentValues)
                     }
                 }
                 return {
@@ -1823,24 +1832,27 @@ export class CLRunner {
     }
 
     // Generate a card to show for an API action w/o output
-    private RenderAPICard(callback: CLM.Callback, text?: string): Partial<BB.Activity> {
+    private RenderAPICard(callback: CLM.Callback, args: string[]): Partial<BB.Activity> {
+
         let card = {
             type: "AdaptiveCard",
             version: "1.0",
             body: [
                 {
-                    type: "TextBlock",
-                    text: `{
-    name: ${callback.name},
-    logic: (memoryManager${callback.logicArguments.length > 0 ? `, ${callback.logicArguments.join(', ')}` : ''}),
-    render: (result, memoryManager${callback.renderArguments.length > 0 ? `, ${callback.renderArguments.join(', ')}` : ''})
-`
-                }
-            ]
+                    type: "Container",
+                    items: [
+                        {
+                            type: "TextBlock",
+                            text: `${callback.name}(${args.join(',')})`,
+                            wrap: true
+                        }
+                    ]
+                }]
         }
+
         const attachment = BB.CardFactory.adaptiveCard(card)
         const message = BB.MessageFactory.attachment(attachment)
-        message.text = text
+        message.text = "API Call:"
         return message;
     }
 

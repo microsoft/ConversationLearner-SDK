@@ -136,6 +136,16 @@ export async function isSDKOld(curVersion: string): Promise<boolean> {
     return semver.lt(packageJson.version, curVersion)
 }
 
+export function IsCardValid(card: string | Partial<BB.Activity>): boolean {
+    if (typeof card === 'string') {
+        return true
+    }
+    if (card.id && typeof card.id !== 'string') {
+        return false
+    }
+    return true
+}
+
 export function GetLogicAPIError(logicResult: CLM.LogicResult | undefined): CLM.LogicAPIError | null {
     if (!logicResult) {
         return null
