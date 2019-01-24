@@ -57,25 +57,37 @@ export type OnSessionEndCallback = (context: BB.TurnContext, memoryManager: Clie
  * Called when the associated action in your bot is sent.
  * Common use cases are to call external APIs to gather data and save into entities for usage later.
  */
-export type LogicCallback<T> = (memoryManager: ClientMemoryManager, ...args: string[]) => Promise<T | void>
+export type LogicCallbackVoid = (memoryManager: ClientMemoryManager, ...args: string[]) => Promise<void>
+export type LogicCallbackReturn<T> = (memoryManager: ClientMemoryManager, ...args: string[]) => Promise<T>
+export type LogicCallback<T> = LogicCallbackVoid | LogicCallbackReturn<T>
 // tslint:disable-next-line:no-empty
-export const defaultLogicCallback = async () => { }
+export const defaultLogicCallback: LogicCallbackVoid = async () => { }
 /**
  * Called when the associated action in your bot is sent AND during dialog replay.
  * Common use cases are to construct text or card messages based on current entity values.
  */
 export type RenderCallback<T> = (logicResult: T, memoryManager: ReadOnlyClientMemoryManager, ...args: string[]) => Promise<Partial<BB.Activity> | string>
 
-export interface ICallbackInput<T> {
+interface ICallbackRenderNotRequired {
     name: string
-    logic?: LogicCallback<T>
-    render?: RenderCallback<T>
+    logic: LogicCallbackVoid
+    render?: RenderCallback<void>
 }
+
+interface ICallbackRenderRequired<T> {
+    name: string
+    logic?: LogicCallbackReturn<T>
+    render: RenderCallback<T>
+}
+
+export type ICallbackInput<T> =
+    ICallbackRenderNotRequired
+    | ICallbackRenderRequired<T>
 
 interface ICallback<T> {
     name: string
     logic: LogicCallback<T>
-    render: RenderCallback<T>
+    render?: RenderCallback<T>
 }
 
 enum ActionInputType {
@@ -602,17 +614,22 @@ export class CLRunner {
             throw new Error(`You attempted to add callback but did not provide a valid name. Name must be non-empty string.`)
         }
 
+        // This isn't possible in in TypeScript because name is required, but maybe they were writing in javascript
         if (!callback.logic && !callback.render) {
-            throw new Error(`You attempted to add callback by name: ${callback.name} but did not provide a logic or render function. You must provide at least one of them.`)
+            throw new Error(`You attempted to add callback by name: ${(callback as any).name} but did not provide a logic or render function. You must provide at least one of them.`)
         }
 
-        if (!callback.logic) {
-            callback.logic = defaultLogicCallback
+        const callbackWithDefaults: ICallback<T> = {
+            name: callback.name,
+            logic: defaultLogicCallback
+        }
+        if (callback.logic) {
+            callbackWithDefaults.logic = callback.logic
         }
 
         this.callbacks[callback.name] = {
-            ...callback as ICallback<T>,
-            logicArguments: this.GetArguments(callback.logic, 1),
+            ...callbackWithDefaults as ICallback<T>,
+            logicArguments: this.GetArguments(callbackWithDefaults.logic, 1),
             renderArguments: callback.render ? this.GetArguments(callback.render, 2) : []
         }
     }
