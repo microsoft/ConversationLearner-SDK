@@ -288,9 +288,10 @@ export class CLClient {
     }
 
     /** Gets information about a session */
+    // TODO: move this to session API path next time that the API definition gets updated
     public GetSession(appId: string, sessionId: string): Promise<CLM.Session> {
         let apiPath = `app/${appId}/session/${sessionId}`
-        return this.send('GET', this.MakeSessionURL(apiPath))
+        return this.send('GET', this.MakeURL(apiPath))
     }
 
     /** Runs entity extraction (prediction). */
