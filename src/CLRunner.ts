@@ -1090,7 +1090,7 @@ export class CLRunner {
                     logicResult.changedFilledEntities = CLM.ModelUtils.changedFilledEntities(entityMapBeforeCall, memoryManager.curMemories)
                 }
                 catch (error) {
-                    let botAPIError: CLM.LogicAPIError = { APIError: error.stack || error.message }
+                    let botAPIError: CLM.LogicAPIError = { APIError: error.stack || error.message || error }
                     logicResult.logicValue = JSON.stringify(botAPIError)
                     replayError = new CLM.ReplayErrorAPIException()
                 }
@@ -1108,15 +1108,15 @@ export class CLRunner {
                 let response: Partial<BB.Activity> | string | null = null
                 let logicAPIError = Utils.GetLogicAPIError(logicResult)
 
-                if (logicResult.logicValue && !callback.render) {
+                // If there was an api Error show card to user
+                if (logicAPIError) {
+                    const title = `Exception hit in Bot's API Callback: '${apiAction.name}'`
+                    response = this.RenderErrorCard(title, logicAPIError.APIError)
+                }
+                else if (logicResult.logicValue && !callback.render) {
                     const title = `Malformed API Callback: '${apiAction.name}'`
                     response = this.RenderErrorCard(title, "Logic portion of callback returns a value, but no Render portion defined")
                     replayError = new CLM.ReplayErrorAPIMalformed()
-                }
-                // If there was an api Error show card to user
-                else if (logicAPIError) {
-                    const title = `Exception hit in Bot's API Callback: '${apiAction.name}'`
-                    response = this.RenderErrorCard(title, logicAPIError.APIError)
                 }
                 else {
                     // Invoke Render part of callback
