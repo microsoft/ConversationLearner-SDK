@@ -8,7 +8,8 @@
     "rules": {
         "comment-format": false,
         "member-ordering": false,
-
+        // Allow throws w/o stack trace
+        "no-string-throw": false,
         "no-banned-terms": true,
         "no-delete-expression": true,
         "no-document-domain": true,
@@ -22,7 +23,6 @@
         "no-string-based-set-interval": true,
         "no-string-based-set-timeout": true,
         "no-eval": true,
-        
         "no-backbone-get-set-outside-model": false,
         "cyclomatic-complexity": false,
         "export-name": false,

@@ -154,12 +154,12 @@ export class ReadOnlyClientMemoryManager {
         // cast to conditional type is necessary
         // see here for description https://github.com/Microsoft/TypeScript/issues/22735#issuecomment-376960435
         if (!converter) {
-            const values = entityMap.Values(entityName)
-            const entity = this.__FindEntity(entityName);
-            if (entity && !entity.isMultivalue) {
-                return <MemoryManagerReturnType<T>>ClientMemoryManager.AS_VALUE(values)
+            const entityValues = entityMap.Values(entityName)
+            const foundEntity = this.__FindEntity(entityName);
+            if (foundEntity && !foundEntity.isMultivalue) {
+                return <MemoryManagerReturnType<T>>ClientMemoryManager.AS_VALUE(entityValues)
             }
-            return <MemoryManagerReturnType<T>>values
+            return <MemoryManagerReturnType<T>>entityValues
         }
         return <MemoryManagerReturnType<T>>converter(entityMap.Values(entityName))
     }
