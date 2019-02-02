@@ -204,7 +204,7 @@ export class ClientMemoryManager extends ReadOnlyClientMemoryManager {
         }
         else if (Array.isArray(value)) {
             if (!entity.isMultivalue) {
-                throw new Error(`Array passed to= Set for entity (${entityName}) that isn't Multi-Value.`)
+                throw new Error(`Array passed to Set for entity (${entityName}) that isn't Multi-Value.`)
             }
             let stringValues = (value as any).map((v: any) => {
                 return this.__ToString(v)
