@@ -145,11 +145,9 @@ export class CLClient {
         return this.send('GET', this.MakeURL(apiPath))
     }
 
-    public PostAppSource(appId: string, appDefinition: CLM.AppDefinition): Promise<void> {
+    public async PostAppSource(appId: string, appDefinition: CLM.AppDefinition): Promise<void> {
         let apiPath = `app/${appId}/source`
-        return this.send('POST', this.MakeURL(apiPath), appDefinition)
-            // tslint:disable-next-line:no-empty
-            .then(response => { })
+        await this.send('POST', this.MakeURL(apiPath), appDefinition);
     }
 
     /** Retrieve a list of (active) applications */
