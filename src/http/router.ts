@@ -718,42 +718,44 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 return
             }
 
-            try {
-                // Start new teach session from the old train dialog
-                const createTeachParams = CLM.ModelUtils.ToCreateTeachParams(cleanTrainDialog)
-                teachWithHistory.teach = await clRunner.StartSessionAsync(clMemory, null, appId, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE, createTeachParams) as CLM.Teach
+            // Start new teach session from the old train dialog
+            const createTeachParams = CLM.ModelUtils.ToCreateTeachParams(cleanTrainDialog)
+            teachWithHistory.teach = await clRunner.StartSessionAsync(clMemory, null, appId, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE, createTeachParams) as CLM.Teach
 
-                // If last action wasn't terminal then score
-                if (teachWithHistory.dialogMode === CLM.DialogMode.Scorer) {
+            // If last action wasn't terminal then score
+            if (teachWithHistory.dialogMode === CLM.DialogMode.Scorer) {
 
-                    // Get entities from my memory
-                    const filledEntities = await clMemory.BotMemory.FilledEntitiesAsync()
-                    const scoreInput: CLM.ScoreInput = {
-                        filledEntities,
-                        context: {},
-                        maskedActions: []
-                    }
-                    teachWithHistory.scoreInput = scoreInput
-                    teachWithHistory.scoreResponse = await client.TeachScore(
-                        appId,
-                        teachWithHistory.teach.teachId,
-                        teachWithHistory.scoreInput
-                    )
+                // Get entities from my memory
+                const filledEntities = await clMemory.BotMemory.FilledEntitiesAsync()
+                const scoreInput: CLM.ScoreInput = {
+                    filledEntities,
+                    context: {},
+                    maskedActions: []
                 }
-                else if (userInput) {
-                    // Add new input to history
-                    let userActivity = CLM.ModelUtils.InputToActivity(userInput.text, userName, userId, trainDialog.rounds.length)
-                    teachWithHistory.history.push(userActivity)
-
-                    // Extract responses
-                    teachWithHistory.extractResponse = await client.TeachExtract(appId, teachWithHistory.teach.teachId, userInput, null)
-                    teachWithHistory.dialogMode = CLM.DialogMode.Extractor
-                }
-                res.send(teachWithHistory)
-            } catch (error) {
-                HandleError(res, error)
+                teachWithHistory.scoreInput = scoreInput
+                teachWithHistory.scoreResponse = await client.TeachScore(
+                    appId,
+                    teachWithHistory.teach.teachId,
+                    teachWithHistory.scoreInput
+                )
             }
+            else if (userInput) {
+                // Add new input to history
+                let userActivity = CLM.ModelUtils.InputToActivity(userInput.text, userName, userId, trainDialog.rounds.length)
+                teachWithHistory.history.push(userActivity)
+
+                // Extract responses
+                teachWithHistory.extractResponse = await client.TeachExtract(appId, teachWithHistory.teach.teachId, userInput, null)
+                teachWithHistory.dialogMode = CLM.DialogMode.Extractor
+            }
+            res.send(teachWithHistory)
         } catch (error) {
+            if (error.statusCode === HttpStatus.CONFLICT) {
+                res.status(error.statusCode)
+                res.send(error.body)
+                return
+            }
+
             HandleError(res, error)
         }
     })
@@ -798,6 +800,12 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             }
             res.send(uiScoreResponse)
         } catch (error) {
+            if (error.statusCode === HttpStatus.CONFLICT) {
+                res.status(error.statusCode)
+                res.send(error.body)
+                return
+            }
+
             HandleError(res, error)
         }
     })
@@ -828,6 +836,12 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
             res.send(extractResponse)
         } catch (error) {
+            if (error.statusCode === HttpStatus.CONFLICT) {
+                res.status(error.statusCode)
+                res.send(error.body)
+                return
+            }
+
             HandleError(res, error)
         }
     })
@@ -906,7 +920,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 catch (error) {
                     if (error.statusCode === HttpStatus.CONFLICT) {
                         const textVariation: CLM.TextVariation = error.body.reason
-                        const extractConflict = CLM.ModelUtils.ToExtractResponses([textVariation])[0]
+                        const extractConflict = CLM.ModelUtils.ToExtractResponse(textVariation)
                         const uiConflictResponse: CLM.UIScoreResponse = { extractConflict }
                         res.send(uiConflictResponse)
                         return
@@ -973,7 +987,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             catch (error) {
                 if (error.statusCode === HttpStatus.CONFLICT) {
                     const variationConflict: CLM.TextVariation = error.body.reason
-                    const extractConflict = CLM.ModelUtils.ToExtractResponses([variationConflict])[0]
+                    const extractConflict = CLM.ModelUtils.ToExtractResponse(variationConflict)
                     res.send(extractConflict)
                     return
                 }
