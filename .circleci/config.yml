@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/node:8.11.2-browsers
+      - image: circleci/node:lts
     steps:
       - checkout
 
@@ -13,7 +13,9 @@ jobs:
           # fallback to using the latest cache if no exact match is found
           - v1-dependencies-
 
-      - run: npm install
+      - run: node --version
+      - run: npm --version
+      - run: npm ci
 
       - save_cache:
           paths:
