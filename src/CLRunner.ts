@@ -611,17 +611,17 @@ export class CLRunner {
             isLogicFunctionProvided: false,
             render: undefined,
             renderArguments: [],
-            isRenderFunctionProvided: false,
+            isRenderFunctionProvided: false
         }
 
         if (callbackInput.logic) {
+            callback.logic = callbackInput.logic
             callback.logicArguments = this.GetArguments(callbackInput.logic, 1)
             callback.isLogicFunctionProvided = true
-        } else {
-            callback.logic = defaultLogicCallback
         }
 
         if (callbackInput.render) {
+            callback.render = callbackInput.render
             callback.renderArguments = this.GetArguments(callbackInput.render, 2)
             callback.isRenderFunctionProvided = true
         }
