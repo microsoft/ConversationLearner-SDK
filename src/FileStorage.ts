@@ -31,7 +31,7 @@ import * as filenamify from 'filenamify';
  */
 export class FileStorage implements Storage {
     static nextTag = 0;
-    private pEnsureFolder: Promise<void>|undefined
+    private pEnsureFolder: Promise<void> | undefined
     protected readonly path: string
     /**
      * Creates a new FileStorage instance.
@@ -41,71 +41,55 @@ export class FileStorage implements Storage {
         this.path = filePath
     }
 
-    public read(keys: string[]): Promise<StoreItems> {
-        return this.ensureFolder().then(() => {
-            const data: StoreItems = {};
-            const promises: Promise<any>[] = [];
-            for (const iKey in keys) {
-                const key = keys[iKey];
-                const filePath = this.getFilePath(key);
-                const p = parseFile(filePath).then((obj) => {
-                    if (obj) {
-                        data[key] = obj;
-                    }
-                });
-                promises.push(p);
+    public async read(keys: string[]): Promise<StoreItems> {
+        await this.ensureFolder();
+        const data: StoreItems = {};
+        const promises: Promise<any>[] = keys.map(async key => {
+            const filePath = this.getFilePath(key);
+            const obj = await parseFile(filePath)
+            if (obj) {
+                data[key] = obj;
             }
+        })
 
-            return Promise.all(promises).then(() => data);
-        });
+        await Promise.all(promises)
+        return data;
     }
 
-    public write(changes: StoreItems): Promise<void> {
-        return this.ensureFolder()
-            .then(() => {
-                let promises: Promise<void>[] = [];
-                for (const key in changes) {
-                    let filePath = this.getFilePath(key);
-                    promises.push(
-                        fs.exists(filePath)
-                            .then((exists) => {
-                                let newObj: StoreItem = {...changes[key]}
-                                newObj.eTag = (parseInt(newObj.eTag || '0', 10) + 1).toString();
-                                return fs.writeTextFile(filePath, JSON.stringify(newObj));
-                            })
-                    );
-                }
-                return Promise.all(promises).then(() => undefined);
-            });
-    };
+    public async write(changes: StoreItems): Promise<void> {
+        await this.ensureFolder()
+        const promises: Promise<void>[] = Object.keys(changes).map(async key => {
+            const filePath = this.getFilePath(key)
+            await fs.exists(filePath)
+            const newObj: StoreItem = { ...changes[key] }
+            newObj.eTag = (parseInt(newObj.eTag || '0', 10) + 1).toString()
+            return fs.writeTextFile(filePath, JSON.stringify(newObj))
+        })
 
-    public delete(keys: string[]): Promise<void> {
-        return this.ensureFolder().then(() => {
-                const promises = [];
-                for (let iKey in keys) {
-                    const key = keys[iKey];
-                    const filePath = this.getFilePath(key);
-                    const p = fs.exists(filePath).then((exists) => {
-                            if (exists) {
-                                file.unlinkSync(filePath);
-                            }
-                        });
-                    promises.push(p);
-                }
-                Promise.all(promises).then(() => undefined);
-            });
+        await Promise.all(promises)
     }
 
-    private ensureFolder(): Promise<void> {
-        if (!this.pEnsureFolder) {
-            this.pEnsureFolder = fs.exists(this.path).then((exists) => {
-                if (!exists) {
-                    return fs.mkdirp(this.path);
-                }
-                return;
-            });
+    public async delete(keys: string[]): Promise<void> {
+        await this.ensureFolder()
+        const promises = Object.keys(keys).map(async key => {
+            const filePath = this.getFilePath(key)
+            const exists = await fs.exists(filePath)
+            if (exists) {
+                file.unlinkSync(filePath);
+            }
+        })
+        await Promise.all(promises)
+    }
+
+    private async ensureFolder(): Promise<void> {
+        if (this.pEnsureFolder) {
+            return this.pEnsureFolder;
         }
-        return this.pEnsureFolder;
+
+        const exists = await fs.exists(this.path)
+        if (!exists) {
+            this.pEnsureFolder = fs.mkdirp(this.path)
+        }
     }
 
     private getFileName(key: string): string {
@@ -117,24 +101,28 @@ export class FileStorage implements Storage {
     }
 }
 
-function parseFile(filePath: string): Promise<Object|undefined> {
-    return fs.exists(filePath)
-        .then((exists) => exists ? fs.readTextFile(filePath) : Promise.resolve(undefined))
-        .then((data) => {
-            try {
-                if (data) {
-                    return JSON.parse(data);
-                }
-            } catch (err) {
-                console.warn(`FileStorage: error parsing "${filePath}": ${err.toString()}`);
+async function parseFile(filePath: string): Promise<Object | undefined> {
+    try {
+        const exists = await fs.exists(filePath)
+        const data = await (exists
+            ? fs.readTextFile(filePath)
+            : Promise.resolve(undefined))
+        try {
+            if (data) {
+                return JSON.parse(data)
             }
-            return undefined;
-        })
-        .catch((err) => {
-            // File could legitimately have been deleted
-            if (err.code != "ENOENT") {
-                console.warn(`FileStorage: error reading "${filePath}": ${err.toString()}`);
-            }
-            return undefined;
-        });
+        }
+        catch (err) {
+            console.warn(`FileStorage: error parsing "${filePath}": ${err.toString()}`)
+        }
+
+        return undefined
+    }
+    catch (error) {
+        // File could legitimately have been deleted
+        if (error.code != "ENOENT") {
+            console.warn(`FileStorage: error reading "${filePath}": ${error.toString()}`)
+        }
+        return undefined
+    }
 }

@@ -170,17 +170,15 @@ export class CLRunner {
         return callback
     }
 
-    public onTurn(turnContext: BB.TurnContext, next: () => Promise<void>): Promise<void> {
-        return this.recognize(turnContext, true)
-            .then(next);
+    public async onTurn(turnContext: BB.TurnContext, next: (result: CLRecognizerResult | null) => Promise<void>): Promise<void> {
+        const recognizerResult = await this.recognize(turnContext, true);
+        return next(recognizerResult)
     }
 
-    public recognize(turnContext: BB.TurnContext, force?: boolean): Promise<CLRecognizerResult | null> {
-
+    public async recognize(turnContext: BB.TurnContext, force?: boolean): Promise<CLRecognizerResult | null> {
         // Add input to queue
-        return this.AddInput(turnContext).then(res => {
-            return res;
-        })
+        const res = await this.AddInput(turnContext);
+        return res
     }
 
     public async InTrainingUI(turnContext: BB.TurnContext): Promise<boolean> {
