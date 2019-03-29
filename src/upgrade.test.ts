@@ -40,10 +40,12 @@ describe('upgrade', () => {
                     "logicArg",
                     "sharedArg"
                 ],
+                isLogicFunctionProvided: true,
                 renderArguments: [
                     "renderArg",
                     "sharedArg"
-                ]
+                ],
+                isRenderFunctionProvided: true
             }
 
             // Act
@@ -72,8 +74,10 @@ describe('upgrade', () => {
                 name: "myCallback",
                 logicArguments: [
                 ],
+                isLogicFunctionProvided: true,
                 renderArguments: [
-                ]
+                ],
+                isRenderFunctionProvided: true,
             }
 
             // Act

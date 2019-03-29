@@ -75,7 +75,7 @@ export interface ICallbackInput<T> {
 interface ICallback<T> {
     name: string
     logic: LogicCallback<T>
-    render: RenderCallback<T>
+    render: RenderCallback<T> | undefined
 }
 
 enum ActionInputType {
@@ -594,25 +594,39 @@ export class CLRunner {
     public onSessionEndCallback: OnSessionEndCallback | undefined
 
     public AddCallback<T>(
-        callback: ICallbackInput<T>
+        callbackInput: ICallbackInput<T>
     ) {
-        if (typeof callback.name !== "string" || callback.name.trim().length === 0) {
+        if (typeof callbackInput.name !== "string" || callbackInput.name.trim().length === 0) {
             throw new Error(`You attempted to add callback but did not provide a valid name. Name must be non-empty string.`)
         }
 
-        if (!callback.logic && !callback.render) {
-            throw new Error(`You attempted to add callback by name: ${callback.name} but did not provide a logic or render function. You must provide at least one of them.`)
+        if (!callbackInput.logic && !callbackInput.render) {
+            throw new Error(`You attempted to add callback by name: ${callbackInput.name} but did not provide a logic or render function. You must provide at least one of them.`)
         }
 
-        if (!callback.logic) {
-            callback.logic = defaultLogicCallback
+        const callback: InternalCallback<T> = {
+            name: callbackInput.name,
+            logic: defaultLogicCallback,
+            logicArguments: [],
+            isLogicFunctionProvided: false,
+            render: undefined,
+            renderArguments: [],
+            isRenderFunctionProvided: false
         }
 
-        this.callbacks[callback.name] = {
-            ...callback as ICallback<T>,
-            logicArguments: this.GetArguments(callback.logic, 1),
-            renderArguments: callback.render ? this.GetArguments(callback.render, 2) : []
+        if (callbackInput.logic) {
+            callback.logic = callbackInput.logic
+            callback.logicArguments = this.GetArguments(callbackInput.logic, 1)
+            callback.isLogicFunctionProvided = true
         }
+
+        if (callbackInput.render) {
+            callback.render = callbackInput.render
+            callback.renderArguments = this.GetArguments(callbackInput.render, 2)
+            callback.isRenderFunctionProvided = true
+        }
+
+        this.callbacks[callbackInput.name] = callback
     }
 
     private GetArguments(func: Function, skip: number = 0): string[] {
@@ -1450,7 +1464,7 @@ export class CLRunner {
                                 type: ActionInputType.LOGIC_ONLY
                             }
                             // Calculate and store new logic result
-                            const filledIdMap = filledEntityMap.EntityMapToIdMap(entities)
+                            const filledIdMap = filledEntityMap.EntityMapToIdMap()
                             let actionResult = await this.TakeAPIAction(apiAction, filledIdMap, clMemory, entityList.entities, true, actionInput)
                             round.scorerSteps[scoreIndex].logicResult = actionResult.logicResult
                         } else if (curAction.actionType === CLM.ActionTypes.END_SESSION) {
