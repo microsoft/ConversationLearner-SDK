@@ -42,28 +42,32 @@ export class FileStorage implements Storage {
     }
 
     public async read(keys: string[]): Promise<StoreItems> {
-        await this.ensureFolder();
-        const data: StoreItems = {};
-        const promises: Promise<any>[] = keys.map(async key => {
-            const filePath = this.getFilePath(key);
-            const obj = await parseFile(filePath)
-            if (obj) {
-                data[key] = obj;
-            }
+        await this.ensureFolder()
+        const data: StoreItems = {}
+        const promises: Promise<any>[] = keys.map(key => {
+            const filePath = this.getFilePath(key)
+            return parseFile(filePath)
+                .then((obj) => {
+                    if (obj) {
+                        data[key] = obj
+                    }
+                })
         })
 
         await Promise.all(promises)
-        return data;
+        return data
     }
 
     public async write(changes: StoreItems): Promise<void> {
         await this.ensureFolder()
-        const promises: Promise<void>[] = Object.keys(changes).map(async key => {
+        const promises: Promise<void>[] = Object.keys(changes).map(key => {
             const filePath = this.getFilePath(key)
-            await fs.exists(filePath)
-            const newObj: StoreItem = { ...changes[key] }
-            newObj.eTag = (parseInt(newObj.eTag || '0', 10) + 1).toString()
-            return fs.writeTextFile(filePath, JSON.stringify(newObj))
+            return fs.exists(filePath)
+                .then((exists) => {
+                    const newObj: StoreItem = { ...changes[key] }
+                    newObj.eTag = (parseInt(newObj.eTag || '0', 10) + 1).toString()
+                    return fs.writeTextFile(filePath, JSON.stringify(newObj))
+                })
         })
 
         await Promise.all(promises)
@@ -71,13 +75,16 @@ export class FileStorage implements Storage {
 
     public async delete(keys: string[]): Promise<void> {
         await this.ensureFolder()
-        const promises = Object.keys(keys).map(async key => {
+        const promises = keys.map(key => {
             const filePath = this.getFilePath(key)
-            const exists = await fs.exists(filePath)
-            if (exists) {
-                file.unlinkSync(filePath);
-            }
+            return fs.exists(filePath)
+                .then((exists) => {
+                    if (exists) {
+                        file.unlinkSync(filePath)
+                    }
+                })
         })
+
         await Promise.all(promises)
     }
 
