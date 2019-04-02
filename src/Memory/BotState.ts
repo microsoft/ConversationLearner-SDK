@@ -263,7 +263,7 @@ export class BotState {
     }
 
     // ------------------------------------------------
-    //  IN_TEACH
+    //  UI_MODE
     // ------------------------------------------------
     public async getUIMode(): Promise<UIMode> {
         const uiMode = await this.GetStateAsync<UIMode>(BotStateType.UI_MODE)
