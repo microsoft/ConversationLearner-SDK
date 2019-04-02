@@ -25,6 +25,12 @@ export interface ActiveApps {
     [appId: string]: string
 }
 
+export enum UIMode {
+    TEACH = "TEACH",
+    EDIT = "EDIT",
+    NONE = "NONE"
+}
+
 export enum BotStateType {
 
     // Currently running application
@@ -39,8 +45,8 @@ export enum BotStateType {
     // Which packages are active for editing
     EDITING_PACKAGE = 'EDITING_PACKAGE',
 
-    // Is current session a teach session
-    IN_TEACH = 'IN_TEACH',
+    // Is UI in Teach or Edit mode?
+    UI_MODE = 'UI_MODE',
 
     // Last time active session was used (in ticks)
     LAST_ACTIVE = 'LAST_ACTIVE',
@@ -107,7 +113,7 @@ export class BotState {
         await this.SetLastActive(0);
         await this.SetMessageProcessing(null);
         await this.SetNeedSessionEndCall(false)
-        await this.SetInTeach(false)
+        await this.SetUIMode(UIMode.NONE)
         await this.SetSessionId(null)
         await this.SetLogDialogId(null);
         await this.ClearEditingPackageAsync();
@@ -242,7 +248,7 @@ export class BotState {
         await this.SetNeedSessionEndCall(true)
         await this.SetConversationId(conversationId)
         await this.SetLastActive(new Date().getTime())
-        await this.SetInTeach((sessionStartFlags & SessionStartFlags.IN_TEACH) > 0)
+        await this.SetUIMode((sessionStartFlags & SessionStartFlags.IN_TEACH) > 0 ? UIMode.TEACH : UIMode.NONE)
         await this.SetMessageProcessing(null)
     }
 
@@ -252,21 +258,20 @@ export class BotState {
         await this.SetLogDialogId(null);
         await this.SetConversationId(null);
         await this.SetLastActive(0);
-        await this.SetInTeach(false);
+        await this.SetUIMode(UIMode.NONE);
         await this.SetMessageProcessing(null);
     }
 
     // ------------------------------------------------
-    //  IN_TEACH
+    //  UI_MODE
     // ------------------------------------------------
-    public async GetInTeach(): Promise<boolean> {
-        const inTeach = await this.GetStateAsync<boolean>(BotStateType.IN_TEACH)
-        return inTeach ? inTeach : false;
+    public async getUIMode(): Promise<UIMode> {
+        const uiMode = await this.GetStateAsync<UIMode>(BotStateType.UI_MODE)
+        return uiMode
     }
 
-    public async SetInTeach(inTeach: boolean): Promise<void> {
-        inTeach = inTeach ? inTeach : false;
-        await this.SetStateAsync(BotStateType.IN_TEACH, inTeach)
+    public async SetUIMode(uiMode: UIMode): Promise<void> {
+        await this.SetStateAsync(BotStateType.UI_MODE, uiMode)
     }
 
     // ------------------------------------------------

@@ -16,6 +16,7 @@ import { CLRecognizerResult } from './CLRecognizeResult'
 import { ConversationLearner } from './ConversationLearner'
 import { InputQueue } from './Memory/InputQueue'
 import * as util from 'util'
+import { UIMode } from './Memory/BotState';
 
 interface RunnerLookup {
     [appId: string]: CLRunner
@@ -252,9 +253,9 @@ export class CLRunner {
         let clMemory = await CLMemory.InitMemory(turnContext)
         let botState = clMemory.BotState;
 
-        // If I'm in teach mode process message right away
-        let inTeach = await botState.GetInTeach();
-        if (inTeach) {
+        // If I'm in teach or edit mode process message right away
+        let uiMode = await botState.getUIMode();
+        if (uiMode !== UIMode.NONE) {
             return await this.ProcessInput(turnContext);
         }
 
@@ -387,7 +388,7 @@ export class CLRunner {
 
             let app = await this.GetRunningApp(turnContext, inEditingUI);
             let clMemory = await CLMemory.InitMemory(turnContext)
-            let inTeach = await clMemory.BotState.GetInTeach()
+            let uiMode = await clMemory.BotState.getUIMode()
 
             if (!app) {
                 let error = "ERROR: AppId not specified.  When running in a channel (i.e. Skype) or the Bot Framework Emulator, CONVERSATION_LEARNER_MODEL_ID must be specified in your Bot's .env file or Application Settings on the server"
@@ -397,9 +398,13 @@ export class CLRunner {
 
             let sessionId = await clMemory.BotState.GetSessionIdAndSetConversationId(activity.conversation.id)
 
-            // If I'm not in teach mode and have a session
-            if (!inTeach && sessionId) {
+            // When UI is active inputs are handled via API calls from the Conversation Learner UI
+            if (uiMode !== UIMode.NONE) {
+                return null
+            }
 
+            // Check for expired session
+            if (sessionId) {
                 const currentTicks = new Date().getTime();
                 let lastActive = await clMemory.BotState.GetLastActive()
                 let passedTicks = currentTicks - lastActive;
@@ -483,34 +488,30 @@ export class CLRunner {
             // Process any form data
             let buttonResponse = await this.ProcessFormData(activity, clMemory, app.appId)
 
-            // Teach inputs are handled via API calls from the Conversation Learner UI
-            if (!inTeach) {
+            let entities: CLM.EntityBase[] = []
 
-                let entities: CLM.EntityBase[] = []
-
-                errComponent = 'Extract Entities'
-                let userInput: CLM.UserInput = { text: buttonResponse || activity.text || '  ' }
-                let extractResponse = await this.clClient.SessionExtract(app.appId, sessionId, userInput)
-                entities = extractResponse.definitions.entities
-                errComponent = 'Score Actions'
-                const scoredAction = await this.Score(
-                    app.appId,
-                    sessionId,
-                    clMemory,
-                    extractResponse.text,
-                    extractResponse.predictedEntities,
-                    entities,
-                    inTeach
-                )
-                return {
-                    scoredAction: scoredAction,
-                    clEntities: entities,
-                    memory: clMemory,
-                    inTeach: false,
-                    activity: activity
-                } as CLRecognizerResult
-            }
-            return null
+            // Generate result
+            errComponent = 'Extract Entities'
+            let userInput: CLM.UserInput = { text: buttonResponse || activity.text || '  ' }
+            let extractResponse = await this.clClient.SessionExtract(app.appId, sessionId, userInput)
+            entities = extractResponse.definitions.entities
+            errComponent = 'Score Actions'
+            const scoredAction = await this.Score(
+                app.appId,
+                sessionId,
+                clMemory,
+                extractResponse.text,
+                extractResponse.predictedEntities,
+                entities,
+                false
+            )
+            return {
+                scoredAction: scoredAction,
+                clEntities: entities,
+                memory: clMemory,
+                inTeach: false,
+                activity: activity
+            } as CLRecognizerResult
         } catch (error) {
             // Try to end the session, so use can potentially recover
             try {

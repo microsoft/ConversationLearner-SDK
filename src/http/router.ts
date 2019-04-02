@@ -24,6 +24,7 @@ import * as bodyParser from 'body-parser'
 import * as cors from 'cors'
 import getAppDefinitionChange from '../upgrade'
 import { CLStrings } from '../CLStrings';
+import { UIMode } from '../Memory/BotState';
 
 // Extract error text from HTML error
 export const HTML2Error = (htmlText: string): string => {
@@ -1130,6 +1131,9 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
             // Clear bot memory generated with this
             await memory.BotMemory.ClearAsync();
+
+            // Note the UI is now in edit mode
+            await memory.BotState.SetUIMode(UIMode.EDIT)
 
             if (teachWithHistory) {
                 res.send(teachWithHistory)
