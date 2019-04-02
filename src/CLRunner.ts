@@ -253,9 +253,9 @@ export class CLRunner {
         let clMemory = await CLMemory.InitMemory(turnContext)
         let botState = clMemory.BotState;
 
-        // If I'm in teach mode process message right away
+        // If I'm in teach or edit mode process message right away
         let uiMode = await botState.getUIMode();
-        if (uiMode === UIMode.TEACH) {
+        if (uiMode !== UIMode.NONE) {
             return await this.ProcessInput(turnContext);
         }
 
