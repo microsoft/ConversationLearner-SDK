@@ -35,6 +35,13 @@ export class CLClient {
         }
     }
 
+    public SetLuisAuthoringKey(key: string) {
+        if (this.options.APIM_SUBSCRIPTION_KEY === this.options.LUIS_AUTHORING_KEY) {
+            this.options.APIM_SUBSCRIPTION_KEY = key;
+        }
+        this.options.LUIS_AUTHORING_KEY = key
+    }
+
     public ValidationError(): string | null {
         if (typeof this.options.CONVERSATION_LEARNER_SERVICE_URI !== 'string' || this.options.CONVERSATION_LEARNER_SERVICE_URI.length === 0) {
             return `CONVERSATION_LEARNER_SERVICE_URI must be a non-empty string. You passed: ${this.options.CONVERSATION_LEARNER_SERVICE_URI}`

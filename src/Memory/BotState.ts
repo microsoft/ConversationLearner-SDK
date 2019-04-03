@@ -54,6 +54,9 @@ export enum BotStateType {
     // If session is a chat session what is logDialogId
     LOG_DIALOG_ID = 'LOG_DIALOG_ID',
 
+    // LUIS key (if coming from UI)
+    LUIS_KEY = 'LUIS_KEY',
+
     // Current message being processed
     MESSAGE_MUTEX = 'MESSAGE_MUTEX',
 
@@ -307,6 +310,17 @@ export class BotState {
 
     public async SetLogDialogId(logDialogId: string | null): Promise<void> {
         await this.SetStateAsync(BotStateType.LOG_DIALOG_ID, logDialogId)
+    }
+
+    // ------------------------------------------------
+    //  LUIS_KEY
+    // ------------------------------------------------
+    public async GetLuisKey(): Promise<string | null> {
+        return await this.GetStateAsync<string | null>(BotStateType.LUIS_KEY)
+    }
+
+    public async SetLuisKey(luisKey: string | null): Promise<void> {
+        await this.SetStateAsync(BotStateType.LUIS_KEY, luisKey)
     }
 
     // ------------------------------------------------

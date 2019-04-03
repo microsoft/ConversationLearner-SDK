@@ -162,15 +162,20 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
     /** Retrieves information about the running bot */
     router.get('/bot', async (req, res, next) => {
         try {
-            const { browserId, appId } = getQuery(req)
+            const { browserId, appId, key } = getQuery(req)
             const clRunner = CLRunner.GetRunnerForUI(appId)
             const validationError = clRunner.clClient.ValidationError();
 
             // Generate id
             const browserSlot = await BrowserSlot.GetSlot(browserId);
-            const key = ConversationLearner.options!.LUIS_AUTHORING_KEY!
-            const hashedKey = key ? crypto.createHash('sha256').update(key).digest('hex') : ""
+            const luisKey = key || ConversationLearner.options!.LUIS_AUTHORING_KEY!
+            const hashedKey = luisKey ? crypto.createHash('sha256').update(luisKey).digest('hex') : ""
             const id = `${browserSlot}-${hashedKey}`
+
+            if (key) {
+
+                await CLMemory.GetMemory(id).BotState.SetLuisKey(key)
+            }
 
             // Retrieve any status message
             let banner = await getBanner(statusEndpoint);
@@ -218,8 +223,10 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const query = url.parse(req.url).query || ''
             const key = getMemoryKey(req)
             const newApp: CLM.AppBase = req.body
-            const appId = await client.AddApp(newApp, query)
-            const app = await client.GetApp(appId)
+
+            const clClient = await Client(req)
+            const appId = await clClient.AddApp(newApp, query)
+            const app = await clClient.GetApp(appId)
             res.send(app)
 
             // Initialize memory
@@ -235,7 +242,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
         try {
             const key = getMemoryKey(req)
-            await client.ArchiveApp(appId)
+            const clClient = await Client(req)
+            await clClient.ArchiveApp(appId)
 
             // Did I delete my loaded app, if so clear my state
             const memory = CLMemory.GetMemory(key)
@@ -257,7 +265,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
         try {
             const key = getMemoryKey(req)
             const query = url.parse(req.url).query || ''
-            const apps = await client.GetApps(query)
+            const clClient = await Client(req)
+            const apps = await clClient.GetApps(query)
 
             // Get lookup table for which apps packages are being edited
             const memory = CLMemory.GetMemory(key)
@@ -281,7 +290,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
         }
 
         try {
-            const appIds = await client.CopyApps(srcUserId, destUserId, appId, luisSubscriptionKey)
+            const clClient = await Client(req)
+            const appIds = await clClient.CopyApps(srcUserId, destUserId, appId, luisSubscriptionKey)
             res.send(appIds)
         } catch (error) {
             HandleError(res, error)
@@ -293,8 +303,9 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
         const { packageId } = getQuery(req)
         try {
             const clRunner = CLRunner.GetRunnerForUI(appId)
-            const appDetails = await client.GetApp(appId)
-            const appDefinition = await client.GetAppSource(appId, packageId)
+            const clClient = await Client(req)
+            const appDetails = await clClient.GetApp(appId)
+            const appDefinition = await clClient.GetAppSource(appId, packageId)
 
             let appDefinitionChange = getAppDefinitionChange(appDefinition, clRunner.callbacks)
             if (appDefinitionChange.isChanged) {
@@ -303,7 +314,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                     console.log(`⚪ Requested package id is the same the latest package id. This package is a candidate for saving.`)
                     if (packageId !== appDetails.livePackageId) {
                         console.log(`⚪ Request package id is not the live package id. Qualifies for auto upgrade.`)
-                        await client.PostAppSource(appId, appDefinitionChange.updatedAppDefinition)
+                        const clClient = await Client(req)
+                        await clClient.PostAppSource(appId, appDefinitionChange.updatedAppDefinition)
                         console.log(`✔ Saved updated package successfully!`)
 
                         // Save the updated source and return with no change.
@@ -334,15 +346,16 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
         try {
             const { version: tagName, makeLive } = getQuery(req)
             const setLive = makeLive === "true";
+            const clClient = await Client(req)
 
             // Create tag, then load updated app
-            const packageReference = await client.PublishApp(appId, tagName)
+            const packageReference = await clClient.PublishApp(appId, tagName)
 
             // Make live app if requested
             if (setLive) {
-                await client.PublishProdPackage(appId, packageReference.packageId)
+                await clClient.PublishProdPackage(appId, packageReference.packageId)
             }
-            const app = await client.GetApp(appId);
+            const app = await clClient.GetApp(appId);
 
             res.send(app)
         } catch (error) {
@@ -356,7 +369,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
         try {
             const key = getMemoryKey(req)
-            const app = await client.GetApp(appId);
+            const clClient = await Client(req)
+            const app = await clClient.GetApp(appId);
             if (packageId != app.devPackageId) {
                 if (!app.packageVersions || !app.packageVersions.find(pv => pv.packageId == packageId)) {
                     throw new Error(`Attempted to edit package that doesn't exist: ${packageId}`)
@@ -382,6 +396,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
         try {
             const action: CLM.ActionBase = req.body
             const { packageId } = getQuery(req)
+            const clClient = await Client(req)
             if (!packageId) {
                 res.status(HttpStatus.BAD_REQUEST)
                 res.send({ error: 'packageId query parameter must be provided' })
@@ -394,7 +409,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 return
             }
 
-            const appDefinition = await client.GetAppSource(appId, packageId)
+            const appDefinition = await clClient.GetAppSource(appId, packageId)
 
             // Replace the action with new one
             appDefinition.actions = Utils.replace(appDefinition.actions, action, a => a.actionId)
@@ -414,7 +429,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
         try {
             const { packageId } = getQuery(req)
-            const appDefinition = await client.GetAppSource(appId, packageId)
+            const clClient = await Client(req)
+            const appDefinition = await clClient.GetAppSource(appId, packageId)
 
             // Remove the action
             appDefinition.actions = appDefinition.actions.filter(a => a.actionId != actionId)
@@ -437,7 +453,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
         try {
             const entity: CLM.EntityBase = req.body
             const { packageId } = getQuery(req)
-            const appDefinition = await client.GetAppSource(appId, packageId)
+            const clClient = await Client(req)
+            const appDefinition = await clClient.GetAppSource(appId, packageId)
 
             // Replace the entity with new one
             appDefinition.entities = Utils.replace(appDefinition.entities, entity, e => e.entityId)
@@ -456,7 +473,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
         try {
             const { packageId } = getQuery(req)
-            const appDefinition = await client.GetAppSource(appId, packageId)
+            const clClient = await Client(req)
+            const appDefinition = await clClient.GetAppSource(appId, packageId)
 
             // Remove the action
             appDefinition.entities = appDefinition.entities.filter(e => e.entityId != entityId)
@@ -480,7 +498,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const key = getMemoryKey(req)
             const { appId, logDialogId, turnIndex } = req.params
             const userInput: CLM.UserInput = req.body
-            const extractResponse = await client.LogDialogExtract(appId, logDialogId, turnIndex, userInput)
+            const clClient = await Client(req)
+            const extractResponse = await clClient.LogDialogExtract(appId, logDialogId, turnIndex, userInput)
 
             const memory = CLMemory.GetMemory(key)
             const memories = await memory.BotMemory.DumpMemory()
@@ -496,8 +515,9 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
         try {
             const { packageId } = getQuery(req)
+            const clClient = await Client(req)
             const packageIds = packageId.split(",")
-            const logDialogs = await client.GetLogDialogs(appId, packageIds)
+            const logDialogs = await clClient.GetLogDialogs(appId, packageIds)
             res.send(logDialogs)
         } catch (error) {
             HandleError(res, error)
@@ -514,8 +534,9 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
         try {
             const key = getMemoryKey(req)
             const { appId, trainDialogId, turnIndex } = req.params
+            const clClient = await Client(req)
             const userInput: CLM.UserInput = req.body
-            const extractResponse = await client.TrainDialogExtract(appId, trainDialogId, turnIndex, userInput)
+            const extractResponse = await clClient.TrainDialogExtract(appId, trainDialogId, turnIndex, userInput)
 
             const memory = CLMemory.GetMemory(key)
             const memories = await memory.BotMemory.DumpMemory()
@@ -532,7 +553,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const key = getMemoryKey(req)
             const { username: userName, userid: userId } = getQuery(req)
             const { appId, trainDialogId, turnIndex } = req.params
-            const trainDialog = await client.GetTrainDialog(appId, trainDialogId, true)
+            const clClient = await Client(req)
+            const trainDialog = await clClient.GetTrainDialog(appId, trainDialogId, true)
 
             // Slice to length requested by user
             trainDialog.rounds = trainDialog.rounds.slice(0, turnIndex)
@@ -620,6 +642,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
         try {
             const key = getMemoryKey(req)
             const { appId } = req.params
+            const clClient = await Client(req)
 
             // Session may be a replacement for an expired one
             const memory = CLMemory.GetMemory(key)
@@ -631,7 +654,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 return
             }
 
-            await client.EndSession(appId, sessionId)
+            await clClient.EndSession(appId, sessionId)
             res.sendStatus(200)
 
             const clRunner = CLRunner.GetRunnerForUI(appId);
@@ -694,6 +717,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
         try {
             const key = getMemoryKey(req)
             const appId = req.params.appId
+            const clClient = await Client(req)
             const {
                 username: userName,
                 userid: userId } = getQuery(req)
@@ -734,7 +758,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                     maskedActions: []
                 }
                 teachWithHistory.scoreInput = scoreInput
-                teachWithHistory.scoreResponse = await client.TeachScore(
+                teachWithHistory.scoreResponse = await clClient.TeachScore(
                     appId,
                     teachWithHistory.teach.teachId,
                     teachWithHistory.scoreInput
@@ -746,7 +770,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 teachWithHistory.history.push(userActivity)
 
                 // Extract responses
-                teachWithHistory.extractResponse = await client.TeachExtract(appId, teachWithHistory.teach.teachId, userInput, null)
+                teachWithHistory.extractResponse = await clClient.TeachExtract(appId, teachWithHistory.teach.teachId, userInput, null)
                 teachWithHistory.dialogMode = CLM.DialogMode.Extractor
             }
             res.send(teachWithHistory)
@@ -769,6 +793,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const trainDialog: CLM.TrainDialog = req.body
             const clMemory = CLMemory.GetMemory(key)
             const clRunner = CLRunner.GetRunnerForUI(appId);
+            const clClient = await Client(req)
 
             // Replay the TrainDialog logic (API calls and EntityDetectionCallback)
             // and set clMemory entities for the history
@@ -786,14 +811,14 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 maskedActions: []
             }
 
-            const scoreResponse = await client.TeachScore(
+            const scoreResponse = await clClient.TeachScore(
                 appId,
                 teach.teachId,
                 scoreInput
             )
 
             // Delete the teach session w/o save
-            await client.EndTeach(appId, teach.teachId, `saveDialog=false`)
+            await clClient.EndTeach(appId, teach.teachId, `saveDialog=false`)
 
             const uiScoreResponse = {
                 scoreResponse,
@@ -820,6 +845,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const userInput: CLM.UserInput = req.body.userInput
             const clMemory = CLMemory.GetMemory(key)
             const clRunner = CLRunner.GetRunnerForUI(appId);
+            const clClient = await Client(req)
 
             // Replay the TrainDialog logic (API calls and EntityDetectionCallback)
             // and set clMemory entities for the history
@@ -830,10 +856,10 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const teach = await clRunner.StartSessionAsync(clMemory, null, appId, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE, createTeachParams) as CLM.Teach
 
             // Do extraction
-            const extractResponse = await client.TeachExtract(appId, teach.teachId, userInput, null)
+            const extractResponse = await clClient.TeachExtract(appId, teach.teachId, userInput, null)
 
             // Delete the teach session w/o save
-            await client.EndTeach(appId, teach.teachId, `saveDialog=false`)
+            await clClient.EndTeach(appId, teach.teachId, `saveDialog=false`)
 
             res.send(extractResponse)
         } catch (error) {
@@ -879,13 +905,14 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const { appId, teachId } = req.params
             // Dialog to ignore when checking for conflicting labels
             const { filteredDialog } = getQuery(req)
+            const clClient = await Client(req)
             const userInput: CLM.UserInput = req.body
 
             // If a form text could be null
             if (!userInput.text) {
                 userInput.text = '  '
             }
-            const extractResponse = await client.TeachExtract(appId, teachId, userInput, filteredDialog)
+            const extractResponse = await clClient.TeachExtract(appId, teachId, userInput, filteredDialog)
 
             const memory = CLMemory.GetMemory(key)
             const memories = await memory.BotMemory.DumpMemory()
@@ -911,12 +938,13 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const { appId, teachId } = req.params
             const uiScoreInput: CLM.UIScoreInput = req.body
             const clMemory = CLMemory.GetMemory(key)
+            const clClient = await Client(req)
 
             // There will be no extraction step if performing a 2nd scorer round after a non-terminal action
             if (uiScoreInput.trainExtractorStep) {
                 try {
                     // Send teach feedback;
-                    await client.TeachExtractFeedback(appId, teachId, uiScoreInput.trainExtractorStep)
+                    await clClient.TeachExtractFeedback(appId, teachId, uiScoreInput.trainExtractorStep)
                 }
                 catch (error) {
                     if (error.statusCode === HttpStatus.CONFLICT) {
@@ -965,7 +993,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             }
 
             // Get score response
-            const scoreResponse = await client.TeachScore(appId, teachId, scoreInput)
+            const scoreResponse = await clClient.TeachScore(appId, teachId, scoreInput)
             const memories = await clMemory.BotMemory.DumpMemory()
             const uiScoreResponse: CLM.UIScoreResponse = { scoreInput, scoreResponse, memories, botAPIError }
             res.send(uiScoreResponse)
@@ -980,10 +1008,11 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const textVariation: CLM.TextVariation = req.body
             // Dialog to ignore when checking for conflicting labels
             const { filteredDialog } = getQuery(req)
+            const clClient = await Client(req)
 
             try {
                 // Send teach feedback;
-                await client.TrainDialogValidateTextVariation(appId, trainDialogId, textVariation, filteredDialog)
+                await clClient.TrainDialogValidateTextVariation(appId, trainDialogId, textVariation, filteredDialog)
             }
             catch (error) {
                 if (error.statusCode === HttpStatus.CONFLICT) {
@@ -1011,9 +1040,10 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const { appId, teachId } = req.params
             const scoreInput: CLM.ScoreInput = req.body
             const memory = CLMemory.GetMemory(key)
+            const clClient = await Client(req)
 
             // Get new score response re-using scoreInput from previous score request
-            const scoreResponse = await client.TeachScore(appId, teachId, scoreInput)
+            const scoreResponse = await clClient.TeachScore(appId, teachId, scoreInput)
             const memories = await memory.BotMemory.DumpMemory()
             const uiScoreResponse: CLM.UIScoreResponse = {
                 scoreInput,
@@ -1035,6 +1065,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
         try {
             const key = getMemoryKey(req)
             const { appId, teachId } = req.params
+            const clClient = await Client(req)
             const uiTrainScorerStep: CLM.UITrainScorerStep = req.body
 
             // Save scored action and remove from service call
@@ -1062,7 +1093,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 uiTrainScorerStep.trainScorerStep.logicResult = actionResult.logicResult
             }
 
-            const teachResponse = await client.TeachScoreFeedback(appId, teachId, uiTrainScorerStep.trainScorerStep)
+            const teachResponse = await clClient.TeachScoreFeedback(appId, teachId, uiTrainScorerStep.trainScorerStep)
 
             const memories = await clMemory.BotMemory.DumpMemory()
             const isEndTask = scoredAction.actionType === CLM.ActionTypes.END_SESSION
@@ -1078,7 +1109,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                     const sessionAction = new CLM.SessionAction(scoredAction as any)
                     let content = sessionAction.renderValue(CLM.getEntityDisplayValueMap(filledEntityMap))
 
-                    await client.EndSession(appId, sessionId)
+                    await clClient.EndSession(appId, sessionId)
                     await clRunner.EndSessionAsync(clMemory, CLM.SessionEndState.COMPLETED, content);
                 }
             }
@@ -1100,8 +1131,9 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const key = getMemoryKey(req)
             const { appId, teachId } = req.params
             const { save } = getQuery(req)
+            const clClient = await Client(req)
             const saveQuery = save ? `saveDialog=${save}` : ''
-            const response = await client.EndTeach(appId, teachId, saveQuery)
+            const response = await clClient.EndTeach(appId, teachId, saveQuery)
             res.send(response)
 
             const memory = CLMemory.GetMemory(key)
@@ -1146,6 +1178,15 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
         }
     })
 
+    let Client = async (req: express.Request): Promise<CLClient> => {
+        const memoryKey = getMemoryKey(req)
+        const luisKey = await CLMemory.GetMemory(memoryKey).BotState.GetLuisKey() || options.LUIS_AUTHORING_KEY
+        if (luisKey) {
+            client.SetLuisAuthoringKey(luisKey)
+        }
+        return client
+    }
+
     const httpProxy = proxy({
         target: options.CONVERSATION_LEARNER_SERVICE_URI,
         changeOrigin: true,
@@ -1154,31 +1195,42 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             '^/sdk': '/'
         },
         onProxyReq: (proxyReq, req, res) => {
-            proxyReq.setHeader(constants.luisAuthoringKeyHeader, options.LUIS_AUTHORING_KEY || '')
-            proxyReq.setHeader(constants.luisSubscriptionKeyHeader, options.LUIS_SUBSCRIPTION_KEY || '')
-            proxyReq.setHeader(constants.apimSubscriptionIdHeader, options.LUIS_AUTHORING_KEY || '')
-            proxyReq.setHeader(constants.apimSubscriptionKeyHeader, options.APIM_SUBSCRIPTION_KEY || '')
+            // Pause so I can call async function
+            proxyReq.socket.pause()
 
-            /**
-             * TODO: Find more elegant solution with middleware ordering.
-             * Currently there is conflict of interest.  For the custom routes we define, we want the body parsed
-             * so we need bodyParser.json() middleware above it in the pipeline; however, when bodyParser is above/before
-             * the http-proxy-middleware then it can't properly stream the body through.
-             *
-             * This code explicitly re-streams the data by calling .write()
-             *
-             * Ideally we could find a way to only use bodyParser.json() on our custom routes so it's no in the pipeline above
-             * the proxy
-             */
             const anyReq: any = req
-            if (anyReq.body) {
-                let bodyData = JSON.stringify(anyReq.body)
-                // incase if content-type is application/x-www-form-urlencoded -> we need to change to application/json
-                proxyReq.setHeader('Content-Type', 'application/json')
-                proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData))
-                // stream the content
-                proxyReq.write(bodyData)
-            }
+            const memoryKey = getMemoryKey(anyReq)
+            CLMemory.GetMemory(memoryKey).BotState.GetLuisKey()
+                .then((luisKey) => {
+                    proxyReq.setHeader(constants.luisAuthoringKeyHeader, luisKey || '')
+                    proxyReq.setHeader(constants.luisSubscriptionKeyHeader, options.LUIS_SUBSCRIPTION_KEY || '')
+                    proxyReq.setHeader(constants.apimSubscriptionIdHeader, options.LUIS_AUTHORING_KEY || '')
+                    proxyReq.setHeader(constants.apimSubscriptionKeyHeader, options.APIM_SUBSCRIPTION_KEY || '')
+
+                    /**
+                     * TODO: Find more elegant solution with middleware ordering.
+                     * Currently there is conflict of interest.  For the custom routes we define, we want the body parsed
+                     * so we need bodyParser.json() middleware above it in the pipeline; however, when bodyParser is above/before
+                     * the http-proxy-middleware then it can't properly stream the body through.
+                     *
+                     * This code explicitly re-streams the data by calling .write()
+                     *
+                     * Ideally we could find a way to only use bodyParser.json() on our custom routes so it's no in the pipeline above
+                     * the proxy
+                     */
+                    if (anyReq.body) {
+                        let bodyData = JSON.stringify(anyReq.body)
+                        // incase if content-type is application/x-www-form-urlencoded -> we need to change to application/json
+                        proxyReq.setHeader('Content-Type', 'application/json')
+                        proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData))
+                        // stream the content
+                        proxyReq.write(bodyData)
+                    }
+                    proxyReq.socket.resume()
+                })
+                .catch((err) => {
+                    throw Error("WTF")
+                })
         }
     })
 
