@@ -75,7 +75,16 @@ export const HandleError = (response: express.Response, err: any): void => {
     response.send(error)
 
     let log = `${error}\n${err.request ? 'BODY:' + err.request.body : null}`
-    CLDebug.Error(log)
+    let showInChat = ShouldShowChatMessage(err)
+    CLDebug.Error(log, "", showInChat)
+}
+
+// Certain errors we don't want to display in the chat window
+const ShouldShowChatMessage = (error: any): boolean => {
+    if (error.message === CLM.ErrorCode.INVALID_BOT_CHECKSUM) {
+        return false
+    }
+    return true
 }
 
 const statusEndpoint = "https://blisstorage.blob.core.windows.net/status/status.json";

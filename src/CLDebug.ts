@@ -98,13 +98,15 @@ export class CLDebug {
         }
     }
 
-    public static Error(error: any, context: string = ''): string {
+    public static Error(error: any, context: string = "", sendAsChat: boolean = true): string {
         let text = `ERROR: ${error ? Utils.ErrorString(error, context) : 'No details'}`
 
         console.log(text)
 
-        CLDebug.cachedMessages.push({ message: text, logType: LogType.Error })
-        CLDebug.SendCache()
+        if (sendAsChat) {
+            CLDebug.cachedMessages.push({ message: text, logType: LogType.Error })
+            CLDebug.SendCache()
+        }
 
         return text
     }
