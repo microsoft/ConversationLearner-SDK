@@ -191,11 +191,12 @@ export class ClientMemoryManager extends ReadOnlyClientMemoryManager {
 
         // ENUM entity type
         if (entity.entityType === CLM.EntityType.ENUM && entity.enumValues) {
-            let stringVal = this.__ToString(value).toUpperCase()
-            let enumValue = entity.enumValues.find(ev => ev.enumValue === stringVal)
+            const stringVal = this.__ToString(value).toUpperCase()
+            const enumValue = entity.enumValues.find(ev => ev.enumValue === stringVal)
             if (!enumValue) {
+                const enumValues = entity.enumValues.map(ev => ev.enumValue).join(", ")
                 // Throw w/o a stack trace
-                throw `${CLStrings.MEMORY_MANAGER_INVALID_ENUM_EXCEPTION} [${entityName} = ${stringVal}]`
+                throw `"${entityName}"${CLStrings.MEMORY_MANAGER_INVALID_ENUM_EXCEPTION1}"${stringVal}"${CLStrings.MEMORY_MANAGER_INVALID_ENUM_EXCEPTION2}(${enumValues})`
             }
             else {
                 // Store ENUM ID not the string value
