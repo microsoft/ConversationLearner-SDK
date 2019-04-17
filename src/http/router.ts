@@ -802,7 +802,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             )
 
             // Delete the teach session w/o save
-            await client.EndTeach(appId, teach.teachId, `saveDialog=false`)
+            await client.EndTeach(appId, teach.teachId, false)
 
             const uiScoreResponse = {
                 scoreResponse,
@@ -842,7 +842,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const extractResponse = await client.TeachExtract(appId, teach.teachId, userInput, null)
 
             // Delete the teach session w/o save
-            await client.EndTeach(appId, teach.teachId, `saveDialog=false`)
+            await client.EndTeach(appId, teach.teachId, false)
 
             res.send(extractResponse)
         } catch (error) {
@@ -1087,7 +1087,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                     const sessionAction = new CLM.SessionAction(scoredAction as any)
                     let content = sessionAction.renderValue(CLM.getEntityDisplayValueMap(filledEntityMap))
 
-                    await client.EndSession(appId, sessionId)
+                    // End SDK session, but let client delete the Teach Session
                     await clRunner.EndSessionAsync(clMemory, CLM.SessionEndState.COMPLETED, content);
                 }
             }
@@ -1109,8 +1109,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const key = getMemoryKey(req)
             const { appId, teachId } = req.params
             const { save } = getQuery(req)
-            const saveQuery = save ? `saveDialog=${save}` : ''
-            const response = await client.EndTeach(appId, teachId, saveQuery)
+            const response = await client.EndTeach(appId, teachId, save)
             res.send(response)
 
             const memory = CLMemory.GetMemory(key)
