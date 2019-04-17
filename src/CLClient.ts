@@ -271,7 +271,7 @@ export class CLClient {
     public TrainDialogValidateTextVariation(appId: string, trainDialogId: string, textVariation: CLM.TextVariation, filteredDialog: string): Promise<null> {
         let apiPath = `app/${appId}/traindialog/${trainDialogId}/extractor/textvariation`
         // Note: service can take a list of filteredDialogs, but we just use one for now
-        let query = filteredDialog ? `filteredDialogs[]=${filteredDialog}` : undefined
+        let query = filteredDialog ? `filteredDialogs=${filteredDialog}` : undefined
         return this.send('POST', this.MakeURL(apiPath, query), textVariation)
     }
 
@@ -383,7 +383,8 @@ export class CLClient {
      * For Teach sessions, does NOT delete the associated trainDialog.
      * To delete the associated trainDialog, call DELETE on the trainDialog.
      */
-    public EndTeach(appId: string, teachId: string, query: string): Promise<CLM.TrainResponse> {
+    public EndTeach(appId: string, teachId: string, save: boolean): Promise<CLM.TrainResponse> {
+        const query = save ? `saveDialog=${save}` : ''
         let apiPath = `app/${appId}/teach/${teachId}`
         return this.send('DELETE', this.MakeURL(apiPath, query))
     }
