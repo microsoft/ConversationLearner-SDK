@@ -268,10 +268,10 @@ export class CLClient {
      * Returns a 409 if text variation conflicts with existing labels, otherwise 200
      * filteredDialog is dialog to ignore when checking for conflicts
      */
-    public TrainDialogValidateTextVariation(appId: string, trainDialogId: string, textVariation: CLM.TextVariation, filteredDialog: string): Promise<null> {
+    public TrainDialogValidateTextVariation(appId: string, trainDialogId: string, textVariation: CLM.TextVariation, excludeConflictCheckId: string): Promise<null> {
         let apiPath = `app/${appId}/traindialog/${trainDialogId}/extractor/textvariation`
         // Note: service can take a list of filteredDialogs, but we just use one for now
-        let query = filteredDialog ? `filteredDialogs=${filteredDialog}` : undefined
+        let query = excludeConflictCheckId ? `filteredDialogs=${excludeConflictCheckId}` : undefined
         return this.send('POST', this.MakeURL(apiPath, query), textVariation)
     }
 
@@ -337,12 +337,12 @@ export class CLClient {
      * the server, the session will first migrate to that newer version.  This
      * doesn't affect the trainDialog maintained.
      */
-    public TeachExtract(appId: string, teachId: string, userInput: CLM.UserInput, filteredDialog: string | null): Promise<CLM.ExtractResponse> {
+    public TeachExtract(appId: string, teachId: string, userInput: CLM.UserInput, excludeConflictCheckId: string | null): Promise<CLM.ExtractResponse> {
         let apiPath = `app/${appId}/teach/${teachId}/extractor`
         // Note: service can take a list of filteredDialogs, but we just use one for now
         let query = `includeDefinitions=true`
-        if (filteredDialog) {
-            query += `&filteredDialogs[]=${filteredDialog}`
+        if (excludeConflictCheckId) {
+            query += `&filteredDialogs=${excludeConflictCheckId}`
         }
         return this.send('PUT', this.MakeURL(apiPath, query), { text: userInput.text })
     }
