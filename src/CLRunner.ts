@@ -90,7 +90,7 @@ interface IActionInputLogic {
     logicResult: CLM.LogicResult | undefined
 }
 interface IActionInputRenderOnly {
-    type: ActionInputType
+    type: ActionInputType.LOGIC_AND_RENDER | ActionInputType.LOGIC_ONLY
 }
 
 type IActionInput = IActionInputRenderOnly | IActionInputLogic
@@ -930,6 +930,18 @@ export class CLRunner {
                 }
                 break
             }
+            case CLM.ActionTypes.SET_ENTITY: {
+                // TODO: Schema refactor, scored actions aren't actions...
+                const action = clRecognizeResult.scoredAction as any as CLM.ActionBase
+                actionResult = await this.TakeSetEntityAction(
+                    action,
+                    filledEntityMap,
+                    clRecognizeResult.memory,
+                    clRecognizeResult.clEntities,
+                    inTeach
+                )
+                break
+            }
             default:
                 throw new Error(`Could not find matching renderer for action type: ${clRecognizeResult.scoredAction.actionType}`)
         }
@@ -1059,6 +1071,57 @@ export class CLRunner {
         return renderedArgumentValues
     }
 
+    public async TakeSetEntityAction(action: CLM.ActionBase, filledEntityMap: CLM.FilledEntityMap, clMemory: CLMemory, allEntities: CLM.EntityBase[], inTeach: boolean): Promise<IActionResult> {
+        try {
+            let replayError: CLM.ReplayError | undefined
+            let response: Partial<BB.Activity> | string | null = null
+
+            if (action.actionType !== CLM.ActionTypes.SET_ENTITY) {
+                throw new Error(`You attempted to call TakeSetEntityAction but passed an action (${action.actionId}) that is not of type SET_ENTITY.`)
+            }
+
+            const entity = allEntities.find(e => e.entityId === action.entityId)
+            if (!entity) {
+                throw new Error(`Set Entity Action (${action.actionId}) could not find the referenced entity with id: ${action.entityId}`)
+            }
+
+            if (entity.entityType !== CLM.EntityType.ENUM) {
+                throw new Error(`Set Entity Action (${action.actionId}) referenced entity ${entity.entityName} but it is not an ENUM. Please update the action to reference the correct entity.`)
+            }
+
+            const enumValueObj = (entity.enumValues && entity.enumValues.find(ev => ev.enumValueId === action.enumValueId))
+            if (!enumValueObj) {
+                throw new Error(`Set Entity Action: (${action.actionId}) which sets: ${entity.entityName} could not find the value with id: ${action.enumValueId}`)
+            }
+
+            // TODO: Is there more efficient way to do this, like editing memory directly?
+            const memoryManager = await this.CreateMemoryManagerAsync(clMemory, allEntities)
+            memoryManager.Set(entity.entityName, enumValueObj.enumValue)
+            await clMemory.BotMemory.RestoreFromMemoryManagerAsync(memoryManager)
+
+            if (inTeach) {
+                response = this.RenderSetEntityCard(entity.entityName, enumValueObj.enumValue)
+            }
+
+            return {
+                logicResult: undefined,
+                response,
+                replayError: replayError || undefined
+            }
+        }
+        catch (e) {
+            const error: Error = e
+            const title = error.message || `Exception hit when calling Set Entity Action: '${action.actionId}'`
+            const message = this.RenderErrorCard(title, error.stack || error.message || "")
+            const replayError = new CLM.ReplayErrorAPIException()
+            return {
+                logicResult: undefined,
+                response: message,
+                replayError
+            }
+        }
+    }
+
     public async TakeAPIAction(apiAction: CLM.ApiAction, filledEntityMap: CLM.FilledEntityMap, clMemory: CLMemory, allEntities: CLM.EntityBase[], inTeach: boolean, actionInput: IActionInput): Promise<IActionResult> {
         // Extract API name and args
         const callback = this.callbacks[apiAction.name]
@@ -1079,8 +1142,7 @@ export class CLRunner {
             // This happens when replaying dialog to recreated action outputs
             let logicResult: CLM.LogicResult = { logicValue: undefined, changedFilledEntities: [] }
             if (actionInput.type === ActionInputType.RENDER_ONLY) {
-                let storedResult = (actionInput as IActionInputLogic).logicResult
-                logicResult = storedResult || logicResult
+                logicResult = actionInput.logicResult || logicResult
 
                 // Logic result holds delta from before after logic callback, use it to update memory
                 memoryManager.curMemories.UpdateFilledEntities(logicResult.changedFilledEntities, allEntities)
@@ -1494,6 +1556,8 @@ export class CLRunner {
                         } else if (curAction.actionType === CLM.ActionTypes.END_SESSION) {
                             const sessionAction = new CLM.SessionAction(curAction)
                             await this.TakeSessionAction(sessionAction, filledEntityMap, true, clMemory, null, null)
+                        } else if (curAction.actionType === CLM.ActionTypes.SET_ENTITY) {
+                            await this.TakeSetEntityAction(curAction, filledEntityMap, clMemory, entityList.entities, true)
                         }
                     }
 
@@ -1763,6 +1827,8 @@ export class CLRunner {
                                 logicResult: undefined,
                                 response: await this.TakeSessionAction(sessionAction, filledEntityMap, true, clMemory, null, null)
                             }
+                        } else if (curAction.actionType === CLM.ActionTypes.SET_ENTITY) {
+                            botResponse = await this.TakeSetEntityAction(curAction, filledEntityMap, clMemory, entityList.entities, true)
                         }
                         else {
                             throw new Error(`Cannot construct bot response for unknown action type: ${curAction.actionType}`)
@@ -1865,6 +1931,29 @@ export class CLRunner {
             replayErrors: replayErrors
         }
         return teachWithHistory
+    }
+
+    private RenderSetEntityCard(name: string, value: string): Partial<BB.Activity> {
+        const card = {
+            type: "AdaptiveCard",
+            version: "1.0",
+            body: [
+                {
+                    type: "Container",
+                    items: [
+                        {
+                            type: "TextBlock",
+                            text: `memory.Set(${name}, ${value})`,
+                            wrap: true
+                        }
+                    ]
+                }]
+        }
+
+        const attachment = BB.CardFactory.adaptiveCard(card)
+        const message = BB.MessageFactory.attachment(attachment)
+        message.text = "Set Entity:"
+        return message;
     }
 
     // Generate a card to show for an API action w/o output
