@@ -38,8 +38,8 @@
   "author": "Microsoft Conversation Learner Team",
   "license": "MIT",
   "dependencies": {
-    "@conversationlearner/models": "0.199.2",
-    "@conversationlearner/ui": "0.353.12",
+    "@conversationlearner/models": "0.199.3",
+    "@conversationlearner/ui": "0.353.13",
     "@types/supertest": "2.0.4",
     "async-file": "^2.0.2",
     "body-parser": "1.18.3",
