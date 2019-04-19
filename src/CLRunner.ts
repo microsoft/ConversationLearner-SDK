@@ -1394,24 +1394,6 @@ export class CLRunner {
         await clMemory.BotMemory.RestoreFromMapAsync(map)
     }
 
-    // Updates initialFilledEntity list to include those that were saved in onEndSession
-    public UpdateInitilaFilledEntities(trainDialog: CLM.TrainDialog): void {
-        if (trainDialog.rounds.length === 0 || trainDialog.rounds[0].scorerSteps.length == 0) {
-            return
-        }
-
-        const firstRound = trainDialog.rounds[0]
-
-        // Get entities extracted on first input
-        const firstEntityIds = firstRound.extractorStep.textVariations[0].labelEntities.map(le => le.entityId)
-
-        // Intial entities are ones on first round that weren't extracted on the first utterance or already in the list
-        const initialFilledEntities = firstRound.scorerSteps[0].input.filledEntities
-            .filter(fe => !firstEntityIds.includes(fe.entityId!) && !trainDialog.initialFilledEntities.find(ife => ife.entityId === fe.entityId))
-
-        trainDialog.initialFilledEntities = [...trainDialog.initialFilledEntities, ...initialFilledEntities]
-    }
-
     /** 
      * Replay a TrainDialog, calling EntityDetection callback and API Logic,
      * recalculating FilledEntities along the way
@@ -1428,9 +1410,6 @@ export class CLRunner {
         let entities: CLM.EntityBase[] = trainDialog.definitions ? trainDialog.definitions.entities : []
         let actions: CLM.ActionBase[] = trainDialog.definitions ? trainDialog.definitions.actions : []
         let entityList: CLM.EntityList = { entities }
-
-        // Calculate intial filled entities (as onEndSession may have left some entities set)
-        this.UpdateInitilaFilledEntities(newTrainDialog)
 
         await this.InitReplayMemory(clMemory, newTrainDialog, entities)
 
