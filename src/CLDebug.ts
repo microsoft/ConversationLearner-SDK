@@ -37,7 +37,7 @@ export class CLDebug {
         CLDebug.conversationReference = conversationReference;
     }
 
-    private static HasDebugType(debugType: DebugType) : boolean {
+    private static HasDebugType(debugType: DebugType): boolean {
         return (debugType & this.debugType) === debugType
     }
     private static async SendCache() {
@@ -50,8 +50,9 @@ export class CLDebug {
 
                 for (let logMessage of cachedMessages) {
                     if (logMessage.logType === LogType.Error) {
-                        const clData: CLM.CLChannelData = { replayError: new CLM.ReplayErrorException() }
-                        await context.sendActivity({text: logMessage.message, channelData: {clData: clData}})
+                        // TODO: Create CLM.SenderType.Error to special handle this when clicked
+                        const clData: CLM.CLChannelData = { replayError: new CLM.ReplayErrorException(), senderType: CLM.SenderType.Bot, roundIndex: null, scoreIndex: null }
+                        await context.sendActivity({ text: logMessage.message, channelData: { clData: clData } })
                     }
                     else {
                         await context.sendActivity(logMessage.message)
@@ -66,7 +67,7 @@ export class CLDebug {
             console.log(text)
 
             if (CLDebug.logToUI) {
-                CLDebug.cachedMessages.push({message: text, logType: LogType.Log})
+                CLDebug.cachedMessages.push({ message: text, logType: LogType.Log })
             }
             CLDebug.SendCache()
         }
@@ -91,19 +92,21 @@ export class CLDebug {
             console.log(message)
 
             if (CLDebug.logToUI) {
-                CLDebug.cachedMessages.push({message: message, logType: LogType.Log})
+                CLDebug.cachedMessages.push({ message: message, logType: LogType.Log })
             }
             CLDebug.SendCache()
         }
     }
 
-    public static Error(error: any, context: string = ''): string {
+    public static Error(error: any, context: string = "", sendAsChat: boolean = true): string {
         let text = `ERROR: ${error ? Utils.ErrorString(error, context) : 'No details'}`
 
         console.log(text)
 
-        CLDebug.cachedMessages.push({message: text, logType: LogType.Error})
-        CLDebug.SendCache()
+        if (sendAsChat) {
+            CLDebug.cachedMessages.push({ message: text, logType: LogType.Error })
+            CLDebug.SendCache()
+        }
 
         return text
     }

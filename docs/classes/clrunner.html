@@ -1,0 +1,1855 @@
+<!doctype html>
+<html class="default no-js">
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<title>CLRunner | @conversationlearner/sdk</title>
+	<meta name="description" content="">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" href="../assets/css/main.css">
+</head>
+<body>
+<header>
+	<div class="tsd-page-toolbar">
+		<div class="container">
+			<div class="table-wrap">
+				<div class="table-cell" id="tsd-search" data-index="../assets/js/search.js" data-base="..">
+					<div class="field">
+						<label for="tsd-search-field" class="tsd-widget search no-caption">Search</label>
+						<input id="tsd-search-field" type="text" />
+					</div>
+					<ul class="results">
+						<li class="state loading">Preparing search index...</li>
+						<li class="state failure">The search index is not available</li>
+					</ul>
+					<a href="../index.html" class="title">@conversationlearner/sdk</a>
+				</div>
+				<div class="table-cell" id="tsd-widgets">
+					<div id="tsd-filter">
+						<a href="#" class="tsd-widget options no-caption" data-toggle="options">Options</a>
+						<div class="tsd-filter-group">
+							<div class="tsd-select" id="tsd-filter-visibility">
+								<span class="tsd-select-label">All</span>
+								<ul class="tsd-select-list">
+									<li data-value="public">Public</li>
+									<li data-value="protected">Public/Protected</li>
+									<li data-value="private" class="selected">All</li>
+								</ul>
+							</div>
+							<input type="checkbox" id="tsd-filter-inherited" checked />
+							<label class="tsd-widget" for="tsd-filter-inherited">Inherited</label>
+							<input type="checkbox" id="tsd-filter-externals" checked />
+							<label class="tsd-widget" for="tsd-filter-externals">Externals</label>
+							<input type="checkbox" id="tsd-filter-only-exported" />
+							<label class="tsd-widget" for="tsd-filter-only-exported">Only exported</label>
+						</div>
+					</div>
+					<a href="#" class="tsd-widget menu no-caption" data-toggle="menu">Menu</a>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="tsd-page-title">
+		<div class="container">
+			<ul class="tsd-breadcrumb">
+				<li>
+					<a href="../globals.html">Globals</a>
+				</li>
+				<li>
+					<a href="clrunner.html">CLRunner</a>
+				</li>
+			</ul>
+			<h1>Class CLRunner</h1>
+		</div>
+	</div>
+</header>
+<div class="container container-main">
+	<div class="row">
+		<div class="col-8 col-content">
+			<section class="tsd-panel tsd-hierarchy">
+				<h3>Hierarchy</h3>
+				<ul class="tsd-hierarchy">
+					<li>
+						<span class="target">CLRunner</span>
+					</li>
+				</ul>
+			</section>
+			<section class="tsd-panel-group tsd-index-group">
+				<h2>Index</h2>
+				<section class="tsd-panel tsd-index-panel">
+					<div class="tsd-index-content">
+						<section class="tsd-index-section tsd-is-private tsd-is-private-protected">
+							<h3>Constructors</h3>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-constructor tsd-parent-kind-class tsd-is-private"><a href="clrunner.html#constructor" class="tsd-kind-icon">constructor</a></li>
+							</ul>
+						</section>
+						<section class="tsd-index-section ">
+							<h3>Properties</h3>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="clrunner.html#adapter" class="tsd-kind-icon">adapter</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="clrunner.html#callbacks" class="tsd-kind-icon">callbacks</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-private"><a href="clrunner.html#checksum" class="tsd-kind-icon">checksum</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="clrunner.html#clclient" class="tsd-kind-icon">cl<wbr>Client</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-private"><a href="clrunner.html#configmodelid" class="tsd-kind-icon">config<wbr>Model<wbr>Id</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="clrunner.html#entitydetectioncallback" class="tsd-kind-icon">entity<wbr>Detection<wbr>Callback</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-private"><a href="clrunner.html#maxtimeout" class="tsd-kind-icon">max<wbr>Timeout</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="clrunner.html#onsessionendcallback" class="tsd-kind-icon">on<wbr>Session<wbr>End<wbr>Callback</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="clrunner.html#onsessionstartcallback" class="tsd-kind-icon">on<wbr>Session<wbr>Start<wbr>Callback</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-private tsd-is-static"><a href="clrunner.html#runners" class="tsd-kind-icon">Runners</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-private tsd-is-static"><a href="clrunner.html#uirunner" class="tsd-kind-icon">UIRunner</a></li>
+							</ul>
+						</section>
+						<section class="tsd-index-section ">
+							<h3>Methods</h3>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter"><a href="clrunner.html#addcallback" class="tsd-kind-icon">Add<wbr>Callback</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-private"><a href="clrunner.html#addinput" class="tsd-kind-icon">Add<wbr>Input</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="clrunner.html#botstartsession" class="tsd-kind-icon">Bot<wbr>Start<wbr>Session</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="clrunner.html#callentitydetectioncallback" class="tsd-kind-icon">Call<wbr>Entity<wbr>Detection<wbr>Callback</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-protected"><a href="clrunner.html#checksessionendcallback" class="tsd-kind-icon">Check<wbr>Session<wbr>End<wbr>Callback</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-protected"><a href="clrunner.html#checksessionstartcallback" class="tsd-kind-icon">Check<wbr>Session<wbr>Start<wbr>Callback</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-private"><a href="clrunner.html#createfilledentitymap" class="tsd-kind-icon">Create<wbr>Filled<wbr>Entity<wbr>Map</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-private"><a href="clrunner.html#creatememorymanagerasync" class="tsd-kind-icon">Create<wbr>Memory<wbr>Manager<wbr>Async</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-private"><a href="clrunner.html#createreadonlymemorymanagerasync" class="tsd-kind-icon">Create<wbr>Read<wbr>Only<wbr>Memory<wbr>Manager<wbr>Async</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="clrunner.html#dialogvalidationerrors" class="tsd-kind-icon">Dialog<wbr>Validation<wbr>Errors</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="clrunner.html#endsessionasync" class="tsd-kind-icon">End<wbr>Session<wbr>Async</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-private"><a href="clrunner.html#getarguments" class="tsd-kind-icon">Get<wbr>Arguments</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="clrunner.html#gethistory" class="tsd-kind-icon">Get<wbr>History</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-private"><a href="clrunner.html#getrenderedarguments" class="tsd-kind-icon">Get<wbr>Rendered<wbr>Arguments</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-private"><a href="clrunner.html#getrunningapp" class="tsd-kind-icon">Get<wbr>Running<wbr>App</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-private"><a href="clrunner.html#getturncontext" class="tsd-kind-icon">Get<wbr>Turn<wbr>Context</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="clrunner.html#intrainingui" class="tsd-kind-icon">In<wbr>TrainingUI</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-private"><a href="clrunner.html#initreplaymemory" class="tsd-kind-icon">Init<wbr>Replay<wbr>Memory</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-private"><a href="clrunner.html#populatemissingfilledentities" class="tsd-kind-icon">Populate<wbr>Missing<wbr>Filled<wbr>Entities</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-private"><a href="clrunner.html#populateprebuilts" class="tsd-kind-icon">Populate<wbr>Prebuilts</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-private"><a href="clrunner.html#processformdata" class="tsd-kind-icon">Process<wbr>Form<wbr>Data</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-private"><a href="clrunner.html#processinput" class="tsd-kind-icon">Process<wbr>Input</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-private"><a href="clrunner.html#processpredictedentities" class="tsd-kind-icon">Process<wbr>Predicted<wbr>Entities</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-private"><a href="clrunner.html#renderapicard" class="tsd-kind-icon">RenderAPICard</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-private"><a href="clrunner.html#rendererrorcard" class="tsd-kind-icon">Render<wbr>Error<wbr>Card</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="clrunner.html#replaytraindialoglogic" class="tsd-kind-icon">Replay<wbr>Train<wbr>Dialog<wbr>Logic</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-private"><a href="clrunner.html#score" class="tsd-kind-icon">Score</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="clrunner.html#sendintent" class="tsd-kind-icon">Send<wbr>Intent</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-private"><a href="clrunner.html#sendmessage" class="tsd-kind-icon">Send<wbr>Message</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="clrunner.html#setadapter" class="tsd-kind-icon">Set<wbr>Adapter</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="clrunner.html#startsessionasync" class="tsd-kind-icon">Start<wbr>Session<wbr>Async</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="clrunner.html#takeapiaction" class="tsd-kind-icon">TakeAPIAction</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="clrunner.html#takeactionasync" class="tsd-kind-icon">Take<wbr>Action<wbr>Async</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="clrunner.html#takecardaction" class="tsd-kind-icon">Take<wbr>Card<wbr>Action</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-private"><a href="clrunner.html#takesessionaction" class="tsd-kind-icon">Take<wbr>Session<wbr>Action</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="clrunner.html#taketextaction" class="tsd-kind-icon">Take<wbr>Text<wbr>Action</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="clrunner.html#botchecksum" class="tsd-kind-icon">bot<wbr>Checksum</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter"><a href="clrunner.html#convertinternalcallbacktocallback" class="tsd-kind-icon">convert<wbr>Internal<wbr>Callback<wbr>ToCallback</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="clrunner.html#isactionavailable" class="tsd-kind-icon">is<wbr>Action<wbr>Available</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="clrunner.html#onturn" class="tsd-kind-icon">on<wbr>Turn</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="clrunner.html#recognize" class="tsd-kind-icon">recognize</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="clrunner.html#validatetraindialogs" class="tsd-kind-icon">validate<wbr>Train<wbr>Dialogs</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="clrunner.html#create" class="tsd-kind-icon">Create</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="clrunner.html#getrunnerforui" class="tsd-kind-icon">Get<wbr>Runner<wbr>ForUI</a></li>
+							</ul>
+						</section>
+					</div>
+				</section>
+			</section>
+			<section class="tsd-panel-group tsd-member-group tsd-is-private tsd-is-private-protected">
+				<h2>Constructors</h2>
+				<section class="tsd-panel tsd-member tsd-kind-constructor tsd-parent-kind-class tsd-is-private">
+					<a name="constructor" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagPrivate">Private</span> constructor</h3>
+					<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class tsd-is-private">
+						<li class="tsd-signature tsd-kind-icon">new CLRunner<span class="tsd-signature-symbol">(</span>configModelId<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span>, maxTimeout<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span>, client<span class="tsd-signature-symbol">: </span><a href="clclient.html" class="tsd-signature-type">CLClient</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="clrunner.html" class="tsd-signature-type">CLRunner</a></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L150">CLRunner.ts:150</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>configModelId: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></h5>
+								</li>
+								<li>
+									<h5>maxTimeout: <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></h5>
+								</li>
+								<li>
+									<h5>client: <a href="clclient.html" class="tsd-signature-type">CLClient</a></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <a href="clrunner.html" class="tsd-signature-type">CLRunner</a></h4>
+						</li>
+					</ul>
+				</section>
+			</section>
+			<section class="tsd-panel-group tsd-member-group ">
+				<h2>Properties</h2>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="adapter" class="tsd-anchor"></a>
+					<h3>adapter</h3>
+					<div class="tsd-signature tsd-kind-icon">adapter<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">BotAdapter</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L112">CLRunner.ts:112</a></li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="callbacks" class="tsd-anchor"></a>
+					<h3>callbacks</h3>
+					<div class="tsd-signature tsd-kind-icon">callbacks<span class="tsd-signature-symbol">:</span> <a href="../globals.html#callbackmap" class="tsd-signature-type">CallbackMap</a></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L121">CLRunner.ts:121</a></li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-private">
+					<a name="checksum" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagPrivate">Private</span> checksum</h3>
+					<div class="tsd-signature tsd-kind-icon">checksum<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol"> =&nbsp;null</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L114">CLRunner.ts:114</a></li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="clclient" class="tsd-anchor"></a>
+					<h3>cl<wbr>Client</h3>
+					<div class="tsd-signature tsd-kind-icon">cl<wbr>Client<span class="tsd-signature-symbol">:</span> <a href="clclient.html" class="tsd-signature-type">CLClient</a></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L111">CLRunner.ts:111</a></li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-private">
+					<a name="configmodelid" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagPrivate">Private</span> config<wbr>Model<wbr>Id</h3>
+					<div class="tsd-signature tsd-kind-icon">config<wbr>Model<wbr>Id<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L117">CLRunner.ts:117</a></li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="entitydetectioncallback" class="tsd-anchor"></a>
+					<h3>entity<wbr>Detection<wbr>Callback</h3>
+					<div class="tsd-signature tsd-kind-icon">entity<wbr>Detection<wbr>Callback<span class="tsd-signature-symbol">:</span> <a href="conversationlearner.html#entitydetectioncallback" class="tsd-signature-type">EntityDetectionCallback</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L588">CLRunner.ts:588</a></li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-private">
+					<a name="maxtimeout" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagPrivate">Private</span> max<wbr>Timeout</h3>
+					<div class="tsd-signature tsd-kind-icon">max<wbr>Timeout<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L118">CLRunner.ts:118</a></li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="onsessionendcallback" class="tsd-anchor"></a>
+					<h3>on<wbr>Session<wbr>End<wbr>Callback</h3>
+					<div class="tsd-signature tsd-kind-icon">on<wbr>Session<wbr>End<wbr>Callback<span class="tsd-signature-symbol">:</span> <a href="conversationlearner.html#onsessionendcallback" class="tsd-signature-type">OnSessionEndCallback</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L594">CLRunner.ts:594</a></li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="onsessionstartcallback" class="tsd-anchor"></a>
+					<h3>on<wbr>Session<wbr>Start<wbr>Callback</h3>
+					<div class="tsd-signature tsd-kind-icon">on<wbr>Session<wbr>Start<wbr>Callback<span class="tsd-signature-symbol">:</span> <a href="conversationlearner.html#onsessionstartcallback" class="tsd-signature-type">OnSessionStartCallback</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L591">CLRunner.ts:591</a></li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-private tsd-is-static">
+					<a name="runners" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagStatic">Static</span> <span class="tsd-flag ts-flagPrivate">Private</span> Runners</h3>
+					<div class="tsd-signature tsd-kind-icon">Runners<span class="tsd-signature-symbol">:</span> <a href="../interfaces/runnerlookup.html" class="tsd-signature-type">RunnerLookup</a></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L108">CLRunner.ts:108</a></li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-private tsd-is-static">
+					<a name="uirunner" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagStatic">Static</span> <span class="tsd-flag ts-flagPrivate">Private</span> UIRunner</h3>
+					<div class="tsd-signature tsd-kind-icon">UIRunner<span class="tsd-signature-symbol">:</span> <a href="clrunner.html" class="tsd-signature-type">CLRunner</a></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L109">CLRunner.ts:109</a></li>
+						</ul>
+					</aside>
+				</section>
+			</section>
+			<section class="tsd-panel-group tsd-member-group ">
+				<h2>Methods</h2>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter">
+					<a name="addcallback" class="tsd-anchor"></a>
+					<h3>Add<wbr>Callback</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter">
+						<li class="tsd-signature tsd-kind-icon">Add<wbr>Callback&lt;T&gt;<span class="tsd-signature-symbol">(</span>callback<span class="tsd-signature-symbol">: </span><a href="../interfaces/icallbackinput.html" class="tsd-signature-type">ICallbackInput</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L596">CLRunner.ts:596</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-type-parameters-title">Type parameters</h4>
+							<ul class="tsd-type-parameters">
+								<li>
+									<h4>T</h4>
+								</li>
+							</ul>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>callback: <a href="../interfaces/icallbackinput.html" class="tsd-signature-type">ICallbackInput</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-private">
+					<a name="addinput" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagPrivate">Private</span> Add<wbr>Input</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-private">
+						<li class="tsd-signature tsd-kind-icon">Add<wbr>Input<span class="tsd-signature-symbol">(</span>turnContext<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">TurnContext</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/clrecognizerresult.html" class="tsd-signature-type">CLRecognizerResult</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L235">CLRunner.ts:235</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>turnContext: <span class="tsd-signature-type">TurnContext</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/clrecognizerresult.html" class="tsd-signature-type">CLRecognizerResult</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="botstartsession" class="tsd-anchor"></a>
+					<h3>Bot<wbr>Start<wbr>Session</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">Bot<wbr>Start<wbr>Session<span class="tsd-signature-symbol">(</span>turnContext<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">TurnContext</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L197">CLRunner.ts:197</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>turnContext: <span class="tsd-signature-type">TurnContext</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="callentitydetectioncallback" class="tsd-anchor"></a>
+					<h3>Call<wbr>Entity<wbr>Detection<wbr>Callback</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">Call<wbr>Entity<wbr>Detection<wbr>Callback<span class="tsd-signature-symbol">(</span>text<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, predictedEntities<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">PredictedEntity</span><span class="tsd-signature-symbol">[]</span>, clMemory<span class="tsd-signature-symbol">: </span><a href="clmemory.html" class="tsd-signature-type">CLMemory</a>, allEntities<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">EntityBase</span><span class="tsd-signature-symbol">[]</span>, skipEntityDetectionCallBack<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">ScoreInput</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L675">CLRunner.ts:675</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>text: <span class="tsd-signature-type">string</span></h5>
+								</li>
+								<li>
+									<h5>predictedEntities: <span class="tsd-signature-type">PredictedEntity</span><span class="tsd-signature-symbol">[]</span></h5>
+								</li>
+								<li>
+									<h5>clMemory: <a href="clmemory.html" class="tsd-signature-type">CLMemory</a></h5>
+								</li>
+								<li>
+									<h5>allEntities: <span class="tsd-signature-type">EntityBase</span><span class="tsd-signature-symbol">[]</span></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> skipEntityDetectionCallBack: <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol"> =&nbsp;false</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">ScoreInput</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-protected">
+					<a name="checksessionendcallback" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagProtected">Protected</span> Check<wbr>Session<wbr>End<wbr>Callback</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-protected">
+						<li class="tsd-signature tsd-kind-icon">Check<wbr>Session<wbr>End<wbr>Callback<span class="tsd-signature-symbol">(</span>clMemory<span class="tsd-signature-symbol">: </span><a href="clmemory.html" class="tsd-signature-type">CLMemory</a>, entities<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">EntityBase</span><span class="tsd-signature-symbol">[]</span>, sessionEndState<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">SessionEndState</span>, data<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L783">CLRunner.ts:783</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>clMemory: <a href="clmemory.html" class="tsd-signature-type">CLMemory</a></h5>
+								</li>
+								<li>
+									<h5>entities: <span class="tsd-signature-type">EntityBase</span><span class="tsd-signature-symbol">[]</span></h5>
+								</li>
+								<li>
+									<h5>sessionEndState: <span class="tsd-signature-type">SessionEndState</span></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> data: <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-protected">
+					<a name="checksessionstartcallback" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagProtected">Protected</span> Check<wbr>Session<wbr>Start<wbr>Callback</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-protected">
+						<li class="tsd-signature tsd-kind-icon">Check<wbr>Session<wbr>Start<wbr>Callback<span class="tsd-signature-symbol">(</span>clMemory<span class="tsd-signature-symbol">: </span><a href="clmemory.html" class="tsd-signature-type">CLMemory</a>, entities<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">EntityBase</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L751">CLRunner.ts:751</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>clMemory: <a href="clmemory.html" class="tsd-signature-type">CLMemory</a></h5>
+								</li>
+								<li>
+									<h5>entities: <span class="tsd-signature-type">EntityBase</span><span class="tsd-signature-symbol">[]</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-private">
+					<a name="createfilledentitymap" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagPrivate">Private</span> Create<wbr>Filled<wbr>Entity<wbr>Map</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-private">
+						<li class="tsd-signature tsd-kind-icon">Create<wbr>Filled<wbr>Entity<wbr>Map<span class="tsd-signature-symbol">(</span>filledEntities<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">FilledEntity</span><span class="tsd-signature-symbol">[]</span>, entityList<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">EntityList</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">FilledEntityMap</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L1244">CLRunner.ts:1244</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>filledEntities: <span class="tsd-signature-type">FilledEntity</span><span class="tsd-signature-symbol">[]</span></h5>
+								</li>
+								<li>
+									<h5>entityList: <span class="tsd-signature-type">EntityList</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">FilledEntityMap</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-private">
+					<a name="creatememorymanagerasync" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagPrivate">Private</span> Create<wbr>Memory<wbr>Manager<wbr>Async</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-private">
+						<li class="tsd-signature tsd-kind-icon">Create<wbr>Memory<wbr>Manager<wbr>Async<span class="tsd-signature-symbol">(</span>clMemory<span class="tsd-signature-symbol">: </span><a href="clmemory.html" class="tsd-signature-type">CLMemory</a>, allEntities<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">EntityBase</span><span class="tsd-signature-symbol">[]</span>, prevMemories<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">CLM.FilledEntityMap</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="clientmemorymanager.html" class="tsd-signature-type">ClientMemoryManager</a><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L704">CLRunner.ts:704</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>clMemory: <a href="clmemory.html" class="tsd-signature-type">CLMemory</a></h5>
+								</li>
+								<li>
+									<h5>allEntities: <span class="tsd-signature-type">EntityBase</span><span class="tsd-signature-symbol">[]</span></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> prevMemories: <span class="tsd-signature-type">CLM.FilledEntityMap</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="clientmemorymanager.html" class="tsd-signature-type">ClientMemoryManager</a><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-private">
+					<a name="createreadonlymemorymanagerasync" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagPrivate">Private</span> Create<wbr>Read<wbr>Only<wbr>Memory<wbr>Manager<wbr>Async</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-private">
+						<li class="tsd-signature tsd-kind-icon">Create<wbr>Read<wbr>Only<wbr>Memory<wbr>Manager<wbr>Async<span class="tsd-signature-symbol">(</span>clMemory<span class="tsd-signature-symbol">: </span><a href="clmemory.html" class="tsd-signature-type">CLMemory</a>, allEntities<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">EntityBase</span><span class="tsd-signature-symbol">[]</span>, prevMemories<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">CLM.FilledEntityMap</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="readonlyclientmemorymanager.html" class="tsd-signature-type">ReadOnlyClientMemoryManager</a><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L713">CLRunner.ts:713</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>clMemory: <a href="clmemory.html" class="tsd-signature-type">CLMemory</a></h5>
+								</li>
+								<li>
+									<h5>allEntities: <span class="tsd-signature-type">EntityBase</span><span class="tsd-signature-symbol">[]</span></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> prevMemories: <span class="tsd-signature-type">CLM.FilledEntityMap</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="readonlyclientmemorymanager.html" class="tsd-signature-type">ReadOnlyClientMemoryManager</a><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="dialogvalidationerrors" class="tsd-anchor"></a>
+					<h3>Dialog<wbr>Validation<wbr>Errors</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">Dialog<wbr>Validation<wbr>Errors<span class="tsd-signature-symbol">(</span>trainDialog<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">TrainDialog</span>, entities<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">EntityBase</span><span class="tsd-signature-symbol">[]</span>, actions<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">ActionBase</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L1262">CLRunner.ts:1262</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Identify any validation issues
+										Missing Entities
+										Missing Actions
+									Unavailable Actions</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>trainDialog: <span class="tsd-signature-type">TrainDialog</span></h5>
+								</li>
+								<li>
+									<h5>entities: <span class="tsd-signature-type">EntityBase</span><span class="tsd-signature-symbol">[]</span></h5>
+								</li>
+								<li>
+									<h5>actions: <span class="tsd-signature-type">ActionBase</span><span class="tsd-signature-symbol">[]</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="endsessionasync" class="tsd-anchor"></a>
+					<h3>End<wbr>Session<wbr>Async</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">End<wbr>Session<wbr>Async<span class="tsd-signature-symbol">(</span>memory<span class="tsd-signature-symbol">: </span><a href="clmemory.html" class="tsd-signature-type">CLMemory</a>, sessionEndState<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">SessionEndState</span>, data<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L344">CLRunner.ts:344</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>memory: <a href="clmemory.html" class="tsd-signature-type">CLMemory</a></h5>
+								</li>
+								<li>
+									<h5>sessionEndState: <span class="tsd-signature-type">SessionEndState</span></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> data: <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-private">
+					<a name="getarguments" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagPrivate">Private</span> Get<wbr>Arguments</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-private">
+						<li class="tsd-signature tsd-kind-icon">Get<wbr>Arguments<span class="tsd-signature-symbol">(</span>func<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Function</span>, skip<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L618">CLRunner.ts:618</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>func: <span class="tsd-signature-type">Function</span></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> skip: <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> =&nbsp;0</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="gethistory" class="tsd-anchor"></a>
+					<h3>Get<wbr>History</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">Get<wbr>History<span class="tsd-signature-symbol">(</span>trainDialog<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">TrainDialog</span>, userName<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, userId<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, clMemory<span class="tsd-signature-symbol">: </span><a href="clmemory.html" class="tsd-signature-type">CLMemory</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TeachWithHistory</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L1504">CLRunner.ts:1504</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Get Activities generated by trainDialog.
+										Return any errors in TrainDialog
+									NOTE: Will set bot memory to state at end of history</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>trainDialog: <span class="tsd-signature-type">TrainDialog</span></h5>
+								</li>
+								<li>
+									<h5>userName: <span class="tsd-signature-type">string</span></h5>
+								</li>
+								<li>
+									<h5>userId: <span class="tsd-signature-type">string</span></h5>
+								</li>
+								<li>
+									<h5>clMemory: <a href="clmemory.html" class="tsd-signature-type">CLMemory</a></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TeachWithHistory</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-private">
+					<a name="getrenderedarguments" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagPrivate">Private</span> Get<wbr>Rendered<wbr>Arguments</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-private">
+						<li class="tsd-signature tsd-kind-icon">Get<wbr>Rendered<wbr>Arguments<span class="tsd-signature-symbol">(</span>fnArgs<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span>, actionArgs<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">ActionArgument</span><span class="tsd-signature-symbol">[]</span>, filledEntityMap<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">FilledEntityMap</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L1023">CLRunner.ts:1023</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>fnArgs: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></h5>
+								</li>
+								<li>
+									<h5>actionArgs: <span class="tsd-signature-type">ActionArgument</span><span class="tsd-signature-symbol">[]</span></h5>
+								</li>
+								<li>
+									<h5>filledEntityMap: <span class="tsd-signature-type">FilledEntityMap</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-private">
+					<a name="getrunningapp" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagPrivate">Private</span> Get<wbr>Running<wbr>App</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-private">
+						<li class="tsd-signature tsd-kind-icon">Get<wbr>Running<wbr>App<span class="tsd-signature-symbol">(</span>turnContext<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">TurnContext</span>, inEditingUI<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">AppBase</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L320">CLRunner.ts:320</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>turnContext: <span class="tsd-signature-type">TurnContext</span></h5>
+								</li>
+								<li>
+									<h5>inEditingUI: <span class="tsd-signature-type">boolean</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">AppBase</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-private">
+					<a name="getturncontext" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagPrivate">Private</span> Get<wbr>Turn<wbr>Context</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-private">
+						<li class="tsd-signature tsd-kind-icon">Get<wbr>Turn<wbr>Context<span class="tsd-signature-symbol">(</span>clMemory<span class="tsd-signature-symbol">: </span><a href="clmemory.html" class="tsd-signature-type">CLMemory</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TurnContext</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L722">CLRunner.ts:722</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>clMemory: <a href="clmemory.html" class="tsd-signature-type">CLMemory</a></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TurnContext</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="intrainingui" class="tsd-anchor"></a>
+					<h3>In<wbr>TrainingUI</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">In<wbr>TrainingUI<span class="tsd-signature-symbol">(</span>turnContext<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">TurnContext</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L184">CLRunner.ts:184</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>turnContext: <span class="tsd-signature-type">TurnContext</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-private">
+					<a name="initreplaymemory" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagPrivate">Private</span> Init<wbr>Replay<wbr>Memory</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-private">
+						<li class="tsd-signature tsd-kind-icon">Init<wbr>Replay<wbr>Memory<span class="tsd-signature-symbol">(</span>clMemory<span class="tsd-signature-symbol">: </span><a href="clmemory.html" class="tsd-signature-type">CLMemory</a>, trainDialog<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">TrainDialog</span>, allEntities<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">EntityBase</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L1366">CLRunner.ts:1366</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Initialize memory for replay</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>clMemory: <a href="clmemory.html" class="tsd-signature-type">CLMemory</a></h5>
+								</li>
+								<li>
+									<h5>trainDialog: <span class="tsd-signature-type">TrainDialog</span></h5>
+								</li>
+								<li>
+									<h5>allEntities: <span class="tsd-signature-type">EntityBase</span><span class="tsd-signature-symbol">[]</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-private">
+					<a name="populatemissingfilledentities" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagPrivate">Private</span> Populate<wbr>Missing<wbr>Filled<wbr>Entities</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-private">
+						<li class="tsd-signature tsd-kind-icon">Populate<wbr>Missing<wbr>Filled<wbr>Entities<span class="tsd-signature-symbol">(</span>action<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">ActionBase</span>, filledEntityMap<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">FilledEntityMap</span>, allEntities<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">EntityBase</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L1332">CLRunner.ts:1332</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Provide empty FilledEntity for any missing entities so they can still be rendered</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>action: <span class="tsd-signature-type">ActionBase</span></h5>
+								</li>
+								<li>
+									<h5>filledEntityMap: <span class="tsd-signature-type">FilledEntityMap</span></h5>
+								</li>
+								<li>
+									<h5>allEntities: <span class="tsd-signature-type">EntityBase</span><span class="tsd-signature-symbol">[]</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-private">
+					<a name="populateprebuilts" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagPrivate">Private</span> Populate<wbr>Prebuilts</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-private">
+						<li class="tsd-signature tsd-kind-icon">Populate<wbr>Prebuilts<span class="tsd-signature-symbol">(</span>predictedEntities<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">PredictedEntity</span><span class="tsd-signature-symbol">[]</span>, filledEntities<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">FilledEntity</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L1314">CLRunner.ts:1314</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Populate prebuilt information in predicted entities given filled entity array</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>predictedEntities: <span class="tsd-signature-type">PredictedEntity</span><span class="tsd-signature-symbol">[]</span></h5>
+								</li>
+								<li>
+									<h5>filledEntities: <span class="tsd-signature-type">FilledEntity</span><span class="tsd-signature-symbol">[]</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-private">
+					<a name="processformdata" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagPrivate">Private</span> Process<wbr>Form<wbr>Data</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-private">
+						<li class="tsd-signature tsd-kind-icon">Process<wbr>Form<wbr>Data<span class="tsd-signature-symbol">(</span>request<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Activity</span>, clMemory<span class="tsd-signature-symbol">: </span><a href="clmemory.html" class="tsd-signature-type">CLMemory</a>, appId<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L528">CLRunner.ts:528</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>request: <span class="tsd-signature-type">Activity</span></h5>
+								</li>
+								<li>
+									<h5>clMemory: <a href="clmemory.html" class="tsd-signature-type">CLMemory</a></h5>
+								</li>
+								<li>
+									<h5>appId: <span class="tsd-signature-type">string</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-private">
+					<a name="processinput" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagPrivate">Private</span> Process<wbr>Input</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-private">
+						<li class="tsd-signature tsd-kind-icon">Process<wbr>Input<span class="tsd-signature-symbol">(</span>turnContext<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">TurnContext</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/clrecognizerresult.html" class="tsd-signature-type">CLRecognizerResult</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L359">CLRunner.ts:359</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>turnContext: <span class="tsd-signature-type">TurnContext</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/clrecognizerresult.html" class="tsd-signature-type">CLRecognizerResult</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-private">
+					<a name="processpredictedentities" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagPrivate">Private</span> Process<wbr>Predicted<wbr>Entities</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-private">
+						<li class="tsd-signature tsd-kind-icon">Process<wbr>Predicted<wbr>Entities<span class="tsd-signature-symbol">(</span>text<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, memory<span class="tsd-signature-symbol">: </span><a href="botmemory.html" class="tsd-signature-type">BotMemory</a>, predictedEntities<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">PredictedEntity</span><span class="tsd-signature-symbol">[]</span>, allEntities<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">EntityBase</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L627">CLRunner.ts:627</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>text: <span class="tsd-signature-type">string</span></h5>
+								</li>
+								<li>
+									<h5>memory: <a href="botmemory.html" class="tsd-signature-type">BotMemory</a></h5>
+								</li>
+								<li>
+									<h5>predictedEntities: <span class="tsd-signature-type">PredictedEntity</span><span class="tsd-signature-symbol">[]</span></h5>
+								</li>
+								<li>
+									<h5>allEntities: <span class="tsd-signature-type">EntityBase</span><span class="tsd-signature-symbol">[]</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-private">
+					<a name="renderapicard" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagPrivate">Private</span> RenderAPICard</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-private">
+						<li class="tsd-signature tsd-kind-icon">RenderAPICard<span class="tsd-signature-symbol">(</span>callback<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Callback</span>, args<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Partial</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Activity</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L1833">CLRunner.ts:1833</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>callback: <span class="tsd-signature-type">Callback</span></h5>
+								</li>
+								<li>
+									<h5>args: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Partial</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Activity</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-private">
+					<a name="rendererrorcard" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagPrivate">Private</span> Render<wbr>Error<wbr>Card</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-private">
+						<li class="tsd-signature tsd-kind-icon">Render<wbr>Error<wbr>Card<span class="tsd-signature-symbol">(</span>title<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, error<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Partial</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Activity</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L1858">CLRunner.ts:1858</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>title: <span class="tsd-signature-type">string</span></h5>
+								</li>
+								<li>
+									<h5>error: <span class="tsd-signature-type">string</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Partial</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Activity</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="replaytraindialoglogic" class="tsd-anchor"></a>
+					<h3>Replay<wbr>Train<wbr>Dialog<wbr>Logic</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">Replay<wbr>Train<wbr>Dialog<wbr>Logic<span class="tsd-signature-symbol">(</span>trainDialog<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">TrainDialog</span>, clMemory<span class="tsd-signature-symbol">: </span><a href="clmemory.html" class="tsd-signature-type">CLMemory</a>, cleanse<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TrainDialog</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L1384">CLRunner.ts:1384</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Replay a TrainDialog, calling EntityDetection callback and API Logic,
+									recalculating FilledEntities along the way</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>trainDialog: <span class="tsd-signature-type">TrainDialog</span></h5>
+								</li>
+								<li>
+									<h5>clMemory: <a href="clmemory.html" class="tsd-signature-type">CLMemory</a></h5>
+								</li>
+								<li>
+									<h5>cleanse: <span class="tsd-signature-type">boolean</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TrainDialog</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-private">
+					<a name="score" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagPrivate">Private</span> Score</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-private">
+						<li class="tsd-signature tsd-kind-icon">Score<span class="tsd-signature-symbol">(</span>appId<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, sessionId<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, memory<span class="tsd-signature-symbol">: </span><a href="clmemory.html" class="tsd-signature-type">CLMemory</a>, text<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, predictedEntities<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">PredictedEntity</span><span class="tsd-signature-symbol">[]</span>, allEntities<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">EntityBase</span><span class="tsd-signature-symbol">[]</span>, inTeach<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span>, skipEntityDetectionCallBack<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">ScoredAction</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L558">CLRunner.ts:558</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>appId: <span class="tsd-signature-type">string</span></h5>
+								</li>
+								<li>
+									<h5>sessionId: <span class="tsd-signature-type">string</span></h5>
+								</li>
+								<li>
+									<h5>memory: <a href="clmemory.html" class="tsd-signature-type">CLMemory</a></h5>
+								</li>
+								<li>
+									<h5>text: <span class="tsd-signature-type">string</span></h5>
+								</li>
+								<li>
+									<h5>predictedEntities: <span class="tsd-signature-type">PredictedEntity</span><span class="tsd-signature-symbol">[]</span></h5>
+								</li>
+								<li>
+									<h5>allEntities: <span class="tsd-signature-type">EntityBase</span><span class="tsd-signature-symbol">[]</span></h5>
+								</li>
+								<li>
+									<h5>inTeach: <span class="tsd-signature-type">boolean</span></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> skipEntityDetectionCallBack: <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol"> =&nbsp;false</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">ScoredAction</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="sendintent" class="tsd-anchor"></a>
+					<h3>Send<wbr>Intent</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">Send<wbr>Intent<span class="tsd-signature-symbol">(</span>intent<span class="tsd-signature-symbol">: </span><a href="../interfaces/clrecognizerresult.html" class="tsd-signature-type">CLRecognizerResult</a>, clData<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">CLChannelData</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/iactionresult.html" class="tsd-signature-type">IActionResult</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L975">CLRunner.ts:975</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>intent: <a href="../interfaces/clrecognizerresult.html" class="tsd-signature-type">CLRecognizerResult</a></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> clData: <span class="tsd-signature-type">CLChannelData</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol"> =&nbsp;null</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/iactionresult.html" class="tsd-signature-type">IActionResult</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-private">
+					<a name="sendmessage" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagPrivate">Private</span> Send<wbr>Message</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-private">
+						<li class="tsd-signature tsd-kind-icon">Send<wbr>Message<span class="tsd-signature-symbol">(</span>memory<span class="tsd-signature-symbol">: </span><a href="clmemory.html" class="tsd-signature-type">CLMemory</a>, message<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">Partial</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Activity</span><span class="tsd-signature-symbol">&gt;</span>, incomingActivityId<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L998">CLRunner.ts:998</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>memory: <a href="clmemory.html" class="tsd-signature-type">CLMemory</a></h5>
+								</li>
+								<li>
+									<h5>message: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">Partial</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Activity</span><span class="tsd-signature-symbol">&gt;</span></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> incomingActivityId: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="setadapter" class="tsd-anchor"></a>
+					<h3>Set<wbr>Adapter</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">Set<wbr>Adapter<span class="tsd-signature-symbol">(</span>adapter<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">BotAdapter</span>, conversationReference<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Partial</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">ConversationReference</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L229">CLRunner.ts:229</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>adapter: <span class="tsd-signature-type">BotAdapter</span></h5>
+								</li>
+								<li>
+									<h5>conversationReference: <span class="tsd-signature-type">Partial</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">ConversationReference</span><span class="tsd-signature-symbol">&gt;</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="startsessionasync" class="tsd-anchor"></a>
+					<h3>Start<wbr>Session<wbr>Async</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">Start<wbr>Session<wbr>Async<span class="tsd-signature-symbol">(</span>clMemory<span class="tsd-signature-symbol">: </span><a href="clmemory.html" class="tsd-signature-type">CLMemory</a>, conversationId<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span>, appId<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, sessionStartFlags<span class="tsd-signature-symbol">: </span><a href="../enums/sessionstartflags.html" class="tsd-signature-type">SessionStartFlags</a>, createParams<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">SessionCreateParams</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">CreateTeachParams</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Teach</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">Session</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L275">CLRunner.ts:275</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>clMemory: <a href="clmemory.html" class="tsd-signature-type">CLMemory</a></h5>
+								</li>
+								<li>
+									<h5>conversationId: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span></h5>
+								</li>
+								<li>
+									<h5>appId: <span class="tsd-signature-type">string</span></h5>
+								</li>
+								<li>
+									<h5>sessionStartFlags: <a href="../enums/sessionstartflags.html" class="tsd-signature-type">SessionStartFlags</a></h5>
+								</li>
+								<li>
+									<h5>createParams: <span class="tsd-signature-type">SessionCreateParams</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">CreateTeachParams</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Teach</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">Session</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="takeapiaction" class="tsd-anchor"></a>
+					<h3>TakeAPIAction</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">TakeAPIAction<span class="tsd-signature-symbol">(</span>apiAction<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">ApiAction</span>, filledEntityMap<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">FilledEntityMap</span>, clMemory<span class="tsd-signature-symbol">: </span><a href="clmemory.html" class="tsd-signature-type">CLMemory</a>, allEntities<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">EntityBase</span><span class="tsd-signature-symbol">[]</span>, inTeach<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span>, actionInput<span class="tsd-signature-symbol">: </span><a href="../globals.html#iactioninput" class="tsd-signature-type">IActionInput</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/iactionresult.html" class="tsd-signature-type">IActionResult</a><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L1047">CLRunner.ts:1047</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>apiAction: <span class="tsd-signature-type">ApiAction</span></h5>
+								</li>
+								<li>
+									<h5>filledEntityMap: <span class="tsd-signature-type">FilledEntityMap</span></h5>
+								</li>
+								<li>
+									<h5>clMemory: <a href="clmemory.html" class="tsd-signature-type">CLMemory</a></h5>
+								</li>
+								<li>
+									<h5>allEntities: <span class="tsd-signature-type">EntityBase</span><span class="tsd-signature-symbol">[]</span></h5>
+								</li>
+								<li>
+									<h5>inTeach: <span class="tsd-signature-type">boolean</span></h5>
+								</li>
+								<li>
+									<h5>actionInput: <a href="../globals.html#iactioninput" class="tsd-signature-type">IActionInput</a></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/iactionresult.html" class="tsd-signature-type">IActionResult</a><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="takeactionasync" class="tsd-anchor"></a>
+					<h3>Take<wbr>Action<wbr>Async</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">Take<wbr>Action<wbr>Async<span class="tsd-signature-symbol">(</span>conversationReference<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Partial</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">ConversationReference</span><span class="tsd-signature-symbol">&gt;</span>, clRecognizeResult<span class="tsd-signature-symbol">: </span><a href="../interfaces/clrecognizerresult.html" class="tsd-signature-type">CLRecognizerResult</a>, clData<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">CLChannelData</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/iactionresult.html" class="tsd-signature-type">IActionResult</a><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L828">CLRunner.ts:828</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>conversationReference: <span class="tsd-signature-type">Partial</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">ConversationReference</span><span class="tsd-signature-symbol">&gt;</span></h5>
+								</li>
+								<li>
+									<h5>clRecognizeResult: <a href="../interfaces/clrecognizerresult.html" class="tsd-signature-type">CLRecognizerResult</a></h5>
+								</li>
+								<li>
+									<h5>clData: <span class="tsd-signature-type">CLChannelData</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/iactionresult.html" class="tsd-signature-type">IActionResult</a><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="takecardaction" class="tsd-anchor"></a>
+					<h3>Take<wbr>Card<wbr>Action</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">Take<wbr>Card<wbr>Action<span class="tsd-signature-symbol">(</span>cardAction<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">CardAction</span>, filledEntityMap<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">FilledEntityMap</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Partial</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Activity</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L1166">CLRunner.ts:1166</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>cardAction: <span class="tsd-signature-type">CardAction</span></h5>
+								</li>
+								<li>
+									<h5>filledEntityMap: <span class="tsd-signature-type">FilledEntityMap</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Partial</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Activity</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-private">
+					<a name="takesessionaction" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagPrivate">Private</span> Take<wbr>Session<wbr>Action</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-private">
+						<li class="tsd-signature tsd-kind-icon">Take<wbr>Session<wbr>Action<span class="tsd-signature-symbol">(</span>sessionAction<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">SessionAction</span>, filledEntityMap<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">FilledEntityMap</span>, inTeach<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span>, clMemory<span class="tsd-signature-symbol">: </span><a href="clmemory.html" class="tsd-signature-type">CLMemory</a>, sessionId<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span>, app<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">AppBase</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Partial</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Activity</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L1191">CLRunner.ts:1191</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>sessionAction: <span class="tsd-signature-type">SessionAction</span></h5>
+								</li>
+								<li>
+									<h5>filledEntityMap: <span class="tsd-signature-type">FilledEntityMap</span></h5>
+								</li>
+								<li>
+									<h5>inTeach: <span class="tsd-signature-type">boolean</span></h5>
+								</li>
+								<li>
+									<h5>clMemory: <a href="clmemory.html" class="tsd-signature-type">CLMemory</a></h5>
+								</li>
+								<li>
+									<h5>sessionId: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span></h5>
+								</li>
+								<li>
+									<h5>app: <span class="tsd-signature-type">AppBase</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Partial</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Activity</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="taketextaction" class="tsd-anchor"></a>
+					<h3>Take<wbr>Text<wbr>Action</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">Take<wbr>Text<wbr>Action<span class="tsd-signature-symbol">(</span>textAction<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">TextAction</span>, filledEntityMap<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">FilledEntityMap</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Partial</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Activity</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L1162">CLRunner.ts:1162</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>textAction: <span class="tsd-signature-type">TextAction</span></h5>
+								</li>
+								<li>
+									<h5>filledEntityMap: <span class="tsd-signature-type">FilledEntityMap</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Partial</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Activity</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="botchecksum" class="tsd-anchor"></a>
+					<h3>bot<wbr>Checksum</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">bot<wbr>Checksum<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L158">CLRunner.ts:158</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter">
+					<a name="convertinternalcallbacktocallback" class="tsd-anchor"></a>
+					<h3>convert<wbr>Internal<wbr>Callback<wbr>ToCallback</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter">
+						<li class="tsd-signature tsd-kind-icon">convert<wbr>Internal<wbr>Callback<wbr>ToCallback&lt;T&gt;<span class="tsd-signature-symbol">(</span>c<span class="tsd-signature-symbol">: </span><a href="../interfaces/internalcallback.html" class="tsd-signature-type">InternalCallback</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Callback</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L168">CLRunner.ts:168</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-type-parameters-title">Type parameters</h4>
+							<ul class="tsd-type-parameters">
+								<li>
+									<h4>T</h4>
+								</li>
+							</ul>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>c: <a href="../interfaces/internalcallback.html" class="tsd-signature-type">InternalCallback</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Callback</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="isactionavailable" class="tsd-anchor"></a>
+					<h3>is<wbr>Action<wbr>Available</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">is<wbr>Action<wbr>Available<span class="tsd-signature-symbol">(</span>action<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">ActionBase</span>, filledEntities<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">FilledEntity</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L1226">CLRunner.ts:1226</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>action: <span class="tsd-signature-type">ActionBase</span></h5>
+								</li>
+								<li>
+									<h5>filledEntities: <span class="tsd-signature-type">FilledEntity</span><span class="tsd-signature-symbol">[]</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="onturn" class="tsd-anchor"></a>
+					<h3>on<wbr>Turn</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">on<wbr>Turn<span class="tsd-signature-symbol">(</span>turnContext<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">TurnContext</span>, next<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">function</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L173">CLRunner.ts:173</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>turnContext: <span class="tsd-signature-type">TurnContext</span></h5>
+								</li>
+								<li>
+									<h5>next: <span class="tsd-signature-type">function</span></h5>
+									<ul class="tsd-parameters">
+										<li class="tsd-parameter-siganture">
+											<ul class="tsd-signatures tsd-kind-type-literal tsd-is-not-exported">
+												<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">(</span>result<span class="tsd-signature-symbol">: </span><a href="../interfaces/clrecognizerresult.html" class="tsd-signature-type">CLRecognizerResult</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+											</ul>
+											<ul class="tsd-descriptions">
+												<li class="tsd-description">
+													<h4 class="tsd-parameters-title">Parameters</h4>
+													<ul class="tsd-parameters">
+														<li>
+															<h5>result: <a href="../interfaces/clrecognizerresult.html" class="tsd-signature-type">CLRecognizerResult</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span></h5>
+														</li>
+													</ul>
+													<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
+												</li>
+											</ul>
+										</li>
+									</ul>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="recognize" class="tsd-anchor"></a>
+					<h3>recognize</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">recognize<span class="tsd-signature-symbol">(</span>turnContext<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">TurnContext</span>, force<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">false</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">true</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/clrecognizerresult.html" class="tsd-signature-type">CLRecognizerResult</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L178">CLRunner.ts:178</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>turnContext: <span class="tsd-signature-type">TurnContext</span></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> force: <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">false</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">true</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/clrecognizerresult.html" class="tsd-signature-type">CLRecognizerResult</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="validatetraindialogs" class="tsd-anchor"></a>
+					<h3>validate<wbr>Train<wbr>Dialogs</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">validate<wbr>Train<wbr>Dialogs<span class="tsd-signature-symbol">(</span>appDefinition<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">AppDefinition</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L1299">CLRunner.ts:1299</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Return a list of trainDialogs that are invalid for the given set of entities and actions</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>appDefinition: <span class="tsd-signature-type">AppDefinition</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
+					<a name="create" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagStatic">Static</span> Create</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
+						<li class="tsd-signature tsd-kind-icon">Create<span class="tsd-signature-symbol">(</span>configModelId<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span>, maxTimeout<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span>, client<span class="tsd-signature-symbol">: </span><a href="clclient.html" class="tsd-signature-type">CLClient</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="clrunner.html" class="tsd-signature-type">CLRunner</a></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L123">CLRunner.ts:123</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>configModelId: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></h5>
+								</li>
+								<li>
+									<h5>maxTimeout: <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></h5>
+								</li>
+								<li>
+									<h5>client: <a href="clclient.html" class="tsd-signature-type">CLClient</a></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <a href="clrunner.html" class="tsd-signature-type">CLRunner</a></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
+					<a name="getrunnerforui" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagStatic">Static</span> Get<wbr>Runner<wbr>ForUI</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
+						<li class="tsd-signature tsd-kind-icon">Get<wbr>Runner<wbr>ForUI<span class="tsd-signature-symbol">(</span>appId<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="clrunner.html" class="tsd-signature-type">CLRunner</a></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/Microsoft/ConversationLearner-sdk/blob/664a490/src/CLRunner.ts#L139">CLRunner.ts:139</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> appId: <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <a href="clrunner.html" class="tsd-signature-type">CLRunner</a></h4>
+						</li>
+					</ul>
+				</section>
+			</section>
+		</div>
+		<div class="col-4 col-menu menu-sticky-wrap menu-highlight">
+			<nav class="tsd-navigation primary">
+				<ul>
+					<li class="globals  ">
+						<a href="../globals.html"><em>Globals</em></a>
+					</li>
+				</ul>
+			</nav>
+			<nav class="tsd-navigation secondary menu-sticky">
+				<ul class="before-current">
+				</ul>
+				<ul class="current">
+					<li class="current tsd-kind-class">
+						<a href="clrunner.html" class="tsd-kind-icon">CLRunner</a>
+						<ul>
+							<li class=" tsd-kind-constructor tsd-parent-kind-class tsd-is-private">
+								<a href="clrunner.html#constructor" class="tsd-kind-icon">constructor</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class">
+								<a href="clrunner.html#adapter" class="tsd-kind-icon">adapter</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class">
+								<a href="clrunner.html#callbacks" class="tsd-kind-icon">callbacks</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-private">
+								<a href="clrunner.html#checksum" class="tsd-kind-icon">checksum</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class">
+								<a href="clrunner.html#clclient" class="tsd-kind-icon">cl<wbr>Client</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-private">
+								<a href="clrunner.html#configmodelid" class="tsd-kind-icon">config<wbr>Model<wbr>Id</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class">
+								<a href="clrunner.html#entitydetectioncallback" class="tsd-kind-icon">entity<wbr>Detection<wbr>Callback</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-private">
+								<a href="clrunner.html#maxtimeout" class="tsd-kind-icon">max<wbr>Timeout</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class">
+								<a href="clrunner.html#onsessionendcallback" class="tsd-kind-icon">on<wbr>Session<wbr>End<wbr>Callback</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class">
+								<a href="clrunner.html#onsessionstartcallback" class="tsd-kind-icon">on<wbr>Session<wbr>Start<wbr>Callback</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-private tsd-is-static">
+								<a href="clrunner.html#runners" class="tsd-kind-icon">Runners</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-private tsd-is-static">
+								<a href="clrunner.html#uirunner" class="tsd-kind-icon">UIRunner</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter">
+								<a href="clrunner.html#addcallback" class="tsd-kind-icon">Add<wbr>Callback</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-private">
+								<a href="clrunner.html#addinput" class="tsd-kind-icon">Add<wbr>Input</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="clrunner.html#botstartsession" class="tsd-kind-icon">Bot<wbr>Start<wbr>Session</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="clrunner.html#callentitydetectioncallback" class="tsd-kind-icon">Call<wbr>Entity<wbr>Detection<wbr>Callback</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-protected">
+								<a href="clrunner.html#checksessionendcallback" class="tsd-kind-icon">Check<wbr>Session<wbr>End<wbr>Callback</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-protected">
+								<a href="clrunner.html#checksessionstartcallback" class="tsd-kind-icon">Check<wbr>Session<wbr>Start<wbr>Callback</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-private">
+								<a href="clrunner.html#createfilledentitymap" class="tsd-kind-icon">Create<wbr>Filled<wbr>Entity<wbr>Map</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-private">
+								<a href="clrunner.html#creatememorymanagerasync" class="tsd-kind-icon">Create<wbr>Memory<wbr>Manager<wbr>Async</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-private">
+								<a href="clrunner.html#createreadonlymemorymanagerasync" class="tsd-kind-icon">Create<wbr>Read<wbr>Only<wbr>Memory<wbr>Manager<wbr>Async</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="clrunner.html#dialogvalidationerrors" class="tsd-kind-icon">Dialog<wbr>Validation<wbr>Errors</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="clrunner.html#endsessionasync" class="tsd-kind-icon">End<wbr>Session<wbr>Async</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-private">
+								<a href="clrunner.html#getarguments" class="tsd-kind-icon">Get<wbr>Arguments</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="clrunner.html#gethistory" class="tsd-kind-icon">Get<wbr>History</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-private">
+								<a href="clrunner.html#getrenderedarguments" class="tsd-kind-icon">Get<wbr>Rendered<wbr>Arguments</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-private">
+								<a href="clrunner.html#getrunningapp" class="tsd-kind-icon">Get<wbr>Running<wbr>App</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-private">
+								<a href="clrunner.html#getturncontext" class="tsd-kind-icon">Get<wbr>Turn<wbr>Context</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="clrunner.html#intrainingui" class="tsd-kind-icon">In<wbr>TrainingUI</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-private">
+								<a href="clrunner.html#initreplaymemory" class="tsd-kind-icon">Init<wbr>Replay<wbr>Memory</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-private">
+								<a href="clrunner.html#populatemissingfilledentities" class="tsd-kind-icon">Populate<wbr>Missing<wbr>Filled<wbr>Entities</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-private">
+								<a href="clrunner.html#populateprebuilts" class="tsd-kind-icon">Populate<wbr>Prebuilts</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-private">
+								<a href="clrunner.html#processformdata" class="tsd-kind-icon">Process<wbr>Form<wbr>Data</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-private">
+								<a href="clrunner.html#processinput" class="tsd-kind-icon">Process<wbr>Input</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-private">
+								<a href="clrunner.html#processpredictedentities" class="tsd-kind-icon">Process<wbr>Predicted<wbr>Entities</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-private">
+								<a href="clrunner.html#renderapicard" class="tsd-kind-icon">RenderAPICard</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-private">
+								<a href="clrunner.html#rendererrorcard" class="tsd-kind-icon">Render<wbr>Error<wbr>Card</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="clrunner.html#replaytraindialoglogic" class="tsd-kind-icon">Replay<wbr>Train<wbr>Dialog<wbr>Logic</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-private">
+								<a href="clrunner.html#score" class="tsd-kind-icon">Score</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="clrunner.html#sendintent" class="tsd-kind-icon">Send<wbr>Intent</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-private">
+								<a href="clrunner.html#sendmessage" class="tsd-kind-icon">Send<wbr>Message</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="clrunner.html#setadapter" class="tsd-kind-icon">Set<wbr>Adapter</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="clrunner.html#startsessionasync" class="tsd-kind-icon">Start<wbr>Session<wbr>Async</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="clrunner.html#takeapiaction" class="tsd-kind-icon">TakeAPIAction</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="clrunner.html#takeactionasync" class="tsd-kind-icon">Take<wbr>Action<wbr>Async</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="clrunner.html#takecardaction" class="tsd-kind-icon">Take<wbr>Card<wbr>Action</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-private">
+								<a href="clrunner.html#takesessionaction" class="tsd-kind-icon">Take<wbr>Session<wbr>Action</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="clrunner.html#taketextaction" class="tsd-kind-icon">Take<wbr>Text<wbr>Action</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="clrunner.html#botchecksum" class="tsd-kind-icon">bot<wbr>Checksum</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter">
+								<a href="clrunner.html#convertinternalcallbacktocallback" class="tsd-kind-icon">convert<wbr>Internal<wbr>Callback<wbr>ToCallback</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="clrunner.html#isactionavailable" class="tsd-kind-icon">is<wbr>Action<wbr>Available</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="clrunner.html#onturn" class="tsd-kind-icon">on<wbr>Turn</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="clrunner.html#recognize" class="tsd-kind-icon">recognize</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="clrunner.html#validatetraindialogs" class="tsd-kind-icon">validate<wbr>Train<wbr>Dialogs</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-static">
+								<a href="clrunner.html#create" class="tsd-kind-icon">Create</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-static">
+								<a href="clrunner.html#getrunnerforui" class="tsd-kind-icon">Get<wbr>Runner<wbr>ForUI</a>
+							</li>
+						</ul>
+					</li>
+				</ul>
+				<ul class="after-current">
+				</ul>
+			</nav>
+		</div>
+	</div>
+</div>
+<footer class="with-border-bottom">
+	<div class="container">
+		<h2>Legend</h2>
+		<div class="tsd-legend-group">
+			<ul class="tsd-legend">
+				<li class="tsd-kind-module"><span class="tsd-kind-icon">Module</span></li>
+				<li class="tsd-kind-object-literal"><span class="tsd-kind-icon">Object literal</span></li>
+				<li class="tsd-kind-variable"><span class="tsd-kind-icon">Variable</span></li>
+				<li class="tsd-kind-function"><span class="tsd-kind-icon">Function</span></li>
+				<li class="tsd-kind-function tsd-has-type-parameter"><span class="tsd-kind-icon">Function with type parameter</span></li>
+				<li class="tsd-kind-index-signature"><span class="tsd-kind-icon">Index signature</span></li>
+				<li class="tsd-kind-type-alias"><span class="tsd-kind-icon">Type alias</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-enum"><span class="tsd-kind-icon">Enumeration</span></li>
+				<li class="tsd-kind-enum-member"><span class="tsd-kind-icon">Enumeration member</span></li>
+				<li class="tsd-kind-property tsd-parent-kind-enum"><span class="tsd-kind-icon">Property</span></li>
+				<li class="tsd-kind-method tsd-parent-kind-enum"><span class="tsd-kind-icon">Method</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-interface"><span class="tsd-kind-icon">Interface</span></li>
+				<li class="tsd-kind-interface tsd-has-type-parameter"><span class="tsd-kind-icon">Interface with type parameter</span></li>
+				<li class="tsd-kind-constructor tsd-parent-kind-interface"><span class="tsd-kind-icon">Constructor</span></li>
+				<li class="tsd-kind-property tsd-parent-kind-interface"><span class="tsd-kind-icon">Property</span></li>
+				<li class="tsd-kind-method tsd-parent-kind-interface"><span class="tsd-kind-icon">Method</span></li>
+				<li class="tsd-kind-index-signature tsd-parent-kind-interface"><span class="tsd-kind-icon">Index signature</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-class"><span class="tsd-kind-icon">Class</span></li>
+				<li class="tsd-kind-class tsd-has-type-parameter"><span class="tsd-kind-icon">Class with type parameter</span></li>
+				<li class="tsd-kind-constructor tsd-parent-kind-class"><span class="tsd-kind-icon">Constructor</span></li>
+				<li class="tsd-kind-property tsd-parent-kind-class"><span class="tsd-kind-icon">Property</span></li>
+				<li class="tsd-kind-method tsd-parent-kind-class"><span class="tsd-kind-icon">Method</span></li>
+				<li class="tsd-kind-accessor tsd-parent-kind-class"><span class="tsd-kind-icon">Accessor</span></li>
+				<li class="tsd-kind-index-signature tsd-parent-kind-class"><span class="tsd-kind-icon">Index signature</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-constructor tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited constructor</span></li>
+				<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited property</span></li>
+				<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited method</span></li>
+				<li class="tsd-kind-accessor tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited accessor</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><span class="tsd-kind-icon">Protected property</span></li>
+				<li class="tsd-kind-method tsd-parent-kind-class tsd-is-protected"><span class="tsd-kind-icon">Protected method</span></li>
+				<li class="tsd-kind-accessor tsd-parent-kind-class tsd-is-protected"><span class="tsd-kind-icon">Protected accessor</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-property tsd-parent-kind-class tsd-is-private"><span class="tsd-kind-icon">Private property</span></li>
+				<li class="tsd-kind-method tsd-parent-kind-class tsd-is-private"><span class="tsd-kind-icon">Private method</span></li>
+				<li class="tsd-kind-accessor tsd-parent-kind-class tsd-is-private"><span class="tsd-kind-icon">Private accessor</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-property tsd-parent-kind-class tsd-is-static"><span class="tsd-kind-icon">Static property</span></li>
+				<li class="tsd-kind-call-signature tsd-parent-kind-class tsd-is-static"><span class="tsd-kind-icon">Static method</span></li>
+			</ul>
+		</div>
+	</div>
+</footer>
+<div class="container tsd-generator">
+	<p>Generated using <a href="http://typedoc.org/" target="_blank">TypeDoc</a></p>
+</div>
+<div class="overlay"></div>
+<script src="../assets/js/main.js"></script>
+<script>if (location.protocol == 'file:') document.write('<script src="../assets/js/search.js"><' + '/script>');</script>
+</body>
+</html>

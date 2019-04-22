@@ -72,7 +72,7 @@ export class BotMemory {
 
     public async RestoreFromMemoryManagerAsync(memoryManager: ClientMemoryManager): Promise<void> {
         // Disable memory manager.  Use has been completed
-        memoryManager.__Expire()
+        memoryManager.Expire()
         this.filledEntityMap.map = memoryManager.curMemories.map
         await this.Set()
     }

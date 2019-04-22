@@ -40,10 +40,12 @@ describe('upgrade', () => {
                     "logicArg",
                     "sharedArg"
                 ],
+                isLogicFunctionProvided: true,
                 renderArguments: [
                     "renderArg",
                     "sharedArg"
-                ]
+                ],
+                isRenderFunctionProvided: true
             }
 
             // Act
@@ -72,8 +74,10 @@ describe('upgrade', () => {
                 name: "myCallback",
                 logicArguments: [
                 ],
+                isLogicFunctionProvided: true,
                 renderArguments: [
-                ]
+                ],
+                isRenderFunctionProvided: true,
             }
 
             // Act
@@ -95,6 +99,7 @@ describe('upgrade', () => {
                 createdDateTime: new Date().toJSON(),
                 isTerminal: false,
                 negativeEntities: [],
+                negativeConditions: [],
                 payload: JSON.stringify({
                     payload: "myCallback",
                     logicArguments: [
@@ -115,6 +120,7 @@ describe('upgrade', () => {
                     ]
                 } as models.ActionPayload),
                 requiredEntities: [],
+                requiredConditions: [],
                 requiredEntitiesFromPayload: [],
                 suggestedEntity: null,
                 version: 0,
@@ -140,6 +146,7 @@ describe('upgrade', () => {
                 createdDateTime: new Date().toJSON(),
                 isTerminal: false,
                 negativeEntities: [],
+                negativeConditions: [],
                 payload: JSON.stringify({
                     payload: "myCallback",
                     arguments: [
@@ -158,6 +165,7 @@ describe('upgrade', () => {
                     ]
                 } as models.ActionPayloadSingleArguments),
                 requiredEntities: [],
+                requiredConditions: [],
                 requiredEntitiesFromPayload: [],
                 suggestedEntity: null,
                 version: 0,
@@ -201,6 +209,7 @@ describe('upgrade', () => {
                 createdDateTime: new Date().toJSON(),
                 isTerminal: false,
                 negativeEntities: [],
+                negativeConditions: [],
                 payload: JSON.stringify({
                     payload: "myCallback",
                     arguments: [
@@ -219,6 +228,7 @@ describe('upgrade', () => {
                     ]
                 } as models.ActionPayloadSingleArguments),
                 requiredEntities: [],
+                requiredConditions: [],
                 requiredEntitiesFromPayload: [],
                 suggestedEntity: null,
                 version: 0,

@@ -1,11 +1,16 @@
 skip_branch_with_pr: true
+skip_tags: true
+
+branches:
+  only:
+    - master
 
 cache:
   - '%AppData%\npm-cache -> appveyor.yml'
   - node_modules -> package-lock.json
   
 install:
-  - npm install
+  - npm ci
 
 before_build:
   # Output useful info for debugging.

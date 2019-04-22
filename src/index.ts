@@ -7,12 +7,12 @@ import { ICLOptions } from './CLOptions'
 import { ClientMemoryManager, ReadOnlyClientMemoryManager } from './Memory/ClientMemoryManager'
 import { RedisStorage } from './RedisStorage'
 import { FileStorage } from './FileStorage'
-import startUiServer from './clUi'
-import { SessionEndState } from '@conversationlearner/models'
+import uiRouter from './uiRouter'
+import { SessionEndState, MemoryValue } from '@conversationlearner/models'
 import { EntityDetectionCallback, OnSessionStartCallback, OnSessionEndCallback, LogicCallback, RenderCallback, ICallbackInput } from './CLRunner'
 
 export {
-    startUiServer,
+    uiRouter,
     ConversationLearner,
     ICLOptions,
     ClientMemoryManager,
@@ -24,6 +24,7 @@ export {
     OnSessionStartCallback,
     OnSessionEndCallback,
     LogicCallback,
+    MemoryValue,
     RenderCallback,
     ICallbackInput
 }
