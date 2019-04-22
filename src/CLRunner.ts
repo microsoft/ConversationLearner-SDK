@@ -931,10 +931,11 @@ export class CLRunner {
                 break
             }
             case CLM.ActionTypes.SET_ENTITY: {
-                // TODO: Schema refactor, scored actions aren't actions...
-                const action = clRecognizeResult.scoredAction as any as CLM.ActionBase
+                // TODO: Schema refactor
+                // scored actions aren't actions and only have payload instead of strongly typed values
+                const setEntityAction = new CLM.SetEntityAction(clRecognizeResult.scoredAction as any)
                 actionResult = await this.TakeSetEntityAction(
-                    action,
+                    setEntityAction,
                     filledEntityMap,
                     clRecognizeResult.memory,
                     clRecognizeResult.clEntities,
@@ -1071,14 +1072,10 @@ export class CLRunner {
         return renderedArgumentValues
     }
 
-    public async TakeSetEntityAction(action: CLM.ActionBase, filledEntityMap: CLM.FilledEntityMap, clMemory: CLMemory, allEntities: CLM.EntityBase[], inTeach: boolean): Promise<IActionResult> {
+    public async TakeSetEntityAction(action: CLM.SetEntityAction, filledEntityMap: CLM.FilledEntityMap, clMemory: CLMemory, allEntities: CLM.EntityBase[], inTeach: boolean): Promise<IActionResult> {
         try {
             let replayError: CLM.ReplayError | undefined
             let response: Partial<BB.Activity> | string | null = null
-
-            if (action.actionType !== CLM.ActionTypes.SET_ENTITY) {
-                throw new Error(`You attempted to call TakeSetEntityAction but passed an action (${action.actionId}) that is not of type SET_ENTITY.`)
-            }
 
             const entity = allEntities.find(e => e.entityId === action.entityId)
             if (!entity) {
@@ -1557,7 +1554,8 @@ export class CLRunner {
                             const sessionAction = new CLM.SessionAction(curAction)
                             await this.TakeSessionAction(sessionAction, filledEntityMap, true, clMemory, null, null)
                         } else if (curAction.actionType === CLM.ActionTypes.SET_ENTITY) {
-                            await this.TakeSetEntityAction(curAction, filledEntityMap, clMemory, entityList.entities, true)
+                            const setEntityAction = new CLM.SetEntityAction(curAction)
+                            await this.TakeSetEntityAction(setEntityAction, filledEntityMap, clMemory, entityList.entities, true)
                         }
                     }
 
@@ -1828,7 +1826,8 @@ export class CLRunner {
                                 response: await this.TakeSessionAction(sessionAction, filledEntityMap, true, clMemory, null, null)
                             }
                         } else if (curAction.actionType === CLM.ActionTypes.SET_ENTITY) {
-                            botResponse = await this.TakeSetEntityAction(curAction, filledEntityMap, clMemory, entityList.entities, true)
+                            const setEntityAction = new CLM.SetEntityAction(curAction)
+                            botResponse = await this.TakeSetEntityAction(setEntityAction, filledEntityMap, clMemory, entityList.entities, true)
                         }
                         else {
                             throw new Error(`Cannot construct bot response for unknown action type: ${curAction.actionType}`)
