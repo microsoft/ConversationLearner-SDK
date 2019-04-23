@@ -398,6 +398,10 @@ export class CLRunner {
 
             let sessionId = await clMemory.BotState.GetSessionIdAndSetConversationId(activity.conversation.id)
 
+            // Process any form data
+            let buttonResponse = await this.ProcessFormData(activity, clMemory, app.appId)
+
+
             // When UI is active inputs are handled via API calls from the Conversation Learner UI
             if (uiMode !== UIMode.NONE) {
                 return null
@@ -484,9 +488,6 @@ export class CLRunner {
                 let session = await this.StartSessionAsync(clMemory, activity.conversation.id, app.appId, SessionStartFlags.NONE, sessionCreateParams) as CLM.Session
                 sessionId = session.sessionId
             }
-
-            // Process any form data
-            let buttonResponse = await this.ProcessFormData(activity, clMemory, app.appId)
 
             let entities: CLM.EntityBase[] = []
 
