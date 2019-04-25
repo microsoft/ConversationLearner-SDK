@@ -1110,7 +1110,7 @@ export class CLRunner {
             const error: Error = e
             const title = error.message || `Exception hit when calling Set Entity Action: '${action.actionId}'`
             const message = this.RenderErrorCard(title, error.stack || error.message || "")
-            const replayError = new CLM.ReplayErrorAPIException()
+            const replayError = new CLM.ReplaySetEntityException()
             return {
                 logicResult: undefined,
                 response: message,
