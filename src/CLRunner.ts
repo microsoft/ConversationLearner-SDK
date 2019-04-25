@@ -90,7 +90,7 @@ interface IActionInputLogic {
     logicResult: CLM.LogicResult | undefined
 }
 interface IActionInputRenderOnly {
-    type: ActionInputType.LOGIC_AND_RENDER | ActionInputType.LOGIC_ONLY
+    type: Exclude<ActionInputType, ActionInputType.RENDER_ONLY>
 }
 
 type IActionInput = IActionInputRenderOnly | IActionInputLogic
@@ -1079,16 +1079,16 @@ export class CLRunner {
 
             const entity = allEntities.find(e => e.entityId === action.entityId)
             if (!entity) {
-                throw new Error(`Set Entity Action (${action.actionId}) could not find the referenced entity with id: ${action.entityId}`)
+                throw new Error(`Set Entity Action: ${action.actionId} could not find the referenced entity with id: ${action.entityId}`)
             }
 
             if (entity.entityType !== CLM.EntityType.ENUM) {
-                throw new Error(`Set Entity Action (${action.actionId}) referenced entity ${entity.entityName} but it is not an ENUM. Please update the action to reference the correct entity.`)
+                throw new Error(`Set Entity Action: ${action.actionId} referenced entity ${entity.entityName} but it is not an ENUM. Please update the action to reference the correct entity.`)
             }
 
             const enumValueObj = (entity.enumValues && entity.enumValues.find(ev => ev.enumValueId === action.enumValueId))
             if (!enumValueObj) {
-                throw new Error(`Set Entity Action: (${action.actionId}) which sets: ${entity.entityName} could not find the value with id: ${action.enumValueId}`)
+                throw new Error(`Set Entity Action: ${action.actionId} which sets: ${entity.entityName} could not find the value with id: ${action.enumValueId}`)
             }
 
             // TODO: Is there more efficient way to do this, like editing memory directly?
