@@ -125,7 +125,9 @@ describe('upgrade', () => {
                 suggestedEntity: null,
                 version: 0,
                 packageCreationId: 0,
-                packageDeletionId: 0
+                packageDeletionId: 0,
+                entityId: undefined,
+                enumValueId: undefined,
             }
 
             const callbackMap: CallbackMap = {}
@@ -170,7 +172,9 @@ describe('upgrade', () => {
                 suggestedEntity: null,
                 version: 0,
                 packageCreationId: 0,
-                packageDeletionId: 0
+                packageDeletionId: 0,
+                entityId: undefined,
+                enumValueId: undefined,
             }
 
             const callbackMap: CallbackMap = {}
@@ -233,7 +237,9 @@ describe('upgrade', () => {
                 suggestedEntity: null,
                 version: 0,
                 packageCreationId: 0,
-                packageDeletionId: 0
+                packageDeletionId: 0,
+                entityId: undefined,
+                enumValueId: undefined,
             }
 
             const appDefinition: models.AppDefinition = {
