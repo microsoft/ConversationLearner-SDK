@@ -1128,14 +1128,15 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
         try {
             const key = getMemoryKey(req)
             const appId = req.params.appId
-            const { username: userName, userid: userId } = getQuery(req)
+            const { username: userName, userid: userId, useMarkdown: useMarkdown } = getQuery(req)
+            const markdown = useMarkdown === "true";
             const trainDialog: CLM.TrainDialog = req.body
 
             const memory = CLMemory.GetMemory(key)
             const clRunner = CLRunner.GetRunnerForUI(appId);
             validateBot(req, clRunner.botChecksum())
 
-            const teachWithHistory = await clRunner.GetHistory(trainDialog, userName, userId, memory)
+            const teachWithHistory = await clRunner.GetHistory(trainDialog, userName, userId, memory, markdown)
 
             // Clear bot memory generated with this
             await memory.BotMemory.ClearAsync();

@@ -2,21 +2,20 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License.
  */
+import * as util from 'util'
 import * as BB from 'botbuilder'
+import * as CLM from '@conversationlearner/models'
+import * as Utils from './Utils'
 import { CLMemory } from './CLMemory'
 import { BotMemory } from './Memory/BotMemory'
 import { CLDebug } from './CLDebug'
 import { CLClient } from './CLClient'
 import { CLStrings } from './CLStrings'
 import { TemplateProvider } from './TemplateProvider'
-import * as CLM from '@conversationlearner/models'
-import * as Utils from './Utils'
 import { ReadOnlyClientMemoryManager, ClientMemoryManager } from './Memory/ClientMemoryManager'
 import { CLRecognizerResult } from './CLRecognizeResult'
 import { ConversationLearner } from './ConversationLearner'
 import { InputQueue } from './Memory/InputQueue'
-import * as util from 'util'
-import { FilledEntityMap } from '@conversationlearner/models';
 import { UIMode } from './Memory/BotState';
 
 interface RunnerLookup {
@@ -1071,7 +1070,7 @@ export class CLRunner {
             // Update memory with changes from logic callback
             await clMemory.BotMemory.RestoreFromMemoryManagerAsync(memoryManager)
 
-            let feMap = FilledEntityMap.FromFilledEntities(filledEntities, allEntities)
+            let feMap = CLM.FilledEntityMap.FromFilledEntities(filledEntities, allEntities)
 
             let body = Object.keys(feMap.map).map(feKey => {
                 return {
@@ -1486,37 +1485,47 @@ export class CLRunner {
 
             // Use scorer step to populate pre-built data (when)
             if (round.scorerSteps && round.scorerSteps.length > 0) {
-                this.PopulatePrebuilts(predictedEntities, scoreInput.filledEntities)
-                round.scorerSteps[0].input.filledEntities = scoreInput.filledEntities
+                // LARS TODO RENAME NEW
+                if (round.scorerSteps[0].labelAction !== "NEW") {
+                    this.PopulatePrebuilts(predictedEntities, scoreInput.filledEntities)
+                    round.scorerSteps[0].input.filledEntities = scoreInput.filledEntities
+                }
 
                 // Go through each scorer step
                 for (let [scoreIndex, scorerStep] of round.scorerSteps.entries()) {
 
-                    let curAction = actions.filter((a: CLM.ActionBase) => a.actionId === scorerStep.labelAction)[0]
-                    if (curAction) {
+                    // LARS TODO RENAME NEW
+                    if (scorerStep.labelAction === "NEW") {
+                        const filledEntityMap = CLM.FilledEntityMap.FromFilledEntities(scorerStep.input.filledEntities, entities)
+                        await clMemory.BotMemory.RestoreFromMapAsync(filledEntityMap)
+                    }
+                    else {
+                        let curAction = actions.filter((a: CLM.ActionBase) => a.actionId === scorerStep.labelAction)[0]
+                        if (curAction) {
 
-                        let filledEntityMap = await clMemory.BotMemory.FilledEntityMap()
+                            let filledEntityMap = await clMemory.BotMemory.FilledEntityMap()
 
-                        // Provide empty FilledEntity for missing entities
-                        if (!cleanse) {
-                            this.PopulateMissingFilledEntities(curAction, filledEntityMap, entities, false)
-                        }
-
-                        round.scorerSteps[scoreIndex].input.filledEntities = filledEntityMap.FilledEntities()
-
-                        // Run logic part of APIAction to update the FilledEntities
-                        if (curAction.actionType === CLM.ActionTypes.API_LOCAL) {
-                            const apiAction = new CLM.ApiAction(curAction)
-                            const actionInput: IActionInput = {
-                                type: ActionInputType.LOGIC_ONLY
+                            // Provide empty FilledEntity for missing entities
+                            if (!cleanse) {
+                                this.PopulateMissingFilledEntities(curAction, filledEntityMap, entities, false)
                             }
-                            // Calculate and store new logic result
-                            const filledIdMap = filledEntityMap.EntityMapToIdMap()
-                            let actionResult = await this.TakeAPIAction(apiAction, filledIdMap, clMemory, entityList.entities, true, actionInput)
-                            round.scorerSteps[scoreIndex].logicResult = actionResult.logicResult
-                        } else if (curAction.actionType === CLM.ActionTypes.END_SESSION) {
-                            const sessionAction = new CLM.SessionAction(curAction)
-                            await this.TakeSessionAction(sessionAction, filledEntityMap, true, clMemory, null, null)
+
+                            round.scorerSteps[scoreIndex].input.filledEntities = filledEntityMap.FilledEntities()
+
+                            // Run logic part of APIAction to update the FilledEntities
+                            if (curAction.actionType === CLM.ActionTypes.API_LOCAL) {
+                                const apiAction = new CLM.ApiAction(curAction)
+                                const actionInput: IActionInput = {
+                                    type: ActionInputType.LOGIC_ONLY
+                                }
+                                // Calculate and store new logic result
+                                const filledIdMap = filledEntityMap.EntityMapToIdMap()
+                                let actionResult = await this.TakeAPIAction(apiAction, filledIdMap, clMemory, entityList.entities, true, actionInput)
+                                round.scorerSteps[scoreIndex].logicResult = actionResult.logicResult
+                            } else if (curAction.actionType === CLM.ActionTypes.END_SESSION) {
+                                const sessionAction = new CLM.SessionAction(curAction)
+                                await this.TakeSessionAction(sessionAction, filledEntityMap, true, clMemory, null, null)
+                            }
                         }
                     }
 
@@ -1562,7 +1571,7 @@ export class CLRunner {
      * Return any errors in TrainDialog  
      * NOTE: Will set bot memory to state at end of history
      */
-    public async GetHistory(trainDialog: CLM.TrainDialog, userName: string, userId: string, clMemory: CLMemory): Promise<CLM.TeachWithHistory | null> {
+    public async GetHistory(trainDialog: CLM.TrainDialog, userName: string, userId: string, clMemory: CLMemory, useMarkdown: boolean = true): Promise<CLM.TeachWithHistory | null> {
 
         let entities: CLM.EntityBase[] = trainDialog.definitions ? trainDialog.definitions.entities : []
         let actions: CLM.ActionBase[] = trainDialog.definitions ? trainDialog.definitions.actions : []
@@ -1640,15 +1649,20 @@ export class CLRunner {
             }
 
             // Generate activity.  Add markdown to highlight labelled entities
-            let userText = CLM.ModelUtils.textVariationToMarkdown(round.extractorStep.textVariations[0], excludedEntities)
-            let userActivity: Partial<BB.Activity> = CLM.ModelUtils.InputToActivity(userText, userName, userId, roundNum)
+            let userText = useMarkdown
+                ? CLM.ModelUtils.textVariationToMarkdown(round.extractorStep.textVariations[0], excludedEntities)
+                : round.extractorStep.textVariations[0].text
+
+            let userActivity: Partial<BB.Activity> = CLM.ModelUtils.InputToActivity(userText, userName, userId, roundIndex)
 
             let clUserData: CLM.CLChannelData = {
                 senderType: CLM.SenderType.User,
                 roundIndex: roundIndex,
+                scoreIndex: null,
                 replayError,
                 activityIndex: activities.length,
             }
+            userActivity.from!.role = BB.RoleTypes.User
             userActivity.channelData.clData = clUserData
             userActivity.textFormat = 'markdown'
 
@@ -1718,7 +1732,7 @@ export class CLRunner {
                         replayErrors.push(replayError);
 
                         let actionName = ""
-                        if (curAction.actionType === CLM.ActionTypes.API_LOCAL) {
+                        if (curAction && curAction.actionType === CLM.ActionTypes.API_LOCAL) {
                             const apiAction = new CLM.ApiAction(curAction)
                             actionName = `${apiAction.name}`
                         }
