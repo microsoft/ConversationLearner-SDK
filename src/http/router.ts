@@ -890,14 +890,14 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const key = getMemoryKey(req)
             const { appId, teachId } = req.params
             // Dialog to ignore when checking for conflicting labels
-            const { filteredDialog } = getQuery(req)
+            const { excludeConflictCheckId } = getQuery(req)
             const userInput: CLM.UserInput = req.body
 
             // If a form text could be null
             if (!userInput.text) {
                 userInput.text = '  '
             }
-            const extractResponse = await client.TeachExtract(appId, teachId, userInput, filteredDialog)
+            const extractResponse = await client.TeachExtract(appId, teachId, userInput, excludeConflictCheckId)
 
             const memory = CLMemory.GetMemory(key)
             const memories = await memory.BotMemory.DumpMemory()
@@ -991,11 +991,11 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const { appId, trainDialogId } = req.params
             const textVariation: CLM.TextVariation = req.body
             // Dialog to ignore when checking for conflicting labels
-            const { filteredDialog } = getQuery(req)
+            const { excludeConflictCheckId } = getQuery(req)
 
             try {
                 // Send teach feedback;
-                await client.TrainDialogValidateTextVariation(appId, trainDialogId, textVariation, filteredDialog)
+                await client.TrainDialogValidateTextVariation(appId, trainDialogId, textVariation, excludeConflictCheckId)
             }
             catch (error) {
                 if (error.statusCode === HttpStatus.CONFLICT) {
