@@ -705,7 +705,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const appId = req.params.appId
             const {
                 username: userName,
-                userid: userId } = getQuery(req)
+                userid: userId,
+                filteredDialog } = getQuery(req)
 
 
             const trainDialog: CLM.TrainDialog = req.body.trainDialog
@@ -730,6 +731,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
             // Start new teach session from the old train dialog
             const createTeachParams = CLM.ModelUtils.ToCreateTeachParams(cleanTrainDialog)
+
+            // NOTE: Todo - pass in filteredDialogId so start sesssion doesn't find conflicts with existing dialog being edited
             teachWithHistory.teach = await clRunner.StartSessionAsync(clMemory, null, appId, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE, createTeachParams) as CLM.Teach
 
             // If last action wasn't terminal then score
@@ -755,7 +758,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 teachWithHistory.history.push(userActivity)
 
                 // Extract responses
-                teachWithHistory.extractResponse = await client.TeachExtract(appId, teachWithHistory.teach.teachId, userInput, null)
+                teachWithHistory.extractResponse = await client.TeachExtract(appId, teachWithHistory.teach.teachId, userInput, filteredDialog)
                 teachWithHistory.dialogMode = CLM.DialogMode.Extractor
             }
             res.send(teachWithHistory)
