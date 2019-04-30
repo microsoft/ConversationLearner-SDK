@@ -500,19 +500,6 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
         }
     })
 
-    router.get('/app/:appId/logdialogs', async (req, res, next) => {
-        const { appId } = req.params
-
-        try {
-            const { packageId } = getQuery(req)
-            const packageIds = packageId.split(",")
-            const logDialogs = await client.GetLogDialogs(appId, packageIds)
-            res.send(logDialogs)
-        } catch (error) {
-            HandleError(res, error)
-        }
-    })
-
     //========================================================
     // TrainDialogs
     //========================================================
