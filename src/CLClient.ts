@@ -271,7 +271,7 @@ export class CLClient {
     public TrainDialogValidateTextVariation(appId: string, trainDialogId: string, textVariation: CLM.TextVariation, filteredDialog: string): Promise<null> {
         let apiPath = `app/${appId}/traindialog/${trainDialogId}/extractor/textvariation`
         // Note: service can take a list of filteredDialogs, but we just use one for now
-        let query = filteredDialog ? `filteredDialogs[]=${filteredDialog}` : undefined
+        let query = filteredDialog ? `filteredDialogs=${filteredDialog}` : undefined
         return this.send('POST', this.MakeURL(apiPath, query), textVariation)
     }
 
