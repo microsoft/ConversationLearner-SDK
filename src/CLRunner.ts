@@ -1546,6 +1546,7 @@ export class CLRunner {
             // Use scorer step to populate pre-built data (when)
             if (round.scorerSteps && round.scorerSteps.length > 0) {
 
+                // Set filled entities, unless using an API Stub
                 const firstAction = actions.filter((a: CLM.ActionBase) => a.actionId === round.scorerSteps[0].labelAction)[0]
                 if (!ActionBase.isStubbedAPI(firstAction)) {
                     this.PopulatePrebuilts(predictedEntities, scoreInput.filledEntities)
@@ -1562,18 +1563,17 @@ export class CLRunner {
                         await clMemory.BotMemory.RestoreFromMapAsync(filledEntityMap)
                     }
                     else {
+                        const filledEntityMap = await clMemory.BotMemory.FilledEntityMap()
 
+                        // Provide empty FilledEntity for missing entities
+                        if (!cleanse && curAction) {
+                            this.PopulateMissingFilledEntities(curAction, filledEntityMap, entities, false)
+                        }
+
+                        round.scorerSteps[scoreIndex].input.filledEntities = filledEntityMap.FilledEntities()
+
+                        // CurAction may not exist if it's stubbed action
                         if (curAction) {
-
-                            const filledEntityMap = await clMemory.BotMemory.FilledEntityMap()
-
-                            // Provide empty FilledEntity for missing entities
-                            if (!cleanse) {
-                                this.PopulateMissingFilledEntities(curAction, filledEntityMap, entities, false)
-                            }
-
-                            round.scorerSteps[scoreIndex].input.filledEntities = filledEntityMap.FilledEntities()
-
                             // Run logic part of APIAction to update the FilledEntities
                             if (curAction.actionType === CLM.ActionTypes.API_LOCAL) {
                                 const apiAction = new CLM.ApiAction(curAction)
@@ -1754,12 +1754,13 @@ export class CLRunner {
 
                     let botResponse: IActionResult | null = null
                     let validWaitAction
+                    // If scorer step a stub action from an import?
                     if (scorerStep.stubText) {
                         botResponse = {
                             logicResult: undefined,
                             response: scorerStep.stubText
                         }
-                        replayError = new CLM.ReplayErrorActionUndefined(userText)
+                        replayError = new CLM.ReplayErrorActionStub(userText)
                         replayErrors.push(replayError);
                     }
                     else {
@@ -1843,17 +1844,9 @@ export class CLRunner {
                                 }
                             }
                             else if (CLM.ActionBase.isStubbedAPI(curAction)) {
-                                // If stub is for imported bot response - LARS remove
-                                if (scorerStep.stubText) {
-                                    botResponse = {
-                                        logicResult: undefined,
-                                        response: scorerStep.stubText
-                                    }
-                                }
-                                // Otherwise stub is for API call
-                                else {
-                                    botResponse = await this.TakeAPIStubAction(scorerStep.stubFilledEntities || [], filledEntityMap, clMemory, entities)
-                                }
+                                botResponse = await this.TakeAPIStubAction(scorerStep.stubFilledEntities || [], filledEntityMap, clMemory, entities)
+                                replayError = replayError || new CLM.ReplayErrorAPIStub()
+                                replayErrors.push(replayError);
                             }
                             else if (curAction.actionType === CLM.ActionTypes.API_LOCAL) {
                                 const apiAction = new CLM.ApiAction(curAction)
