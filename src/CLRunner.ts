@@ -861,91 +861,104 @@ export class CLRunner {
         let sessionId: string | null = null
         let replayError: CLM.ReplayError | null = null
         const inTeach = clData !== null
-        switch (clRecognizeResult.scoredAction.actionType) {
-            case CLM.ActionTypes.TEXT: {
-                // This is hack to allow ScoredAction to be accepted as ActionBase
-                // TODO: Remove extra properties from ScoredAction so it only had actionId and up service to return actions definitions of scored/unscored actions
-                // so UI can link the two together instead of having "partial" actions being incorrectly treated as full actions
-                const textAction = new CLM.TextAction(clRecognizeResult.scoredAction as any)
-                const response = await this.TakeTextAction(textAction, filledEntityMap)
-                actionResult = {
-                    logicResult: undefined,
-                    response
-                }
-                break
-            }
-            case CLM.ActionTypes.API_LOCAL: {
-                const apiAction = new CLM.ApiAction(clRecognizeResult.scoredAction as any)
-                actionResult = await this.TakeAPIAction(
-                    apiAction,
-                    filledEntityMap,
-                    clRecognizeResult.memory,
-                    clRecognizeResult.clEntities,
-                    inTeach,
-                    {
-                        type: ActionInputType.LOGIC_AND_RENDER
-                    }
-                )
 
-                if (inTeach) {
-                    if (actionResult.replayError) {
-                        replayError = actionResult.replayError
+        if (CLM.ActionBase.isStubbedAPI(clRecognizeResult.scoredAction)) {
+            const response = await this.TakeAPIStubAction(
+                filledEntityMap.FilledEntities(),
+                clRecognizeResult.memory,
+                clRecognizeResult.clEntities)
+            actionResult = {
+                logicResult: undefined,
+                response: response as BB.Activity
+            }
+        }
+        else {
+            switch (clRecognizeResult.scoredAction.actionType) {
+                case CLM.ActionTypes.TEXT: {
+                    // This is hack to allow ScoredAction to be accepted as ActionBase
+                    // TODO: Remove extra properties from ScoredAction so it only had actionId and up service to return actions definitions of scored/unscored actions
+                    // so UI can link the two together instead of having "partial" actions being incorrectly treated as full actions
+                    const textAction = new CLM.TextAction(clRecognizeResult.scoredAction as any)
+                    const response = await this.TakeTextAction(textAction, filledEntityMap)
+                    actionResult = {
+                        logicResult: undefined,
+                        response
                     }
+                    break
                 }
-                else {
+                case CLM.ActionTypes.API_LOCAL: {
+                    const apiAction = new CLM.ApiAction(clRecognizeResult.scoredAction as any)
+                    actionResult = await this.TakeAPIAction(
+                        apiAction,
+                        filledEntityMap,
+                        clRecognizeResult.memory,
+                        clRecognizeResult.clEntities,
+                        inTeach,
+                        {
+                            type: ActionInputType.LOGIC_AND_RENDER
+                        }
+                    )
+
+                    if (inTeach) {
+                        if (actionResult.replayError) {
+                            replayError = actionResult.replayError
+                        }
+                    }
+                    else {
+                        app = await clRecognizeResult.memory.BotState.GetApp()
+                        if (!app) {
+                            throw new Error(`Attempted to get current app before app was set.`)
+                        }
+                        if (app.metadata.isLoggingOn !== false && actionResult && actionResult.logicResult !== undefined) {
+                            if (!conversationReference.conversation) {
+                                throw new Error(`Attempted to get session by conversation id, but user was not defined on current conversation`)
+                            }
+
+                            sessionId = await clRecognizeResult.memory.BotState.GetSessionIdAndSetConversationId(conversationReference.conversation.id)
+                            if (!sessionId) {
+                                throw new Error(`Attempted to get session by conversation id: ${conversationReference.conversation.id} but session was not found`)
+                            }
+                            await this.clClient.SessionLogicResult(app.appId, sessionId, apiAction.actionId, actionResult);
+                        }
+                    }
+                    break
+                }
+                case CLM.ActionTypes.CARD: {
+                    const cardAction = new CLM.CardAction(clRecognizeResult.scoredAction as any)
+                    const response = await this.TakeCardAction(cardAction, filledEntityMap)
+                    actionResult = {
+                        logicResult: undefined,
+                        response
+                    }
+                    break
+                }
+                case CLM.ActionTypes.END_SESSION: {
                     app = await clRecognizeResult.memory.BotState.GetApp()
-                    if (!app) {
-                        throw new Error(`Attempted to get current app before app was set.`)
+                    const sessionAction = new CLM.SessionAction(clRecognizeResult.scoredAction as any)
+                    sessionId = await clRecognizeResult.memory.BotState.GetSessionIdAndSetConversationId(conversationReference.conversation.id)
+                    const response = await this.TakeSessionAction(sessionAction, filledEntityMap, inTeach, clRecognizeResult.memory, sessionId, app);
+                    actionResult = {
+                        logicResult: undefined,
+                        response
                     }
-                    if (app.metadata.isLoggingOn !== false && actionResult && actionResult.logicResult !== undefined) {
-                        if (!conversationReference.conversation) {
-                            throw new Error(`Attempted to get session by conversation id, but user was not defined on current conversation`)
-                        }
-
-                        sessionId = await clRecognizeResult.memory.BotState.GetSessionIdAndSetConversationId(conversationReference.conversation.id)
-                        if (!sessionId) {
-                            throw new Error(`Attempted to get session by conversation id: ${conversationReference.conversation.id} but session was not found`)
-                        }
-                        await this.clClient.SessionLogicResult(app.appId, sessionId, apiAction.actionId, actionResult);
-                    }
+                    break
                 }
-                break
-            }
-            case CLM.ActionTypes.CARD: {
-                const cardAction = new CLM.CardAction(clRecognizeResult.scoredAction as any)
-                const response = await this.TakeCardAction(cardAction, filledEntityMap)
-                actionResult = {
-                    logicResult: undefined,
-                    response
+                case CLM.ActionTypes.SET_ENTITY: {
+                    // TODO: Schema refactor
+                    // scored actions aren't actions and only have payload instead of strongly typed values
+                    const setEntityAction = new CLM.SetEntityAction(clRecognizeResult.scoredAction as any)
+                    actionResult = await this.TakeSetEntityAction(
+                        setEntityAction,
+                        filledEntityMap,
+                        clRecognizeResult.memory,
+                        clRecognizeResult.clEntities,
+                        inTeach
+                    )
+                    break
                 }
-                break
+                default:
+                    throw new Error(`Could not find matching renderer for action type: ${clRecognizeResult.scoredAction.actionType}`)
             }
-            case CLM.ActionTypes.END_SESSION: {
-                app = await clRecognizeResult.memory.BotState.GetApp()
-                const sessionAction = new CLM.SessionAction(clRecognizeResult.scoredAction as any)
-                sessionId = await clRecognizeResult.memory.BotState.GetSessionIdAndSetConversationId(conversationReference.conversation.id)
-                const response = await this.TakeSessionAction(sessionAction, filledEntityMap, inTeach, clRecognizeResult.memory, sessionId, app);
-                actionResult = {
-                    logicResult: undefined,
-                    response
-                }
-                break
-            }
-            case CLM.ActionTypes.SET_ENTITY: {
-                // TODO: Schema refactor
-                // scored actions aren't actions and only have payload instead of strongly typed values
-                const setEntityAction = new CLM.SetEntityAction(clRecognizeResult.scoredAction as any)
-                actionResult = await this.TakeSetEntityAction(
-                    setEntityAction,
-                    filledEntityMap,
-                    clRecognizeResult.memory,
-                    clRecognizeResult.clEntities,
-                    inTeach
-                )
-                break
-            }
-            default:
-                throw new Error(`Could not find matching renderer for action type: ${clRecognizeResult.scoredAction.actionType}`)
         }
 
         // Convert string actions to activities
@@ -1073,10 +1086,11 @@ export class CLRunner {
         return renderedArgumentValues
     }
 
-    public async TakeAPIStubAction(filledEntities: CLM.FilledEntity[], filledEntityMap: CLM.FilledEntityMap, clMemory: CLMemory, allEntities: CLM.EntityBase[]): Promise<IActionResult> {
+    public async TakeAPIStubAction(filledEntities: CLM.FilledEntity[], clMemory: CLMemory, allEntities: CLM.EntityBase[]): Promise<Partial<BB.Activity> | string> {
 
         try {
             const memoryManager = await this.CreateMemoryManagerAsync(clMemory, allEntities)
+
 
             // Update memory with stub API values
             memoryManager.curMemories.UpdateFilledEntities(filledEntities, allEntities)
@@ -1103,16 +1117,10 @@ export class CLRunner {
             const response = BB.MessageFactory.attachment(attachment)
             response.text = "API Stub:"
 
-            return {
-                logicResult: { changedFilledEntities: filledEntities, logicValue: undefined },
-                response
-            }
+            return response
         }
         catch (err) {
-            return {
-                logicResult: undefined,
-                response: CLDebug.Error(err)
-            }
+            return CLDebug.Error(err)
         }
     }
 
@@ -1844,7 +1852,10 @@ export class CLRunner {
                                 }
                             }
                             else if (CLM.ActionBase.isStubbedAPI(curAction)) {
-                                botResponse = await this.TakeAPIStubAction(scorerStep.stubFilledEntities || [], filledEntityMap, clMemory, entities)
+                                botResponse = {
+                                    logicResult: undefined,
+                                    response: await await this.TakeAPIStubAction(scorerStep.stubFilledEntities || scorerStep.input.filledEntities, clMemory, entities)
+                                }
                                 replayError = replayError || new CLM.ReplayErrorAPIStub()
                                 replayErrors.push(replayError);
                             }
