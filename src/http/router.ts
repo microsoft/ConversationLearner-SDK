@@ -500,19 +500,6 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
         }
     })
 
-    router.get('/app/:appId/logdialogs', async (req, res, next) => {
-        const { appId } = req.params
-
-        try {
-            const { packageId } = getQuery(req)
-            const packageIds = packageId.split(",")
-            const logDialogs = await client.GetLogDialogs(appId, packageIds)
-            res.send(logDialogs)
-        } catch (error) {
-            HandleError(res, error)
-        }
-    })
-
     //========================================================
     // TrainDialogs
     //========================================================
@@ -705,7 +692,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const appId = req.params.appId
             const {
                 username: userName,
-                userid: userId } = getQuery(req)
+                userid: userId,
+                filteredDialog } = getQuery(req)
 
 
             const trainDialog: CLM.TrainDialog = req.body.trainDialog
@@ -730,6 +718,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
             // Start new teach session from the old train dialog
             const createTeachParams = CLM.ModelUtils.ToCreateTeachParams(cleanTrainDialog)
+
+            // NOTE: Todo - pass in filteredDialogId so start sesssion doesn't find conflicts with existing dialog being edited
             teachWithHistory.teach = await clRunner.StartSessionAsync(clMemory, null, appId, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE, createTeachParams) as CLM.Teach
 
             // If last action wasn't terminal then score
@@ -755,7 +745,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 teachWithHistory.history.push(userActivity)
 
                 // Extract responses
-                teachWithHistory.extractResponse = await client.TeachExtract(appId, teachWithHistory.teach.teachId, userInput, null)
+                teachWithHistory.extractResponse = await client.TeachExtract(appId, teachWithHistory.teach.teachId, userInput, filteredDialog)
                 teachWithHistory.dialogMode = CLM.DialogMode.Extractor
             }
             res.send(teachWithHistory)
@@ -887,14 +877,14 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const key = getMemoryKey(req)
             const { appId, teachId } = req.params
             // Dialog to ignore when checking for conflicting labels
-            const { filteredDialog } = getQuery(req)
+            const { excludeConflictCheckId } = getQuery(req)
             const userInput: CLM.UserInput = req.body
 
             // If a form text could be null
             if (!userInput.text) {
                 userInput.text = '  '
             }
-            const extractResponse = await client.TeachExtract(appId, teachId, userInput, filteredDialog)
+            const extractResponse = await client.TeachExtract(appId, teachId, userInput, excludeConflictCheckId)
 
             const memory = CLMemory.GetMemory(key)
             const memories = await memory.BotMemory.DumpMemory()
@@ -988,11 +978,11 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const { appId, trainDialogId } = req.params
             const textVariation: CLM.TextVariation = req.body
             // Dialog to ignore when checking for conflicting labels
-            const { filteredDialog } = getQuery(req)
+            const { excludeConflictCheckId } = getQuery(req)
 
             try {
                 // Send teach feedback;
-                await client.TrainDialogValidateTextVariation(appId, trainDialogId, textVariation, filteredDialog)
+                await client.TrainDialogValidateTextVariation(appId, trainDialogId, textVariation, excludeConflictCheckId)
             }
             catch (error) {
                 if (error.statusCode === HttpStatus.CONFLICT) {
