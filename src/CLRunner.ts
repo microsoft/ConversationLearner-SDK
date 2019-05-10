@@ -1554,12 +1554,9 @@ export class CLRunner {
             // Use scorer step to populate pre-built data (when)
             if (round.scorerSteps && round.scorerSteps.length > 0) {
 
-                // Set filled entities, unless using an API Stub
-                const firstAction = actions.filter((a: CLM.ActionBase) => a.actionId === round.scorerSteps[0].labelAction)[0]
-                if (!ActionBase.isStubbedAPI(firstAction)) {
-                    this.PopulatePrebuilts(predictedEntities, scoreInput.filledEntities)
-                    round.scorerSteps[0].input.filledEntities = scoreInput.filledEntities
-                }
+                // Set filled entities
+                this.PopulatePrebuilts(predictedEntities, scoreInput.filledEntities)
+                round.scorerSteps[0].input.filledEntities = scoreInput.filledEntities
 
                 // Go through each scorer step
                 for (let [scoreIndex, scorerStep] of round.scorerSteps.entries()) {
@@ -1567,7 +1564,9 @@ export class CLRunner {
                     const curAction = actions.filter((a: CLM.ActionBase) => a.actionId === scorerStep.labelAction)[0]
 
                     if (ActionBase.isStubbedAPI(curAction)) {
-                        const filledEntityMap = CLM.FilledEntityMap.FromFilledEntities(scorerStep.input.filledEntities, entities)
+                        // Store stub API output is stored in LogicResult
+                        let stubFilledEntities = scorerStep.logicResult ? scorerStep.logicResult.changedFilledEntities : []    
+                        const filledEntityMap = CLM.FilledEntityMap.FromFilledEntities(stubFilledEntities, entities)
                         await clMemory.BotMemory.RestoreFromMapAsync(filledEntityMap)
                     }
                     else {
@@ -1639,6 +1638,108 @@ export class CLRunner {
         return newTrainDialog
     }
 
+    private GetHistoryRoundErrors(
+        round: CLM.TrainRound, 
+        roundIndex: number,
+        curAction: CLM.ActionBase | null,
+        trainDialog: CLM.TrainDialog,
+        allEntities: CLM.EntityBase[], 
+        filledEntities: CLM.FilledEntity[], 
+        replayErrors: CLM.ReplayError[]): CLM.ReplayError | null {
+
+        let replayError: CLM.ReplayError | null = null
+
+        // Check that non-multivalue isn't labelled twice
+        for (let tv of round.extractorStep.textVariations) {
+            let usedEntities: string[] = []
+            for (let labelEntity of tv.labelEntities) {
+                // If already used, make sure it's multi-value
+                if (usedEntities.find(e => e === labelEntity.entityId)) {
+                    let entity = allEntities.find(e => e.entityId == labelEntity.entityId)
+                    if (entity && !entity.isMultivalue
+                        && (entity.entityType === CLM.EntityType.LUIS || entity.entityType === CLM.EntityType.LOCAL)) {
+                        replayError = replayError || new CLM.EntityUnexpectedMultivalue(entity.entityName)
+                        replayErrors.push(replayError);
+                    }
+                }
+                // Otherwise add to list of used entities
+                else {
+                    usedEntities.push(labelEntity.entityId)
+                }
+            }
+        }
+
+        // Check that entities exist in text variations
+        for (let tv of round.extractorStep.textVariations) {
+            for (let labelEntity of tv.labelEntities) {
+                if (!allEntities.find(e => e.entityId == labelEntity.entityId)) {
+                    replayError = new CLM.ReplayErrorEntityUndefined(labelEntity.entityId)
+                    replayErrors.push()
+                }
+            }
+        }
+
+        // Check that entities exist in filled entities
+        for (let filledEntity of filledEntities) {
+            if (!allEntities.find(e => e.entityId == filledEntity.entityId)) {
+                replayError = new CLM.ReplayErrorEntityUndefined(CLM.filledEntityValueAsString(filledEntity))
+                replayErrors.push()
+            }
+        }
+
+        // Check for double user inputs
+        if (roundIndex != trainDialog.rounds.length - 1 &&
+            (round.scorerSteps.length === 0 || !round.scorerSteps[0].labelAction)) {
+            replayError = new CLM.ReplayErrorTwoUserInputs()
+            replayErrors.push(replayError)
+        }
+
+        // Check for user input when previous action wasn't wait
+        if (curAction && !curAction.isTerminal) {
+            replayError = new CLM.ReplayErrorInputAfterNonWait()
+            replayErrors.push(replayError)
+        }
+
+        return replayError
+    }
+
+    private GetHistoryScoreErrors(
+        round: CLM.TrainRound, 
+        scoreIndex: number,
+        scoreFilledEntities: CLM.FilledEntity[],
+        curAction: CLM.ActionBase | null,
+        actions: CLM.ActionBase[], 
+        userText: string,
+        replayErrors: CLM.ReplayError[]): CLM.ReplayError | null {
+
+        let replayError: CLM.ReplayError | null = null
+
+        // Check that action exists
+        if (!curAction) {
+            replayError = new CLM.ReplayErrorActionUndefined(userText)
+            replayErrors.push(replayError)
+        }
+        else {
+            // Check action availability
+            if (!this.isActionAvailable(curAction, scoreFilledEntities)) {
+                replayError = new CLM.ReplayErrorActionUnavailable(userText)
+                replayErrors.push(replayError)
+            }
+        }
+
+        // Check that action (if not first) is after a wait action
+        if (scoreIndex > 0) {
+            const lastScoredAction = round.scorerSteps[scoreIndex - 1].labelAction
+            let lastAction = actions.find(a => a.actionId == lastScoredAction)
+            if (lastAction && lastAction.isTerminal) {
+                replayError = new CLM.ReplayErrorActionAfterWait()
+                replayErrors.push(replayError)
+            }
+        }
+
+        return replayError
+    }
+
     /** 
      * Get Activities generated by trainDialog.
      * Return any errors in TrainDialog  
@@ -1661,65 +1762,15 @@ export class CLRunner {
         let activities: Partial<BB.Activity>[] = []
         let replayError: CLM.ReplayError | null = null
         let replayErrors: CLM.ReplayError[] = [];
-        let curAction = null
+        let curAction: CLM.ActionBase | null = null
 
         for (let [roundIndex, round] of trainDialog.rounds.entries()) {
 
+            // Use entites from first scorer step
             const filledEntities = round.scorerSteps[0] && round.scorerSteps[0].input ? round.scorerSteps[0].input.filledEntities : []
 
-            // VALIDATION
-            replayError = null
-
-            // Check that non-multivalue isn't labelled twice
-            for (let tv of round.extractorStep.textVariations) {
-                let usedEntities: string[] = []
-                for (let labelEntity of tv.labelEntities) {
-                    // If already used, make sure it's multi-value
-                    if (usedEntities.find(e => e === labelEntity.entityId)) {
-                        let entity = entities.find(e => e.entityId == labelEntity.entityId)
-                        if (entity && !entity.isMultivalue
-                            && (entity.entityType === CLM.EntityType.LUIS || entity.entityType === CLM.EntityType.LOCAL)) {
-                            replayError = replayError || new CLM.EntityUnexpectedMultivalue(entity.entityName)
-                            replayErrors.push(replayError);
-                        }
-                    }
-                    // Otherwise add to list of used entities
-                    else {
-                        usedEntities.push(labelEntity.entityId)
-                    }
-                }
-            }
-
-            // Check that entities exist in text variations
-            for (let tv of round.extractorStep.textVariations) {
-                for (let labelEntity of tv.labelEntities) {
-                    if (!entities.find(e => e.entityId == labelEntity.entityId)) {
-                        replayError = new CLM.ReplayErrorEntityUndefined(labelEntity.entityId)
-                        replayErrors.push()
-                    }
-                }
-            }
-
-            // Check that entities exist in filled entities
-            for (let filledEntity of filledEntities) {
-                if (!entities.find(e => e.entityId == filledEntity.entityId)) {
-                    replayError = new CLM.ReplayErrorEntityUndefined(CLM.filledEntityValueAsString(filledEntity))
-                    replayErrors.push()
-                }
-            }
-
-            // Check for double user inputs
-            if (roundIndex != trainDialog.rounds.length - 1 &&
-                (round.scorerSteps.length === 0 || !round.scorerSteps[0].labelAction)) {
-                replayError = new CLM.ReplayErrorTwoUserInputs()
-                replayErrors.push(replayError)
-            }
-
-            // Check for user input when previous action wasn't wait
-            if (curAction && !curAction.isTerminal) {
-                replayError = new CLM.ReplayErrorInputAfterNonWait()
-                replayErrors.push(replayError)
-            }
+            // Validate scorer step
+            replayError = this.GetHistoryRoundErrors(round, roundIndex, curAction, trainDialog, entities, filledEntities, replayErrors)
 
             // Generate activity.  Add markdown to highlight labelled entities
             let userText = useMarkdown
@@ -1738,7 +1789,6 @@ export class CLRunner {
             userActivity.from!.role = BB.RoleTypes.User
             userActivity.channelData.clData = clUserData
             userActivity.textFormat = 'markdown'
-
 
             activities.push(userActivity)
 
@@ -1763,10 +1813,10 @@ export class CLRunner {
                     let botResponse: IActionResult | null = null
                     let validWaitAction
                     // If scorer step a stub action from an import?
-                    if (scorerStep.stubText) {
+                    if (scorerStep.importText) {
                         botResponse = {
                             logicResult: undefined,
-                            response: scorerStep.stubText
+                            response: scorerStep.importText
                         }
                         replayError = new CLM.ReplayErrorActionStub(userText)
                         replayErrors.push(replayError);
@@ -1774,32 +1824,11 @@ export class CLRunner {
                     else {
                         let scoreFilledEntities = scorerStep.input.filledEntities
 
-                        // VALIDATION
                         replayError = null
                         curAction = actions.find(a => a.actionId == labelAction) || null
 
-                        // Check that action exists
-                        if (!curAction) {
-                            replayError = new CLM.ReplayErrorActionUndefined(userText)
-                            replayErrors.push(replayError);
-                        }
-                        else {
-                            // Check action availability
-                            if (!this.isActionAvailable(curAction, scoreFilledEntities)) {
-                                replayError = new CLM.ReplayErrorActionUnavailable(userText)
-                                replayErrors.push(replayError);
-                            }
-                        }
-
-                        // Check that action (if not first) is after a wait action
-                        if (scoreIndex > 0) {
-                            const lastScoredAction = round.scorerSteps[scoreIndex - 1].labelAction
-                            let lastAction = actions.find(a => a.actionId == lastScoredAction)
-                            if (lastAction && lastAction.isTerminal) {
-                                replayError = new CLM.ReplayErrorActionAfterWait()
-                                replayErrors.push(replayError);
-                            }
-                        }
+                        // Validate Score Step
+                        replayError = this.GetHistoryScoreErrors(round, scoreIndex, scoreFilledEntities, curAction, actions, userText, replayErrors)
 
                         // Check for exceptions on API call (specificaly EntityDetectionCallback)
                         const logicAPIError = Utils.GetLogicAPIError(scorerStep.logicResult)
@@ -1852,9 +1881,11 @@ export class CLRunner {
                                 }
                             }
                             else if (CLM.ActionBase.isStubbedAPI(curAction)) {
+                                // Store stub API output is stored in LogicResult
+                                let stubFilledEntities = scorerStep.logicResult ? scorerStep.logicResult.changedFilledEntities : []
                                 botResponse = {
                                     logicResult: undefined,
-                                    response: await await this.TakeAPIStubAction(scorerStep.stubFilledEntities || scorerStep.input.filledEntities, clMemory, entities)
+                                    response: await this.TakeAPIStubAction(stubFilledEntities, clMemory, entities)
                                 }
                                 replayError = replayError || new CLM.ReplayErrorAPIStub()
                                 replayErrors.push(replayError);
