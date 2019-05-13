@@ -8,6 +8,21 @@ import * as CLM from '@conversationlearner/models'
 
 export type MemoryManagerReturnType<T> = T extends CLM.MemoryValue[] | CLM.MemoryValue ? T extends CLM.MemoryValue[] ? CLM.MemoryValue[] : CLM.MemoryValue : T
 
+export enum ChangeType {
+    ADDED = 'ADDED',
+    REMOVED = 'REMOVED',
+    CHANGED = 'EDITED',
+    UNCHANGED = 'UNCHANGED'
+}
+
+export interface IChangedEntity {
+    changeType: ChangeType
+}
+
+export interface IChangedMemory<T> extends IChangedEntity {
+    value: MemoryManagerReturnType<T>
+}
+
 export class ReadOnlyClientMemoryManager {
     protected allEntities: CLM.EntityBase[] = []
     private sessionInfo: SessionInfo
@@ -51,6 +66,55 @@ export class ReadOnlyClientMemoryManager {
      */
     public GetPrevious<T = CLM.MemoryValue[] | CLM.MemoryValue>(entityName: string, converter?: (memoryValues: CLM.MemoryValue[]) => T): MemoryManagerReturnType<T> {
         return this.GetValues(entityName, this.prevMemories, converter)
+    }
+
+    changed<T = CLM.MemoryValue[] | CLM.MemoryValue>(converter?: (memoryValues: CLM.MemoryValue[]) => T): IChangedMemory<T>[] {
+        return this.allEntities.map<IChangedMemory<T>>(entity => {
+            const current = this.Get(entity.entityName, converter)
+            const previous = this.GetPrevious(entity.entityName, converter)
+
+            let change: IChangedMemory<T> | undefined
+
+            // If added
+            if (current && !previous) {
+                change = {
+                    value: current,
+                    changeType: ChangeType.ADDED
+                }
+            }
+            // If removed
+            else if (!current && previous) {
+                change = {
+                    value: current,
+                    changeType: ChangeType.REMOVED
+                }
+            }
+            else if (current && previous) {
+                // TODO: Need to compare userText for edited values
+                // Would need to get raw value and then convert later to avoid comparing objects which would always show as CHANGED
+                const currentValue = current
+                const previousValue = previous
+
+                if (currentValue === previousValue) {
+                    change = {
+                        value: current,
+                        changeType: ChangeType.UNCHANGED
+                    }
+                }
+                else {
+                    change = {
+                        value: current,
+                        changeType: ChangeType.CHANGED
+                    }
+                }
+            }
+
+            if (!change) {
+                throw new Error(`You attempted to add a change to list of changes in memory but change was undefined. There is likely an error, this should not be possible.`)
+            }
+
+            return change
+        }, [])
     }
 
     /**
