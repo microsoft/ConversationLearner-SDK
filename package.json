@@ -1,6 +1,6 @@
 {
   "name": "@conversationlearner/sdk",
-  "version": "0.0.0-development",
+  "version": "0.318.11",
   "description": "Node SDK for Conversation Learner",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
