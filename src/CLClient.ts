@@ -384,7 +384,7 @@ export class CLClient {
      * To delete the associated trainDialog, call DELETE on the trainDialog.
      */
     public EndTeach(appId: string, teachId: string, save: boolean): Promise<CLM.TrainResponse> {
-        const query = save ? `saveDialog=${save}` : ''
+        const query = `saveDialog=${save}`
         let apiPath = `app/${appId}/teach/${teachId}`
         return this.send('DELETE', this.MakeURL(apiPath, query))
     }
