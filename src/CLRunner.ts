@@ -17,7 +17,6 @@ import { CLRecognizerResult } from './CLRecognizeResult'
 import { ConversationLearner } from './ConversationLearner'
 import { InputQueue } from './Memory/InputQueue'
 import { UIMode } from './Memory/BotState';
-import { ActionBase } from '@conversationlearner/models';
 
 interface RunnerLookup {
     [appId: string]: CLRunner
@@ -1309,7 +1308,7 @@ export class CLRunner {
             message.text = undefined
             return message
         } catch (error) {
-            let msg = CLDebug.Error(error, 'Failed to Render Template')
+            let msg = CLDebug.Error(error, 'Card Template or arguments are invalid. Unable to render template')
             return msg
         }
     }
@@ -1563,7 +1562,7 @@ export class CLRunner {
 
                     const curAction = actions.filter((a: CLM.ActionBase) => a.actionId === scorerStep.labelAction)[0]
 
-                    if (ActionBase.isStubbedAPI(curAction)) {
+                    if (CLM.ActionBase.isStubbedAPI(curAction)) {
                         // Store stub API output is stored in LogicResult
                         let stubFilledEntities = scorerStep.logicResult ? scorerStep.logicResult.changedFilledEntities : []    
                         const filledEntityMap = CLM.FilledEntityMap.FromFilledEntities(stubFilledEntities, entities)
@@ -1579,8 +1578,8 @@ export class CLRunner {
 
                         round.scorerSteps[scoreIndex].input.filledEntities = filledEntityMap.FilledEntities()
 
-                        // CurAction may not exist if it's stubbed action
-                        if (curAction) {
+                        // CurAction may not exist if it's an imported action
+                        if (scorerStep.labelAction !== CLM.CL_STUB_IMPORT_ACTION_ID) {
                             // Run logic part of APIAction to update the FilledEntities
                             if (curAction.actionType === CLM.ActionTypes.API_LOCAL) {
                                 const apiAction = new CLM.ApiAction(curAction)
@@ -1814,6 +1813,7 @@ export class CLRunner {
                     let validWaitAction
                     // If scorer step a stub action from an import?
                     if (scorerStep.importText) {
+                        curAction = null
                         botResponse = {
                             logicResult: undefined,
                             response: scorerStep.importText
