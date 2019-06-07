@@ -14,6 +14,28 @@ export interface ConversationSession {
     conversationId: string | null
 }
 
+interface ConversationIdObject {
+    activityId: string
+    user: {
+        id: string
+        name: string
+        aadObjectId?: string
+    },
+    bot: {
+        id: string
+        name: string
+    },
+    conversation: Conversation
+    channelId: "msteams" | string
+}
+
+interface Conversation {
+    id: string
+    isGroup?: boolean
+    conversationType: "channel" | "personal" | string
+    tenantId?: string
+}
+
 export interface SessionInfo {
     userName: string,
     userId: string,
@@ -153,8 +175,8 @@ export class BotState {
     // ------------------------------------------------
     //  CONVERSATION_ID
     // ------------------------------------------------
-    public async GetConversationId(): Promise<string | null> {
-        return await this.GetStateAsync<string | null>(BotStateType.CONVERSATION_ID)
+    public async GetConversationId(): Promise<string | ConversationIdObject | null> {
+        return await this.GetStateAsync<string | ConversationIdObject | null>(BotStateType.CONVERSATION_ID)
     }
 
     public async SetConversationId(conversationId: string | null): Promise<void> {
@@ -220,12 +242,12 @@ export class BotState {
             return await this.GetStateAsync<string | null>(BotStateType.SESSION_ID)
         }
         // If conversation Id matches return the sessionId
-        else if (existingConversationId == conversationId) {
+        else if (existingConversationId === conversationId) {
             return await this.GetStateAsync<string | null>(BotStateType.SESSION_ID)
         }
         // If existingConversationId Id is a object - TEAMs Channel 
         else if (typeof existingConversationId === 'object') {
-            if (existingConversationId["user"]["id"] == conversationId) {
+            if (existingConversationId.conversation.id === conversationId) {
                 return await this.GetStateAsync<string | null>(BotStateType.SESSION_ID)
             }
         }
