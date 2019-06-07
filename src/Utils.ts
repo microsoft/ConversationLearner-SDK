@@ -160,6 +160,27 @@ export function GetLogicAPIError(logicResult: CLM.LogicResult | undefined): CLM.
     return logicAPIResult
 }
 
+/* Converts user intput into BB.Activity */
+export function InputToActivity(userText: string, roundNum: number): Partial<BB.Activity> {
+    let clData: CLM.CLChannelData = {
+        senderType: CLM.SenderType.User,
+        roundIndex: roundNum,
+        scoreIndex: null
+    }
+
+    // Generate activity
+    return {
+        id: CLM.ModelUtils.generateGUID(),
+        channelData: {
+            clData,
+            clientActivityId: CLM.ModelUtils.generateGUID()
+        },
+        type: 'message',
+        text: userText
+    }
+}
+
+
 export const CL_DEVELOPER = 'ConversationLearnerDeveloper';
 export const UI_RUNNER_APPID = 'UIRunner_AppId'
 export const DEFAULT_MAX_SESSION_LENGTH = 20 * 60 * 1000;  // 20 minutes

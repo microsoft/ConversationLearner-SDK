@@ -1762,6 +1762,9 @@ export class CLRunner {
         let replayError: CLM.ReplayError | null = null
         let replayErrors: CLM.ReplayError[] = [];
         let curAction: CLM.ActionBase | null = null
+        const userAccount: BB.ChannelAccount = { id: userId, name: userName, role: BB.RoleTypes.User, aadObjectId: '' }
+        const botAccount: BB.ChannelAccount  = { id: `BOT-${userId}`, name: CLM.CL_USER_NAME_ID, role: BB.RoleTypes.Bot, aadObjectId: '' }
+                    
 
         for (let [roundIndex, round] of trainDialog.rounds.entries()) {
 
@@ -1776,7 +1779,7 @@ export class CLRunner {
                 ? CLM.ModelUtils.textVariationToMarkdown(round.extractorStep.textVariations[0], excludedEntities)
                 : round.extractorStep.textVariations[0].text
 
-            let userActivity: Partial<BB.Activity> = CLM.ModelUtils.InputToActivity(userText, userName, userId, roundIndex)
+            let userActivity: Partial<BB.Activity> = Utils.InputToActivity(userText, roundIndex)
 
             let clUserData: CLM.CLChannelData = {
                 senderType: CLM.SenderType.User,
@@ -1785,8 +1788,10 @@ export class CLRunner {
                 replayError,
                 activityIndex: activities.length,
             }
-            userActivity.from!.role = BB.RoleTypes.User
+
             userActivity.channelData.clData = clUserData
+            userActivity.from = userAccount
+            userActivity.recipient = botAccount
             userActivity.textFormat = 'markdown'
 
             activities.push(userActivity)
@@ -1959,11 +1964,11 @@ export class CLRunner {
                     }
 
                     let botActivity: Partial<BB.Activity> | null = null
-                    let botAccount = { id: `BOT-${userId}`, name: CLM.CL_USER_NAME_ID, role: BB.RoleTypes.Bot, aadObjectId: '' }
                     if (botResponse && typeof botResponse.response == 'string') {
                         botActivity = {
                             id: CLM.ModelUtils.generateGUID(),
                             from: botAccount,
+                            recipient: userAccount,
                             type: 'message',
                             text: botResponse.response,
                             channelData: { clData: clBotData }
@@ -1972,6 +1977,7 @@ export class CLRunner {
                         botActivity = botResponse.response as BB.Activity
                         botActivity.id = CLM.ModelUtils.generateGUID()
                         botActivity.from = botAccount
+                        botActivity.recipient = userAccount
                         botActivity.channelData = { clData: clBotData }
                     }
 
