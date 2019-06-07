@@ -16,17 +16,21 @@ export interface ConversationSession {
 
 export interface ConversationIdObject {
     activityId: string
-    user: {
-        id: string
-        name: string
-        aadObjectId?: string
-    },
-    bot: {
-        id: string
-        name: string
-    },
+    user: User
+    bot: Bot
     conversation: Conversation
     channelId: "msteams" | string
+}
+
+interface User {
+    id: string
+    name: string
+    aadObjectId?: string
+}
+
+interface Bot {
+    id: string
+    name: string
 }
 
 interface Conversation {
