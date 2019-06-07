@@ -14,6 +14,10 @@ export interface ConversationSession {
     conversationId: string | null
 }
 
+/**
+ * When using Microsoft Teams the Conversation Id is set to a complex object rather than simple string
+ * It contains information about the user, bot, conversation, and other metadata
+ */
 export interface ConversationIdObject {
     activityId: string
     user: User
