@@ -16,7 +16,7 @@ import { CLRecognizerResult } from './CLRecognizeResult'
 import { ConversationLearner } from './ConversationLearner'
 import { InputQueue } from './Memory/InputQueue'
 import * as util from 'util'
-import { UIMode } from './Memory/BotState';
+import { UIMode, ConversationIdObject } from './Memory/BotState'
 
 interface RunnerLookup {
     [appId: string]: CLRunner
@@ -273,7 +273,7 @@ export class CLRunner {
         }
     }
 
-    public async StartSessionAsync(clMemory: CLMemory, conversationId: string | null, appId: string, sessionStartFlags: SessionStartFlags, createParams: CLM.SessionCreateParams | CLM.CreateTeachParams): Promise<CLM.Teach | CLM.Session> {
+    public async StartSessionAsync(clMemory: CLMemory, conversationId: string | ConversationIdObject | null, appId: string, sessionStartFlags: SessionStartFlags, createParams: CLM.SessionCreateParams | CLM.CreateTeachParams): Promise<CLM.Teach | CLM.Session> {
 
         const inTeach = ((sessionStartFlags & SessionStartFlags.IN_TEACH) > 0)
         let entityList = await this.clClient.GetEntities(appId)
@@ -310,7 +310,7 @@ export class CLRunner {
             logDialogId = startResponse.logDialogId
         }
 
-        // Initizize Bot State
+        // Initialize Bot State
         await clMemory.BotState.InitSessionAsync(sessionId, logDialogId, conversationId, sessionStartFlags)
 
         CLDebug.Verbose(`Started Session: ${sessionId} - ${conversationId}`)

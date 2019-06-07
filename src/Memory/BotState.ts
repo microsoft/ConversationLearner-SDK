@@ -14,7 +14,7 @@ export interface ConversationSession {
     conversationId: string | null
 }
 
-interface ConversationIdObject {
+export interface ConversationIdObject {
     activityId: string
     user: {
         id: string
@@ -179,7 +179,7 @@ export class BotState {
         return await this.GetStateAsync<string | ConversationIdObject | null>(BotStateType.CONVERSATION_ID)
     }
 
-    public async SetConversationId(conversationId: string | null): Promise<void> {
+    public async SetConversationId(conversationId: string | ConversationIdObject | null): Promise<void> {
         await this.SetStateAsync(BotStateType.CONVERSATION_ID, conversationId)
     }
 
@@ -264,7 +264,7 @@ export class BotState {
         await this.SetStateAsync(BotStateType.SESSION_ID, sessionId)
     }
 
-    public async InitSessionAsync(sessionId: string | null, logDialogId: string | null, conversationId: string | null, sessionStartFlags: SessionStartFlags): Promise<void> {
+    public async InitSessionAsync(sessionId: string | null, logDialogId: string | null, conversationId: string | ConversationIdObject | null, sessionStartFlags: SessionStartFlags): Promise<void> {
         await this.SetSessionId(sessionId);
         await this.SetLogDialogId(logDialogId)
         await this.SetNeedSessionEndCall(true)
