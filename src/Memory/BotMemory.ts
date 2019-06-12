@@ -94,7 +94,7 @@ export class BotMemory {
     }
 
     // Remember value for an entity
-    public async RememberEntity(entityName: string, entityId: string, entityValue: string, isBucket: boolean = false, builtinType: string | null = null, resolution: any | null = null): Promise<void> {
+    public async RememberEntity(entityName: string, entityId: string, entityValue: string, isBucket: boolean = false, builtinType: string | null = null, resolution: {} | null = null): Promise<void> {
         await this.Init()
         this.filledEntityMap.Remember(entityName, entityId, entityValue, isBucket, builtinType, resolution)
         await this.Set()
