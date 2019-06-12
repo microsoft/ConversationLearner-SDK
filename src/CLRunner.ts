@@ -661,7 +661,7 @@ export class CLRunner {
             // Update resolution for entities with resolver type
             if (entity.resolverType !== undefined
                 && entity.resolverType !== null
-                && (predictedEntity.resolution === undefined || Object.keys(predictedEntity.resolution).length === 0)) {
+                && (!predictedEntity.resolution || Object.keys(predictedEntity.resolution).length === 0)) {
                 const builtInEntity = predictedEntitiesWithType.find(pe => pe.startCharIndex >= predictedEntity.startCharIndex
                     && pe.endCharIndex <= predictedEntity.endCharIndex
                     && pe.entityType === (<any>entity).resolverType)
