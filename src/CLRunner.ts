@@ -862,7 +862,10 @@ export class CLRunner {
         const inTeach = clData !== null
 
         if (CLM.ActionBase.isStubbedAPI(clRecognizeResult.scoredAction)) {
+            const apiAction = new CLM.ApiAction(clRecognizeResult.scoredAction as any)
+
             const response = await this.TakeAPIStubAction(
+                apiAction,
                 filledEntityMap.FilledEntities(),
                 clRecognizeResult.memory,
                 clRecognizeResult.clEntities)
@@ -1085,11 +1088,10 @@ export class CLRunner {
         return renderedArgumentValues
     }
 
-    public async TakeAPIStubAction(filledEntities: CLM.FilledEntity[], clMemory: CLMemory, allEntities: CLM.EntityBase[]): Promise<Partial<BB.Activity> | string> {
+    public async TakeAPIStubAction(stubAction: CLM.ApiAction, filledEntities: CLM.FilledEntity[], clMemory: CLMemory, allEntities: CLM.EntityBase[]): Promise<Partial<BB.Activity> | string> {
 
         try {
             const memoryManager = await this.CreateMemoryManagerAsync(clMemory, allEntities)
-
 
             // Update memory with stub API values
             memoryManager.curMemories.UpdateFilledEntities(filledEntities, allEntities)
@@ -1114,7 +1116,8 @@ export class CLRunner {
             }
             const attachment = BB.CardFactory.adaptiveCard(card)
             const response = BB.MessageFactory.attachment(attachment)
-            response.text = "API Stub:"
+            // 'payload' is name of API
+            response.text = `API Stub: ${stubAction.name}`
 
             return response
         }
@@ -1564,7 +1567,7 @@ export class CLRunner {
 
                     if (CLM.ActionBase.isStubbedAPI(curAction)) {
                         // Store stub API output is stored in LogicResult
-                        let stubFilledEntities = scorerStep.logicResult ? scorerStep.logicResult.changedFilledEntities : []    
+                        let stubFilledEntities = scorerStep.logicResult ? scorerStep.logicResult.changedFilledEntities : []
                         const filledEntityMap = CLM.FilledEntityMap.FromFilledEntities(stubFilledEntities, entities)
                         await clMemory.BotMemory.RestoreFromMapAsync(filledEntityMap)
                     }
@@ -1638,12 +1641,12 @@ export class CLRunner {
     }
 
     private GetHistoryRoundErrors(
-        round: CLM.TrainRound, 
+        round: CLM.TrainRound,
         roundIndex: number,
         curAction: CLM.ActionBase | null,
         trainDialog: CLM.TrainDialog,
-        allEntities: CLM.EntityBase[], 
-        filledEntities: CLM.FilledEntity[], 
+        allEntities: CLM.EntityBase[],
+        filledEntities: CLM.FilledEntity[],
         replayErrors: CLM.ReplayError[]): CLM.ReplayError | null {
 
         let replayError: CLM.ReplayError | null = null
@@ -1703,11 +1706,11 @@ export class CLRunner {
     }
 
     private GetHistoryScoreErrors(
-        round: CLM.TrainRound, 
+        round: CLM.TrainRound,
         scoreIndex: number,
         scoreFilledEntities: CLM.FilledEntity[],
         curAction: CLM.ActionBase | null,
-        actions: CLM.ActionBase[], 
+        actions: CLM.ActionBase[],
         userText: string,
         replayErrors: CLM.ReplayError[]): CLM.ReplayError | null {
 
@@ -1763,8 +1766,8 @@ export class CLRunner {
         let replayErrors: CLM.ReplayError[] = [];
         let curAction: CLM.ActionBase | null = null
         const userAccount: BB.ChannelAccount = { id: userId, name: userName, role: BB.RoleTypes.User, aadObjectId: '' }
-        const botAccount: BB.ChannelAccount  = { id: `BOT-${userId}`, name: CLM.CL_USER_NAME_ID, role: BB.RoleTypes.Bot, aadObjectId: '' }
-                    
+        const botAccount: BB.ChannelAccount = { id: `BOT-${userId}`, name: CLM.CL_USER_NAME_ID, role: BB.RoleTypes.Bot, aadObjectId: '' }
+
 
         for (let [roundIndex, round] of trainDialog.rounds.entries()) {
 
@@ -1886,11 +1889,13 @@ export class CLRunner {
                                 }
                             }
                             else if (CLM.ActionBase.isStubbedAPI(curAction)) {
+                                const apiAction = new CLM.ApiAction(curAction)
+
                                 // Store stub API output is stored in LogicResult
                                 let stubFilledEntities = scorerStep.logicResult ? scorerStep.logicResult.changedFilledEntities : []
                                 botResponse = {
                                     logicResult: undefined,
-                                    response: await this.TakeAPIStubAction(stubFilledEntities, clMemory, entities)
+                                    response: await this.TakeAPIStubAction(apiAction, stubFilledEntities, clMemory, entities)
                                 }
                                 replayError = replayError || new CLM.ReplayErrorAPIStub()
                                 replayErrors.push(replayError);

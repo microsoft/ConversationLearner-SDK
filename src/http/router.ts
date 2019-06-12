@@ -4,14 +4,7 @@
  */
 import * as express from 'express'
 import * as url from 'url'
-import { CLDebug } from '../CLDebug'
-import { CLClient, ICLClientOptions } from '../CLClient'
-import { CLRunner, SessionStartFlags } from '../CLRunner'
-import { ConversationLearner } from '../ConversationLearner'
-import { CLMemory } from '../CLMemory'
-import { CLRecognizerResult } from '../CLRecognizeResult'
-import { TemplateProvider } from '../TemplateProvider'
-import { BrowserSlot } from '../Memory/BrowserSlot'
+import * as BB from 'botbuilder'
 import * as Utils from '../Utils'
 import * as Request from 'request'
 import * as XMLDom from 'xmldom'
@@ -23,6 +16,14 @@ import * as constants from '../constants'
 import * as bodyParser from 'body-parser'
 import * as cors from 'cors'
 import getAppDefinitionChange from '../upgrade'
+import { CLDebug } from '../CLDebug'
+import { CLClient, ICLClientOptions } from '../CLClient'
+import { CLRunner, SessionStartFlags } from '../CLRunner'
+import { ConversationLearner } from '../ConversationLearner'
+import { CLMemory } from '../CLMemory'
+import { CLRecognizerResult } from '../CLRecognizeResult'
+import { TemplateProvider } from '../TemplateProvider'
+import { BrowserSlot } from '../Memory/BrowserSlot'
 import { CLStrings } from '../CLStrings';
 import { UIMode } from '../Memory/BotState';
 
@@ -741,7 +742,12 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             }
             else if (userInput) {
                 // Add new input to history
-                let userActivity = CLM.ModelUtils.InputToActivity(userInput.text, userName, userId, trainDialog.rounds.length)
+                const userAccount: BB.ChannelAccount = { id: userId, name: userName, role: BB.RoleTypes.User, aadObjectId: '' }
+                const botAccount: BB.ChannelAccount  = { id: `BOT-${userId}`, name: CLM.CL_USER_NAME_ID, role: BB.RoleTypes.Bot, aadObjectId: '' }
+                let userActivity = Utils.InputToActivity(userInput.text, trainDialog.rounds.length)
+                userActivity.from = userAccount
+                userActivity.recipient = botAccount
+                
                 teachWithHistory.history.push(userActivity)
 
                 // Extract responses
