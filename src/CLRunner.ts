@@ -1582,7 +1582,7 @@ export class CLRunner {
                         round.scorerSteps[scoreIndex].input.filledEntities = filledEntityMap.FilledEntities()
 
                         // CurAction may not exist if it's an imported action
-                        if (scorerStep.labelAction !== CLM.CL_STUB_IMPORT_ACTION_ID) {
+                        if (curAction && scorerStep.labelAction !== CLM.CL_STUB_IMPORT_ACTION_ID) {
                             // Run logic part of APIAction to update the FilledEntities
                             if (curAction.actionType === CLM.ActionTypes.API_LOCAL) {
                                 const apiAction = new CLM.ApiAction(curAction)
