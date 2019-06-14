@@ -153,11 +153,11 @@ export class BotState {
     // ------------------------------------------------
     //  CONVERSATION_ID
     // ------------------------------------------------
-    public async GetConversationId(): Promise<string | null> {
-        return await this.GetStateAsync<string | null>(BotStateType.CONVERSATION_ID)
+    public async GetConversationId(): Promise<string | BB.ConversationReference | null> {
+        return await this.GetStateAsync<string | BB.ConversationReference | null>(BotStateType.CONVERSATION_ID)
     }
 
-    public async SetConversationId(conversationId: string | null): Promise<void> {
+    public async SetConversationId(conversationId: string | BB.ConversationReference | null): Promise<void> {
         await this.SetStateAsync(BotStateType.CONVERSATION_ID, conversationId)
     }
 
@@ -220,12 +220,12 @@ export class BotState {
             return await this.GetStateAsync<string | null>(BotStateType.SESSION_ID)
         }
         // If conversation Id matches return the sessionId
-        else if (existingConversationId == conversationId) {
+        else if (existingConversationId === conversationId) {
             return await this.GetStateAsync<string | null>(BotStateType.SESSION_ID)
         }
         // If existingConversationId Id is a object - TEAMs Channel 
         else if (typeof existingConversationId === 'object') {
-            if (existingConversationId["user"]["id"] == conversationId) {
+            if (existingConversationId.conversation.id === conversationId) {
                 return await this.GetStateAsync<string | null>(BotStateType.SESSION_ID)
             }
         }
@@ -242,7 +242,7 @@ export class BotState {
         await this.SetStateAsync(BotStateType.SESSION_ID, sessionId)
     }
 
-    public async InitSessionAsync(sessionId: string | null, logDialogId: string | null, conversationId: string | null, sessionStartFlags: SessionStartFlags): Promise<void> {
+    public async InitSessionAsync(sessionId: string | null, logDialogId: string | null, conversationId: string | BB.ConversationReference | null, sessionStartFlags: SessionStartFlags): Promise<void> {
         await this.SetSessionId(sessionId);
         await this.SetLogDialogId(logDialogId)
         await this.SetNeedSessionEndCall(true)

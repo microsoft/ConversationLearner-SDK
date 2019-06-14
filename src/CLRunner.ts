@@ -273,7 +273,7 @@ export class CLRunner {
         }
     }
 
-    public async StartSessionAsync(clMemory: CLMemory, conversationId: string | null, appId: string, sessionStartFlags: SessionStartFlags, createParams: CLM.SessionCreateParams | CLM.CreateTeachParams): Promise<CLM.Teach | CLM.Session> {
+    public async StartSessionAsync(clMemory: CLMemory, conversationId: string | BB.ConversationReference | null, appId: string, sessionStartFlags: SessionStartFlags, createParams: CLM.SessionCreateParams | CLM.CreateTeachParams): Promise<CLM.Teach | CLM.Session> {
 
         const inTeach = ((sessionStartFlags & SessionStartFlags.IN_TEACH) > 0)
         let entityList = await this.clClient.GetEntities(appId)
@@ -310,7 +310,7 @@ export class CLRunner {
             logDialogId = startResponse.logDialogId
         }
 
-        // Initizize Bot State
+        // Initialize Bot State
         await clMemory.BotState.InitSessionAsync(sessionId, logDialogId, conversationId, sessionStartFlags)
 
         CLDebug.Verbose(`Started Session: ${sessionId} - ${conversationId}`)
@@ -661,7 +661,7 @@ export class CLRunner {
             // Update resolution for entities with resolver type
             if (entity.resolverType !== undefined
                 && entity.resolverType !== null
-                && (predictedEntity.resolution === undefined || Object.keys(predictedEntity.resolution).length === 0)) {
+                && (!predictedEntity.resolution || Object.keys(predictedEntity.resolution).length === 0)) {
                 const builtInEntity = predictedEntitiesWithType.find(pe => pe.startCharIndex >= predictedEntity.startCharIndex
                     && pe.endCharIndex <= predictedEntity.endCharIndex
                     && pe.entityType === (<any>entity).resolverType)
