@@ -17,7 +17,8 @@ export interface ConversationSession {
 export interface SessionInfo {
     userName: string,
     userId: string,
-    logDialogId: string
+    logDialogId: string,
+    conversationId: string,
 }
 
 // TODO - move to models
@@ -334,13 +335,15 @@ export class BotState {
             return {
                 userName: conversationReference.user && conversationReference.user.name,
                 userId: conversationReference.user && conversationReference.user.id,
-                logDialogId: await this.GetLogDialogId()
+                logDialogId: await this.GetLogDialogId(),
+                conversationId: conversationReference.conversation.id,
             } as SessionInfo
         }
         return {
             userName: '',
             userId: '',
-            logDialogId: ''
+            logDialogId: '',
+            conversationId: '',
         } as SessionInfo
     }
 }
