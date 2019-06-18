@@ -840,7 +840,7 @@ export class CLRunner {
         }
     }
 
-    public async TakeActionAsync(conversationReference: Partial<BB.ConversationReference>, clRecognizeResult: CLRecognizerResult, clData: CLM.CLChannelData | null): Promise<IActionResult> {
+    public async TakeActionAsync(conversationReference: Partial<BB.ConversationReference>, clRecognizeResult: CLRecognizerResult, uiTrainScorerStep: CLM.UITrainScorerStep | null): Promise<IActionResult> {
         // Get filled entities from memory
         let filledEntityMap = await clRecognizeResult.memory.BotMemory.FilledEntityMap()
         filledEntityMap = Utils.addEntitiesById(filledEntityMap)
@@ -859,19 +859,22 @@ export class CLRunner {
         let app: CLM.AppBase | null = null
         let sessionId: string | null = null
         let replayError: CLM.ReplayError | null = null
-        const inTeach = clData !== null
+        const inTeach = uiTrainScorerStep !== null
 
-        if (CLM.ActionBase.isStubbedAPI(clRecognizeResult.scoredAction)) {
+        if (CLM.ActionBase.isStubbedAPI(clRecognizeResult.scoredAction) && uiTrainScorerStep) {
             const apiAction = new CLM.ApiAction(clRecognizeResult.scoredAction as any)
-
+            let stubFilledEntities = uiTrainScorerStep.trainScorerStep.logicResult ? uiTrainScorerStep.trainScorerStep.logicResult.changedFilledEntities : []
             const response = await this.TakeAPIStubAction(
                 apiAction,
-                filledEntityMap.FilledEntities(),
+                stubFilledEntities,
                 clRecognizeResult.memory,
                 clRecognizeResult.clEntities)
             actionResult = {
-                logicResult: undefined,
+                logicResult: uiTrainScorerStep.trainScorerStep.logicResult,
                 response: response as BB.Activity
+            }
+            if (inTeach) {
+                replayError = new CLM.ReplayErrorAPIStub()
             }
         }
         else {
@@ -967,9 +970,9 @@ export class CLRunner {
         if (typeof actionResult.response === 'string') {
             actionResult.response = BB.MessageFactory.text(actionResult.response)
         }
-        if (actionResult.response && typeof actionResult.response !== 'string' && clData) {
+        if (actionResult.response && typeof actionResult.response !== 'string' && uiTrainScorerStep) {
             actionResult.response.channelData = {
-                ...actionResult.response.channelData, clData: { ...clData, replayError: replayError || undefined }
+                ...actionResult.response.channelData, clData: { ...uiTrainScorerStep.clData, replayError: replayError || undefined }
             }
         }
 
@@ -1011,12 +1014,12 @@ export class CLRunner {
             )
 
             clRecognizeResult.scoredAction = bestAction
-            actionResult = await this.TakeActionAsync(conversationReference, clRecognizeResult, clData)
+            actionResult = await this.TakeActionAsync(conversationReference, clRecognizeResult, uiTrainScorerStep)
         }
         return actionResult
     }
 
-    public async SendIntent(intent: CLRecognizerResult, clData: CLM.CLChannelData | null = null): Promise<IActionResult | undefined> {
+    public async SendIntent(intent: CLRecognizerResult, uiTrainScorerStep: CLM.UITrainScorerStep | null = null): Promise<IActionResult | undefined> {
 
         let conversationReference = await intent.memory.BotState.GetConversationReverence();
 
@@ -1029,7 +1032,7 @@ export class CLRunner {
             return
         }
 
-        const actionResult = await this.TakeActionAsync(conversationReference, intent, clData)
+        const actionResult = await this.TakeActionAsync(conversationReference, intent, uiTrainScorerStep)
 
         if (actionResult.response != null) {
             const context = await this.GetTurnContext(intent.memory)

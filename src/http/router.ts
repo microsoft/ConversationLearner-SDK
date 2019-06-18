@@ -743,11 +743,11 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             else if (userInput) {
                 // Add new input to history
                 const userAccount: BB.ChannelAccount = { id: userId, name: userName, role: BB.RoleTypes.User, aadObjectId: '' }
-                const botAccount: BB.ChannelAccount  = { id: `BOT-${userId}`, name: CLM.CL_USER_NAME_ID, role: BB.RoleTypes.Bot, aadObjectId: '' }
+                const botAccount: BB.ChannelAccount = { id: `BOT-${userId}`, name: CLM.CL_USER_NAME_ID, role: BB.RoleTypes.Bot, aadObjectId: '' }
                 let userActivity = Utils.InputToActivity(userInput.text, trainDialog.rounds.length)
                 userActivity.from = userAccount
                 userActivity.recipient = botAccount
-                
+
                 teachWithHistory.history.push(userActivity)
 
                 // Extract responses
@@ -1060,7 +1060,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             } as CLRecognizerResult
 
             const clRunner = CLRunner.GetRunnerForUI(appId);
-            const actionResult = await clRunner.SendIntent(intent, uiTrainScorerStep.clData)
+            const actionResult = await clRunner.SendIntent(intent, uiTrainScorerStep)
 
             // Set logicResult on scorer step
             if (actionResult) {
