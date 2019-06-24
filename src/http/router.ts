@@ -1173,6 +1173,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 id: CLM.ModelUtils.generateGUID(),
                 isGroup: false,
                 name: "",
+                tenantId: "",
                 aadObjectId: "",
                 role: BB.RoleTypes.User,
                 conversationType: ""
