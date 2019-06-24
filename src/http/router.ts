@@ -1151,6 +1151,76 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
         }
     })
 
+    //========================================================
+    // Transcript Validation
+    //========================================================
+    /** Replays a transcript and test whether responses match expected values */
+    router.post('/app/:appId/validatetranscript', async (req, res, next) => {
+        try {
+            const { appId } = req.params
+            const { packageId, userId } = getQuery(req)
+            const turnValidations: CLM.TurnValidation[] = req.body
+            const clRunner = CLRunner.GetRunnerForUI(appId)
+
+            if (!packageId) {
+                res.status(HttpStatus.BAD_REQUEST)
+                res.send({ error: 'packageId query parameter must be provided' })
+                return
+            }
+
+            const appDefinition = await client.GetAppSource(appId, packageId)
+            const conversation: BB.ConversationAccount = {
+                id: CLM.ModelUtils.generateGUID(),
+                isGroup: false,
+                name: "",
+                aadObjectId: "",
+                role: BB.RoleTypes.User,
+                conversationType: ""
+            }
+            const from: BB.ChannelAccount = {
+                name: Utils.CL_DEVELOPER,
+                id: userId,
+                role: BB.RoleTypes.User,
+                aadObjectId: ''
+            }
+
+            for (const turnValidation of turnValidations) {
+                const activity: Partial<BB.Activity> = {
+                    id: CLM.ModelUtils.generateGUID(),
+                    conversation,
+                    type: "message",
+                    text: turnValidation.inputText,
+                    from,
+                    channelData: { isValidationTest: true }
+                }
+
+                const turnContext = new BB.TurnContext(clRunner.adapter!, activity)
+                const result = await clRunner.recognize(turnContext)
+
+                if (result) {
+
+                    const action = appDefinition.actions.find(a => a.actionId === result.scoredAction.actionId)
+                    if (action && action.clientData && action.clientData.importHashes) {
+                        const match = action.clientData.importHashes.find(ih => ih === turnValidation.actionHashes[0])
+                        if (!match) {
+                            res.send(false)
+                            return
+                        }
+                    }
+                }
+                else {
+                    // TODO: Send error message back to UI
+                    res.send(false)
+                    return
+                }
+            }
+            res.send(true)
+        } catch (error) {
+            HandleError(res, error)
+        }
+    })
+
+
     const httpProxy = proxy({
         target: options.CONVERSATION_LEARNER_SERVICE_URI,
         changeOrigin: true,
