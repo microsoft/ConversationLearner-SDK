@@ -4,14 +4,7 @@
  */
 import * as express from 'express'
 import * as url from 'url'
-import { CLDebug } from '../CLDebug'
-import { CLClient, ICLClientOptions } from '../CLClient'
-import { CLRunner, SessionStartFlags } from '../CLRunner'
-import { ConversationLearner } from '../ConversationLearner'
-import { CLMemory } from '../CLMemory'
-import { CLRecognizerResult } from '../CLRecognizeResult'
-import { TemplateProvider } from '../TemplateProvider'
-import { BrowserSlot } from '../Memory/BrowserSlot'
+import * as BB from 'botbuilder'
 import * as Utils from '../Utils'
 import * as Request from 'request'
 import * as XMLDom from 'xmldom'
@@ -23,6 +16,14 @@ import * as constants from '../constants'
 import * as bodyParser from 'body-parser'
 import * as cors from 'cors'
 import getAppDefinitionChange from '../upgrade'
+import { CLDebug } from '../CLDebug'
+import { CLClient, ICLClientOptions } from '../CLClient'
+import { CLRunner, SessionStartFlags } from '../CLRunner'
+import { ConversationLearner } from '../ConversationLearner'
+import { CLMemory } from '../CLMemory'
+import { CLRecognizerResult } from '../CLRecognizeResult'
+import { TemplateProvider } from '../TemplateProvider'
+import { BrowserSlot } from '../Memory/BrowserSlot'
 import { CLStrings } from '../CLStrings';
 import { UIMode } from '../Memory/BotState';
 
@@ -741,7 +742,12 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             }
             else if (userInput) {
                 // Add new input to history
-                let userActivity = CLM.ModelUtils.InputToActivity(userInput.text, userName, userId, trainDialog.rounds.length)
+                const userAccount: BB.ChannelAccount = { id: userId, name: userName, role: BB.RoleTypes.User, aadObjectId: '' }
+                const botAccount: BB.ChannelAccount = { id: `BOT-${userId}`, name: CLM.CL_USER_NAME_ID, role: BB.RoleTypes.Bot, aadObjectId: '' }
+                let userActivity = Utils.InputToActivity(userInput.text, trainDialog.rounds.length)
+                userActivity.from = userAccount
+                userActivity.recipient = botAccount
+
                 teachWithHistory.history.push(userActivity)
 
                 // Extract responses
@@ -1054,7 +1060,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             } as CLRecognizerResult
 
             const clRunner = CLRunner.GetRunnerForUI(appId);
-            const actionResult = await clRunner.SendIntent(intent, uiTrainScorerStep.clData)
+            const actionResult = await clRunner.SendIntent(intent, uiTrainScorerStep)
 
             // Set logicResult on scorer step
             if (actionResult) {
@@ -1118,14 +1124,15 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
         try {
             const key = getMemoryKey(req)
             const appId = req.params.appId
-            const { username: userName, userid: userId } = getQuery(req)
+            const { username: userName, userid: userId, useMarkdown: useMarkdown } = getQuery(req)
+            const markdown = useMarkdown === "true";
             const trainDialog: CLM.TrainDialog = req.body
 
             const memory = CLMemory.GetMemory(key)
             const clRunner = CLRunner.GetRunnerForUI(appId);
             validateBot(req, clRunner.botChecksum())
 
-            const teachWithHistory = await clRunner.GetHistory(trainDialog, userName, userId, memory)
+            const teachWithHistory = await clRunner.GetHistory(trainDialog, userName, userId, memory, markdown)
 
             // Clear bot memory generated with this
             await memory.BotMemory.ClearAsync();
@@ -1143,6 +1150,77 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             HandleError(res, error)
         }
     })
+
+    //========================================================
+    // Transcript Validation
+    //========================================================
+    /** Replays a transcript and test whether responses match expected values */
+    router.post('/app/:appId/validatetranscript', async (req, res, next) => {
+        try {
+            const { appId } = req.params
+            const { packageId, userId } = getQuery(req)
+            const turnValidations: CLM.TurnValidation[] = req.body
+            const clRunner = CLRunner.GetRunnerForUI(appId)
+
+            if (!packageId) {
+                res.status(HttpStatus.BAD_REQUEST)
+                res.send({ error: 'packageId query parameter must be provided' })
+                return
+            }
+
+            const appDefinition = await client.GetAppSource(appId, packageId)
+            const conversation: BB.ConversationAccount = {
+                id: CLM.ModelUtils.generateGUID(),
+                isGroup: false,
+                name: "",
+                tenantId: "",
+                aadObjectId: "",
+                role: BB.RoleTypes.User,
+                conversationType: ""
+            }
+            const from: BB.ChannelAccount = {
+                name: Utils.CL_DEVELOPER,
+                id: userId,
+                role: BB.RoleTypes.User,
+                aadObjectId: ''
+            }
+
+            for (const turnValidation of turnValidations) {
+                const activity: Partial<BB.Activity> = {
+                    id: CLM.ModelUtils.generateGUID(),
+                    conversation,
+                    type: "message",
+                    text: turnValidation.inputText,
+                    from,
+                    channelData: { isValidationTest: true }
+                }
+
+                const turnContext = new BB.TurnContext(clRunner.adapter!, activity)
+                const result = await clRunner.recognize(turnContext)
+
+                if (result) {
+
+                    const action = appDefinition.actions.find(a => a.actionId === result.scoredAction.actionId)
+                    if (action && action.clientData && action.clientData.importHashes) {
+                        const match = action.clientData.importHashes.find(ih => ih === turnValidation.actionHashes[0])
+                        if (!match) {
+                            res.send(false)
+                            return
+                        }
+                    }
+                }
+                else {
+                    // TODO: Send error message back to UI
+                    res.send(false)
+                    return
+                }
+            }
+            res.send(true)
+        } catch (error) {
+            HandleError(res, error)
+        }
+    })
+
 
     const httpProxy = proxy({
         target: options.CONVERSATION_LEARNER_SERVICE_URI,

@@ -2,21 +2,21 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License.
  */
+import * as util from 'util'
 import * as BB from 'botbuilder'
+import * as CLM from '@conversationlearner/models'
+import * as Utils from './Utils'
 import { CLMemory } from './CLMemory'
 import { BotMemory } from './Memory/BotMemory'
 import { CLDebug } from './CLDebug'
 import { CLClient } from './CLClient'
 import { CLStrings } from './CLStrings'
 import { TemplateProvider } from './TemplateProvider'
-import * as CLM from '@conversationlearner/models'
-import * as Utils from './Utils'
 import { ReadOnlyClientMemoryManager, ClientMemoryManager } from './Memory/ClientMemoryManager'
 import { CLRecognizerResult } from './CLRecognizeResult'
 import { ConversationLearner } from './ConversationLearner'
 import { InputQueue } from './Memory/InputQueue'
-import * as util from 'util'
-import { UIMode } from './Memory/BotState'
+import { UIMode } from './Memory/BotState';
 
 interface RunnerLookup {
     [appId: string]: CLRunner
@@ -253,9 +253,10 @@ export class CLRunner {
         let clMemory = await CLMemory.InitMemory(turnContext)
         let botState = clMemory.BotState;
 
-        // If I'm in teach or edit mode process message right away
+        // If I'm in teach or edit mode, or testing process message right away
         let uiMode = await botState.getUIMode();
-        if (uiMode !== UIMode.NONE) {
+        if (uiMode !== UIMode.NONE
+            || (turnContext.activity.channelData && turnContext.activity.channelData.isValidationTest)) {
             return await this.ProcessInput(turnContext);
         }
 
@@ -840,7 +841,7 @@ export class CLRunner {
         }
     }
 
-    public async TakeActionAsync(conversationReference: Partial<BB.ConversationReference>, clRecognizeResult: CLRecognizerResult, clData: CLM.CLChannelData | null): Promise<IActionResult> {
+    public async TakeActionAsync(conversationReference: Partial<BB.ConversationReference>, clRecognizeResult: CLRecognizerResult, uiTrainScorerStep: CLM.UITrainScorerStep | null): Promise<IActionResult> {
         // Get filled entities from memory
         let filledEntityMap = await clRecognizeResult.memory.BotMemory.FilledEntityMap()
         filledEntityMap = Utils.addEntitiesById(filledEntityMap)
@@ -859,101 +860,120 @@ export class CLRunner {
         let app: CLM.AppBase | null = null
         let sessionId: string | null = null
         let replayError: CLM.ReplayError | null = null
-        const inTeach = clData !== null
-        switch (clRecognizeResult.scoredAction.actionType) {
-            case CLM.ActionTypes.TEXT: {
-                // This is hack to allow ScoredAction to be accepted as ActionBase
-                // TODO: Remove extra properties from ScoredAction so it only had actionId and up service to return actions definitions of scored/unscored actions
-                // so UI can link the two together instead of having "partial" actions being incorrectly treated as full actions
-                const textAction = new CLM.TextAction(clRecognizeResult.scoredAction as any)
-                const response = await this.TakeTextAction(textAction, filledEntityMap)
-                actionResult = {
-                    logicResult: undefined,
-                    response
-                }
-                break
-            }
-            case CLM.ActionTypes.API_LOCAL: {
-                const apiAction = new CLM.ApiAction(clRecognizeResult.scoredAction as any)
-                actionResult = await this.TakeAPIAction(
-                    apiAction,
-                    filledEntityMap,
-                    clRecognizeResult.memory,
-                    clRecognizeResult.clEntities,
-                    inTeach,
-                    {
-                        type: ActionInputType.LOGIC_AND_RENDER
-                    }
-                )
+        const inTeach = uiTrainScorerStep !== null
 
-                if (inTeach) {
-                    if (actionResult.replayError) {
-                        replayError = actionResult.replayError
+        if (CLM.ActionBase.isStubbedAPI(clRecognizeResult.scoredAction) && uiTrainScorerStep) {
+            const apiAction = new CLM.ApiAction(clRecognizeResult.scoredAction as any)
+            let stubFilledEntities = uiTrainScorerStep.trainScorerStep.logicResult ? uiTrainScorerStep.trainScorerStep.logicResult.changedFilledEntities : []
+            const response = await this.TakeAPIStubAction(
+                apiAction,
+                stubFilledEntities,
+                clRecognizeResult.memory,
+                clRecognizeResult.clEntities)
+            actionResult = {
+                logicResult: uiTrainScorerStep.trainScorerStep.logicResult,
+                response: response as BB.Activity
+            }
+            if (inTeach) {
+                replayError = new CLM.ReplayErrorAPIStub()
+            }
+        }
+        else {
+            switch (clRecognizeResult.scoredAction.actionType) {
+                case CLM.ActionTypes.TEXT: {
+                    // This is hack to allow ScoredAction to be accepted as ActionBase
+                    // TODO: Remove extra properties from ScoredAction so it only had actionId and up service to return actions definitions of scored/unscored actions
+                    // so UI can link the two together instead of having "partial" actions being incorrectly treated as full actions
+                    const textAction = new CLM.TextAction(clRecognizeResult.scoredAction as any)
+                    const response = await this.TakeTextAction(textAction, filledEntityMap)
+                    actionResult = {
+                        logicResult: undefined,
+                        response
                     }
+                    break
                 }
-                else {
+                case CLM.ActionTypes.API_LOCAL: {
+                    const apiAction = new CLM.ApiAction(clRecognizeResult.scoredAction as any)
+                    actionResult = await this.TakeAPIAction(
+                        apiAction,
+                        filledEntityMap,
+                        clRecognizeResult.memory,
+                        clRecognizeResult.clEntities,
+                        inTeach,
+                        {
+                            type: ActionInputType.LOGIC_AND_RENDER
+                        }
+                    )
+
+                    if (inTeach) {
+                        if (actionResult.replayError) {
+                            replayError = actionResult.replayError
+                        }
+                    }
+                    else {
+                        app = await clRecognizeResult.memory.BotState.GetApp()
+                        if (!app) {
+                            throw new Error(`Attempted to get current app before app was set.`)
+                        }
+                        if (app.metadata.isLoggingOn !== false && actionResult && actionResult.logicResult !== undefined) {
+                            if (!conversationReference.conversation) {
+                                throw new Error(`Attempted to get session by conversation id, but user was not defined on current conversation`)
+                            }
+
+                            sessionId = await clRecognizeResult.memory.BotState.GetSessionIdAndSetConversationId(conversationReference.conversation.id)
+                            if (!sessionId) {
+                                throw new Error(`Attempted to get session by conversation id: ${conversationReference.conversation.id} but session was not found`)
+                            }
+                            await this.clClient.SessionLogicResult(app.appId, sessionId, apiAction.actionId, actionResult);
+                        }
+                    }
+                    break
+                }
+                case CLM.ActionTypes.CARD: {
+                    const cardAction = new CLM.CardAction(clRecognizeResult.scoredAction as any)
+                    const response = await this.TakeCardAction(cardAction, filledEntityMap)
+                    actionResult = {
+                        logicResult: undefined,
+                        response
+                    }
+                    break
+                }
+                case CLM.ActionTypes.END_SESSION: {
                     app = await clRecognizeResult.memory.BotState.GetApp()
-                    if (!app) {
-                        throw new Error(`Attempted to get current app before app was set.`)
+                    const sessionAction = new CLM.SessionAction(clRecognizeResult.scoredAction as any)
+                    sessionId = await clRecognizeResult.memory.BotState.GetSessionIdAndSetConversationId(conversationReference.conversation.id)
+                    const response = await this.TakeSessionAction(sessionAction, filledEntityMap, inTeach, clRecognizeResult.memory, sessionId, app);
+                    actionResult = {
+                        logicResult: undefined,
+                        response
                     }
-                    if (app.metadata.isLoggingOn !== false && actionResult && actionResult.logicResult !== undefined) {
-                        if (!conversationReference.conversation) {
-                            throw new Error(`Attempted to get session by conversation id, but user was not defined on current conversation`)
-                        }
-
-                        sessionId = await clRecognizeResult.memory.BotState.GetSessionIdAndSetConversationId(conversationReference.conversation.id)
-                        if (!sessionId) {
-                            throw new Error(`Attempted to get session by conversation id: ${conversationReference.conversation.id} but session was not found`)
-                        }
-                        await this.clClient.SessionLogicResult(app.appId, sessionId, apiAction.actionId, actionResult);
-                    }
+                    break
                 }
-                break
-            }
-            case CLM.ActionTypes.CARD: {
-                const cardAction = new CLM.CardAction(clRecognizeResult.scoredAction as any)
-                const response = await this.TakeCardAction(cardAction, filledEntityMap)
-                actionResult = {
-                    logicResult: undefined,
-                    response
+                case CLM.ActionTypes.SET_ENTITY: {
+                    // TODO: Schema refactor
+                    // scored actions aren't actions and only have payload instead of strongly typed values
+                    const setEntityAction = new CLM.SetEntityAction(clRecognizeResult.scoredAction as any)
+                    actionResult = await this.TakeSetEntityAction(
+                        setEntityAction,
+                        filledEntityMap,
+                        clRecognizeResult.memory,
+                        clRecognizeResult.clEntities,
+                        inTeach
+                    )
+                    break
                 }
-                break
+                default:
+                    throw new Error(`Could not find matching renderer for action type: ${clRecognizeResult.scoredAction.actionType}`)
             }
-            case CLM.ActionTypes.END_SESSION: {
-                app = await clRecognizeResult.memory.BotState.GetApp()
-                const sessionAction = new CLM.SessionAction(clRecognizeResult.scoredAction as any)
-                sessionId = await clRecognizeResult.memory.BotState.GetSessionIdAndSetConversationId(conversationReference.conversation.id)
-                const response = await this.TakeSessionAction(sessionAction, filledEntityMap, inTeach, clRecognizeResult.memory, sessionId, app);
-                actionResult = {
-                    logicResult: undefined,
-                    response
-                }
-                break
-            }
-            case CLM.ActionTypes.SET_ENTITY: {
-                // TODO: Schema refactor
-                // scored actions aren't actions and only have payload instead of strongly typed values
-                const setEntityAction = new CLM.SetEntityAction(clRecognizeResult.scoredAction as any)
-                actionResult = await this.TakeSetEntityAction(
-                    setEntityAction,
-                    filledEntityMap,
-                    clRecognizeResult.memory,
-                    clRecognizeResult.clEntities,
-                    inTeach
-                )
-                break
-            }
-            default:
-                throw new Error(`Could not find matching renderer for action type: ${clRecognizeResult.scoredAction.actionType}`)
         }
 
         // Convert string actions to activities
         if (typeof actionResult.response === 'string') {
             actionResult.response = BB.MessageFactory.text(actionResult.response)
         }
-        if (actionResult.response && typeof actionResult.response !== 'string' && clData) {
+        if (actionResult.response && typeof actionResult.response !== 'string' && uiTrainScorerStep) {
             actionResult.response.channelData = {
-                ...actionResult.response.channelData, clData: { ...clData, replayError: replayError || undefined }
+                ...actionResult.response.channelData, clData: { ...uiTrainScorerStep.clData, replayError: replayError || undefined }
             }
         }
 
@@ -995,12 +1015,12 @@ export class CLRunner {
             )
 
             clRecognizeResult.scoredAction = bestAction
-            actionResult = await this.TakeActionAsync(conversationReference, clRecognizeResult, clData)
+            actionResult = await this.TakeActionAsync(conversationReference, clRecognizeResult, uiTrainScorerStep)
         }
         return actionResult
     }
 
-    public async SendIntent(intent: CLRecognizerResult, clData: CLM.CLChannelData | null = null): Promise<IActionResult | undefined> {
+    public async SendIntent(intent: CLRecognizerResult, uiTrainScorerStep: CLM.UITrainScorerStep | null = null): Promise<IActionResult | undefined> {
 
         let conversationReference = await intent.memory.BotState.GetConversationReverence();
 
@@ -1013,7 +1033,7 @@ export class CLRunner {
             return
         }
 
-        const actionResult = await this.TakeActionAsync(conversationReference, intent, clData)
+        const actionResult = await this.TakeActionAsync(conversationReference, intent, uiTrainScorerStep)
 
         if (actionResult.response != null) {
             const context = await this.GetTurnContext(intent.memory)
@@ -1070,6 +1090,44 @@ export class CLRunner {
         }
 
         return renderedArgumentValues
+    }
+
+    public async TakeAPIStubAction(stubAction: CLM.ApiAction, filledEntities: CLM.FilledEntity[], clMemory: CLMemory, allEntities: CLM.EntityBase[]): Promise<Partial<BB.Activity> | string> {
+
+        try {
+            const memoryManager = await this.CreateMemoryManagerAsync(clMemory, allEntities)
+
+            // Update memory with stub API values
+            memoryManager.curMemories.UpdateFilledEntities(filledEntities, allEntities)
+
+            // Update memory with changes from logic callback
+            await clMemory.BotMemory.RestoreFromMemoryManagerAsync(memoryManager)
+
+            let feMap = CLM.FilledEntityMap.FromFilledEntities(filledEntities, allEntities)
+
+            let body = Object.keys(feMap.map).map(feKey => {
+                return {
+                    type: "TextBlock",
+                    text: `${feKey} = ${feMap.ValueAsString(feKey)}`
+                }
+            })
+
+            // Render card to stub
+            let card = {
+                type: "AdaptiveCard",
+                version: "1.0",
+                body: body
+            }
+            const attachment = BB.CardFactory.adaptiveCard(card)
+            const response = BB.MessageFactory.attachment(attachment)
+            // 'payload' is name of API
+            response.text = `API Stub: ${stubAction.name}`
+
+            return response
+        }
+        catch (err) {
+            return CLDebug.Error(err)
+        }
     }
 
     public async TakeSetEntityAction(action: CLM.SetEntityAction, filledEntityMap: CLM.FilledEntityMap, clMemory: CLMemory, allEntities: CLM.EntityBase[], inTeach: boolean): Promise<IActionResult> {
@@ -1257,7 +1315,7 @@ export class CLRunner {
             message.text = undefined
             return message
         } catch (error) {
-            let msg = CLDebug.Error(error, 'Failed to Render Template')
+            let msg = CLDebug.Error(error, 'Card Template or arguments are invalid. Unable to render template')
             return msg
         }
     }
@@ -1495,46 +1553,57 @@ export class CLRunner {
                 }
 
                 // Create error to show to user
-                let errMessage = `${CLStrings.ENTITYCALLBACK_EXCEPTION} ${err.message}`
+                const errMessage = `${CLStrings.ENTITYCALLBACK_EXCEPTION} ${err.message}`
                 botAPIError = { APIError: errMessage }
             }
 
             // Use scorer step to populate pre-built data (when)
             if (round.scorerSteps && round.scorerSteps.length > 0) {
+
+                // Set filled entities
                 this.PopulatePrebuilts(predictedEntities, scoreInput.filledEntities)
                 round.scorerSteps[0].input.filledEntities = scoreInput.filledEntities
 
                 // Go through each scorer step
                 for (let [scoreIndex, scorerStep] of round.scorerSteps.entries()) {
 
-                    let curAction = actions.filter((a: CLM.ActionBase) => a.actionId === scorerStep.labelAction)[0]
-                    if (curAction) {
+                    const curAction = actions.filter((a: CLM.ActionBase) => a.actionId === scorerStep.labelAction)[0]
 
-                        let filledEntityMap = await clMemory.BotMemory.FilledEntityMap()
+                    if (CLM.ActionBase.isStubbedAPI(curAction)) {
+                        // Store stub API output is stored in LogicResult
+                        let stubFilledEntities = scorerStep.logicResult ? scorerStep.logicResult.changedFilledEntities : []
+                        const filledEntityMap = CLM.FilledEntityMap.FromFilledEntities(stubFilledEntities, entities)
+                        await clMemory.BotMemory.RestoreFromMapAsync(filledEntityMap)
+                    }
+                    else {
+                        const filledEntityMap = await clMemory.BotMemory.FilledEntityMap()
 
                         // Provide empty FilledEntity for missing entities
-                        if (!cleanse) {
+                        if (!cleanse && curAction) {
                             this.PopulateMissingFilledEntities(curAction, filledEntityMap, entities, false)
                         }
 
                         round.scorerSteps[scoreIndex].input.filledEntities = filledEntityMap.FilledEntities()
 
-                        // Run logic part of APIAction to update the FilledEntities
-                        if (curAction.actionType === CLM.ActionTypes.API_LOCAL) {
-                            const apiAction = new CLM.ApiAction(curAction)
-                            const actionInput: IActionInput = {
-                                type: ActionInputType.LOGIC_ONLY
+                        // CurAction may not exist if it's an imported action
+                        if (curAction && scorerStep.labelAction !== CLM.CL_STUB_IMPORT_ACTION_ID) {
+                            // Run logic part of APIAction to update the FilledEntities
+                            if (curAction.actionType === CLM.ActionTypes.API_LOCAL) {
+                                const apiAction = new CLM.ApiAction(curAction)
+                                const actionInput: IActionInput = {
+                                    type: ActionInputType.LOGIC_ONLY
+                                }
+                                // Calculate and store new logic result
+                                const filledIdMap = filledEntityMap.EntityMapToIdMap()
+                                const actionResult = await this.TakeAPIAction(apiAction, filledIdMap, clMemory, entityList.entities, true, actionInput)
+                                round.scorerSteps[scoreIndex].logicResult = actionResult.logicResult
+                            } else if (curAction.actionType === CLM.ActionTypes.END_SESSION) {
+                                const sessionAction = new CLM.SessionAction(curAction)
+                                await this.TakeSessionAction(sessionAction, filledEntityMap, true, clMemory, null, null)
+                            } else if (curAction.actionType === CLM.ActionTypes.SET_ENTITY) {
+                                const setEntityAction = new CLM.SetEntityAction(curAction)
+                                await this.TakeSetEntityAction(setEntityAction, filledEntityMap, clMemory, entityList.entities, true)
                             }
-                            // Calculate and store new logic result
-                            const filledIdMap = filledEntityMap.EntityMapToIdMap()
-                            let actionResult = await this.TakeAPIAction(apiAction, filledIdMap, clMemory, entityList.entities, true, actionInput)
-                            round.scorerSteps[scoreIndex].logicResult = actionResult.logicResult
-                        } else if (curAction.actionType === CLM.ActionTypes.END_SESSION) {
-                            const sessionAction = new CLM.SessionAction(curAction)
-                            await this.TakeSessionAction(sessionAction, filledEntityMap, true, clMemory, null, null)
-                        } else if (curAction.actionType === CLM.ActionTypes.SET_ENTITY) {
-                            const setEntityAction = new CLM.SetEntityAction(curAction)
-                            await this.TakeSetEntityAction(setEntityAction, filledEntityMap, clMemory, entityList.entities, true)
                         }
                     }
 
@@ -1575,12 +1644,114 @@ export class CLRunner {
         return newTrainDialog
     }
 
+    private GetHistoryRoundErrors(
+        round: CLM.TrainRound,
+        roundIndex: number,
+        curAction: CLM.ActionBase | null,
+        trainDialog: CLM.TrainDialog,
+        allEntities: CLM.EntityBase[],
+        filledEntities: CLM.FilledEntity[],
+        replayErrors: CLM.ReplayError[]): CLM.ReplayError | null {
+
+        let replayError: CLM.ReplayError | null = null
+
+        // Check that non-multivalue isn't labelled twice
+        for (let tv of round.extractorStep.textVariations) {
+            let usedEntities: string[] = []
+            for (let labelEntity of tv.labelEntities) {
+                // If already used, make sure it's multi-value
+                if (usedEntities.find(e => e === labelEntity.entityId)) {
+                    let entity = allEntities.find(e => e.entityId == labelEntity.entityId)
+                    if (entity && !entity.isMultivalue
+                        && (entity.entityType === CLM.EntityType.LUIS || entity.entityType === CLM.EntityType.LOCAL)) {
+                        replayError = replayError || new CLM.EntityUnexpectedMultivalue(entity.entityName)
+                        replayErrors.push(replayError);
+                    }
+                }
+                // Otherwise add to list of used entities
+                else {
+                    usedEntities.push(labelEntity.entityId)
+                }
+            }
+        }
+
+        // Check that entities exist in text variations
+        for (let tv of round.extractorStep.textVariations) {
+            for (let labelEntity of tv.labelEntities) {
+                if (!allEntities.find(e => e.entityId == labelEntity.entityId)) {
+                    replayError = new CLM.ReplayErrorEntityUndefined(labelEntity.entityId)
+                    replayErrors.push()
+                }
+            }
+        }
+
+        // Check that entities exist in filled entities
+        for (let filledEntity of filledEntities) {
+            if (!allEntities.find(e => e.entityId == filledEntity.entityId)) {
+                replayError = new CLM.ReplayErrorEntityUndefined(CLM.filledEntityValueAsString(filledEntity))
+                replayErrors.push()
+            }
+        }
+
+        // Check for double user inputs
+        if (roundIndex != trainDialog.rounds.length - 1 &&
+            (round.scorerSteps.length === 0 || !round.scorerSteps[0].labelAction)) {
+            replayError = new CLM.ReplayErrorTwoUserInputs()
+            replayErrors.push(replayError)
+        }
+
+        // Check for user input when previous action wasn't wait
+        if (curAction && !curAction.isTerminal) {
+            replayError = new CLM.ReplayErrorInputAfterNonWait()
+            replayErrors.push(replayError)
+        }
+
+        return replayError
+    }
+
+    private GetHistoryScoreErrors(
+        round: CLM.TrainRound,
+        scoreIndex: number,
+        scoreFilledEntities: CLM.FilledEntity[],
+        curAction: CLM.ActionBase | null,
+        actions: CLM.ActionBase[],
+        userText: string,
+        replayErrors: CLM.ReplayError[]): CLM.ReplayError | null {
+
+        let replayError: CLM.ReplayError | null = null
+
+        // Check that action exists
+        if (!curAction) {
+            replayError = new CLM.ReplayErrorActionUndefined(userText)
+            replayErrors.push(replayError)
+        }
+        else {
+            // Check action availability
+            if (!this.isActionAvailable(curAction, scoreFilledEntities)) {
+                replayError = new CLM.ReplayErrorActionUnavailable(userText)
+                replayErrors.push(replayError)
+            }
+        }
+
+        // Check that action (if not first) is after a wait action
+        if (scoreIndex > 0) {
+            const lastScoredAction = round.scorerSteps[scoreIndex - 1].labelAction
+            let lastAction = actions.find(a => a.actionId == lastScoredAction)
+            if (lastAction && lastAction.isTerminal) {
+                replayError = new CLM.ReplayErrorActionAfterWait()
+                replayErrors.push(replayError)
+            }
+        }
+
+        return replayError
+    }
+
     /** 
      * Get Activities generated by trainDialog.
      * Return any errors in TrainDialog  
      * NOTE: Will set bot memory to state at end of history
      */
-    public async GetHistory(trainDialog: CLM.TrainDialog, userName: string, userId: string, clMemory: CLMemory): Promise<CLM.TeachWithHistory | null> {
+    public async GetHistory(trainDialog: CLM.TrainDialog, userName: string, userId: string, clMemory: CLMemory, useMarkdown: boolean = true): Promise<CLM.TeachWithHistory | null> {
 
         let entities: CLM.EntityBase[] = trainDialog.definitions ? trainDialog.definitions.entities : []
         let actions: CLM.ActionBase[] = trainDialog.definitions ? trainDialog.definitions.actions : []
@@ -1597,71 +1768,39 @@ export class CLRunner {
         let activities: Partial<BB.Activity>[] = []
         let replayError: CLM.ReplayError | null = null
         let replayErrors: CLM.ReplayError[] = [];
-        let curAction = null
+        let curAction: CLM.ActionBase | null = null
+        const userAccount: BB.ChannelAccount = { id: userId, name: userName, role: BB.RoleTypes.User, aadObjectId: '' }
+        const botAccount: BB.ChannelAccount = { id: `BOT-${userId}`, name: CLM.CL_USER_NAME_ID, role: BB.RoleTypes.Bot, aadObjectId: '' }
 
-        for (let [roundNum, round] of trainDialog.rounds.entries()) {
-            let filledEntities = round.scorerSteps[0] && round.scorerSteps[0].input ? round.scorerSteps[0].input.filledEntities : []
 
-            // VALIDATION
-            replayError = null
+        for (let [roundIndex, round] of trainDialog.rounds.entries()) {
 
-            // Check that non-multivalue isn't labelled twice
-            for (let tv of round.extractorStep.textVariations) {
-                let usedEntities: string[] = []
-                for (let labelEntity of tv.labelEntities) {
-                    // If already used, make sure it's multi-value
-                    if (usedEntities.find(e => e === labelEntity.entityId)) {
-                        let entity = entities.find(e => e.entityId == labelEntity.entityId)
-                        if (entity && !entity.isMultivalue
-                            && (entity.entityType === CLM.EntityType.LUIS || entity.entityType === CLM.EntityType.LOCAL)) {
-                            replayError = replayError || new CLM.EntityUnexpectedMultivalue(entity.entityName)
-                            replayErrors.push(replayError);
-                        }
-                    }
-                    // Otherwise add to list of used entities
-                    else {
-                        usedEntities.push(labelEntity.entityId)
-                    }
-                }
-            }
+            // Use entites from first scorer step
+            const filledEntities = round.scorerSteps[0] && round.scorerSteps[0].input ? round.scorerSteps[0].input.filledEntities : []
 
-            // Check that entities exist in text variations
-            for (let tv of round.extractorStep.textVariations) {
-                for (let labelEntity of tv.labelEntities) {
-                    if (!entities.find(e => e.entityId == labelEntity.entityId)) {
-                        replayError = new CLM.ReplayErrorEntityUndefined(labelEntity.entityId)
-                        replayErrors.push()
-                    }
-                }
-            }
-
-            // Check that entities exist in filled entities
-            for (let filledEntity of filledEntities) {
-                if (!entities.find(e => e.entityId == filledEntity.entityId)) {
-                    replayError = new CLM.ReplayErrorEntityUndefined(CLM.filledEntityValueAsString(filledEntity))
-                    replayErrors.push()
-                }
-            }
-
-            // Check for double user inputs
-            if (roundNum != trainDialog.rounds.length - 1 &&
-                (round.scorerSteps.length === 0 || !round.scorerSteps[0].labelAction)) {
-                replayError = new CLM.ReplayErrorTwoUserInputs()
-                replayErrors.push(replayError)
-            }
-
-            // Check for user input when previous action wasn't wait
-            if (curAction && !curAction.isTerminal) {
-                replayError = new CLM.ReplayErrorInputAfterNonWait()
-                replayErrors.push(replayError)
-            }
+            // Validate scorer step
+            replayError = this.GetHistoryRoundErrors(round, roundIndex, curAction, trainDialog, entities, filledEntities, replayErrors)
 
             // Generate activity.  Add markdown to highlight labelled entities
-            let userText = CLM.ModelUtils.textVariationToMarkdown(round.extractorStep.textVariations[0], excludedEntities)
-            let userActivity: Partial<BB.Activity> = CLM.ModelUtils.InputToActivity(userText, userName, userId, roundNum)
-            userActivity.channelData.clData.replayError = replayError
-            userActivity.channelData.clData.activityIndex = activities.length
+            let userText = useMarkdown
+                ? CLM.ModelUtils.textVariationToMarkdown(round.extractorStep.textVariations[0], excludedEntities)
+                : round.extractorStep.textVariations[0].text
+
+            let userActivity: Partial<BB.Activity> = Utils.InputToActivity(userText, roundIndex)
+
+            let clUserData: CLM.CLChannelData = {
+                senderType: CLM.SenderType.User,
+                roundIndex: roundIndex,
+                scoreIndex: null,
+                replayError,
+                activityIndex: activities.length,
+            }
+
+            userActivity.channelData.clData = clUserData
+            userActivity.from = userAccount
+            userActivity.recipient = botAccount
             userActivity.textFormat = 'markdown'
+
             activities.push(userActivity)
 
             // Save memory before this step (used to show changes in UI)
@@ -1682,150 +1821,151 @@ export class CLRunner {
                 // Scorer rounds w/o labelActions may exist to store extraction result for rendering
                 if (labelAction) {
 
-                    let scoreFilledEntities = scorerStep.input.filledEntities
-
-                    // VALIDATION
-                    replayError = null
-
-                    // Check that action exists
-                    let selectedAction = actions.find(a => a.actionId == labelAction)
-                    if (!selectedAction) {
-                        replayError = new CLM.ReplayErrorActionUndefined(userText)
-                        replayErrors.push(replayError);
-                    }
-                    else {
-                        // Check action availability
-                        if (!this.isActionAvailable(selectedAction, scoreFilledEntities)) {
-                            replayError = new CLM.ReplayErrorActionUnavailable(userText)
-                            replayErrors.push(replayError);
-                        }
-                    }
-
-                    // Check that action (if not first) is after a wait action
-                    if (scoreIndex > 0) {
-                        const lastScoredAction = round.scorerSteps[scoreIndex - 1].labelAction
-                        let lastAction = actions.find(a => a.actionId == lastScoredAction)
-                        if (lastAction && lastAction.isTerminal) {
-                            replayError = new CLM.ReplayErrorActionAfterWait()
-                            replayErrors.push(replayError);
-                        }
-                    }
-
-                    // Generate bot response
-                    curAction = actions.filter((a: CLM.ActionBase) => a.actionId === labelAction)[0]
-                    let botResponse: IActionResult
-
-                    // Check for exceptions on API call (specificaly EntityDetectionCallback)
-                    let logicAPIError = Utils.GetLogicAPIError(scorerStep.logicResult)
-                    if (logicAPIError) {
-                        replayError = new CLM.ReplayErrorAPIException()
-                        replayErrors.push(replayError);
-
-                        let actionName = ""
-                        if (curAction.actionType === CLM.ActionTypes.API_LOCAL) {
-                            const apiAction = new CLM.ApiAction(curAction)
-                            actionName = `${apiAction.name}`
-                        }
-                        const title = `Exception hit in Bot's API Callback:${actionName}`;
-                        const response = this.RenderErrorCard(title, logicAPIError.APIError);
-
-                        botResponse = {
-                            logicResult: undefined,
-                            response
-                        }
-                    }
-                    else if (!curAction) {
-                        botResponse = {
-                            logicResult: undefined,
-                            response: CLDebug.Error(`Can't find Action Id ${labelAction}`)
-                        }
-                    }
-                    else {
-
-                        // Create map with names and ids
-                        let filledEntityMap = this.CreateFilledEntityMap(scoreFilledEntities, entityList)
-
-                        // Fill in missing entities with a warning
-                        const missingEntities = this.PopulateMissingFilledEntities(curAction, filledEntityMap, entities, true)
-
-                        // Entity required for Action isn't filled in
-                        if (missingEntities.length > 0) {
-                            replayError = replayError || new CLM.ReplayErrorEntityEmpty(missingEntities)
-                            replayErrors.push(replayError);
-                        }
-
-                        // Set memory from map with names only (since not calling APIs)
-                        let memoryMap = CLM.FilledEntityMap.FromFilledEntities(scoreFilledEntities, entities)
-                        await clMemory.BotMemory.RestoreFromMapAsync(memoryMap)
-
-                        if (curAction.actionType === CLM.ActionTypes.CARD) {
-                            const cardAction = new CLM.CardAction(curAction)
-                            botResponse = {
-                                logicResult: undefined,
-                                response: await this.TakeCardAction(cardAction, filledEntityMap)
-                            }
-                        } else if (curAction.actionType === CLM.ActionTypes.API_LOCAL) {
-                            const apiAction = new CLM.ApiAction(curAction)
-                            const actionInput: IActionInput = {
-                                type: ActionInputType.RENDER_ONLY,
-                                logicResult: scorerStep.logicResult
-                            }
-
-                            botResponse = await this.TakeAPIAction(apiAction, filledEntityMap, clMemory, entityList.entities, true, actionInput)
-
-                            if (!this.callbacks[apiAction.name]) {
-                                replayError = new CLM.ReplayErrorAPIUndefined(apiAction.name)
-                                replayErrors.push(replayError)
-                            }
-                            else if (botResponse.replayError) {
-                                replayError = botResponse.replayError
-                                replayErrors.push(botResponse.replayError)
-                            }
-                        } else if (curAction.actionType === CLM.ActionTypes.TEXT) {
-                            const textAction = new CLM.TextAction(curAction)
-                            try {
-                                botResponse = {
-                                    logicResult: undefined,
-                                    response: await this.TakeTextAction(textAction, filledEntityMap)
-                                }
-                            }
-                            catch (error) {
-                                // Payload is invalid
-                                replayError = new CLM.ReplayErrorEntityUndefined("")
-                                replayErrors.push(replayError);
-                                botResponse = {
-                                    logicResult: undefined,
-                                    response: JSON.parse(textAction.payload).text // Show raw text
-                                }
-                            }
-                        } else if (curAction.actionType === CLM.ActionTypes.END_SESSION) {
-                            const sessionAction = new CLM.SessionAction(curAction)
-                            botResponse = {
-                                logicResult: undefined,
-                                response: await this.TakeSessionAction(sessionAction, filledEntityMap, true, clMemory, null, null)
-                            }
-                        } else if (curAction.actionType === CLM.ActionTypes.SET_ENTITY) {
-                            const setEntityAction = new CLM.SetEntityAction(curAction)
-                            botResponse = await this.TakeSetEntityAction(setEntityAction, filledEntityMap, clMemory, entityList.entities, true)
-                        }
-                        else {
-                            throw new Error(`Cannot construct bot response for unknown action type: ${curAction.actionType}`)
-                        }
-                    }
-
+                    let botResponse: IActionResult | null = null
                     let validWaitAction
-                    if (curAction && !curAction.isTerminal) {
-                        if (round.scorerSteps.length === scoreIndex + 1) {
-                            validWaitAction = false
+                    // If scorer step a stub action from an import?
+                    if (scorerStep.importText) {
+                        curAction = null
+                        botResponse = {
+                            logicResult: undefined,
+                            response: scorerStep.importText
+                        }
+                        replayError = new CLM.ReplayErrorActionStub(userText)
+                        replayErrors.push(replayError);
+                    }
+                    else {
+                        let scoreFilledEntities = scorerStep.input.filledEntities
+
+                        replayError = null
+                        curAction = actions.find(a => a.actionId == labelAction) || null
+
+                        // Validate Score Step
+                        replayError = this.GetHistoryScoreErrors(round, scoreIndex, scoreFilledEntities, curAction, actions, userText, replayErrors)
+
+                        // Check for exceptions on API call (specificaly EntityDetectionCallback)
+                        const logicAPIError = Utils.GetLogicAPIError(scorerStep.logicResult)
+                        if (logicAPIError) {
+                            replayError = new CLM.ReplayErrorAPIException()
+                            replayErrors.push(replayError);
+
+                            let actionName = ""
+                            if (curAction && curAction.actionType === CLM.ActionTypes.API_LOCAL) {
+                                const apiAction = new CLM.ApiAction(curAction)
+                                actionName = `${apiAction.name}`
+                            }
+                            const title = `Exception hit in Bot's API Callback:${actionName}`;
+                            const response = this.RenderErrorCard(title, logicAPIError.APIError);
+
+                            botResponse = {
+                                logicResult: undefined,
+                                response
+                            }
+                        }
+                        else if (!curAction) {
+                            botResponse = {
+                                logicResult: undefined,
+                                response: CLDebug.Error(`Can't find Action Id ${labelAction}`)
+                            }
                         }
                         else {
-                            validWaitAction = true
+
+                            // Create map with names and ids
+                            const filledEntityMap = this.CreateFilledEntityMap(scoreFilledEntities, entityList)
+
+                            // Fill in missing entities with a warning
+                            const missingEntities = this.PopulateMissingFilledEntities(curAction, filledEntityMap, entities, true)
+
+                            // Entity required for Action isn't filled in
+                            if (missingEntities.length > 0) {
+                                replayError = replayError || new CLM.ReplayErrorEntityEmpty(missingEntities)
+                                replayErrors.push(replayError);
+                            }
+
+                            // Set memory from map with names only (since not calling APIs)
+                            const memoryMap = CLM.FilledEntityMap.FromFilledEntities(scoreFilledEntities, entities)
+                            await clMemory.BotMemory.RestoreFromMapAsync(memoryMap)
+
+                            if (curAction.actionType === CLM.ActionTypes.CARD) {
+                                const cardAction = new CLM.CardAction(curAction)
+                                botResponse = {
+                                    logicResult: undefined,
+                                    response: await this.TakeCardAction(cardAction, filledEntityMap)
+                                }
+                            }
+                            else if (CLM.ActionBase.isStubbedAPI(curAction)) {
+                                const apiAction = new CLM.ApiAction(curAction)
+
+                                // Store stub API output is stored in LogicResult
+                                let stubFilledEntities = scorerStep.logicResult ? scorerStep.logicResult.changedFilledEntities : []
+                                botResponse = {
+                                    logicResult: undefined,
+                                    response: await this.TakeAPIStubAction(apiAction, stubFilledEntities, clMemory, entities)
+                                }
+                                replayError = replayError || new CLM.ReplayErrorAPIStub()
+                                replayErrors.push(replayError);
+                            }
+                            else if (curAction.actionType === CLM.ActionTypes.API_LOCAL) {
+                                const apiAction = new CLM.ApiAction(curAction)
+                                const actionInput: IActionInput = {
+                                    type: ActionInputType.RENDER_ONLY,
+                                    logicResult: scorerStep.logicResult
+                                }
+
+                                botResponse = await this.TakeAPIAction(apiAction, filledEntityMap, clMemory, entityList.entities, true, actionInput)
+
+                                if (!this.callbacks[apiAction.name]) {
+                                    replayError = new CLM.ReplayErrorAPIUndefined(apiAction.name)
+                                    replayErrors.push(replayError)
+                                }
+                                else if (botResponse.replayError) {
+                                    replayError = botResponse.replayError
+                                    replayErrors.push(botResponse.replayError)
+                                }
+                            } else if (curAction.actionType === CLM.ActionTypes.TEXT) {
+                                const textAction = new CLM.TextAction(curAction)
+                                try {
+                                    botResponse = {
+                                        logicResult: undefined,
+                                        response: await this.TakeTextAction(textAction, filledEntityMap)
+                                    }
+                                }
+                                catch (error) {
+                                    // Payload is invalid
+                                    replayError = new CLM.ReplayErrorEntityUndefined("")
+                                    replayErrors.push(replayError);
+                                    botResponse = {
+                                        logicResult: undefined,
+                                        response: JSON.parse(textAction.payload).text // Show raw text
+                                    }
+                                }
+                            } else if (curAction.actionType === CLM.ActionTypes.END_SESSION) {
+                                const sessionAction = new CLM.SessionAction(curAction)
+                                botResponse = {
+                                    logicResult: undefined,
+                                    response: await this.TakeSessionAction(sessionAction, filledEntityMap, true, clMemory, null, null)
+                                }
+                            } else if (curAction.actionType === CLM.ActionTypes.SET_ENTITY) {
+                                const setEntityAction = new CLM.SetEntityAction(curAction)
+                                botResponse = await this.TakeSetEntityAction(setEntityAction, filledEntityMap, clMemory, entityList.entities, true)
+                            }
+                            else {
+                                throw new Error(`Cannot construct bot response for unknown action type: ${curAction.actionType}`)
+                            }
+                        }
+
+                        if (curAction && !curAction.isTerminal) {
+                            if (round.scorerSteps.length === scoreIndex + 1) {
+                                validWaitAction = false
+                            }
+                            else {
+                                validWaitAction = true
+                            }
                         }
                     }
 
-                    let clBotData: CLM.CLChannelData = {
+                    const clBotData: CLM.CLChannelData = {
                         senderType: CLM.SenderType.Bot,
-                        roundIndex: roundNum,
+                        roundIndex: roundIndex,
                         scoreIndex,
                         validWaitAction: validWaitAction,
                         replayError,
@@ -1833,11 +1973,11 @@ export class CLRunner {
                     }
 
                     let botActivity: Partial<BB.Activity> | null = null
-                    let botAccount = { id: `BOT-${userId}`, name: CLM.CL_USER_NAME_ID, role: BB.RoleTypes.Bot, aadObjectId: '' }
-                    if (typeof botResponse.response == 'string') {
+                    if (botResponse && typeof botResponse.response == 'string') {
                         botActivity = {
                             id: CLM.ModelUtils.generateGUID(),
                             from: botAccount,
+                            recipient: userAccount,
                             type: 'message',
                             text: botResponse.response,
                             channelData: { clData: clBotData }
@@ -1846,6 +1986,7 @@ export class CLRunner {
                         botActivity = botResponse.response as BB.Activity
                         botActivity.id = CLM.ModelUtils.generateGUID()
                         botActivity.from = botAccount
+                        botActivity.recipient = userAccount
                         botActivity.channelData = { clData: clBotData }
                     }
 
