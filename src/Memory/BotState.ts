@@ -36,9 +36,6 @@ export enum BotStateType {
     // Currently running application
     APP = 'APP',  //public app: AppBase | null = null
 
-    // Conversation Id associated with this session
-    CONVERSATION_ID = 'CONVERSATION_ID',
-
     // BotBuilder conversation reference
     CONVERSATION_REFERENCE = 'CONVERSATION_REFERENCE',
 
@@ -64,19 +61,25 @@ export enum BotStateType {
     SESSION_ID = 'SESSION_ID'
 }
 
+export type ConvIdMapper = (ref: Partial<BB.ConversationReference> | null) => string | null
+
 export class BotState {
     private static _instance: BotState | undefined
+    private readonly conversationReferenceToConversationIdMapper: ConvIdMapper
     public memory: CLMemory | undefined
 
-    private constructor(init?: Partial<BotState>) {
+    private constructor(init?: Partial<BotState>,
+        conversationReferenceToConvIdMapper: ConvIdMapper = BotState.DefaultConversationIdMapper) {
         Object.assign(this, init)
+        this.conversationReferenceToConversationIdMapper = conversationReferenceToConvIdMapper
     }
 
-    public static Get(clMemory: CLMemory): BotState {
+    public static Get(clMemory: CLMemory, conversationReference: Partial<BB.ConversationReference> | null): BotState {
         if (!BotState._instance) {
             BotState._instance = new BotState()
         }
         BotState._instance.memory = clMemory
+        BotState._instance.SetConversationReference(conversationReference)
         return BotState._instance
     }
 
@@ -108,7 +111,6 @@ export class BotState {
     // NOTE: CLMemory should be the only one to call this
     public async _SetAppAsync(app: AppBase | null): Promise<void> {
         await this.SetApp(app)
-        await this.SetConversationId(null)
         await this.SetConversationReference(null)
         await this.SetLastActive(0);
         await this.SetMessageProcessing(null);
@@ -148,17 +150,6 @@ export class BotState {
 
             await this.SetStateAsync(BotStateType.APP, smallApp)
         }
-    }
-
-    // ------------------------------------------------
-    //  CONVERSATION_ID
-    // ------------------------------------------------
-    public async GetConversationId(): Promise<string | BB.ConversationReference | null> {
-        return await this.GetStateAsync<string | BB.ConversationReference | null>(BotStateType.CONVERSATION_ID)
-    }
-
-    public async SetConversationId(conversationId: string | BB.ConversationReference | null): Promise<void> {
-        await this.SetStateAsync(BotStateType.CONVERSATION_ID, conversationId)
     }
 
     // ------------------------------------------------
@@ -211,25 +202,19 @@ export class BotState {
     // ------------------------------------------------
     // SESSION_ID
     // ------------------------------------------------
-    public async GetSessionIdAndSetConversationId(conversationId: string): Promise<string | null> {
+    public async GetSessionIdAndSetConversationId(conversationReference: Partial<BB.ConversationReference>): Promise<string | null> {
 
+        let conversationId = this.conversationReferenceToConversationIdMapper(conversationReference)
         // If conversationId not set yet, use the session and set it
-        let existingConversationId = await this.GetConversationId();
+        let existingConversationId = await this.GetConversationId()
         if (!existingConversationId) {
-            await this.SetConversationId(conversationId)
+            await this.SetConversationReference(conversationReference)
             return await this.GetStateAsync<string | null>(BotStateType.SESSION_ID)
         }
         // If conversation Id matches return the sessionId
         else if (existingConversationId === conversationId) {
             return await this.GetStateAsync<string | null>(BotStateType.SESSION_ID)
         }
-        // If existingConversationId Id is a object - TEAMs Channel 
-        else if (typeof existingConversationId === 'object') {
-            if (existingConversationId.conversation.id === conversationId) {
-                return await this.GetStateAsync<string | null>(BotStateType.SESSION_ID)
-            }
-        }
-
         // Otherwise session is for another conversation
         return null
     }
@@ -238,15 +223,11 @@ export class BotState {
         return await this.GetStateAsync<string | null>(BotStateType.SESSION_ID)
     }
 
-    public async SetSessionId(sessionId: string | null): Promise<void> {
-        await this.SetStateAsync(BotStateType.SESSION_ID, sessionId)
-    }
-
-    public async InitSessionAsync(sessionId: string | null, logDialogId: string | null, conversationId: string | BB.ConversationReference | null, sessionStartFlags: SessionStartFlags): Promise<void> {
+    public async InitSessionAsync(sessionId: string | null, logDialogId: string | null, conversationReference: Partial<BB.ConversationReference> | null, sessionStartFlags: SessionStartFlags): Promise<void> {
         await this.SetSessionId(sessionId);
         await this.SetLogDialogId(logDialogId)
         await this.SetNeedSessionEndCall(true)
-        await this.SetConversationId(conversationId)
+        await this.SetConversationReference(conversationReference)
         await this.SetLastActive(new Date().getTime())
         await this.SetUIMode((sessionStartFlags & SessionStartFlags.IN_TEACH) > 0 ? UIMode.TEACH : UIMode.NONE)
         await this.SetMessageProcessing(null)
@@ -256,7 +237,7 @@ export class BotState {
     public async EndSessionAsync(): Promise<void> {
         await this.SetSessionId(null);
         await this.SetLogDialogId(null);
-        await this.SetConversationId(null);
+        await this.SetConversationReference(null)
         await this.SetLastActive(0);
         await this.SetUIMode(UIMode.NONE);
         await this.SetMessageProcessing(null);
@@ -277,12 +258,16 @@ export class BotState {
     // ------------------------------------------------
     //  CONVERSATION_REFERENCE
     // ------------------------------------------------
-    public async SetConversationReference(conversationReference: Partial<BB.ConversationReference> | null): Promise<void> {
-        await this.SetStateAsync(BotStateType.CONVERSATION_REFERENCE, conversationReference)
-    }
-
     public async GetConversationReverence(): Promise<Partial<BB.ConversationReference> | null> {
         return await this.GetStateAsync<BB.ConversationReference | null>(BotStateType.CONVERSATION_REFERENCE)
+    }
+
+    // ------------------------------------------------
+    //  CONVERSATION_ID
+    // ------------------------------------------------
+    public async GetConversationId(): Promise<string | null> {
+        const convRef = await this.GetConversationReverence()
+        return this.conversationReferenceToConversationIdMapper(convRef)
     }
 
     // For initial pro-active message need to build conversation reference from scratch
@@ -342,5 +327,20 @@ export class BotState {
             userId: '',
             logDialogId: ''
         } as SessionInfo
+    }
+
+    private static DefaultConversationIdMapper: ConvIdMapper = ref => {
+        if (ref && ref.conversation) {
+            return ref.conversation.id
+        }
+        return null
+    }
+
+    private async SetConversationReference(conversationReference: Partial<BB.ConversationReference> | null): Promise<void> {
+        await this.SetStateAsync(BotStateType.CONVERSATION_REFERENCE, conversationReference)
+    }
+
+    private async SetSessionId(sessionId: string | null): Promise<void> {
+        await this.SetStateAsync(BotStateType.SESSION_ID, sessionId)
     }
 }
