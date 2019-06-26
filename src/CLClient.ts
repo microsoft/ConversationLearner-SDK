@@ -242,8 +242,10 @@ export class CLClient {
      */
     public GetLogDialogs(appId: string, packageIds: string[]): Promise<CLM.LogDialogList> {
         const apiPath = `app/${appId}/logdialogs`
-        const packages = packageIds.map(p => `package=${p}`).join("&")
-        const query = `includeDefinitions=false&${packages}`
+        const query = {
+            includeDefinitions: false,
+            package: packageIds
+        }
         return this.send('GET', this.MakeURL(apiPath, query))
     }
 
