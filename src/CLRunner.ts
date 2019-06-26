@@ -218,7 +218,7 @@ export class CLRunner {
                         packageId: packageId,
                         initialFilledEntities: []
                     }
-                    await this.StartSessionAsync(clMemory, activity.conversation.id, app.appId, SessionStartFlags.NONE, sessionCreateParams)
+                    await this.StartSessionAsync(clMemory, BB.TurnContext.getConversationReference(activity), app.appId, SessionStartFlags.NONE, sessionCreateParams)
                 }
             }
         }
@@ -274,7 +274,7 @@ export class CLRunner {
         }
     }
 
-    public async StartSessionAsync(clMemory: CLMemory, conversationId: string | BB.ConversationReference | null, appId: string, sessionStartFlags: SessionStartFlags, createParams: CLM.SessionCreateParams | CLM.CreateTeachParams): Promise<CLM.Teach | CLM.Session> {
+    public async StartSessionAsync(clMemory: CLMemory, conversationRef: Partial<BB.ConversationReference> | null, appId: string, sessionStartFlags: SessionStartFlags, createParams: CLM.SessionCreateParams | CLM.CreateTeachParams): Promise<CLM.Teach | CLM.Session> {
 
         const inTeach = ((sessionStartFlags & SessionStartFlags.IN_TEACH) > 0)
         let entityList = await this.clClient.GetEntities(appId)
@@ -312,9 +312,9 @@ export class CLRunner {
         }
 
         // Initialize Bot State
-        await clMemory.BotState.InitSessionAsync(sessionId, logDialogId, conversationId, sessionStartFlags)
+        await clMemory.BotState.InitSessionAsync(sessionId, logDialogId, conversationRef, sessionStartFlags)
 
-        CLDebug.Verbose(`Started Session: ${sessionId} - ${conversationId}`)
+        CLDebug.Verbose(`Started Session: ${sessionId} - ${clMemory.BotState.GetConversationId()}`)
         return startResponse
     }
 
@@ -397,7 +397,7 @@ export class CLRunner {
                 return null;
             }
 
-            let sessionId = await clMemory.BotState.GetSessionIdAndSetConversationId(activity.conversation.id)
+            let sessionId = await clMemory.BotState.GetSessionIdAndSetConversationId(conversationReference)
 
             // When UI is active inputs are handled via API calls from the Conversation Learner UI
             if (uiMode !== UIMode.NONE) {
@@ -450,10 +450,8 @@ export class CLRunner {
                         sessionCreateParams.saveToLog = app.metadata.isLoggingOn
                     }
 
-                    let conversationId = await clMemory.BotState.GetConversationId()
-
                     // Start a new session
-                    let session = await this.StartSessionAsync(clMemory, conversationId, app.appId, SessionStartFlags.NONE, sessionCreateParams) as CLM.Session
+                    let session = await this.StartSessionAsync(clMemory, conversationReference, app.appId, SessionStartFlags.NONE, sessionCreateParams) as CLM.Session
                     sessionId = session.sessionId
                 }
                 // Otherwise update last access time
@@ -482,7 +480,7 @@ export class CLRunner {
                     packageId: packageId,
                     initialFilledEntities: []
                 }
-                let session = await this.StartSessionAsync(clMemory, activity.conversation.id, app.appId, SessionStartFlags.NONE, sessionCreateParams) as CLM.Session
+                let session = await this.StartSessionAsync(clMemory, BB.TurnContext.getConversationReference(activity), app.appId, SessionStartFlags.NONE, sessionCreateParams) as CLM.Session
                 sessionId = session.sessionId
             }
 
@@ -757,7 +755,7 @@ export class CLRunner {
         }
 
         let context = clMemory.TurnContext
-        if (context === undefined) {
+        if (!context) {
             context = getTurnContextForConversationReference(conversationReference)
         }
         return context
@@ -920,7 +918,7 @@ export class CLRunner {
                                 throw new Error(`Attempted to get session by conversation id, but user was not defined on current conversation`)
                             }
 
-                            sessionId = await clRecognizeResult.memory.BotState.GetSessionIdAndSetConversationId(conversationReference.conversation.id)
+                            sessionId = await clRecognizeResult.memory.BotState.GetSessionIdAndSetConversationId(conversationReference)
                             if (!sessionId) {
                                 throw new Error(`Attempted to get session by conversation id: ${conversationReference.conversation.id} but session was not found`)
                             }
@@ -941,7 +939,7 @@ export class CLRunner {
                 case CLM.ActionTypes.END_SESSION: {
                     app = await clRecognizeResult.memory.BotState.GetApp()
                     const sessionAction = new CLM.SessionAction(clRecognizeResult.scoredAction as any)
-                    sessionId = await clRecognizeResult.memory.BotState.GetSessionIdAndSetConversationId(conversationReference.conversation.id)
+                    sessionId = await clRecognizeResult.memory.BotState.GetSessionIdAndSetConversationId(conversationReference)
                     const response = await this.TakeSessionAction(sessionAction, filledEntityMap, inTeach, clRecognizeResult.memory, sessionId, app);
                     actionResult = {
                         logicResult: undefined,
@@ -991,7 +989,7 @@ export class CLRunner {
             }
 
             if (sessionId == null) {
-                sessionId = await clRecognizeResult.memory.BotState.GetSessionIdAndSetConversationId(conversationReference.conversation.id)
+                sessionId = await clRecognizeResult.memory.BotState.GetSessionIdAndSetConversationId(conversationReference)
             }
             if (!sessionId) {
                 throw new Error(`Attempted to get session by conversation id: ${conversationReference.conversation.id} but session was not found`)
