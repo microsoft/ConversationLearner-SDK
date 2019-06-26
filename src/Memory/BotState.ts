@@ -61,13 +61,15 @@ export enum BotStateType {
     SESSION_ID = 'SESSION_ID'
 }
 
+export type ConvIdMapper = (ref: Partial<BB.ConversationReference> | null) => string | null
+
 export class BotState {
     private static _instance: BotState | undefined
-    private readonly conversationReferenceToConversationIdMapper: (ref: Partial<BB.ConversationReference> | null) => string | null
+    private readonly conversationReferenceToConversationIdMapper: ConvIdMapper
     public memory: CLMemory | undefined
 
     private constructor(init?: Partial<BotState>,
-        conversationReferenceToConvIdMapper: (ref: Partial<BB.ConversationReference> | null) => string | null = BotState.DefaultConversationIdMapper) {
+        conversationReferenceToConvIdMapper: ConvIdMapper = BotState.DefaultConversationIdMapper) {
         Object.assign(this, init)
         this.conversationReferenceToConversationIdMapper = conversationReferenceToConvIdMapper
     }
@@ -327,7 +329,7 @@ export class BotState {
         } as SessionInfo
     }
 
-    private static DefaultConversationIdMapper = (ref: Partial<BB.ConversationReference> | null): string | null => {
+    private static DefaultConversationIdMapper: ConvIdMapper = ref => {
         if (ref && ref.conversation) {
             return ref.conversation.id
         }

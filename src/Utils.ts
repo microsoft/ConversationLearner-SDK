@@ -189,7 +189,7 @@ export const getSha256Hash: (id: string) => string = (id) => {
     return crypto.createHash('sha256').update(id, 'utf8').digest('base64')
 }
 
-export const isRunningInCLUI: (context: BB.TurnContext) => boolean = (context) => {
+export const isRunningInClUI: (context: BB.TurnContext) => boolean = (context) => {
     return context && context.activity && context.activity && context.activity.from && context.activity.from.name === CL_DEVELOPER
 }
 

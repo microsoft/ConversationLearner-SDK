@@ -39,7 +39,7 @@ export class CLMemory {
         const user = conversationReference.user
 
         let keyPrefix: string | null = null
-        if (Utils.isRunningInCLUI(turnContext)) {
+        if (Utils.isRunningInClUI(turnContext)) {
             if (!user) {
                 throw new Error(`Attempted to initialize memory, but cannot get memory key because current request did not have 'from'/user specified`)
             }
