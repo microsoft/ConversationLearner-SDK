@@ -3,16 +3,17 @@
  * Licensed under the MIT License.
  */
 import * as BB from 'botbuilder'
+import * as CLM from '@conversationlearner/models'
+import * as Utils from './Utils'
 import { CLDebug, DebugType } from './CLDebug'
 import { BotMemory } from './Memory/BotMemory'
 import { BotState } from './Memory/BotState'
-import { AppBase } from '@conversationlearner/models'
 
 export class CLMemory {
     private static memoryStorage: BB.Storage | null = null
     private memCache = {}
-    private userkey: string
-    private turnContext: BB.TurnContext | undefined
+    private keyPrefix: string
+    private turnContext: BB.TurnContext | null
 
     public static Init(memoryStorage: BB.Storage | null): void {
         CLMemory.memoryStorage = memoryStorage
@@ -23,33 +24,42 @@ export class CLMemory {
         }
     }
 
-    private constructor(userkey: string) {
-        this.userkey = userkey
+    private constructor(keyPrefix: string, turnContext: BB.TurnContext | null = null) {
+        this.keyPrefix = keyPrefix
+        this.turnContext = turnContext
     }
-  
+
     public static GetMemory(key: string): CLMemory {
         return new CLMemory(key)
     }
 
     // Generate memory key from session
     public static async InitMemory(turnContext: BB.TurnContext): Promise<CLMemory> {
-        const user = turnContext.activity.from
         const conversationReference = BB.TurnContext.getConversationReference(turnContext.activity)
-        if (!user) {
-            throw new Error(`Attempted to initialize memory, but cannot get memory key because current request did not have 'from'/user specified`)
-        }
-        if (!user.id) {
-            throw new Error(`Attempted to initialize memory, but user.id was not provided which is required for use as memory key.`)
+        const user = conversationReference.user
+
+        let keyPrefix: string | null = null
+        if (Utils.isRunningInClUI(turnContext)) {
+            if (!user) {
+                throw new Error(`Attempted to initialize memory, but cannot get memory key because current request did not have 'from'/user specified`)
+            }
+            if (!user.id) {
+                throw new Error(`Attempted to initialize memory, but user.id was not provided which is required for use as memory key.`)
+            }
+            keyPrefix = user.id
+        } else {
+            // Memory uses conversation Id as the prefix key for all the objects kept in CLMemory when bot is not running against CL UI
+            if (!conversationReference.conversation || !conversationReference.conversation.id) {
+                throw new Error(`Attempted to initialize memory, but conversationReference.conversation.id was not provided which is required for use as memory key.`)
+            }
+            keyPrefix = conversationReference.conversation.id
         }
 
-        let memory = new CLMemory(user.id)
-        memory.turnContext = turnContext
-        await memory.BotState.SetConversationReference(conversationReference)
-        return memory
+        return new CLMemory(keyPrefix, turnContext)
     }
 
     private Key(datakey: string): string {
-        return `${this.userkey}_${datakey}`
+        return `${Utils.getSha256Hash(this.keyPrefix)}_${datakey}`
     }
 
     public async GetAsync(datakey: string): Promise<any> {
@@ -126,7 +136,7 @@ export class CLMemory {
         }
     }
 
-    public async SetAppAsync(app: AppBase | null): Promise<void> {
+    public async SetAppAsync(app: CLM.AppBase | null): Promise<void> {
         const curApp = await this.BotState.GetApp();
         await this.BotState._SetAppAsync(app)
 
@@ -140,10 +150,10 @@ export class CLMemory {
     }
 
     public get BotState(): BotState {
-        return BotState.Get(this)
+        return BotState.Get(this, this.turnContext ? BB.TurnContext.getConversationReference(this.turnContext.activity) : null)
     }
 
-    public get TurnContext(): BB.TurnContext | undefined {
+    public get TurnContext(): BB.TurnContext | null {
         return this.turnContext
     }
 }
