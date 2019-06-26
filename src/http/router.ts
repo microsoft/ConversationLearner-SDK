@@ -1157,9 +1157,10 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
     /** Replays a transcript and test whether responses match expected values */
     router.post('/app/:appId/validatetranscript', async (req, res, next) => {
         try {
+            const key = getMemoryKey(req)
             const { appId } = req.params
             const { packageId, userId } = getQuery(req)
-            const turnValidations: CLM.TurnValidation[] = req.body
+            const turnValidations: CLM.TranscriptValidationTurn[] = req.body
             const clRunner = CLRunner.GetRunnerForUI(appId)
 
             if (!packageId) {
@@ -1185,37 +1186,46 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 aadObjectId: ''
             }
 
+            let validity: CLM.Validity = CLM.Validity.VALID
+            let logDialogId: string | null = null
             for (const turnValidation of turnValidations) {
-                const activity: Partial<BB.Activity> = {
+                const activity = {
                     id: CLM.ModelUtils.generateGUID(),
                     conversation,
-                    type: "message",
+                    type: BB.ActivityTypes.Message,
                     text: turnValidation.inputText,
                     from,
-                    channelData: { isValidationTest: true }
+                    channelData: { clData: { isValidationTest: true } }
                 }
 
                 const turnContext = new BB.TurnContext(clRunner.adapter!, activity)
                 const result = await clRunner.recognize(turnContext)
 
+                if (!logDialogId) {
+                    const memory = CLMemory.GetMemory(key)
+                    logDialogId = await memory.BotState.GetLogDialogId()
+                }
                 if (result) {
 
                     const action = appDefinition.actions.find(a => a.actionId === result.scoredAction.actionId)
                     if (action && action.clientData && action.clientData.importHashes) {
                         const match = action.clientData.importHashes.find(ih => ih === turnValidation.actionHashes[0])
                         if (!match) {
-                            res.send(false)
-                            return
+                            validity = CLM.Validity.INVALID
                         }
                     }
                 }
                 else {
-                    // TODO: Send error message back to UI
-                    res.send(false)
+                    validity = CLM.Validity.UNKNOWN
                     return
                 }
             }
-            res.send(true)
+
+            const transcriptValidationResult: CLM.TranscriptValidationResult = {
+                validity,
+                logDialogId
+            }
+            res.send(transcriptValidationResult)
         } catch (error) {
             HandleError(res, error)
         }

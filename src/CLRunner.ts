@@ -256,7 +256,7 @@ export class CLRunner {
         // If I'm in teach or edit mode, or testing process message right away
         let uiMode = await botState.getUIMode();
         if (uiMode !== UIMode.NONE
-            || (turnContext.activity.channelData && turnContext.activity.channelData.isValidationTest)) {
+            || (turnContext.activity.channelData && turnContext.activity.channelData.clData && turnContext.activity.channelData.clData.isValidationTest)) {
             return await this.ProcessInput(turnContext);
         }
 
@@ -461,7 +461,7 @@ export class CLRunner {
             }
 
             // Handle any other non-message input
-            if (activity.type !== "message") {
+            if (activity.type !== BB.ActivityTypes.Message) {
                 await InputQueue.MessageHandled(clMemory.BotState, activity.id);
                 return null;
             }
