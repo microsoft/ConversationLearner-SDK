@@ -9,6 +9,7 @@ import * as constants from './constants'
 import { IActionResult } from './CLRunner'
 import * as querystring from 'querystring'
 
+type QueryObject = { [key: string]: string | number | boolean | string[] | number[] }
 type HTTP_METHOD = 'GET' | 'PUT' | 'POST' | 'DELETE'
 const requestMethodMap = new Map<HTTP_METHOD, typeof Request.get | typeof Request.post>([
     ['GET', Request.get],
@@ -366,7 +367,7 @@ export class CLClient {
     public TeachExtract(appId: string, teachId: string, userInput: CLM.UserInput, excludeConflictCheckId: string | null): Promise<CLM.ExtractResponse> {
         let apiPath = `app/${appId}/teach/${teachId}/extractor`
         // Note: service can take a list of filteredDialogs, but we just use one for now
-        let query: { [key: string]: any } = { includeDefinitions: true }
+        const query: QueryObject = { includeDefinitions: true }
         if (excludeConflictCheckId) {
             query.filteredDialogs = excludeConflictCheckId
         }
