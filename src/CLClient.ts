@@ -74,7 +74,7 @@ export class CLClient {
     private MakeSessionURL(apiPath: string, query: object | string = '') {
         // check if request is bypassing cognitive services APIM
         if (!this.options.CONVERSATION_LEARNER_SERVICE_URI.includes('api.cognitive.microsoft.com')) {
-            // In this case we are not chaining the serviceUrl and it stays the same,
+            // In this case we are not changing the serviceUrl and it stays the same,
             // for example: https://localhost:37936/api/v1/ -> https://localhost:37936/api/v1/
             return this.MakeURL(apiPath, query)
         }
