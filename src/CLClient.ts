@@ -7,7 +7,9 @@ import { CLDebug } from './CLDebug'
 import * as Request from 'request'
 import * as constants from './constants'
 import { IActionResult } from './CLRunner'
+import * as querystring from 'querystring'
 
+type QueryObject = { [key: string]: string | number | boolean | string[] | number[] }
 type HTTP_METHOD = 'GET' | 'PUT' | 'POST' | 'DELETE'
 const requestMethodMap = new Map<HTTP_METHOD, typeof Request.get | typeof Request.post>([
     ['GET', Request.get],
@@ -53,19 +55,26 @@ export class CLClient {
     private BuildURL(baseUri: string, apiPath: string, query?: string) {
         let uri = baseUri + (!baseUri.endsWith('/') ? '/' : '') + apiPath
         if (query) {
+            if (apiPath.includes('?')) {
+                throw new Error(`You attempted to add query parameters to path which already had query parameters. Consolidate all parameters to single objects`)
+            }
+
             uri += `?${query}`
         }
         return uri
     }
 
-    private MakeURL(apiPath: string, query?: string) {
-        return this.BuildURL(this.options.CONVERSATION_LEARNER_SERVICE_URI, apiPath, query)
+    private MakeURL(apiPath: string, query: object | string = '') {
+        const queryString = typeof query === 'string'
+            ? query
+            : querystring.stringify(query)
+        return this.BuildURL(this.options.CONVERSATION_LEARNER_SERVICE_URI, apiPath, queryString)
     }
 
-    private MakeSessionURL(apiPath: string, query?: string) {
+    private MakeSessionURL(apiPath: string, query: object | string = '') {
         // check if request is bypassing cognitive services APIM
         if (!this.options.CONVERSATION_LEARNER_SERVICE_URI.includes('api.cognitive.microsoft.com')) {
-            // In this case we are not chaning the serviceUrl and it stays the same,
+            // In this case we are not changing the serviceUrl and it stays the same,
             // for example: https://localhost:37936/api/v1/ -> https://localhost:37936/api/v1/
             return this.MakeURL(apiPath, query)
         }
@@ -91,7 +100,12 @@ export class CLClient {
             // example: https://westus.api.cognitive.microsoft.com/conversationlearner/ -> https://westus.api.cognitive.microsoft.com/conversationlearner/session/
             baseUri += 'session/'
         }
-        return this.BuildURL(baseUri, apiPath, query)
+
+        const queryString = typeof query === 'string'
+            ? query
+            : querystring.stringify(query)
+
+        return this.BuildURL(baseUri, apiPath, queryString)
     }
 
     private send<T>(method: HTTP_METHOD, url: string, body?: any): Promise<T> {
@@ -141,8 +155,9 @@ export class CLClient {
     }
 
     public GetAppSource(appId: string, packageId: string): Promise<CLM.AppDefinition> {
-        let apiPath = `app/${appId}/source?package=${packageId}`
-        return this.send('GET', this.MakeURL(apiPath))
+        let apiPath = `app/${appId}/source`
+        const query = { package: packageId }
+        return this.send('GET', this.MakeURL(apiPath, query))
     }
 
     public async PostAppSource(appId: string, appDefinition: CLM.AppDefinition): Promise<void> {
@@ -158,8 +173,15 @@ export class CLClient {
 
     /** Create a new application */
     public CopyApps(srcUserId: string, destUserId: string, appId: string, luisSubscriptionKey: string): Promise<string> {
-        const apiPath = `apps/copy?srcUserId=${srcUserId}&destUserId=${destUserId}&appId=${appId}&luisSubscriptionKey=${luisSubscriptionKey}`
-        return this.send('POST', this.MakeURL(apiPath))
+        const apiPath = `apps/copy`
+        const query = {
+            srcUserId,
+            destUserId,
+            appId,
+            luisSubscriptionKey
+        }
+
+        return this.send('POST', this.MakeURL(apiPath, query))
     }
 
     /**
@@ -187,8 +209,9 @@ export class CLClient {
 
     /** Creates a new package tag */
     public PublishApp(appId: string, tagName: string): Promise<CLM.PackageReference> {
-        let apiPath = `app/${appId}/publish?version=${tagName}`
-        return this.send('PUT', this.MakeURL(apiPath))
+        let apiPath = `app/${appId}/publish`
+        const query = `version=${tagName}`
+        return this.send('PUT', this.MakeURL(apiPath, query))
     }
 
     /** Sets a package tags as the live version */
@@ -219,9 +242,12 @@ export class CLClient {
      * see the GET GetLogDialogIds method.
      */
     public GetLogDialogs(appId: string, packageIds: string[]): Promise<CLM.LogDialogList> {
-        const packages = packageIds.map(p => `package=${p}`).join("&")
-        const apiPath = `app/${appId}/logdialogs?includeDefinitions=false&${packages}`
-        return this.send('GET', this.MakeURL(apiPath))
+        const apiPath = `app/${appId}/logdialogs`
+        const query = {
+            includeDefinitions: false,
+            package: packageIds
+        }
+        return this.send('GET', this.MakeURL(apiPath, query))
     }
 
     /** Runs entity extraction (prediction). */
@@ -233,7 +259,7 @@ export class CLClient {
     ): Promise<CLM.ExtractResponse> {
         let apiPath = `app/${appId}/logdialog/${logDialogId}/extractor/${turnIndex}`
         // Always retrieve entity list
-        let query = 'includeDefinitions=true'
+        let query = { includeDefinitions: true }
         return this.send('PUT', this.MakeURL(apiPath, query), userInput)
     }
 
@@ -246,8 +272,8 @@ export class CLClient {
      * (or the specified package, if provided)
      */
     public GetTrainDialog(appId: string, trainDialogId: string, includeDefinitions: boolean = false): Promise<CLM.TrainDialog> {
-        let query = `includeDefinitions=${includeDefinitions}`
         let apiPath = `app/${appId}/traindialog/${trainDialogId}`
+        let query = { includeDefinitions }
         return this.send('GET', this.MakeURL(apiPath, query))
     }
 
@@ -260,7 +286,7 @@ export class CLClient {
     ): Promise<CLM.ExtractResponse> {
         let apiPath = `app/${appId}/traindialog/${trainDialogId}/extractor/${turnIndex}`
         // Always retrieve entity list
-        let query = 'includeDefinitions=true'
+        let query = { includeDefinitions: true }
         return this.send('PUT', this.MakeURL(apiPath, query), userInput)
     }
 
@@ -271,7 +297,9 @@ export class CLClient {
     public TrainDialogValidateTextVariation(appId: string, trainDialogId: string, textVariation: CLM.TextVariation, excludeConflictCheckId: string): Promise<null> {
         let apiPath = `app/${appId}/traindialog/${trainDialogId}/extractor/textvariation`
         // Note: service can take a list of filteredDialogs, but we just use one for now
-        let query = excludeConflictCheckId ? `filteredDialogs=${excludeConflictCheckId}` : undefined
+        let query = excludeConflictCheckId
+            ? { filteredDialogs: excludeConflictCheckId }
+            : undefined
         return this.send('POST', this.MakeURL(apiPath, query), textVariation)
     }
 
@@ -297,8 +325,7 @@ export class CLClient {
         let apiPath = `app/${appId}/session/${sessionId}/extractor`
 
         // Always retrieve entity list
-        let query = 'includeDefinitions=true'
-
+        let query = { includeDefinitions: true }
         return this.send('PUT', this.MakeSessionURL(apiPath, query), userInput)
     }
 
@@ -317,7 +344,7 @@ export class CLClient {
     public EndSession(appId: string, sessionId: string): Promise<string> {
         let apiPath = `app/${appId}/session/${sessionId}`
         //TODO: remove this when redundant query parameter is removed
-        let query = 'saveDialog=false'
+        let query = { saveDialog: false }
         return this.send('DELETE', this.MakeSessionURL(apiPath, query))
     }
 
@@ -340,9 +367,9 @@ export class CLClient {
     public TeachExtract(appId: string, teachId: string, userInput: CLM.UserInput, excludeConflictCheckId: string | null): Promise<CLM.ExtractResponse> {
         let apiPath = `app/${appId}/teach/${teachId}/extractor`
         // Note: service can take a list of filteredDialogs, but we just use one for now
-        let query = `includeDefinitions=true`
+        const query: QueryObject = { includeDefinitions: true }
         if (excludeConflictCheckId) {
-            query += `&filteredDialogs=${excludeConflictCheckId}`
+            query.filteredDialogs = excludeConflictCheckId
         }
         return this.send('PUT', this.MakeURL(apiPath, query), { text: userInput.text })
     }
@@ -384,8 +411,8 @@ export class CLClient {
      * To delete the associated trainDialog, call DELETE on the trainDialog.
      */
     public EndTeach(appId: string, teachId: string, save: boolean): Promise<CLM.TrainResponse> {
-        const query = `saveDialog=${save}`
         let apiPath = `app/${appId}/teach/${teachId}`
+        const query = { saveDialog: save }
         return this.send('DELETE', this.MakeURL(apiPath, query))
     }
 }
