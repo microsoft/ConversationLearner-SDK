@@ -79,7 +79,11 @@ export class BotState {
             BotState._instance = new BotState()
         }
         BotState._instance.memory = clMemory
-        BotState._instance.SetConversationReference(conversationReference)
+        // For API calls from training UI there is no conversationReference. 
+        // Then we should use the cached conversationReference from CLMemory to send replies
+        if (conversationReference) {
+            BotState._instance.SetConversationReference(conversationReference)
+        }
         return BotState._instance
     }
 
