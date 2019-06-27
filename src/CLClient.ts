@@ -236,19 +236,6 @@ export class CLClient {
     //=============================================================================
     // Log Dialogs
     //=============================================================================
-    /**
-     * Retrieves the contents of many/all logDialogs.
-     * To retrieve just a list of IDs of all logDialogs,
-     * see the GET GetLogDialogIds method.
-     */
-    public GetLogDialogs(appId: string, packageIds: string[]): Promise<CLM.LogDialogList> {
-        const apiPath = `app/${appId}/logdialogs`
-        const query = {
-            includeDefinitions: false,
-            package: packageIds
-        }
-        return this.send('GET', this.MakeURL(apiPath, query))
-    }
 
     /** Runs entity extraction (prediction). */
     public LogDialogExtract(
