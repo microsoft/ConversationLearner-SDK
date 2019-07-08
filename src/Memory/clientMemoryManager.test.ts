@@ -312,7 +312,7 @@ describe('ClientMemoryManager', () => {
                 // Arrange
 
                 // Act
-                const changed = clientMemoryManager.changed()
+                const changed = clientMemoryManager.changes()
 
                 const added = changed.filter(c => c.changeType === ChangeType.ADDED)
                 const removed = changed.filter(c => c.changeType === ChangeType.REMOVED)

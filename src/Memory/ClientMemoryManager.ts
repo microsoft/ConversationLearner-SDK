@@ -79,7 +79,7 @@ export class ReadOnlyClientMemoryManager {
      * Categorize each entity as ADDED, REMOVED, CHANGED, or UNCHANGED
      * @param converter Method to transform string text into typed value
      */
-    changed<T = CLM.MemoryValue[] | CLM.MemoryValue>(converter?: (memoryValues: CLM.MemoryValue[]) => T): IChangedMemory<T>[] {
+    changes<T = CLM.MemoryValue[] | CLM.MemoryValue>(converter?: (memoryValues: CLM.MemoryValue[]) => T): IChangedMemory<T>[] {
         return this.allEntities.map<IChangedMemory<T>>(entity => {
             const current = this.Get(entity.entityName)
             const previous = this.GetPrevious(entity.entityName)
@@ -185,12 +185,12 @@ export class ReadOnlyClientMemoryManager {
     }
 
     added() {
-        return this.changed()
+        return this.changes()
             .filter(c => c.changeType === ChangeType.ADDED)
     }
 
     removed() {
-        return this.changed()
+        return this.changes()
             .filter(c => c.changeType === ChangeType.REMOVED)
     }
 
