@@ -6,7 +6,12 @@ import { SessionInfo } from '../Memory/BotState'
 import { CLStrings } from '../CLStrings'
 import * as CLM from '@conversationlearner/models'
 
-export type MemoryManagerReturnType<T> = T extends CLM.MemoryValue[] | CLM.MemoryValue ? T extends CLM.MemoryValue[] ? CLM.MemoryValue[] : CLM.MemoryValue : T
+export type MemoryManagerReturnType<T> =
+    T extends CLM.MemoryValue[] | CLM.MemoryValue
+    ? T extends CLM.MemoryValue[]
+    ? CLM.MemoryValue[]
+    : CLM.MemoryValue
+    : T
 
 export enum ChangeType {
     ADDED = 'ADDED',
@@ -20,6 +25,7 @@ export interface IChangedEntity {
 }
 
 export interface IChangedMemory<T> extends IChangedEntity {
+    name: string
     value: MemoryManagerReturnType<T>
 }
 
@@ -68,43 +74,86 @@ export class ReadOnlyClientMemoryManager {
         return this.GetValues(entityName, this.prevMemories, converter)
     }
 
+    /**
+     * Categorize each entity as ADDED, REMOVED, CHANGED, or UNCHANGED
+     * @param converter Method to transform string text into typed value
+     */
     changed<T = CLM.MemoryValue[] | CLM.MemoryValue>(converter?: (memoryValues: CLM.MemoryValue[]) => T): IChangedMemory<T>[] {
         return this.allEntities.map<IChangedMemory<T>>(entity => {
+            const random = this.Get('nonExistent')
+            console.log({ random })
             const current = this.Get(entity.entityName, converter)
             const previous = this.GetPrevious(entity.entityName, converter)
 
             let change: IChangedMemory<T> | undefined
 
+            // TODO: Current and previous might not be MemoryValue because converter
+            const previousValue = (previous as CLM.MemoryValue)
+            const currentValue = (current as CLM.MemoryValue)
+            const previousValues = (previous as CLM.MemoryValue[])
+            const currentValues = (current as CLM.MemoryValue[])
+
+            /**
+             * For multi-value when entity is not present this.Get returns empty arrays
+             * For single-value when entity is not present this.Get returns null
+             */
+            const isCurrentPresent = (Array.isArray(current) && (current.length !== 0))
+                || !!current
+            const isPreviousPresent = (Array.isArray(previous) && (previous.length !== 0))
+                || !!previous
+
             // If added
-            if (current && !previous) {
+            if (isCurrentPresent && !isPreviousPresent) {
                 change = {
+                    name: entity.entityName,
                     value: current,
                     changeType: ChangeType.ADDED
                 }
             }
             // If removed
-            else if (!current && previous) {
+            else if (!isCurrentPresent && isPreviousPresent) {
                 change = {
+                    name: entity.entityName,
                     value: current,
                     changeType: ChangeType.REMOVED
                 }
             }
-            else if (current && previous) {
-                // TODO: Need to compare userText for edited values
+            // If both present determine if modified
+            else if (isCurrentPresent && isPreviousPresent) {
                 // Would need to get raw value and then convert later to avoid comparing objects which would always show as CHANGED
-                const currentValue = current
-                const previousValue = previous
-
-                if (currentValue === previousValue) {
-                    change = {
-                        value: current,
-                        changeType: ChangeType.UNCHANGED
+                if (!Array.isArray(current) && !Array.isArray(previous)) {
+                    if (currentValue.userText === previousValue.userText) {
+                        change = {
+                            name: entity.entityName,
+                            value: current,
+                            changeType: ChangeType.UNCHANGED
+                        }
+                    }
+                    else {
+                        change = {
+                            name: entity.entityName,
+                            value: current,
+                            changeType: ChangeType.CHANGED
+                        }
                     }
                 }
-                else {
-                    change = {
-                        value: current,
-                        changeType: ChangeType.CHANGED
+                // If values are same length and userText of each item is the same assume unchanged.
+                // Otherwise, assume it has changed
+                else if (Array.isArray(current) && Array.isArray(previous)) {
+                    if (currentValues.length === previousValues.length
+                        && currentValues.every((value, i) => previousValues[i].userText === value.userText)) {
+                        change = {
+                            name: entity.entityName,
+                            value: current,
+                            changeType: ChangeType.UNCHANGED
+                        }
+                    }
+                    else {
+                        change = {
+                            name: entity.entityName,
+                            value: current,
+                            changeType: ChangeType.CHANGED
+                        }
                     }
                 }
             }
