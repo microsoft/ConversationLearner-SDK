@@ -16,8 +16,9 @@ export type MemoryManagerReturnType<T> =
 export enum ChangeType {
     ADDED = 'ADDED',
     REMOVED = 'REMOVED',
-    CHANGED = 'EDITED',
-    UNCHANGED = 'UNCHANGED'
+    CHANGED = 'CHANGED',
+    UNCHANGED = 'UNCHANGED',
+    UNKNOWN = 'UNKNOWN',
 }
 
 export interface IChangedEntity {
@@ -26,7 +27,7 @@ export interface IChangedEntity {
 
 export interface IChangedMemory<T> extends IChangedEntity {
     name: string
-    value: MemoryManagerReturnType<T>
+    value: CLM.MemoryValue | CLM.MemoryValue[]
 }
 
 export class ReadOnlyClientMemoryManager {
@@ -80,81 +81,98 @@ export class ReadOnlyClientMemoryManager {
      */
     changed<T = CLM.MemoryValue[] | CLM.MemoryValue>(converter?: (memoryValues: CLM.MemoryValue[]) => T): IChangedMemory<T>[] {
         return this.allEntities.map<IChangedMemory<T>>(entity => {
-            const random = this.Get('nonExistent')
-            console.log({ random })
-            const current = this.Get(entity.entityName, converter)
-            const previous = this.GetPrevious(entity.entityName, converter)
+            const current = this.Get(entity.entityName)
+            const previous = this.GetPrevious(entity.entityName)
 
             let change: IChangedMemory<T> | undefined
-
-            // TODO: Current and previous might not be MemoryValue because converter
-            const previousValue = (previous as CLM.MemoryValue)
-            const currentValue = (current as CLM.MemoryValue)
-            const previousValues = (previous as CLM.MemoryValue[])
-            const currentValues = (current as CLM.MemoryValue[])
 
             /**
              * For multi-value when entity is not present this.Get returns empty arrays
              * For single-value when entity is not present this.Get returns null
              */
-            const isCurrentPresent = (Array.isArray(current) && (current.length !== 0))
-                || !!current
-            const isPreviousPresent = (Array.isArray(previous) && (previous.length !== 0))
-                || !!previous
 
-            // If added
-            if (isCurrentPresent && !isPreviousPresent) {
-                change = {
-                    name: entity.entityName,
-                    value: current,
-                    changeType: ChangeType.ADDED
+            // If both entities are single-value
+            if (!Array.isArray(current) && !Array.isArray(previous)) {
+                // If added
+                if (current && !previous) {
+                    change = {
+                        name: entity.entityName,
+                        value: current,
+                        changeType: ChangeType.ADDED,
+                    }
                 }
-            }
-            // If removed
-            else if (!isCurrentPresent && isPreviousPresent) {
-                change = {
-                    name: entity.entityName,
-                    value: current,
-                    changeType: ChangeType.REMOVED
+                // If removed
+                else if (!current && previous) {
+                    change = {
+                        name: entity.entityName,
+                        value: current,
+                        changeType: ChangeType.REMOVED,
+                    }
                 }
-            }
-            // If both present determine if modified
-            else if (isCurrentPresent && isPreviousPresent) {
-                // Would need to get raw value and then convert later to avoid comparing objects which would always show as CHANGED
-                if (!Array.isArray(current) && !Array.isArray(previous)) {
-                    if (currentValue.userText === previousValue.userText) {
+                // If both present
+                else if (current && previous) {
+                    // Note: Would need to get raw value and then convert later to avoid comparing after conversion
+                    // This could generate new objects which would always show as CHANGED
+                    if (current.userText === previous.userText) {
                         change = {
                             name: entity.entityName,
                             value: current,
-                            changeType: ChangeType.UNCHANGED
+                            changeType: ChangeType.UNCHANGED,
                         }
                     }
                     else {
                         change = {
                             name: entity.entityName,
                             value: current,
-                            changeType: ChangeType.CHANGED
+                            changeType: ChangeType.CHANGED,
                         }
+                    }
+                }
+            }
+            // If both entities are multi-value
+            else if (Array.isArray(current) && Array.isArray(previous)) {
+                // If added
+                if ((current.length !== 0) && (previous.length === 0)) {
+                    change = {
+                        name: entity.entityName,
+                        value: current,
+                        changeType: ChangeType.ADDED,
+                    }
+                }
+                // If removed
+                else if ((current.length === 0) && (previous.length !== 0)) {
+                    change = {
+                        name: entity.entityName,
+                        value: current,
+                        changeType: ChangeType.REMOVED,
                     }
                 }
                 // If values are same length and userText of each item is the same assume unchanged.
+                // TODO: Could go further with ITEMS_ADDED, ITEMS_REMOVED, but adds a lot of complexity as you can ADD_ITEMS while also editing items etc.
                 // Otherwise, assume it has changed
-                else if (Array.isArray(current) && Array.isArray(previous)) {
-                    if (currentValues.length === previousValues.length
-                        && currentValues.every((value, i) => previousValues[i].userText === value.userText)) {
-                        change = {
-                            name: entity.entityName,
-                            value: current,
-                            changeType: ChangeType.UNCHANGED
-                        }
+                else if (current.length === previous.length
+                    && current.every((value, i) => previous[i].userText === value.userText)) {
+                    change = {
+                        name: entity.entityName,
+                        value: current,
+                        changeType: ChangeType.UNCHANGED
                     }
-                    else {
-                        change = {
-                            name: entity.entityName,
-                            value: current,
-                            changeType: ChangeType.CHANGED
-                        }
+                }
+                else {
+                    change = {
+                        name: entity.entityName,
+                        value: current,
+                        changeType: ChangeType.CHANGED
                     }
+                }
+            }
+            // Based on other logic it shouldn't be possible, but there is no guarantee that an entity values can't go from [] to null
+            // We can't compare these types so set it as UNKNOWN type
+            else {
+                change = {
+                    name: entity.entityName,
+                    value: current,
+                    changeType: ChangeType.UNKNOWN
                 }
             }
 
@@ -164,6 +182,16 @@ export class ReadOnlyClientMemoryManager {
 
             return change
         }, [])
+    }
+
+    added() {
+        return this.changed()
+            .filter(c => c.changeType === ChangeType.ADDED)
+    }
+
+    removed() {
+        return this.changed()
+            .filter(c => c.changeType === ChangeType.REMOVED)
     }
 
     /**

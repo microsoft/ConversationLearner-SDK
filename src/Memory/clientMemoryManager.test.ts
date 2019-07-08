@@ -323,7 +323,7 @@ describe('ClientMemoryManager', () => {
                 expect(unchanged.length).toBe(2)
                 expect(unchanged[0].name).toEqual(entities[0].entityName)
 
-                expect(modified.length).toBe(3)
+                expect(modified.length).toBe(4)
                 expect(modified[0].name).toEqual(entities[1].entityName)
 
                 expect(added.length).toBe(2)
