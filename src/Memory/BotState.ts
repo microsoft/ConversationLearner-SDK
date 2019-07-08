@@ -28,6 +28,7 @@ export interface ActiveApps {
 export enum UIMode {
     TEACH = "TEACH",
     EDIT = "EDIT",
+    TEST = "TEST",
     NONE = "NONE"
 }
 
@@ -228,12 +229,24 @@ export class BotState {
     }
 
     public async InitSessionAsync(sessionId: string | null, logDialogId: string | null, conversationReference: Partial<BB.ConversationReference> | null, sessionStartFlags: SessionStartFlags): Promise<void> {
+
+        let uiMode: UIMode
+        if ((sessionStartFlags & SessionStartFlags.IN_TEACH) > 0) {
+            uiMode = UIMode.TEACH
+        }
+        else if ((sessionStartFlags & SessionStartFlags.IN_TEST) > 0) {
+            uiMode = UIMode.TEST
+        }
+        else {
+            uiMode = UIMode.NONE
+        }
+
         await this.SetSessionId(sessionId);
         await this.SetLogDialogId(logDialogId)
         await this.SetNeedSessionEndCall(true)
         await this.SetConversationReference(conversationReference)
         await this.SetLastActive(new Date().getTime())
-        await this.SetUIMode((sessionStartFlags & SessionStartFlags.IN_TEACH) > 0 ? UIMode.TEACH : UIMode.NONE)
+        await this.SetUIMode(uiMode)
         await this.SetMessageProcessing(null)
     }
 
@@ -262,7 +275,7 @@ export class BotState {
     // ------------------------------------------------
     //  CONVERSATION_REFERENCE
     // ------------------------------------------------
-    public async GetConversationReverence(): Promise<Partial<BB.ConversationReference> | null> {
+    public async GetConversationReference(): Promise<Partial<BB.ConversationReference> | null> {
         return await this.GetStateAsync<BB.ConversationReference | null>(BotStateType.CONVERSATION_REFERENCE)
     }
 
@@ -270,7 +283,7 @@ export class BotState {
     //  CONVERSATION_ID
     // ------------------------------------------------
     public async GetConversationId(): Promise<string | null> {
-        const convRef = await this.GetConversationReverence()
+        const convRef = await this.GetConversationReference()
         return this.conversationReferenceToConversationIdMapper(convRef)
     }
 
@@ -317,7 +330,7 @@ export class BotState {
 
     // -------------------------------------------------------------------
     public async SessionInfoAsync(): Promise<SessionInfo> {
-        const conversationReference = await this.GetConversationReverence();
+        const conversationReference = await this.GetConversationReference();
 
         if (conversationReference && conversationReference.conversation) {
             return {

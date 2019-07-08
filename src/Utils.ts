@@ -101,6 +101,17 @@ const convertToMapById = (entityMap: CLM.FilledEntityMap): CLM.FilledEntityMap =
     return new CLM.FilledEntityMap({ map })
 }
 
+// Returns true if Action contains hash key (used for transcript validation)
+export const actionHasHash = (actionId: string, hash: string, actions: CLM.ActionBase[]) => {
+    // Check that correct action was taken
+    const action = actions.find(a => a.actionId === actionId)
+    if (action && action.clientData && action.clientData.importHashes) {
+        return action.clientData.importHashes.indexOf(hash) >= 0
+    }
+    return false
+}
+
+
 export const addEntitiesById = (valuesByName: CLM.FilledEntityMap): CLM.FilledEntityMap => {
     const valuesById = convertToMapById(valuesByName)
     const map = {
