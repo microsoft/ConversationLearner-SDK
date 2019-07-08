@@ -204,4 +204,38 @@ export const isRunningInClUI: (context: BB.TurnContext) => boolean = (context) =
     return context && context.activity && context.activity && context.activity.from && context.activity.from.name === CL_DEVELOPER
 }
 
+export function deepCopy<T>(obj: T): T {
+    let copy: any;
 
+    // Simple types, null or undefined
+    if (obj === null || typeof obj !== "object") {
+        return obj
+    }
+
+    // Date
+    if (obj instanceof Date) {
+        copy = new Date();
+        copy.setTime(obj.getTime());
+        return copy as T;
+    }
+
+    // Array
+    if (obj instanceof Array) {
+        copy = [];
+        obj.forEach((item, index) => copy[index] = deepCopy(obj[index]))
+        return copy as T;
+    }
+
+    // Handle Object
+    if (obj instanceof Object) {
+        copy = {};
+        Object.keys(obj).forEach(attr => {
+            if ((obj as Object).hasOwnProperty(attr)) {
+                copy[attr] = deepCopy(obj[attr])
+            }
+        })
+        return copy as T;
+    }
+
+    throw new Error("Unknown Type");
+}

@@ -721,7 +721,7 @@ export class CLRunner {
         let sessionInfo = await clMemory.BotState.SessionInfoAsync()
         let curMemories = new CLM.FilledEntityMap(await clMemory.BotMemory.FilledEntityMap());
         if (!prevMemories) {
-            prevMemories = curMemories;
+            prevMemories = new CLM.FilledEntityMap({ map: Utils.deepCopy(curMemories.map) })
         }
         return new ClientMemoryManager(prevMemories, curMemories, allEntities, sessionInfo);
     }
@@ -730,7 +730,7 @@ export class CLRunner {
         let sessionInfo = await clMemory.BotState.SessionInfoAsync()
         let curMemories = new CLM.FilledEntityMap(await clMemory.BotMemory.FilledEntityMap());
         if (!prevMemories) {
-            prevMemories = curMemories;
+            prevMemories = new CLM.FilledEntityMap({ map: Utils.deepCopy(curMemories.map) })
         }
         return new ReadOnlyClientMemoryManager(prevMemories, curMemories, allEntities, sessionInfo);
     }
