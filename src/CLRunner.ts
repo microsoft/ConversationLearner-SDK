@@ -1253,7 +1253,7 @@ export class CLRunner {
                     // Invoke Render part of callback
                     const renderedRenderArgumentValues = this.GetRenderedArguments(callback.renderArguments, apiAction.renderArguments, filledEntityMap)
 
-                    const readOnlyMemoryManager = await this.CreateReadOnlyMemoryManagerAsync(clMemory, allEntities)
+                    const readOnlyMemoryManager = await this.CreateReadOnlyMemoryManagerAsync(clMemory, allEntities, memoryManager.prevMemories)
 
                     let logicObject = logicResult.logicValue ? JSON.parse(logicResult.logicValue) : undefined
                     if (callback.render) {
