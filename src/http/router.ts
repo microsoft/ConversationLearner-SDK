@@ -1162,12 +1162,21 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const { packageId, userId } = getQuery(req)
             const turnValidations: CLM.TranscriptValidationTurn[] = req.body
             const clRunner = CLRunner.GetRunnerForUI(appId)
+            const memory = CLMemory.GetMemory(key)
 
             if (!packageId) {
                 res.status(HttpStatus.BAD_REQUEST)
                 res.send({ error: 'packageId query parameter must be provided' })
                 return
             }
+
+            // Start new session
+            const sessionCreateParams: CLM.SessionCreateParams = {
+                saveToLog: true,
+                packageId,
+                initialFilledEntities: []
+            }
+            await clRunner.StartSessionAsync(memory, null, appId, SessionStartFlags.IN_TEST, sessionCreateParams)
 
             const appDefinition = await client.GetAppSource(appId, packageId)
             const conversation: BB.ConversationAccount = {
@@ -1202,22 +1211,51 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 const result = await clRunner.recognize(turnContext)
 
                 if (!logDialogId) {
-                    const memory = CLMemory.GetMemory(key)
                     logDialogId = await memory.BotState.GetLogDialogId()
                 }
                 if (result) {
+                    // Did I select the expected action?
+                    if (!Utils.actionHasHash(result.scoredAction.actionId, turnValidation.actionHashes[0], appDefinition.actions)) {
+                        validity = CLM.Validity.INVALID
+                    }
 
-                    const action = appDefinition.actions.find(a => a.actionId === result.scoredAction.actionId)
-                    if (action && action.clientData && action.clientData.importHashes) {
-                        const match = action.clientData.importHashes.find(ih => ih === turnValidation.actionHashes[0])
-                        if (!match) {
-                            validity = CLM.Validity.INVALID
+                    // Now take the actual action to update memory 
+                    const conversationReference = BB.TurnContext.getConversationReference(activity)
+                    if (!conversationReference) {
+                        validity = CLM.Validity.UNKNOWN
+                    }
+                    else {
+                        await clRunner.TakeActionAsync(conversationReference, result, null)
+                    }
+
+                    // Need to manually run through non-wait actions to retrieve actions to validate against
+                    turnValidation.actionHashes.shift()
+                    let bestAction = result.scoredAction
+                    if (turnValidation.actionHashes.length > 0) {
+                        const sessionId = await memory.BotState.GetSessionIdAsync()
+                        if (!sessionId) {
+                            validity = CLM.Validity.UNKNOWN
+                        }
+                        else {
+                            for (let hash of turnValidation.actionHashes) {
+                                // If last action was terminal, can't do another action
+                                if (bestAction.isTerminal) {
+                                    validity = CLM.Validity.INVALID
+                                }
+                                else {
+                                    bestAction = await clRunner.Score(appId, sessionId, memory, '', [], result.clEntities, false, true)
+                                    // Did I select the expected action
+                                    if (!Utils.actionHasHash(bestAction.actionId, hash, appDefinition.actions)) {
+                                        validity = CLM.Validity.INVALID
+                                    }
+                                    await clRunner.TakeActionAsync(conversationReference, result, null)
+                                }
+                            }
                         }
                     }
                 }
                 else {
                     validity = CLM.Validity.UNKNOWN
-                    return
                 }
             }
 
@@ -1230,7 +1268,6 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             HandleError(res, error)
         }
     })
-
 
     const httpProxy = proxy({
         target: options.CONVERSATION_LEARNER_SERVICE_URI,

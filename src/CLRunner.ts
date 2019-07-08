@@ -29,7 +29,9 @@ export enum SessionStartFlags {
     /* Start a teaching session */
     IN_TEACH = 1 << 0,
     /* Session is an edit and continue with existing turns */
-    IS_EDIT_CONTINUE = 1 << 1
+    IS_EDIT_CONTINUE = 1 << 1,
+    /* Session is an edit and continue with existing turns */
+    IN_TEST = 1 << 2
 }
 
 export interface InternalCallback<T> extends CLM.Callback, ICallback<T> {
@@ -254,9 +256,8 @@ export class CLRunner {
         let botState = clMemory.BotState;
 
         // If I'm in teach or edit mode, or testing process message right away
-        let uiMode = await botState.getUIMode();
-        if (uiMode !== UIMode.NONE
-            || (turnContext.activity.channelData && turnContext.activity.channelData.clData && turnContext.activity.channelData.clData.isValidationTest)) {
+        let uiMode = await botState.getUIMode()
+        if (uiMode !== UIMode.NONE) {
             return await this.ProcessInput(turnContext);
         }
 
@@ -399,8 +400,8 @@ export class CLRunner {
 
             let sessionId = await clMemory.BotState.GetSessionIdAndSetConversationId(conversationReference)
 
-            // When UI is active inputs are handled via API calls from the Conversation Learner UI
-            if (uiMode !== UIMode.NONE) {
+            // When UI is active inputs are handled via API calls from the Conversation Learner UI unless testing
+            if (uiMode !== UIMode.NONE && uiMode !== UIMode.TEST) {
                 return null
             }
 
@@ -480,7 +481,8 @@ export class CLRunner {
                     packageId: packageId,
                     initialFilledEntities: []
                 }
-                let session = await this.StartSessionAsync(clMemory, BB.TurnContext.getConversationReference(activity), app.appId, SessionStartFlags.NONE, sessionCreateParams) as CLM.Session
+                let sessionStartFlags = uiMode === UIMode.TEST ? SessionStartFlags.IN_TEST : SessionStartFlags.NONE
+                let session = await this.StartSessionAsync(clMemory, BB.TurnContext.getConversationReference(activity), app.appId, sessionStartFlags, sessionCreateParams) as CLM.Session
                 sessionId = session.sessionId
             }
 
@@ -555,7 +557,7 @@ export class CLRunner {
         return null
     }
 
-    private async Score(
+    public async Score(
         appId: string,
         sessionId: string,
         memory: CLMemory,
@@ -749,7 +751,7 @@ export class CLRunner {
         }
 
         // Get conversation ref, so I can generate context and send it back to bot dev
-        let conversationReference = await clMemory.BotState.GetConversationReverence()
+        let conversationReference = await clMemory.BotState.GetConversationReference()
         if (!conversationReference) {
             throw new Error('Missing ConversationReference')
         }
@@ -769,7 +771,7 @@ export class CLRunner {
             let memoryManager = await this.CreateMemoryManagerAsync(clMemory, entities)
 
             // Get conversation ref, so I can generate context and send it back to bot dev
-            let conversationReference = await clMemory.BotState.GetConversationReverence()
+            let conversationReference = await clMemory.BotState.GetConversationReference()
             if (!conversationReference) {
                 CLDebug.Error('Missing ConversationReference')
                 return
@@ -807,7 +809,7 @@ export class CLRunner {
                 let memoryManager = await this.CreateMemoryManagerAsync(clMemory, entities)
 
                 // Get conversation ref, so I can generate context and send it back to bot dev
-                let conversationReference = await clMemory.BotState.GetConversationReverence()
+                let conversationReference = await clMemory.BotState.GetConversationReference()
                 if (!conversationReference) {
                     CLDebug.Error('Missing ConversationReference')
                     return
@@ -975,8 +977,9 @@ export class CLRunner {
             }
         }
 
-        // If action wasn't terminal loop through Conversation Learner again after a short delay
-        if (!clRecognizeResult.inTeach && !clRecognizeResult.scoredAction.isTerminal) {
+        // If action wasn't terminal loop through Conversation Learner again after a short delay (unless I'm testing where it's handled by the tester)
+        let uiMode = await clRecognizeResult.memory.BotState.getUIMode()
+        if (!clRecognizeResult.inTeach && !clRecognizeResult.scoredAction.isTerminal && uiMode !== UIMode.TEST) {
             if (app === null) {
                 app = await clRecognizeResult.memory.BotState.GetApp()
             }
@@ -995,7 +998,7 @@ export class CLRunner {
                 throw new Error(`Attempted to get session by conversation id: ${conversationReference.conversation.id} but session was not found`)
             }
 
-            // send the current response to user before score for the next turn
+            // send the current response to user before score for the next turn 
             if (actionResult.response != null) {
                 await this.SendMessage(clRecognizeResult.memory, actionResult.response)
             }
@@ -1020,7 +1023,7 @@ export class CLRunner {
 
     public async SendIntent(intent: CLRecognizerResult, uiTrainScorerStep: CLM.UITrainScorerStep | null = null): Promise<IActionResult | undefined> {
 
-        let conversationReference = await intent.memory.BotState.GetConversationReverence();
+        let conversationReference = await intent.memory.BotState.GetConversationReference();
 
         if (!conversationReference) {
             CLDebug.Error('Missing ConversationReference')
@@ -1048,7 +1051,7 @@ export class CLRunner {
             await InputQueue.MessageHandled(memory.BotState, incomingActivityId);
         }
 
-        let conversationReference = await memory.BotState.GetConversationReverence()
+        let conversationReference = await memory.BotState.GetConversationReference()
         if (!conversationReference) {
             CLDebug.Error('Missing ConversationReference')
             return
