@@ -109,23 +109,23 @@ export class ReadOnlyClientMemoryManager {
                         changeType: ChangeType.REMOVED,
                     }
                 }
-                // If both present
-                else if (current && previous) {
+                // If both are not present or both are present and have same userText, consider UNCHANGED
+                else if ((!current && !previous)
+                    || ((current && previous)
+                        && (current.userText === previous.userText))) {
                     // Note: Would need to get raw value and then convert later to avoid comparing after conversion
                     // This could generate new objects which would always show as CHANGED
-                    if (current.userText === previous.userText) {
-                        change = {
-                            name: entity.entityName,
-                            value: current,
-                            changeType: ChangeType.UNCHANGED,
-                        }
+                    change = {
+                        name: entity.entityName,
+                        value: current,
+                        changeType: ChangeType.UNCHANGED,
                     }
-                    else {
-                        change = {
-                            name: entity.entityName,
-                            value: current,
-                            changeType: ChangeType.CHANGED,
-                        }
+                }
+                else {
+                    change = {
+                        name: entity.entityName,
+                        value: current,
+                        changeType: ChangeType.CHANGED,
                     }
                 }
             }
@@ -147,7 +147,7 @@ export class ReadOnlyClientMemoryManager {
                         changeType: ChangeType.REMOVED,
                     }
                 }
-                // If values are same length and userText of each item is the same assume unchanged.
+                // If values are same length (could be empty) and userText of each item is the same assume unchanged.
                 // TODO: Could go further with ITEMS_ADDED, ITEMS_REMOVED, but adds a lot of complexity as you can ADD_ITEMS while also editing items etc.
                 // Otherwise, assume it has changed
                 else if (current.length === previous.length
