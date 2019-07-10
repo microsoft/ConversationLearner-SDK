@@ -784,8 +784,7 @@ export class CLRunner {
                     await clMemory.BotMemory.RestoreFromMemoryManagerAsync(memoryManager)
                 }
                 catch (err) {
-                    const text = "Exception hit in Bot's OnSessionStartCallback"
-                    const message = BB.MessageFactory.text(text)
+                    const message = BB.MessageFactory.text(CLStrings.EXCEPTION_ONSESSIONSTART_CALLBACK)
                     const replayError = new CLM.ReplayErrorAPIException()
                     message.channelData = { clData: { replayError } }
 
@@ -824,8 +823,7 @@ export class CLRunner {
                     await clMemory.BotMemory.ClearAsync(saveEntities)
                 }
                 catch (err) {
-                    const text = "Exception hit in Bot's OnSessionEndCallback"
-                    const message = BB.MessageFactory.text(text)
+                    const message = BB.MessageFactory.text(CLStrings.EXCEPTION_ONSESSIONSTART_CALLBACK)
                     const replayError = new CLM.ReplayErrorAPIException()
                     message.channelData = { clData: { replayError } }
 
@@ -1241,11 +1239,11 @@ export class CLRunner {
 
                 // If there was an api Error show card to user
                 if (logicAPIError) {
-                    const title = `Exception hit in Bot's API Callback: '${apiAction.name}'`
+                    const title = `${CLStrings.EXCEPTION_API_CALLBACK}'${apiAction.name}'`
                     response = this.RenderErrorCard(title, logicAPIError.APIError)
                 }
                 else if (logicResult.logicValue && !callback.render) {
-                    const title = `Malformed API Callback: '${apiAction.name}'`
+                    const title = `${CLStrings.MALFORMED_API_CALLBACK}'${apiAction.name}'`
                     response = this.RenderErrorCard(title, "Logic portion of callback returns a value, but no Render portion defined")
                     replayError = new CLM.ReplayErrorAPIMalformed()
                 }
@@ -1261,7 +1259,7 @@ export class CLRunner {
                     }
 
                     if (response && !Utils.IsCardValid(response)) {
-                        const title = `Malformed API Callback '${apiAction.name}'`
+                        const title = `${CLStrings.MALFORMED_API_CALLBACK}'${apiAction.name}'`
                         const error = `Return value in Render function must be a string or BotBuilder Activity`
                         response = this.RenderErrorCard(title, error)
                         replayError = new CLM.ReplayErrorAPIBadCard()
@@ -1281,7 +1279,7 @@ export class CLRunner {
             }
         }
         catch (err) {
-            const title = `Exception hit in Bot's API Callback: '${apiAction.name}'`
+            const title = `${CLStrings.EXCEPTION_API_CALLBACK}'${apiAction.name}'`
             const message = this.RenderErrorCard(title, err.stack || err.message || "")
             const replayError = new CLM.ReplayErrorAPIException()
             return {
@@ -1847,15 +1845,15 @@ export class CLRunner {
                         const logicAPIError = Utils.GetLogicAPIError(scorerStep.logicResult)
                         if (logicAPIError) {
                             replayError = new CLM.ReplayErrorAPIException()
-                            replayErrors.push(replayError);
+                            replayErrors.push(replayError)
 
                             let actionName = ""
                             if (curAction && curAction.actionType === CLM.ActionTypes.API_LOCAL) {
                                 const apiAction = new CLM.ApiAction(curAction)
                                 actionName = `${apiAction.name}`
                             }
-                            const title = `Exception hit in Bot's API Callback:${actionName}`;
-                            const response = this.RenderErrorCard(title, logicAPIError.APIError);
+                            const title = `${CLStrings.EXCEPTION_API_CALLBACK}'${actionName}'`
+                            const response = this.RenderErrorCard(title, logicAPIError.APIError)
 
                             botResponse = {
                                 logicResult: undefined,
