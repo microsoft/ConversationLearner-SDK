@@ -14,5 +14,8 @@ export enum CLStrings {
     MEMORY_MANAGER_NOT_A_STRING_EXCEPTION = "Memory Value is not a string",
     MEMORY_MANAGER_NOT_A_BOOLEAN_EXCEPTION = "Memory Value is not a boolean",
     MEMORY_MANAGER_PRETRAINED_EXCEPTION = "Not allowed to set values of pre-trained Entities:",
-    MEMORY_MANAGER_EXPIRED_EXCEPTION = "called after your function has already returned. You must await results within your code rather than use callbacks"
+    MEMORY_MANAGER_EXPIRED_EXCEPTION = "called after your function has already returned. You must await results within your code rather than use callbacks",
+    EXCEPTION_API_CALLBACK = "Exception hit in Bot's API Callback: ",
+    MALFORMED_API_CALLBACK = "Malformed API Callback: ",
+    EXCEPTION_ONSESSIONSTART_CALLBACK = "Exception hit in Bot's OnSessionStartCallback"
 }
