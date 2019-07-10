@@ -34,6 +34,12 @@ export class CLDebug {
 
     public static InitLogger(adapter: BB.BotAdapter, conversationReference: Partial<BB.ConversationReference>) {
         CLDebug.adapter = adapter
+
+        // Clear cache if conversation changed
+        // TODO: cache by conversationReference
+        if (CLDebug.conversationReference !== conversationReference) {
+            CLDebug.cachedMessages = []
+        }
         CLDebug.conversationReference = conversationReference;
     }
 
