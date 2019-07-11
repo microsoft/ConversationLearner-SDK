@@ -1319,14 +1319,14 @@ export class CLRunner {
         }
     }
 
-    private async TakeSessionAction(sessionAction: CLM.SessionAction, filledEntityMap: CLM.FilledEntityMap, inTeach: boolean, clMemory: CLMemory, sessionId: string | null, app: CLM.AppBase | null): Promise<Partial<BB.Activity> | null> {
+    private async TakeSessionAction(sessionAction: CLM.SessionAction, filledEntityIdMap: CLM.FilledEntityMap, inTeach: boolean, clMemory: CLMemory, sessionId: string | null, app: CLM.AppBase | null): Promise<Partial<BB.Activity> | null> {
 
         // Get any context from the action
-        let content = sessionAction.renderValue(CLM.getEntityDisplayValueMap(filledEntityMap))
+        let content = sessionAction.renderValue(CLM.getEntityDisplayValueMap(filledEntityIdMap))
 
         // If inTeach, show something to user in WebChat so they can edit
         if (inTeach) {
-            let payload = sessionAction.renderValue(CLM.getEntityDisplayValueMap(filledEntityMap))
+            let payload = sessionAction.renderValue(CLM.getEntityDisplayValueMap(filledEntityIdMap))
             let card = {
                 type: "AdaptiveCard",
                 version: "1.0",
@@ -1598,7 +1598,8 @@ export class CLRunner {
                                 round.scorerSteps[scoreIndex].logicResult = actionResult.logicResult
                             } else if (curAction.actionType === CLM.ActionTypes.END_SESSION) {
                                 const sessionAction = new CLM.SessionAction(curAction)
-                                await this.TakeSessionAction(sessionAction, filledEntityMap, true, clMemory, null, null)
+                                const filledIdMap = filledEntityMap.EntityMapToIdMap()
+                                await this.TakeSessionAction(sessionAction, filledIdMap, true, clMemory, null, null)
                             } else if (curAction.actionType === CLM.ActionTypes.SET_ENTITY) {
                                 const setEntityAction = new CLM.SetEntityAction(curAction)
                                 await this.TakeSetEntityAction(setEntityAction, filledEntityMap, clMemory, entityList.entities, true)
