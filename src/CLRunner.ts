@@ -461,8 +461,8 @@ export class CLRunner {
                 }
             }
 
-            // Handle any other non-message input
-            if (activity.type !== BB.ActivityTypes.Message) {
+            // Handle any other non-message input, filter out empty messages
+            if (activity.type !== BB.ActivityTypes.Message || !activity.text || activity.text === "") {
                 await InputQueue.MessageHandled(clMemory.BotState, activity.id);
                 return null;
             }
