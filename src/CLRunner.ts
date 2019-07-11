@@ -426,7 +426,7 @@ export class CLRunner {
                     }
 
                     // End the current session
-                    await this.clClient.EndSession(app.appId, sessionId)
+                    await Utils.EndSessionIfOpen(this.clClient, app.appId, sessionId)
                     await this.EndSessionAsync(clMemory, CLM.SessionEndState.OPEN)
 
                     // If I'm not in the UI, reload the App to get any changes (live package version may have been updated)
@@ -1346,8 +1346,8 @@ export class CLRunner {
         else {
             // End the current session (if in replay will be no sessionId or app)
             if (app && sessionId) {
-                await this.clClient.EndSession(app.appId, sessionId)
-                await this.EndSessionAsync(clMemory, CLM.SessionEndState.COMPLETED, content);
+                await Utils.EndSessionIfOpen(this.clClient, app.appId, sessionId)
+                await this.EndSessionAsync(clMemory, CLM.SessionEndState.COMPLETED, content)
             }
         }
         return null
