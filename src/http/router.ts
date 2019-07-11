@@ -628,7 +628,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 return
             }
 
-            await client.EndSession(appId, sessionId)
+            await Utils.EndSessionIfOpen(client, appId, sessionId)
             res.sendStatus(200)
 
             const clRunner = CLRunner.GetRunnerForUI(appId);
