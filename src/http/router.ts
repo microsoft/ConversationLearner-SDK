@@ -1176,8 +1176,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 packageId,
                 initialFilledEntities: []
             }
-            await clRunner.StartSessionAsync(memory, null, appId, SessionStartFlags.IN_TEST, sessionCreateParams)
-
+            const session = await clRunner.StartSessionAsync(memory, null, appId, SessionStartFlags.IN_TEST, sessionCreateParams) as CLM.Session
+            const logDialogId = session.logDialogId
             const appDefinition = await client.GetAppSource(appId, packageId)
             const conversation: BB.ConversationAccount = {
                 id: CLM.ModelUtils.generateGUID(),
@@ -1196,7 +1196,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             }
 
             let validity: CLM.TranscriptValidationResultType = CLM.TranscriptValidationResultType.REPRODUCED
-            let logDialogId: string | null = null
+
             for (const turnValidation of turnValidations) {
                 const activity = {
                     id: CLM.ModelUtils.generateGUID(),
@@ -1210,9 +1210,6 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 const turnContext = new BB.TurnContext(clRunner.adapter!, activity)
                 const result = await clRunner.recognize(turnContext)
 
-                if (!logDialogId) {
-                    logDialogId = await memory.BotState.GetLogDialogId()
-                }
                 if (result) {
                     // Did I select the expected action?
                     if (!Utils.actionHasHash(result.scoredAction.actionId, turnValidation.actionHashes[0], appDefinition.actions)) {
