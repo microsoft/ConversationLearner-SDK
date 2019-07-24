@@ -860,12 +860,12 @@ export class CLRunner {
         let replayError: CLM.ReplayError | null = null
         const inTeach = uiTrainScorerStep !== null
 
-        if (CLM.ActionBase.isStubbedAPI(clRecognizeResult.scoredAction) && uiTrainScorerStep) {
+        if (CLM.ActionBase.isPlaceholderAPI(clRecognizeResult.scoredAction) && uiTrainScorerStep) {
             const apiAction = new CLM.ApiAction(clRecognizeResult.scoredAction as any)
-            let stubFilledEntities = uiTrainScorerStep.trainScorerStep.logicResult ? uiTrainScorerStep.trainScorerStep.logicResult.changedFilledEntities : []
-            const response = await this.TakeAPIStubAction(
+            let placeholderFilledEntities = uiTrainScorerStep.trainScorerStep.logicResult ? uiTrainScorerStep.trainScorerStep.logicResult.changedFilledEntities : []
+            const response = await this.TakeAPIPlaceholderAction(
                 apiAction,
-                stubFilledEntities,
+                placeholderFilledEntities,
                 clRecognizeResult.memory,
                 clRecognizeResult.clEntities)
             actionResult = {
@@ -873,7 +873,7 @@ export class CLRunner {
                 response: response as BB.Activity
             }
             if (inTeach) {
-                replayError = new CLM.ReplayErrorAPIStub()
+                replayError = new CLM.ReplayErrorAPIPlaceholder()
             }
         }
         else {
@@ -1091,12 +1091,12 @@ export class CLRunner {
         return renderedArgumentValues
     }
 
-    public async TakeAPIStubAction(stubAction: CLM.ApiAction, filledEntities: CLM.FilledEntity[], clMemory: CLMemory, allEntities: CLM.EntityBase[]): Promise<Partial<BB.Activity> | string> {
+    public async TakeAPIPlaceholderAction(placeholderAction: CLM.ApiAction, filledEntities: CLM.FilledEntity[], clMemory: CLMemory, allEntities: CLM.EntityBase[]): Promise<Partial<BB.Activity> | string> {
 
         try {
             const memoryManager = await this.CreateMemoryManagerAsync(clMemory, allEntities)
 
-            // Update memory with stub API values
+            // Update memory with placeholder API values
             memoryManager.curMemories.UpdateFilledEntities(filledEntities, allEntities)
 
             // Update memory with changes from logic callback
@@ -1111,7 +1111,7 @@ export class CLRunner {
                 }
             })
 
-            // Render card to stub
+            // Render card for placeholder
             let card = {
                 type: "AdaptiveCard",
                 version: "1.0",
@@ -1120,7 +1120,7 @@ export class CLRunner {
             const attachment = BB.CardFactory.adaptiveCard(card)
             const response = BB.MessageFactory.attachment(attachment)
             // 'payload' is name of API
-            response.text = `API Stub: ${stubAction.name}`
+            response.text = `API Placeholder: ${placeholderAction.name}`
 
             return response
         }
@@ -1568,10 +1568,10 @@ export class CLRunner {
 
                     const curAction = actions.filter((a: CLM.ActionBase) => a.actionId === scorerStep.labelAction)[0]
 
-                    if (CLM.ActionBase.isStubbedAPI(curAction)) {
-                        // Store stub API output is stored in LogicResult
-                        let stubFilledEntities = scorerStep.logicResult ? scorerStep.logicResult.changedFilledEntities : []
-                        const filledEntityMap = CLM.FilledEntityMap.FromFilledEntities(stubFilledEntities, entities)
+                    if (CLM.ActionBase.isPlaceholderAPI(curAction)) {
+                        // Placeholder output is stored in LogicResult
+                        let placeholderFilledEntities = scorerStep.logicResult ? scorerStep.logicResult.changedFilledEntities : []
+                        const filledEntityMap = CLM.FilledEntityMap.FromFilledEntities(placeholderFilledEntities, entities)
                         await clMemory.BotMemory.RestoreFromMapAsync(filledEntityMap)
                     }
                     else {
@@ -1892,16 +1892,16 @@ export class CLRunner {
                                     response: await this.TakeCardAction(cardAction, filledEntityMap)
                                 }
                             }
-                            else if (CLM.ActionBase.isStubbedAPI(curAction)) {
+                            else if (CLM.ActionBase.isPlaceholderAPI(curAction)) {
                                 const apiAction = new CLM.ApiAction(curAction)
 
-                                // Store stub API output is stored in LogicResult
-                                let stubFilledEntities = scorerStep.logicResult ? scorerStep.logicResult.changedFilledEntities : []
+                                // Placeholder output is stored in LogicResult
+                                let placeholderFilledEntities = scorerStep.logicResult ? scorerStep.logicResult.changedFilledEntities : []
                                 botResponse = {
                                     logicResult: undefined,
-                                    response: await this.TakeAPIStubAction(apiAction, stubFilledEntities, clMemory, entities)
+                                    response: await this.TakeAPIPlaceholderAction(apiAction, placeholderFilledEntities, clMemory, entities)
                                 }
-                                replayError = replayError || new CLM.ReplayErrorAPIStub()
+                                replayError = replayError || new CLM.ReplayErrorAPIPlaceholder()
                                 replayErrors.push(replayError);
                             }
                             else if (curAction.actionType === CLM.ActionTypes.API_LOCAL) {
