@@ -628,7 +628,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 return
             }
 
-            await client.EndSession(appId, sessionId)
+            await Utils.EndSessionIfOpen(client, appId, sessionId)
             res.sendStatus(200)
 
             const clRunner = CLRunner.GetRunnerForUI(appId);
@@ -1176,8 +1176,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 packageId,
                 initialFilledEntities: []
             }
-            await clRunner.StartSessionAsync(memory, null, appId, SessionStartFlags.IN_TEST, sessionCreateParams)
-
+            const session = await clRunner.StartSessionAsync(memory, null, appId, SessionStartFlags.IN_TEST, sessionCreateParams) as CLM.Session
+            const logDialogId = session.logDialogId
             const appDefinition = await client.GetAppSource(appId, packageId)
             const conversation: BB.ConversationAccount = {
                 id: CLM.ModelUtils.generateGUID(),
@@ -1195,8 +1195,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 aadObjectId: ''
             }
 
-            let validity: CLM.Validity = CLM.Validity.VALID
-            let logDialogId: string | null = null
+            let validity: CLM.TranscriptValidationResultType = CLM.TranscriptValidationResultType.REPRODUCED
+
             for (const turnValidation of turnValidations) {
                 const activity = {
                     id: CLM.ModelUtils.generateGUID(),
@@ -1210,19 +1210,16 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 const turnContext = new BB.TurnContext(clRunner.adapter!, activity)
                 const result = await clRunner.recognize(turnContext)
 
-                if (!logDialogId) {
-                    logDialogId = await memory.BotState.GetLogDialogId()
-                }
                 if (result) {
                     // Did I select the expected action?
                     if (!Utils.actionHasHash(result.scoredAction.actionId, turnValidation.actionHashes[0], appDefinition.actions)) {
-                        validity = CLM.Validity.INVALID
+                        validity = CLM.TranscriptValidationResultType.CHANGED
                     }
 
                     // Now take the actual action to update memory 
                     const conversationReference = BB.TurnContext.getConversationReference(activity)
                     if (!conversationReference) {
-                        validity = CLM.Validity.UNKNOWN
+                        validity = CLM.TranscriptValidationResultType.TEST_FAILED
                     }
                     else {
                         await clRunner.TakeActionAsync(conversationReference, result, null)
@@ -1234,19 +1231,19 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                     if (turnValidation.actionHashes.length > 0) {
                         const sessionId = await memory.BotState.GetSessionIdAsync()
                         if (!sessionId) {
-                            validity = CLM.Validity.UNKNOWN
+                            validity = CLM.TranscriptValidationResultType.TEST_FAILED
                         }
                         else {
                             for (let hash of turnValidation.actionHashes) {
                                 // If last action was terminal, can't do another action
                                 if (bestAction.isTerminal) {
-                                    validity = CLM.Validity.INVALID
+                                    validity = CLM.TranscriptValidationResultType.CHANGED
                                 }
                                 else {
                                     bestAction = await clRunner.Score(appId, sessionId, memory, '', [], result.clEntities, false, true)
                                     // Did I select the expected action
                                     if (!Utils.actionHasHash(bestAction.actionId, hash, appDefinition.actions)) {
-                                        validity = CLM.Validity.INVALID
+                                        validity = CLM.TranscriptValidationResultType.CHANGED
                                     }
                                     await clRunner.TakeActionAsync(conversationReference, result, null)
                                 }
@@ -1255,13 +1252,14 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                     }
                 }
                 else {
-                    validity = CLM.Validity.UNKNOWN
+                    validity = CLM.TranscriptValidationResultType.TEST_FAILED
                 }
             }
 
             const transcriptValidationResult: CLM.TranscriptValidationResult = {
                 validity,
-                logDialogId
+                logDialogId,
+                rating: CLM.TranscriptRating.UNKNOWN
             }
             res.send(transcriptValidationResult)
         } catch (error) {

@@ -426,7 +426,7 @@ export class CLRunner {
                     }
 
                     // End the current session
-                    await this.clClient.EndSession(app.appId, sessionId)
+                    await Utils.EndSessionIfOpen(this.clClient, app.appId, sessionId)
                     await this.EndSessionAsync(clMemory, CLM.SessionEndState.OPEN)
 
                     // If I'm not in the UI, reload the App to get any changes (live package version may have been updated)
@@ -461,8 +461,8 @@ export class CLRunner {
                 }
             }
 
-            // Handle any other non-message input
-            if (activity.type !== BB.ActivityTypes.Message) {
+            // Handle any other non-message input, filter out empty messages
+            if (activity.type !== BB.ActivityTypes.Message || !activity.text || activity.text === "") {
                 await InputQueue.MessageHandled(clMemory.BotState, activity.id);
                 return null;
             }
@@ -784,8 +784,7 @@ export class CLRunner {
                     await clMemory.BotMemory.RestoreFromMemoryManagerAsync(memoryManager)
                 }
                 catch (err) {
-                    const text = "Exception hit in Bot's OnSessionStartCallback"
-                    const message = BB.MessageFactory.text(text)
+                    const message = BB.MessageFactory.text(CLStrings.EXCEPTION_ONSESSIONSTART_CALLBACK)
                     const replayError = new CLM.ReplayErrorAPIException()
                     message.channelData = { clData: { replayError } }
 
@@ -824,8 +823,7 @@ export class CLRunner {
                     await clMemory.BotMemory.ClearAsync(saveEntities)
                 }
                 catch (err) {
-                    const text = "Exception hit in Bot's OnSessionEndCallback"
-                    const message = BB.MessageFactory.text(text)
+                    const message = BB.MessageFactory.text(CLStrings.EXCEPTION_ONSESSIONSTART_CALLBACK)
                     const replayError = new CLM.ReplayErrorAPIException()
                     message.channelData = { clData: { replayError } }
 
@@ -862,12 +860,12 @@ export class CLRunner {
         let replayError: CLM.ReplayError | null = null
         const inTeach = uiTrainScorerStep !== null
 
-        if (CLM.ActionBase.isStubbedAPI(clRecognizeResult.scoredAction) && uiTrainScorerStep) {
+        if (CLM.ActionBase.isPlaceholderAPI(clRecognizeResult.scoredAction) && uiTrainScorerStep) {
             const apiAction = new CLM.ApiAction(clRecognizeResult.scoredAction as any)
-            let stubFilledEntities = uiTrainScorerStep.trainScorerStep.logicResult ? uiTrainScorerStep.trainScorerStep.logicResult.changedFilledEntities : []
-            const response = await this.TakeAPIStubAction(
+            let placeholderFilledEntities = uiTrainScorerStep.trainScorerStep.logicResult ? uiTrainScorerStep.trainScorerStep.logicResult.changedFilledEntities : []
+            const response = await this.TakeAPIPlaceholderAction(
                 apiAction,
-                stubFilledEntities,
+                placeholderFilledEntities,
                 clRecognizeResult.memory,
                 clRecognizeResult.clEntities)
             actionResult = {
@@ -875,7 +873,7 @@ export class CLRunner {
                 response: response as BB.Activity
             }
             if (inTeach) {
-                replayError = new CLM.ReplayErrorAPIStub()
+                replayError = new CLM.ReplayErrorAPIPlaceholder()
             }
         }
         else {
@@ -1093,12 +1091,12 @@ export class CLRunner {
         return renderedArgumentValues
     }
 
-    public async TakeAPIStubAction(stubAction: CLM.ApiAction, filledEntities: CLM.FilledEntity[], clMemory: CLMemory, allEntities: CLM.EntityBase[]): Promise<Partial<BB.Activity> | string> {
+    public async TakeAPIPlaceholderAction(placeholderAction: CLM.ApiAction, filledEntities: CLM.FilledEntity[], clMemory: CLMemory, allEntities: CLM.EntityBase[]): Promise<Partial<BB.Activity> | string> {
 
         try {
             const memoryManager = await this.CreateMemoryManagerAsync(clMemory, allEntities)
 
-            // Update memory with stub API values
+            // Update memory with placeholder API values
             memoryManager.curMemories.UpdateFilledEntities(filledEntities, allEntities)
 
             // Update memory with changes from logic callback
@@ -1113,7 +1111,7 @@ export class CLRunner {
                 }
             })
 
-            // Render card to stub
+            // Render card for placeholder
             let card = {
                 type: "AdaptiveCard",
                 version: "1.0",
@@ -1122,7 +1120,7 @@ export class CLRunner {
             const attachment = BB.CardFactory.adaptiveCard(card)
             const response = BB.MessageFactory.attachment(attachment)
             // 'payload' is name of API
-            response.text = `API Stub: ${stubAction.name}`
+            response.text = `API Placeholder: ${placeholderAction.name}`
 
             return response
         }
@@ -1241,11 +1239,11 @@ export class CLRunner {
 
                 // If there was an api Error show card to user
                 if (logicAPIError) {
-                    const title = `Exception hit in Bot's API Callback: '${apiAction.name}'`
+                    const title = `${CLStrings.EXCEPTION_API_CALLBACK}'${apiAction.name}'`
                     response = this.RenderErrorCard(title, logicAPIError.APIError)
                 }
                 else if (logicResult.logicValue && !callback.render) {
-                    const title = `Malformed API Callback: '${apiAction.name}'`
+                    const title = `${CLStrings.MALFORMED_API_CALLBACK}'${apiAction.name}'`
                     response = this.RenderErrorCard(title, "Logic portion of callback returns a value, but no Render portion defined")
                     replayError = new CLM.ReplayErrorAPIMalformed()
                 }
@@ -1261,7 +1259,7 @@ export class CLRunner {
                     }
 
                     if (response && !Utils.IsCardValid(response)) {
-                        const title = `Malformed API Callback '${apiAction.name}'`
+                        const title = `${CLStrings.MALFORMED_API_CALLBACK}'${apiAction.name}'`
                         const error = `Return value in Render function must be a string or BotBuilder Activity`
                         response = this.RenderErrorCard(title, error)
                         replayError = new CLM.ReplayErrorAPIBadCard()
@@ -1281,7 +1279,7 @@ export class CLRunner {
             }
         }
         catch (err) {
-            const title = `Exception hit in Bot's API Callback: '${apiAction.name}'`
+            const title = `${CLStrings.EXCEPTION_API_CALLBACK}'${apiAction.name}'`
             const message = this.RenderErrorCard(title, err.stack || err.message || "")
             const replayError = new CLM.ReplayErrorAPIException()
             return {
@@ -1321,14 +1319,14 @@ export class CLRunner {
         }
     }
 
-    private async TakeSessionAction(sessionAction: CLM.SessionAction, filledEntityMap: CLM.FilledEntityMap, inTeach: boolean, clMemory: CLMemory, sessionId: string | null, app: CLM.AppBase | null): Promise<Partial<BB.Activity> | null> {
+    private async TakeSessionAction(sessionAction: CLM.SessionAction, filledEntityIdMap: CLM.FilledEntityMap, inTeach: boolean, clMemory: CLMemory, sessionId: string | null, app: CLM.AppBase | null): Promise<Partial<BB.Activity> | null> {
 
         // Get any context from the action
-        let content = sessionAction.renderValue(CLM.getEntityDisplayValueMap(filledEntityMap))
+        let content = sessionAction.renderValue(CLM.getEntityDisplayValueMap(filledEntityIdMap))
 
         // If inTeach, show something to user in WebChat so they can edit
         if (inTeach) {
-            let payload = sessionAction.renderValue(CLM.getEntityDisplayValueMap(filledEntityMap))
+            let payload = sessionAction.renderValue(CLM.getEntityDisplayValueMap(filledEntityIdMap))
             let card = {
                 type: "AdaptiveCard",
                 version: "1.0",
@@ -1348,8 +1346,8 @@ export class CLRunner {
         else {
             // End the current session (if in replay will be no sessionId or app)
             if (app && sessionId) {
-                await this.clClient.EndSession(app.appId, sessionId)
-                await this.EndSessionAsync(clMemory, CLM.SessionEndState.COMPLETED, content);
+                await Utils.EndSessionIfOpen(this.clClient, app.appId, sessionId)
+                await this.EndSessionAsync(clMemory, CLM.SessionEndState.COMPLETED, content)
             }
         }
         return null
@@ -1570,10 +1568,10 @@ export class CLRunner {
 
                     const curAction = actions.filter((a: CLM.ActionBase) => a.actionId === scorerStep.labelAction)[0]
 
-                    if (CLM.ActionBase.isStubbedAPI(curAction)) {
-                        // Store stub API output is stored in LogicResult
-                        let stubFilledEntities = scorerStep.logicResult ? scorerStep.logicResult.changedFilledEntities : []
-                        const filledEntityMap = CLM.FilledEntityMap.FromFilledEntities(stubFilledEntities, entities)
+                    if (CLM.ActionBase.isPlaceholderAPI(curAction)) {
+                        // Placeholder output is stored in LogicResult
+                        let placeholderFilledEntities = scorerStep.logicResult ? scorerStep.logicResult.changedFilledEntities : []
+                        const filledEntityMap = CLM.FilledEntityMap.FromFilledEntities(placeholderFilledEntities, entities)
                         await clMemory.BotMemory.RestoreFromMapAsync(filledEntityMap)
                     }
                     else {
@@ -1600,7 +1598,8 @@ export class CLRunner {
                                 round.scorerSteps[scoreIndex].logicResult = actionResult.logicResult
                             } else if (curAction.actionType === CLM.ActionTypes.END_SESSION) {
                                 const sessionAction = new CLM.SessionAction(curAction)
-                                await this.TakeSessionAction(sessionAction, filledEntityMap, true, clMemory, null, null)
+                                const filledIdMap = filledEntityMap.EntityMapToIdMap()
+                                await this.TakeSessionAction(sessionAction, filledIdMap, true, clMemory, null, null)
                             } else if (curAction.actionType === CLM.ActionTypes.SET_ENTITY) {
                                 const setEntityAction = new CLM.SetEntityAction(curAction)
                                 await this.TakeSetEntityAction(setEntityAction, filledEntityMap, clMemory, entityList.entities, true)
@@ -1847,15 +1846,15 @@ export class CLRunner {
                         const logicAPIError = Utils.GetLogicAPIError(scorerStep.logicResult)
                         if (logicAPIError) {
                             replayError = new CLM.ReplayErrorAPIException()
-                            replayErrors.push(replayError);
+                            replayErrors.push(replayError)
 
                             let actionName = ""
                             if (curAction && curAction.actionType === CLM.ActionTypes.API_LOCAL) {
                                 const apiAction = new CLM.ApiAction(curAction)
                                 actionName = `${apiAction.name}`
                             }
-                            const title = `Exception hit in Bot's API Callback:${actionName}`;
-                            const response = this.RenderErrorCard(title, logicAPIError.APIError);
+                            const title = `${CLStrings.EXCEPTION_API_CALLBACK}'${actionName}'`
+                            const response = this.RenderErrorCard(title, logicAPIError.APIError)
 
                             botResponse = {
                                 logicResult: undefined,
@@ -1893,16 +1892,16 @@ export class CLRunner {
                                     response: await this.TakeCardAction(cardAction, filledEntityMap)
                                 }
                             }
-                            else if (CLM.ActionBase.isStubbedAPI(curAction)) {
+                            else if (CLM.ActionBase.isPlaceholderAPI(curAction)) {
                                 const apiAction = new CLM.ApiAction(curAction)
 
-                                // Store stub API output is stored in LogicResult
-                                let stubFilledEntities = scorerStep.logicResult ? scorerStep.logicResult.changedFilledEntities : []
+                                // Placeholder output is stored in LogicResult
+                                let placeholderFilledEntities = scorerStep.logicResult ? scorerStep.logicResult.changedFilledEntities : []
                                 botResponse = {
                                     logicResult: undefined,
-                                    response: await this.TakeAPIStubAction(apiAction, stubFilledEntities, clMemory, entities)
+                                    response: await this.TakeAPIPlaceholderAction(apiAction, placeholderFilledEntities, clMemory, entities)
                                 }
-                                replayError = replayError || new CLM.ReplayErrorAPIStub()
+                                replayError = replayError || new CLM.ReplayErrorAPIPlaceholder()
                                 replayErrors.push(replayError);
                             }
                             else if (curAction.actionType === CLM.ActionTypes.API_LOCAL) {

@@ -9,6 +9,8 @@ import * as fs from 'fs-extra'
 import * as path from 'path'
 import * as crypto from 'crypto'
 import * as CLM from '@conversationlearner/models'
+import * as HttpStatus from 'http-status-codes'
+import { CLClient } from './CLClient';
 
 export class Utils {
     public static SendTyping(adapter: BB.BotAdapter, address: any) {
@@ -188,6 +190,19 @@ export function InputToActivity(userText: string, roundNum: number): Partial<BB.
         },
         type: 'message',
         text: userText
+    }
+}
+
+/* Allows call of close on Session that may already have been closed */
+export async function EndSessionIfOpen(clClient: CLClient, appId: string, sessionId: string) {
+    try {
+        await clClient.EndSession(appId, sessionId)
+    }
+    catch (error) {
+        // File not found is only allowable error as session may already have been deleted
+        if (error.statusCode !== HttpStatus.NOT_FOUND) {
+            throw error
+        }
     }
 }
 
