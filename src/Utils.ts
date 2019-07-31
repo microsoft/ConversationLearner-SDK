@@ -219,6 +219,7 @@ export const isRunningInClUI: (context: BB.TurnContext) => boolean = (context) =
     return context && context.activity && context.activity && context.activity.from && context.activity.from.name === CL_DEVELOPER
 }
 
+// Copied from UI repo. Could swap for library if there is case this doesn't cover, although prefer to not take dependency.
 export function deepCopy<T>(obj: T): T {
     let copy: any;
 

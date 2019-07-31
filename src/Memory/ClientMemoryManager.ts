@@ -21,13 +21,11 @@ export enum ChangeType {
     UNKNOWN = 'UNKNOWN',
 }
 
-export interface IChangedEntity {
-    changeType: ChangeType
-}
-
-export interface IChangedMemory<T> extends IChangedEntity {
+export interface IChangedMemory {
     name: string
-    value: CLM.MemoryValue | CLM.MemoryValue[]
+    current: CLM.MemoryValue | CLM.MemoryValue[]
+    previous: CLM.MemoryValue | CLM.MemoryValue[]
+    changeType: ChangeType
 }
 
 export class ReadOnlyClientMemoryManager {
@@ -77,27 +75,27 @@ export class ReadOnlyClientMemoryManager {
 
     /**
      * Categorize each entity as ADDED, REMOVED, CHANGED, or UNCHANGED
-     * @param converter Method to transform string text into typed value
      */
-    changes<T = CLM.MemoryValue[] | CLM.MemoryValue>(converter?: (memoryValues: CLM.MemoryValue[]) => T): IChangedMemory<T>[] {
-        return this.allEntities.map<IChangedMemory<T>>(entity => {
+    changes(): IChangedMemory[] {
+        return this.allEntities.map<IChangedMemory>(entity => {
             const current = this.Get(entity.entityName)
             const previous = this.GetPrevious(entity.entityName)
 
-            let change: IChangedMemory<T> | undefined
+            let change: IChangedMemory | undefined
 
             /**
              * For multi-value when entity is not present this.Get returns empty arrays
-             * For single-value when entity is not present this.Get returns null
+             * For single-value when entity is not present this.Get returns null which means we have different logic depending on value type
+             * Because of this, split logic into single value vs multi value
              */
-
             // If both entities are single-value
             if (!Array.isArray(current) && !Array.isArray(previous)) {
                 // If added
                 if (current && !previous) {
                     change = {
                         name: entity.entityName,
-                        value: current,
+                        current,
+                        previous,
                         changeType: ChangeType.ADDED,
                     }
                 }
@@ -105,7 +103,8 @@ export class ReadOnlyClientMemoryManager {
                 else if (!current && previous) {
                     change = {
                         name: entity.entityName,
-                        value: current,
+                        current,
+                        previous,
                         changeType: ChangeType.REMOVED,
                     }
                 }
@@ -117,14 +116,16 @@ export class ReadOnlyClientMemoryManager {
                     // This could generate new objects which would always show as CHANGED
                     change = {
                         name: entity.entityName,
-                        value: current,
+                        current,
+                        previous,
                         changeType: ChangeType.UNCHANGED,
                     }
                 }
                 else {
                     change = {
                         name: entity.entityName,
-                        value: current,
+                        current,
+                        previous,
                         changeType: ChangeType.CHANGED,
                     }
                 }
@@ -135,7 +136,8 @@ export class ReadOnlyClientMemoryManager {
                 if ((current.length !== 0) && (previous.length === 0)) {
                     change = {
                         name: entity.entityName,
-                        value: current,
+                        current,
+                        previous,
                         changeType: ChangeType.ADDED,
                     }
                 }
@@ -143,7 +145,8 @@ export class ReadOnlyClientMemoryManager {
                 else if ((current.length === 0) && (previous.length !== 0)) {
                     change = {
                         name: entity.entityName,
-                        value: current,
+                        current,
+                        previous,
                         changeType: ChangeType.REMOVED,
                     }
                 }
@@ -154,44 +157,37 @@ export class ReadOnlyClientMemoryManager {
                     && current.every((value, i) => previous[i].userText === value.userText)) {
                     change = {
                         name: entity.entityName,
-                        value: current,
+                        current,
+                        previous,
                         changeType: ChangeType.UNCHANGED
                     }
                 }
                 else {
                     change = {
                         name: entity.entityName,
-                        value: current,
+                        current,
+                        previous,
                         changeType: ChangeType.CHANGED
                     }
                 }
             }
-            // Based on other logic it shouldn't be possible, but there is no guarantee that an entity values can't go from [] to null
+            // Based on other logic this case shouldn't be possible, but there is no guarantee that an entity values can't go from [] to null
             // We can't compare these types so set it as UNKNOWN type
             else {
                 change = {
                     name: entity.entityName,
-                    value: current,
+                    current,
+                    previous,
                     changeType: ChangeType.UNKNOWN
                 }
             }
 
             if (!change) {
-                throw new Error(`You attempted to add a change to list of changes in memory but change was undefined. There is likely an error, this should not be possible.`)
+                throw new Error(`Error during computation of memory changes. The calculated change didn't match any known changeType category and was undefined. This should not be possible. Current: ${JSON.stringify(current, null, '  ')}, Previous: ${JSON.stringify(previous, null, '  ')}`)
             }
 
             return change
         }, [])
-    }
-
-    added() {
-        return this.changes()
-            .filter(c => c.changeType === ChangeType.ADDED)
-    }
-
-    removed() {
-        return this.changes()
-            .filter(c => c.changeType === ChangeType.REMOVED)
     }
 
     /**

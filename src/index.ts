@@ -4,7 +4,7 @@
  */
 import { ConversationLearner } from './ConversationLearner'
 import { ICLOptions } from './CLOptions'
-import { ClientMemoryManager, ReadOnlyClientMemoryManager } from './Memory/ClientMemoryManager'
+import { ClientMemoryManager, ReadOnlyClientMemoryManager, ChangeType } from './Memory/ClientMemoryManager'
 import { RedisStorage } from './RedisStorage'
 import { FileStorage } from './FileStorage'
 import uiRouter from './uiRouter'
@@ -13,6 +13,7 @@ import { EntityDetectionCallback, OnSessionStartCallback, OnSessionEndCallback, 
 
 export {
     uiRouter,
+    ChangeType,
     ConversationLearner,
     ICLOptions,
     ClientMemoryManager,
