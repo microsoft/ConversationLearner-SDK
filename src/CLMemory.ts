@@ -34,7 +34,7 @@ export class CLMemory {
     }
 
     // Generate memory key from session
-    public static async InitMemory(turnContext: BB.TurnContext): Promise<CLMemory> {
+    public static async InitMemory(turnContext: BB.TurnContext, modelId: string = ''): Promise<CLMemory> {
         const conversationReference = BB.TurnContext.getConversationReference(turnContext.activity)
         const user = conversationReference.user
 
@@ -46,13 +46,15 @@ export class CLMemory {
             if (!user.id) {
                 throw new Error(`Attempted to initialize memory, but user.id was not provided which is required for use as memory key.`)
             }
-            keyPrefix = user.id
+            // User ID is the browser slot assinged to the UI
+            keyPrefix = `${modelId}${user.id}`
         } else {
             // Memory uses conversation Id as the prefix key for all the objects kept in CLMemory when bot is not running against CL UI
             if (!conversationReference.conversation || !conversationReference.conversation.id) {
                 throw new Error(`Attempted to initialize memory, but conversationReference.conversation.id was not provided which is required for use as memory key.`)
             }
-            keyPrefix = conversationReference.conversation.id
+            // Dispatcher submodels will have the same converstaion id thus we need the model id to differentiate
+            keyPrefix = `${modelId}${conversationReference.conversation.id}`
         }
 
         return new CLMemory(keyPrefix, turnContext)

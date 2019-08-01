@@ -117,11 +117,12 @@ export class CLRunner {
     private checksum: string | null = null
 
     /* Model Id passed in from configuration.  Used when not running in Conversation Learner UI */
-    private configModelId: string | undefined;
+    public readonly configModelId: string | undefined;
     private maxTimeout: number | undefined;  // TODO: Move timeout to app settings
 
     /* Mapping between user defined API names and functions */
     public callbacks: CallbackMap = {}
+    private models: ConversationLearner[] = []
 
     public static Create(configModelId: string | undefined, maxTimeout: number | undefined, client: CLClient): CLRunner {
 
@@ -186,7 +187,7 @@ export class CLRunner {
 
     public async InTrainingUI(turnContext: BB.TurnContext): Promise<boolean> {
         if (turnContext.activity.from && turnContext.activity.from.name === Utils.CL_DEVELOPER) {
-            let clMemory = await CLMemory.InitMemory(turnContext)
+            let clMemory = await CLMemory.InitMemory(turnContext, this.configModelId)
             let app = await clMemory.BotState.GetApp()
             // If no app selected in UI or no app set in config, or they don't match return true
             if (!app || !this.configModelId || app.appId !== this.configModelId) {
@@ -209,8 +210,8 @@ export class CLRunner {
         }
 
         try {
-            let app = await this.GetRunningApp(turnContext, false);
-            let clMemory = await CLMemory.InitMemory(turnContext)
+            let clMemory = await CLMemory.InitMemory(turnContext, this.configModelId)
+            let app = await this.GetRunningApp(clMemory, false);
 
             if (app) {
                 let packageId = (app.livePackageId || app.devPackageId)
@@ -252,7 +253,7 @@ export class CLRunner {
             return null;
         }
 
-        let clMemory = await CLMemory.InitMemory(turnContext)
+        let clMemory = await CLMemory.InitMemory(turnContext, this.configModelId)
         let botState = clMemory.BotState;
 
         // If I'm in teach or edit mode, or testing process message right away
@@ -320,9 +321,7 @@ export class CLRunner {
     }
 
     // Get the currently running app
-    private async GetRunningApp(turnContext: BB.TurnContext, inEditingUI: boolean): Promise<CLM.AppBase | null> {
-
-        let clMemory = await CLMemory.InitMemory(turnContext)
+    private async GetRunningApp(clMemory: CLMemory, inEditingUI: boolean): Promise<CLM.AppBase | null> {
         let app = await clMemory.BotState.GetApp()
 
         if (app) {
@@ -388,8 +387,8 @@ export class CLRunner {
                 return null
             }
 
-            let app = await this.GetRunningApp(turnContext, inEditingUI);
-            let clMemory = await CLMemory.InitMemory(turnContext)
+            let clMemory = await CLMemory.InitMemory(turnContext, this.configModelId)
+            let app = await this.GetRunningApp(clMemory, inEditingUI);
             let uiMode = await clMemory.BotState.getUIMode()
 
             if (!app) {
@@ -506,6 +505,35 @@ export class CLRunner {
                 entities,
                 false
             )
+
+            // TODO: Use new action type and check type instead of text prefix
+            if (scoredAction.payload.includes('@DISPATCH')) {
+                console.log(`DISPATCH action detected. ProcessInput of model: ${this.configModelId}.`)
+                // Get child model id and name from action
+                const matches = scoredAction.payload.match(/@DISPATCH:([^:]+):([^"]+)/i)
+                if (matches) {
+                    const [, modelId, modelName] = matches
+                    console.log(`Dispatch to Model: ${modelId} ${modelName}`)
+
+                    // Get CL model
+                    // if it does not exist as child of this instance, then create it and add it.
+                    // TODO: ConversationLearner instance vs CLRunner instance?
+                    let model = this.models.find(m => m.clRunner.configModelId === modelId)
+                    if (!model) {
+                        // call SetAdapter on cl instance if new?
+                        model = new ConversationLearner(modelId)
+                        model.clRunner.SetAdapter(turnContext.adapter, conversationReference)
+
+                        this.models.push(model)
+                    }
+
+                    // call ProcessInput on the model
+                    const recognizerResult = await model.clRunner.ProcessInput(turnContext)
+
+                    // return value
+                    return recognizerResult
+                }
+            }
             return {
                 scoredAction: scoredAction,
                 clEntities: entities,
@@ -516,7 +544,7 @@ export class CLRunner {
         } catch (error) {
             // Try to end the session, so use can potentially recover
             try {
-                const clMemory = await CLMemory.InitMemory(turnContext)
+                const clMemory = await CLMemory.InitMemory(turnContext, this.configModelId)
                 await this.EndSessionAsync(clMemory, CLM.SessionEndState.OPEN)
             } catch {
                 CLDebug.Log(`Failed to End Session`)
@@ -1291,7 +1319,14 @@ export class CLRunner {
     }
 
     public async TakeTextAction(textAction: CLM.TextAction, filledEntityMap: CLM.FilledEntityMap): Promise<Partial<BB.Activity> | string> {
-        return Promise.resolve(textAction.renderValue(CLM.getEntityDisplayValueMap(filledEntityMap)))
+        const actionString = textAction.renderValue(CLM.getEntityDisplayValueMap(filledEntityMap))
+
+        if (actionString.startsWith('@DISPATCH')) {
+            const [, modelId,] = actionString.split(':')
+            console.log(`TakeTextAction: Dispatch to model: ${modelId}`)
+        }
+
+        return Promise.resolve(actionString)
     }
 
     public async TakeCardAction(cardAction: CLM.CardAction, filledEntityMap: CLM.FilledEntityMap): Promise<Partial<BB.Activity> | string> {
