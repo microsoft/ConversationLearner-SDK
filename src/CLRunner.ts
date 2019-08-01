@@ -209,8 +209,8 @@ export class CLRunner {
         }
 
         try {
-            let app = await this.GetRunningApp(turnContext, false);
             let clMemory = await CLMemory.InitMemory(turnContext)
+            let app = await this.GetRunningApp(clMemory, false);
 
             if (app) {
                 let packageId = (app.livePackageId || app.devPackageId)
@@ -320,9 +320,7 @@ export class CLRunner {
     }
 
     // Get the currently running app
-    private async GetRunningApp(turnContext: BB.TurnContext, inEditingUI: boolean): Promise<CLM.AppBase | null> {
-
-        let clMemory = await CLMemory.InitMemory(turnContext)
+    private async GetRunningApp(clMemory: CLMemory, inEditingUI: boolean): Promise<CLM.AppBase | null> {
         let app = await clMemory.BotState.GetApp()
 
         if (app) {
@@ -388,8 +386,8 @@ export class CLRunner {
                 return null
             }
 
-            let app = await this.GetRunningApp(turnContext, inEditingUI);
             let clMemory = await CLMemory.InitMemory(turnContext)
+            let app = await this.GetRunningApp(clMemory, inEditingUI);
             let uiMode = await clMemory.BotState.getUIMode()
 
             if (!app) {
