@@ -29,7 +29,7 @@ export class CLDebug {
     private static conversationReference: Partial<BB.ConversationReference>
     private static cachedMessages: LogMessage[] = []
     public static logToUI: boolean = false  // If set all log messages displayed in chat UI, if false only error messages
-    public static verbose: boolean = true
+    public static verbose: boolean = false
     public static debugType: DebugType = 0
 
     public static InitLogger(adapter: BB.BotAdapter, conversationReference: Partial<BB.ConversationReference>) {

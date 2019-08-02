@@ -108,8 +108,8 @@ export class CLMemory {
                 CLDebug.Log(`-> ${key} : ${jsonString}`, DebugType.MemVerbose)
             } else {
                 // Write to memory storage (use * for etag)
-                await CLMemory.memoryStorage.write({ [key]: { value: jsonString, eTag: '*' } })
                 this.memCache[key] = jsonString
+                await CLMemory.memoryStorage.write({ [key]: { value: jsonString, eTag: '*' } })
                 CLDebug.Log(`W> ${key} : ${jsonString}`, DebugType.Memory)
             }
         } catch (err) {
@@ -126,9 +126,8 @@ export class CLMemory {
                 CLDebug.Error(`You attempted to delete key: ${key} before memoryStorage was defined`)
             }
             else {
-
-                CLMemory.memoryStorage.delete([key])
                 this.memCache[key] = null
+                CLMemory.memoryStorage.delete([key])
                 CLDebug.Log(`D> ${key} : -----`, DebugType.Memory)
             }
         } catch (err) {

@@ -281,7 +281,7 @@ export class CLRunner {
         let entityList = await this.clClient.GetEntities(appId)
 
         // If not continuing an edited session, call endSession
-        if (!(sessionStartFlags && SessionStartFlags.IS_EDIT_CONTINUE)) {
+        if (!(sessionStartFlags & SessionStartFlags.IS_EDIT_CONTINUE)) {
             // Default callback will clear the bot memory.
             // END_SESSION action was never triggered, so SessionEndState.OPEN
             await this.CheckSessionEndCallback(clMemory, entityList.entities, CLM.SessionEndState.OPEN);
@@ -839,7 +839,7 @@ export class CLRunner {
         }
     }
 
-    public async TakeActionAsync(conversationReference: Partial<BB.ConversationReference>, clRecognizeResult: CLRecognizerResult, uiTrainScorerStep: CLM.UITrainScorerStep | null): Promise<IActionResult> {
+    public async TakeActionAsync(conversationReference: Partial<BB.ConversationReference>, clRecognizeResult: CLRecognizerResult, uiTrainScorerStep: CLM.UITrainScorerStep | null, testAPIResults: CLM.FilledEntity[] = []): Promise<IActionResult> {
         // Get filled entities from memory
         let filledEntityMap = await clRecognizeResult.memory.BotMemory.FilledEntityMap()
         filledEntityMap = Utils.addEntitiesById(filledEntityMap)
@@ -859,21 +859,31 @@ export class CLRunner {
         let sessionId: string | null = null
         let replayError: CLM.ReplayError | null = null
         const inTeach = uiTrainScorerStep !== null
+        let uiMode = await clRecognizeResult.memory.BotState.getUIMode()
 
-        if (CLM.ActionBase.isPlaceholderAPI(clRecognizeResult.scoredAction) && uiTrainScorerStep) {
+        if (CLM.ActionBase.isPlaceholderAPI(clRecognizeResult.scoredAction)) {
+
+            // If running a test, used placeholder api results for the test
+            // Otherwise retrieve from logicResult
+            let placeHolderFilledEntities: CLM.FilledEntity[] = []
+            if (uiMode === UIMode.TEST) {
+                placeHolderFilledEntities = testAPIResults
+            }
+            else if (uiTrainScorerStep && uiTrainScorerStep.trainScorerStep.logicResult) {
+                placeHolderFilledEntities = uiTrainScorerStep.trainScorerStep.logicResult.changedFilledEntities
+            }
+
             const apiAction = new CLM.ApiAction(clRecognizeResult.scoredAction as any)
-            let placeholderFilledEntities = uiTrainScorerStep.trainScorerStep.logicResult ? uiTrainScorerStep.trainScorerStep.logicResult.changedFilledEntities : []
-            const response = await this.TakeAPIPlaceholderAction(
+            actionResult = await this.TakeAPIPlaceholderAction(
                 apiAction,
-                placeholderFilledEntities,
+                placeHolderFilledEntities,
                 clRecognizeResult.memory,
                 clRecognizeResult.clEntities)
-            actionResult = {
-                logicResult: uiTrainScorerStep.trainScorerStep.logicResult,
-                response: response as BB.Activity
-            }
             if (inTeach) {
                 replayError = new CLM.ReplayErrorAPIPlaceholder()
+            }
+            else {
+                this.SaveLogicResult(clRecognizeResult, actionResult, apiAction.actionId, conversationReference)
             }
         }
         else {
@@ -909,21 +919,7 @@ export class CLRunner {
                         }
                     }
                     else {
-                        app = await clRecognizeResult.memory.BotState.GetApp()
-                        if (!app) {
-                            throw new Error(`Attempted to get current app before app was set.`)
-                        }
-                        if (app.metadata.isLoggingOn !== false && actionResult && actionResult.logicResult !== undefined) {
-                            if (!conversationReference.conversation) {
-                                throw new Error(`Attempted to get session by conversation id, but user was not defined on current conversation`)
-                            }
-
-                            sessionId = await clRecognizeResult.memory.BotState.GetSessionIdAndSetConversationId(conversationReference)
-                            if (!sessionId) {
-                                throw new Error(`Attempted to get session by conversation id: ${conversationReference.conversation.id} but session was not found`)
-                            }
-                            await this.clClient.SessionLogicResult(app.appId, sessionId, apiAction.actionId, actionResult);
-                        }
+                        this.SaveLogicResult(clRecognizeResult, actionResult, apiAction.actionId, conversationReference)
                     }
                     break
                 }
@@ -976,7 +972,6 @@ export class CLRunner {
         }
 
         // If action wasn't terminal loop through Conversation Learner again after a short delay (unless I'm testing where it's handled by the tester)
-        let uiMode = await clRecognizeResult.memory.BotState.getUIMode()
         if (!clRecognizeResult.inTeach && !clRecognizeResult.scoredAction.isTerminal && uiMode !== UIMode.TEST) {
             if (app === null) {
                 app = await clRecognizeResult.memory.BotState.GetApp()
@@ -1091,18 +1086,18 @@ export class CLRunner {
         return renderedArgumentValues
     }
 
-    public async TakeAPIPlaceholderAction(placeholderAction: CLM.ApiAction, filledEntities: CLM.FilledEntity[], clMemory: CLMemory, allEntities: CLM.EntityBase[]): Promise<Partial<BB.Activity> | string> {
+    public async TakeAPIPlaceholderAction(placeholderAction: CLM.ApiAction, placeHolderFilledEntities: CLM.FilledEntity[], clMemory: CLMemory, allEntities: CLM.EntityBase[]): Promise<IActionResult> {
 
         try {
             const memoryManager = await this.CreateMemoryManagerAsync(clMemory, allEntities)
 
             // Update memory with placeholder API values
-            memoryManager.curMemories.UpdateFilledEntities(filledEntities, allEntities)
+            memoryManager.curMemories.UpdateFilledEntities(placeHolderFilledEntities, allEntities)
 
             // Update memory with changes from logic callback
             await clMemory.BotMemory.RestoreFromMemoryManagerAsync(memoryManager)
 
-            let feMap = CLM.FilledEntityMap.FromFilledEntities(filledEntities, allEntities)
+            let feMap = CLM.FilledEntityMap.FromFilledEntities(placeHolderFilledEntities, allEntities)
 
             let body = Object.keys(feMap.map).map(feKey => {
                 return {
@@ -1119,13 +1114,21 @@ export class CLRunner {
             }
             const attachment = BB.CardFactory.adaptiveCard(card)
             const response = BB.MessageFactory.attachment(attachment)
-            // 'payload' is name of API
             response.text = `API Placeholder: ${placeholderAction.name}`
 
-            return response
+            // Store placeholder entities in logic reult
+            return {
+                logicResult: { changedFilledEntities: placeHolderFilledEntities, logicValue: undefined },
+                response,
+                replayError: undefined
+            }
         }
         catch (err) {
-            return CLDebug.Error(err)
+            return {
+                logicResult: undefined,
+                response: CLDebug.Error(err),
+                replayError: undefined
+            }
         }
     }
 
@@ -1895,12 +1898,9 @@ export class CLRunner {
                             else if (CLM.ActionBase.isPlaceholderAPI(curAction)) {
                                 const apiAction = new CLM.ApiAction(curAction)
 
-                                // Placeholder output is stored in LogicResult
-                                let placeholderFilledEntities = scorerStep.logicResult ? scorerStep.logicResult.changedFilledEntities : []
-                                botResponse = {
-                                    logicResult: undefined,
-                                    response: await this.TakeAPIPlaceholderAction(apiAction, placeholderFilledEntities, clMemory, entities)
-                                }
+                                // Placeholder api results are stored in the logic result
+                                const placedholderFilledEntities = scorerStep.logicResult ? scorerStep.logicResult.changedFilledEntities : []
+                                botResponse = await this.TakeAPIPlaceholderAction(apiAction, placedholderFilledEntities, clMemory, entities)
                                 replayError = replayError || new CLM.ReplayErrorAPIPlaceholder()
                                 replayErrors.push(replayError);
                             }
@@ -2052,6 +2052,23 @@ export class CLRunner {
         return teachWithHistory
     }
 
+    private async SaveLogicResult(clRecognizeResult: CLRecognizerResult, actionResult: IActionResult, actionId: string, conversationReference: Partial<BB.ConversationReference>): Promise<void> {
+        const app = await clRecognizeResult.memory.BotState.GetApp()
+        if (!app) {
+            throw new Error(`Attempted to get current app before app was set.`)
+        }
+        if (app.metadata.isLoggingOn !== false && actionResult && actionResult.logicResult !== undefined) {
+            if (!conversationReference.conversation) {
+                throw new Error(`Attempted to get session by conversation id, but user was not defined on current conversation`)
+            }
+
+            const sessionId = await clRecognizeResult.memory.BotState.GetSessionIdAndSetConversationId(conversationReference)
+            if (!sessionId) {
+                throw new Error(`Attempted to get session by conversation id: ${conversationReference.conversation.id} but session was not found`)
+            }
+            await this.clClient.SessionLogicResult(app.appId, sessionId, actionId, actionResult)
+        }
+    }
     private RenderSetEntityCard(name: string, value: string): Partial<BB.Activity> {
         const card = {
             type: "AdaptiveCard",
