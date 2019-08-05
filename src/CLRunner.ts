@@ -315,6 +315,7 @@ export class CLRunner {
 
         // Initialize Bot State
         await clMemory.BotState.InitSessionAsync(sessionId, logDialogId, conversationRef, sessionStartFlags)
+        await clMemory.MessageState.remove()
 
         CLDebug.Verbose(`Started Session: ${sessionId} - ${clMemory.BotState.GetConversationId()}`)
         return startResponse
@@ -354,6 +355,7 @@ export class CLRunner {
             await this.CheckSessionEndCallback(memory, entityList.entities, sessionEndState, data);
 
             await memory.BotState.EndSessionAsync();
+            await memory.MessageState.remove()
         }
     }
 

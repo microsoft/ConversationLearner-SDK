@@ -159,6 +159,7 @@ export class CLMemory {
     public async SetAppAsync(app: CLM.AppBase | null): Promise<void> {
         const curApp = await this.BotState.GetApp();
         await this.BotState._SetAppAsync(app)
+        await this.MessageState.remove()
 
         if (!app || !curApp || curApp.appId !== app.appId) {
             await this.BotMemory.ClearAsync()
