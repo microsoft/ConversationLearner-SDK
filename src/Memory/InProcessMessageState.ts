@@ -7,6 +7,10 @@ import { CLMemory } from '../CLMemory'
 // Current message being processed
 const MESSAGE_MUTEX = 'MESSAGE_MUTEX'
 
+/**
+ * Tracks the state of messages which are being processed.
+ * The memory instances given to this class should be associated with lifetime of messages, eg the conversation
+ */
 export default class InProcessMessageState {
     private static _instance: InProcessMessageState | undefined
 
