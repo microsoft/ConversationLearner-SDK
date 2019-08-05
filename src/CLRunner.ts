@@ -17,6 +17,7 @@ import { CLRecognizerResult } from './CLRecognizeResult'
 import { ConversationLearner } from './ConversationLearner'
 import { InputQueue } from './Memory/InputQueue'
 import { UIMode } from './Memory/BotState';
+import InProcessMessageState from './Memory/InProcessMessageState';
 
 interface RunnerLookup {
     [appId: string]: CLRunner
@@ -265,7 +266,7 @@ export class CLRunner {
         // Otherwise I have to queue up messages as user may input them faster than bot responds
         else {
             let addInputPromise = util.promisify(InputQueue.AddInput);
-            let isReady = await addInputPromise(botState, turnContext.activity, conversationReference);
+            let isReady = await addInputPromise(clMemory.MessageState, turnContext.activity, conversationReference);
 
             if (isReady) {
                 let intents = await this.ProcessInput(turnContext);
@@ -462,7 +463,7 @@ export class CLRunner {
 
             // Handle any other non-message input, filter out empty messages
             if (activity.type !== BB.ActivityTypes.Message || !activity.text || activity.text === "") {
-                await InputQueue.MessageHandled(clMemory.BotState, activity.id);
+                await InputQueue.MessageHandled(clMemory.MessageState, activity.id);
                 return null;
             }
 
@@ -875,7 +876,7 @@ export class CLRunner {
         // If the action was terminal, free up the mutex allowing queued messages to be processed
         // Activity won't be present if running in training as messages aren't queued
         if (clRecognizeResult.scoredAction.isTerminal && clRecognizeResult.activity) {
-            await InputQueue.MessageHandled(clRecognizeResult.memory.BotState, clRecognizeResult.activity.id);
+            await InputQueue.MessageHandled(clRecognizeResult.memory.MessageState, clRecognizeResult.activity.id);
         }
 
         if (!conversationReference.conversation) {
@@ -1074,7 +1075,7 @@ export class CLRunner {
 
         // If requested, pop incoming activity from message queue
         if (incomingActivityId) {
-            await InputQueue.MessageHandled(memory.BotState, incomingActivityId);
+            await InputQueue.MessageHandled(memory.MessageState, incomingActivityId);
         }
 
         let conversationReference = await memory.BotState.GetConversationReference()
