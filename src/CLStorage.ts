@@ -11,10 +11,10 @@ import { BotState } from './Memory/BotState'
 import InProcessMessageState from './Memory/InProcessMessageState'
 
 /**
- * This outer instance of CLMemory has keyPrefix specific to model + conversation.
+ * This outer instance of CLStorage has keyPrefix specific to model + conversation.
  * This was required for dispatching when multiple models needed separate state for the same conversation.
  * 
- * The inner conversationStorage instance of CLMemory has keyPrefix mapped to the conversation.
+ * The inner conversationStorage instance of CLStorage has keyPrefix mapped to the conversation.
  * This enabled tracking message state within the conversation independently of how many models are used within the conversation.
  */
 export class CLStorage {
