@@ -12,19 +12,17 @@ const NEGATIVE_PREFIX = '~'
 export class EntityState {
     private static _instance: EntityState | undefined
     private static MEMKEY = 'BOTMEMORY'
-    private clMemory: CLStorage | undefined
-    public filledEntityMap: FilledEntityMap
+    private clStorage: CLStorage | undefined
+    public filledEntityMap = new FilledEntityMap()
 
-    private constructor(init?: Partial<EntityState>) {
-        this.filledEntityMap = new FilledEntityMap()
-        Object.assign(this, init)
+    private constructor() {
     }
 
-    public static Get(clMemory: CLStorage): EntityState {
+    public static Get(clStorage: CLStorage): EntityState {
         if (!EntityState._instance) {
             EntityState._instance = new EntityState()
         }
-        EntityState._instance.clMemory = clMemory
+        EntityState._instance.clStorage = clStorage
         return EntityState._instance
     }
 
@@ -34,11 +32,11 @@ export class EntityState {
     }
 
     private async Init(): Promise<void> {
-        if (!this.clMemory) {
-            throw new Error('BotMemory called without initializing memory')
+        if (!this.clStorage) {
+            throw new Error('EntityState called without setting storage')
         }
 
-        let data = await this.clMemory.GetAsync(EntityState.MEMKEY)
+        let data = await this.clStorage.GetAsync(EntityState.MEMKEY)
         if (data) {
             this.Deserialize(data)
         } else {
@@ -46,7 +44,7 @@ export class EntityState {
         }
     }
 
-    public Serialize(): string {
+    private Serialize(): string {
         return JSON.stringify(this.filledEntityMap.map)
     }
 
@@ -59,10 +57,10 @@ export class EntityState {
     }
 
     private async Set(): Promise<void> {
-        if (!this.clMemory) {
-            throw new Error('BotMemory called without initializing memory')
+        if (!this.clStorage) {
+            throw new Error('EntityState called without setting storage')
         }
-        await this.clMemory.SetAsync(EntityState.MEMKEY, this.Serialize())
+        await this.clStorage.SetAsync(EntityState.MEMKEY, this.Serialize())
     }
 
     public async RestoreFromMapAsync(filledEntityMap: FilledEntityMap): Promise<void> {
