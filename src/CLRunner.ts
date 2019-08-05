@@ -508,10 +508,11 @@ export class CLRunner {
             )
 
             // TODO: Use new action type and check type instead of text prefix
-            if (scoredAction.payload.includes('@DISPATCH')) {
-                console.log(`DISPATCH action detected. ProcessInput of model: ${this.configModelId}.`)
+            const dispatchActionPrefix = '@DISPATCH'
+            if (scoredAction.payload.includes(dispatchActionPrefix)) {
+                console.log(`DISPATCH action detected in model ${this.configModelId}.`)
                 // Get child model id and name from action
-                const matches = scoredAction.payload.match(/@DISPATCH:([^:]+):([^"]+)/i)
+                const matches = scoredAction.payload.match(new RegExp(`${dispatchActionPrefix}:([^:]+):([^"]+)`, 'i'))
                 if (matches) {
                     const [, modelId, modelName] = matches
                     console.log(`Dispatch to Model: ${modelId} ${modelName}`)
