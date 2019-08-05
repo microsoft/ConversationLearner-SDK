@@ -1212,7 +1212,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
                 if (result) {
                     // Did I select the expected action?
-                    if (!Utils.actionHasHash(result.scoredAction.actionId, turnValidation.actionHashes[0], appDefinition.actions)) {
+                    if (turnValidation.actionHashes[0] && !Utils.actionHasHash(result.scoredAction.actionId, turnValidation.actionHashes[0], appDefinition.actions)) {
                         validity = CLM.TranscriptValidationResultType.CHANGED
                     }
 
@@ -1222,30 +1222,33 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                         validity = CLM.TranscriptValidationResultType.TEST_FAILED
                     }
                     else {
-                        await clRunner.TakeActionAsync(conversationReference, result, null)
+                        // Include apiResults when taking action so result will be the same when testing
+                        await clRunner.TakeActionAsync(conversationReference, result, null, turnValidation.apiResults[0])
                     }
 
                     // Need to manually run through non-wait actions to retrieve actions to validate against
-                    turnValidation.actionHashes.shift()
                     let bestAction = result.scoredAction
-                    if (turnValidation.actionHashes.length > 0) {
-                        const sessionId = await memory.BotState.GetSessionIdAsync()
+                    if (turnValidation.actionHashes.length > 1) {
+                        const sessionId = await result.memory.BotState.GetSessionIdAsync()
                         if (!sessionId) {
                             validity = CLM.TranscriptValidationResultType.TEST_FAILED
                         }
                         else {
-                            for (let hash of turnValidation.actionHashes) {
+                            for (let i = 1; i < turnValidation.actionHashes.length; i = i + 1) {
                                 // If last action was terminal, can't do another action
                                 if (bestAction.isTerminal) {
                                     validity = CLM.TranscriptValidationResultType.CHANGED
                                 }
                                 else {
-                                    bestAction = await clRunner.Score(appId, sessionId, memory, '', [], result.clEntities, false, true)
+                                    bestAction = await clRunner.Score(appId, sessionId, result.memory, '', [], result.clEntities, false, true)
+                                    result.scoredAction = bestAction
+
                                     // Did I select the expected action
-                                    if (!Utils.actionHasHash(bestAction.actionId, hash, appDefinition.actions)) {
+                                    if (turnValidation.actionHashes[i] && !Utils.actionHasHash(bestAction.actionId, turnValidation.actionHashes[i], appDefinition.actions)) {
                                         validity = CLM.TranscriptValidationResultType.CHANGED
                                     }
-                                    await clRunner.TakeActionAsync(conversationReference, result, null)
+                                    // Include apiResults when taking action so result will be the same when testing
+                                    await clRunner.TakeActionAsync(conversationReference, result, null, turnValidation.apiResults[i])
                                 }
                             }
                         }
