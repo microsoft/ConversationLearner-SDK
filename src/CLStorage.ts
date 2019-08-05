@@ -11,6 +11,9 @@ import { BotState } from './Memory/BotState'
 import InProcessMessageState from './Memory/InProcessMessageState'
 
 /**
+ * This is a wrapper around BB.Storage that operates in the string domain
+ * The higher level operations on the Storage are done through EntityState, BotState, and MessageState
+ * 
  * This outer instance of CLStorage has keyPrefix specific to model + conversation.
  * This was required for dispatching when multiple models needed separate state for the same conversation.
  * 
