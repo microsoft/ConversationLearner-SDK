@@ -493,7 +493,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const extractResponse = await client.LogDialogExtract(appId, logDialogId, turnIndex, userInput)
 
             const memory = CLStorage.GetMemory(key)
-            const memories = await memory.BotMemory.DumpMemory()
+            const memories = await memory.EntityState.DumpMemory()
             const uiExtractResponse: CLM.UIExtractResponse = { extractResponse, memories }
             res.send(uiExtractResponse)
         } catch (error) {
@@ -515,7 +515,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const extractResponse = await client.TrainDialogExtract(appId, trainDialogId, turnIndex, userInput)
 
             const memory = CLStorage.GetMemory(key)
-            const memories = await memory.BotMemory.DumpMemory()
+            const memories = await memory.EntityState.DumpMemory()
             const uiExtractResponse: CLM.UIExtractResponse = { extractResponse, memories }
             res.send(uiExtractResponse)
         } catch (error) {
@@ -574,7 +574,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const clMemory = CLStorage.GetMemory(key)
 
             // Clear memory when running Log from UI
-            clMemory.BotMemory.ClearAsync()
+            clMemory.EntityState.ClearAsync()
 
             const session = await clRunner.StartSessionAsync(clMemory, null, appId, SessionStartFlags.NONE, sessionCreateParams) as CLM.Session
             res.send(session)
@@ -661,7 +661,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             }
 
             // TeachSession always starts with a clear the memory (no saved entities)
-            await clMemory.BotMemory.ClearAsync()
+            await clMemory.EntityState.ClearAsync()
 
             const teachResponse = await clRunner.StartSessionAsync(clMemory, null, appId, SessionStartFlags.IN_TEACH, createTeachParams) as CLM.TeachResponse
 
@@ -678,7 +678,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const key = getMemoryKey(req)
             // Update Memory
             const memory = CLStorage.GetMemory(key)
-            await memory.BotMemory.ClearAsync();
+            await memory.EntityState.ClearAsync();
             res.sendStatus(200)
 
         } catch (error) {
@@ -727,7 +727,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             if (teachWithHistory.dialogMode === CLM.DialogMode.Scorer) {
 
                 // Get entities from my memory
-                const filledEntities = await clMemory.BotMemory.FilledEntitiesAsync()
+                const filledEntities = await clMemory.EntityState.FilledEntitiesAsync()
                 const scoreInput: CLM.ScoreInput = {
                     filledEntities,
                     context: {},
@@ -784,7 +784,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const teach = await clRunner.StartSessionAsync(clMemory, null, appId, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE, createTeachParams) as CLM.Teach
 
             // Get entities from my memory
-            const filledEntities = await clMemory.BotMemory.FilledEntitiesAsync()
+            const filledEntities = await clMemory.EntityState.FilledEntitiesAsync()
             const scoreInput: CLM.ScoreInput = {
                 filledEntities,
                 context: {},
@@ -893,7 +893,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const extractResponse = await client.TeachExtract(appId, teachId, userInput, excludeConflictCheckId)
 
             const memory = CLStorage.GetMemory(key)
-            const memories = await memory.BotMemory.DumpMemory()
+            const memories = await memory.EntityState.DumpMemory()
             const uiExtractResponse: CLM.UIExtractResponse = { extractResponse, memories }
             res.send(uiExtractResponse)
         } catch (error) {
@@ -957,7 +957,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             catch (err) {
                 // Hit exception in Bot's Entity Detection Callback
                 // Use existing memory before callback
-                const filledEntities = await clMemory.BotMemory.FilledEntitiesAsync()
+                const filledEntities = await clMemory.EntityState.FilledEntitiesAsync()
                 scoreInput = {
                     filledEntities,
                     context: {},
@@ -971,7 +971,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
             // Get score response
             const scoreResponse = await client.TeachScore(appId, teachId, scoreInput)
-            const memories = await clMemory.BotMemory.DumpMemory()
+            const memories = await clMemory.EntityState.DumpMemory()
             const uiScoreResponse: CLM.UIScoreResponse = { scoreInput, scoreResponse, memories, botAPIError }
             res.send(uiScoreResponse)
         } catch (error) {
@@ -1019,7 +1019,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
             // Get new score response re-using scoreInput from previous score request
             const scoreResponse = await client.TeachScore(appId, teachId, scoreInput)
-            const memories = await memory.BotMemory.DumpMemory()
+            const memories = await memory.EntityState.DumpMemory()
             const uiScoreResponse: CLM.UIScoreResponse = {
                 scoreInput,
                 scoreResponse,
@@ -1069,7 +1069,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
             const teachResponse = await client.TeachScoreFeedback(appId, teachId, uiTrainScorerStep.trainScorerStep)
 
-            const memories = await clMemory.BotMemory.DumpMemory()
+            const memories = await clMemory.EntityState.DumpMemory()
             const isEndTask = scoredAction.actionType === CLM.ActionTypes.END_SESSION
 
             // End Session call delayed in SendIntent during teach so ScoreFeedback still has a session
@@ -1078,7 +1078,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 let sessionId = await clMemory.BotState.GetSessionIdAsync()
                 if (sessionId) {
                     // Get filled entities from memory, and generate content for end session callback
-                    let filledEntityMap = await clMemory.BotMemory.FilledEntityMap()
+                    let filledEntityMap = await clMemory.EntityState.FilledEntityMap()
                     filledEntityMap = Utils.addEntitiesById(filledEntityMap)
                     const sessionAction = new CLM.SessionAction(scoredAction as any)
                     let content = sessionAction.renderValue(CLM.getEntityDisplayValueMap(filledEntityMap))
@@ -1135,7 +1135,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const teachWithHistory = await clRunner.GetHistory(trainDialog, userName, userId, memory, markdown)
 
             // Clear bot memory generated with this
-            await memory.BotMemory.ClearAsync();
+            await memory.EntityState.ClearAsync();
 
             // Note the UI is now in edit mode
             await memory.BotState.SetUIMode(UIMode.EDIT)

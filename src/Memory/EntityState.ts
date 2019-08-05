@@ -9,23 +9,23 @@ import { ClientMemoryManager } from '..';
 
 const NEGATIVE_PREFIX = '~'
 
-export class BotMemory {
-    private static _instance: BotMemory | undefined
+export class EntityState {
+    private static _instance: EntityState | undefined
     private static MEMKEY = 'BOTMEMORY'
     private clMemory: CLStorage | undefined
     public filledEntityMap: FilledEntityMap
 
-    private constructor(init?: Partial<BotMemory>) {
+    private constructor(init?: Partial<EntityState>) {
         this.filledEntityMap = new FilledEntityMap()
         Object.assign(this, init)
     }
 
-    public static Get(clMemory: CLStorage): BotMemory {
-        if (!BotMemory._instance) {
-            BotMemory._instance = new BotMemory()
+    public static Get(clMemory: CLStorage): EntityState {
+        if (!EntityState._instance) {
+            EntityState._instance = new EntityState()
         }
-        BotMemory._instance.clMemory = clMemory
-        return BotMemory._instance
+        EntityState._instance.clMemory = clMemory
+        return EntityState._instance
     }
 
     public async FilledEntityMap(): Promise<FilledEntityMap> {
@@ -38,7 +38,7 @@ export class BotMemory {
             throw new Error('BotMemory called without initializing memory')
         }
 
-        let data = await this.clMemory.GetAsync(BotMemory.MEMKEY)
+        let data = await this.clMemory.GetAsync(EntityState.MEMKEY)
         if (data) {
             this.Deserialize(data)
         } else {
@@ -62,7 +62,7 @@ export class BotMemory {
         if (!this.clMemory) {
             throw new Error('BotMemory called without initializing memory')
         }
-        await this.clMemory.SetAsync(BotMemory.MEMKEY, this.Serialize())
+        await this.clMemory.SetAsync(EntityState.MEMKEY, this.Serialize())
     }
 
     public async RestoreFromMapAsync(filledEntityMap: FilledEntityMap): Promise<void> {

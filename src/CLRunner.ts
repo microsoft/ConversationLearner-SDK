@@ -7,7 +7,7 @@ import * as BB from 'botbuilder'
 import * as CLM from '@conversationlearner/models'
 import * as Utils from './Utils'
 import { CLStorage } from './CLStorage'
-import { BotMemory } from './Memory/BotMemory'
+import { EntityState } from './Memory/EntityState'
 import { CLDebug, DebugType } from './CLDebug'
 import { CLClient } from './CLClient'
 import { CLStrings } from './CLStrings'
@@ -291,11 +291,11 @@ export class CLRunner {
         //  check that this works = should it be inside edit continue above
         // Check if StartSession call is required
         await this.CheckSessionStartCallback(clMemory, entityList.entities);
-        let startSessionEntities = await clMemory.BotMemory.FilledEntitiesAsync()
+        let startSessionEntities = await clMemory.EntityState.FilledEntitiesAsync()
         startSessionEntities = [...createParams.initialFilledEntities || [], ...startSessionEntities]
 
         const filledEntityMap = CLM.FilledEntityMap.FromFilledEntities(startSessionEntities, entityList.entities)
-        await clMemory.BotMemory.RestoreFromMapAsync(filledEntityMap)
+        await clMemory.EntityState.RestoreFromMapAsync(filledEntityMap)
 
         // Start the new session
         let sessionId: string
@@ -574,7 +574,7 @@ export class CLRunner {
 
                 // If it exists, set it
                 if (entity) {
-                    await clMemory.BotMemory.RememberEntity(entity.entityName, entity.entityId, data[entityName], entity.isMultivalue)
+                    await clMemory.EntityState.RememberEntity(entity.entityName, entity.entityId, data[entityName], entity.isMultivalue)
                 }
             }
 
@@ -669,7 +669,7 @@ export class CLRunner {
         return argumentNames.filter((_, i) => i >= skip)
     }
 
-    private async ProcessPredictedEntities(text: string, memory: BotMemory, predictedEntities: CLM.PredictedEntity[], allEntities: CLM.EntityBase[]): Promise<void> {
+    private async ProcessPredictedEntities(text: string, memory: EntityState, predictedEntities: CLM.PredictedEntity[], allEntities: CLM.EntityBase[]): Promise<void> {
 
         const predictedEntitiesWithType = predictedEntities.map(pe => {
             let entity = allEntities.find(e => e.entityId == pe.entityId)
@@ -720,10 +720,10 @@ export class CLRunner {
     public async CallEntityDetectionCallback(text: string, predictedEntities: CLM.PredictedEntity[], clMemory: CLStorage, allEntities: CLM.EntityBase[], skipEntityDetectionCallBack: boolean = false): Promise<CLM.ScoreInput> {
 
         // Entities before processing
-        let prevMemories = new CLM.FilledEntityMap(await clMemory.BotMemory.FilledEntityMap());
+        let prevMemories = new CLM.FilledEntityMap(await clMemory.EntityState.FilledEntityMap());
 
         // Update memory with predicted entities
-        await this.ProcessPredictedEntities(text, clMemory.BotMemory, predictedEntities, allEntities)
+        await this.ProcessPredictedEntities(text, clMemory.EntityState, predictedEntities, allEntities)
 
         // If bot has callback and callback should not be skipped, call it
         if (this.entityDetectionCallback && !skipEntityDetectionCallBack) {
@@ -732,11 +732,11 @@ export class CLRunner {
             await this.entityDetectionCallback(text, memoryManager)
 
             // Update Memory
-            await clMemory.BotMemory.RestoreFromMemoryManagerAsync(memoryManager)
+            await clMemory.EntityState.RestoreFromMemoryManagerAsync(memoryManager)
         }
 
         // Get entities from my memory
-        const filledEntities = await clMemory.BotMemory.FilledEntitiesAsync()
+        const filledEntities = await clMemory.EntityState.FilledEntitiesAsync()
 
         let scoreInput: CLM.ScoreInput = {
             filledEntities,
@@ -748,7 +748,7 @@ export class CLRunner {
 
     private async CreateMemoryManagerAsync(clMemory: CLStorage, allEntities: CLM.EntityBase[], prevMemories?: CLM.FilledEntityMap): Promise<ClientMemoryManager> {
         let sessionInfo = await clMemory.BotState.SessionInfoAsync()
-        let curMemories = new CLM.FilledEntityMap(await clMemory.BotMemory.FilledEntityMap());
+        let curMemories = new CLM.FilledEntityMap(await clMemory.EntityState.FilledEntityMap());
         if (!prevMemories) {
             prevMemories = curMemories;
         }
@@ -757,7 +757,7 @@ export class CLRunner {
 
     private async CreateReadOnlyMemoryManagerAsync(clMemory: CLStorage, allEntities: CLM.EntityBase[], prevMemories?: CLM.FilledEntityMap): Promise<ReadOnlyClientMemoryManager> {
         let sessionInfo = await clMemory.BotState.SessionInfoAsync()
-        let curMemories = new CLM.FilledEntityMap(await clMemory.BotMemory.FilledEntityMap());
+        let curMemories = new CLM.FilledEntityMap(await clMemory.EntityState.FilledEntityMap());
         if (!prevMemories) {
             prevMemories = curMemories;
         }
@@ -810,7 +810,7 @@ export class CLRunner {
             if (this.onSessionStartCallback) {
                 try {
                     await this.onSessionStartCallback(context, memoryManager)
-                    await clMemory.BotMemory.RestoreFromMemoryManagerAsync(memoryManager)
+                    await clMemory.EntityState.RestoreFromMemoryManagerAsync(memoryManager)
                 }
                 catch (err) {
                     const message = BB.MessageFactory.text(CLStrings.EXCEPTION_ONSESSIONSTART_CALLBACK)
@@ -849,7 +849,7 @@ export class CLRunner {
                         ? await this.onSessionEndCallback(context, memoryManager, sessionEndState, data)
                         : undefined
 
-                    await clMemory.BotMemory.ClearAsync(saveEntities)
+                    await clMemory.EntityState.ClearAsync(saveEntities)
                 }
                 catch (err) {
                     const message = BB.MessageFactory.text(CLStrings.EXCEPTION_ONSESSIONSTART_CALLBACK)
@@ -862,7 +862,7 @@ export class CLRunner {
             }
             // Otherwise just clear the memory
             else {
-                await clMemory.BotMemory.ClearAsync()
+                await clMemory.EntityState.ClearAsync()
             }
             await clMemory.BotState.SetNeedSessionEndCall(false);
         }
@@ -870,7 +870,7 @@ export class CLRunner {
 
     public async TakeActionAsync(conversationReference: Partial<BB.ConversationReference>, clRecognizeResult: CLRecognizerResult, uiTrainScorerStep: CLM.UITrainScorerStep | null, testAPIResults: CLM.FilledEntity[] = []): Promise<IActionResult> {
         // Get filled entities from memory
-        let filledEntityMap = await clRecognizeResult.memory.BotMemory.FilledEntityMap()
+        let filledEntityMap = await clRecognizeResult.memory.EntityState.FilledEntityMap()
         filledEntityMap = Utils.addEntitiesById(filledEntityMap)
 
         // If the action was terminal, free up the mutex allowing queued messages to be processed
@@ -1124,7 +1124,7 @@ export class CLRunner {
             memoryManager.curMemories.UpdateFilledEntities(placeHolderFilledEntities, allEntities)
 
             // Update memory with changes from logic callback
-            await clMemory.BotMemory.RestoreFromMemoryManagerAsync(memoryManager)
+            await clMemory.EntityState.RestoreFromMemoryManagerAsync(memoryManager)
 
             let feMap = CLM.FilledEntityMap.FromFilledEntities(placeHolderFilledEntities, allEntities)
 
@@ -1183,7 +1183,7 @@ export class CLRunner {
             // TODO: Is there more efficient way to do this, like editing memory directly?
             const memoryManager = await this.CreateMemoryManagerAsync(clMemory, allEntities)
             memoryManager.Set(entity.entityName, enumValueObj.enumValue)
-            await clMemory.BotMemory.RestoreFromMemoryManagerAsync(memoryManager)
+            await clMemory.EntityState.RestoreFromMemoryManagerAsync(memoryManager)
 
             if (inTeach) {
                 response = this.RenderSetEntityCard(entity.entityName, enumValueObj.enumValue)
@@ -1234,19 +1234,19 @@ export class CLRunner {
                 memoryManager.curMemories.UpdateFilledEntities(logicResult.changedFilledEntities, allEntities)
 
                 // Update memory with changes from logic callback
-                await clMemory.BotMemory.RestoreFromMemoryManagerAsync(memoryManager)
+                await clMemory.EntityState.RestoreFromMemoryManagerAsync(memoryManager)
             }
             else {
                 try {
                     // create a copy of the map before calling into logic api
                     // the copy of map is created because the passed infilledEntityMap contains "filledEntities by Id" too
                     // and this causes issues when calculating changedFilledEntities.
-                    const entityMapBeforeCall = new CLM.FilledEntityMap(await clMemory.BotMemory.FilledEntityMap())
+                    const entityMapBeforeCall = new CLM.FilledEntityMap(await clMemory.EntityState.FilledEntityMap())
                     // Store logic callback value
                     const logicObject = await callback.logic(memoryManager, ...renderedLogicArgumentValues)
                     logicResult.logicValue = JSON.stringify(logicObject)
                     // Update memory with changes from logic callback
-                    await clMemory.BotMemory.RestoreFromMemoryManagerAsync(memoryManager)
+                    await clMemory.EntityState.RestoreFromMemoryManagerAsync(memoryManager)
                     // Store changes to filled entities
                     logicResult.changedFilledEntities = CLM.ModelUtils.changedFilledEntities(entityMapBeforeCall, memoryManager.curMemories)
                 }
@@ -1531,15 +1531,15 @@ export class CLRunner {
     private async InitReplayMemory(clMemory: CLStorage, trainDialog: CLM.TrainDialog, allEntities: CLM.EntityBase[]) {
 
         // Reset the memory
-        await clMemory.BotMemory.ClearAsync()
+        await clMemory.EntityState.ClearAsync()
 
         // Call start sesssion for initial entities
         await this.CheckSessionStartCallback(clMemory, allEntities);
-        let startSessionEntities = await clMemory.BotMemory.FilledEntitiesAsync()
+        let startSessionEntities = await clMemory.EntityState.FilledEntitiesAsync()
         startSessionEntities = [...trainDialog.initialFilledEntities || [], ...startSessionEntities]
 
         let map = CLM.FilledEntityMap.FromFilledEntities(startSessionEntities, allEntities)
-        await clMemory.BotMemory.RestoreFromMapAsync(map)
+        await clMemory.EntityState.RestoreFromMapAsync(map)
     }
 
     /** 
@@ -1576,7 +1576,7 @@ export class CLRunner {
             catch (err) {
                 // Hit exception in Bot's Entity Detection Callback
                 // Use existing memory before callback
-                const filledEntities = await clMemory.BotMemory.FilledEntitiesAsync()
+                const filledEntities = await clMemory.EntityState.FilledEntitiesAsync()
                 scoreInput = {
                     filledEntities,
                     context: {},
@@ -1604,10 +1604,10 @@ export class CLRunner {
                         // Placeholder output is stored in LogicResult
                         let placeholderFilledEntities = scorerStep.logicResult ? scorerStep.logicResult.changedFilledEntities : []
                         const filledEntityMap = CLM.FilledEntityMap.FromFilledEntities(placeholderFilledEntities, entities)
-                        await clMemory.BotMemory.RestoreFromMapAsync(filledEntityMap)
+                        await clMemory.EntityState.RestoreFromMapAsync(filledEntityMap)
                     }
                     else {
-                        const filledEntityMap = await clMemory.BotMemory.FilledEntityMap()
+                        const filledEntityMap = await clMemory.EntityState.FilledEntityMap()
 
                         // Provide empty FilledEntity for missing entities
                         if (!cleanse && curAction) {
@@ -1649,7 +1649,7 @@ export class CLRunner {
                 // Otherwise create a dummy scorer step with the filled entities
                 const scorerStep: CLM.TrainScorerStep = {
                     input: {
-                        filledEntities: await clMemory.BotMemory.FilledEntitiesAsync(),
+                        filledEntities: await clMemory.EntityState.FilledEntitiesAsync(),
                         context: {},
                         maskedActions: []
                     },
@@ -1836,7 +1836,7 @@ export class CLRunner {
             activities.push(userActivity)
 
             // Save memory before this step (used to show changes in UI)
-            prevMemories = await clMemory.BotMemory.DumpMemory()
+            prevMemories = await clMemory.EntityState.DumpMemory()
 
             let textVariation = round.extractorStep.textVariations[0]
             let predictedEntities = CLM.ModelUtils.ToPredictedEntities(textVariation.labelEntities)
@@ -1915,7 +1915,7 @@ export class CLRunner {
 
                             // Set memory from map with names only (since not calling APIs)
                             const memoryMap = CLM.FilledEntityMap.FromFilledEntities(scoreFilledEntities, entities)
-                            await clMemory.BotMemory.RestoreFromMapAsync(memoryMap)
+                            await clMemory.EntityState.RestoreFromMapAsync(memoryMap)
 
                             if (curAction.actionType === CLM.ActionTypes.CARD) {
                                 const cardAction = new CLM.CardAction(curAction)
@@ -2026,7 +2026,7 @@ export class CLRunner {
             }
         }
 
-        let memories = await clMemory.BotMemory.DumpMemory()
+        let memories = await clMemory.EntityState.DumpMemory()
 
         let hasRounds = trainDialog.rounds.length > 0;
         let hasScorerRound = (hasRounds && trainDialog.rounds[trainDialog.rounds.length - 1].scorerSteps.length > 0)

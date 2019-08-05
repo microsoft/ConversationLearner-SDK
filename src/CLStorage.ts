@@ -6,7 +6,7 @@ import * as BB from 'botbuilder'
 import * as CLM from '@conversationlearner/models'
 import * as Utils from './Utils'
 import { CLDebug, DebugType } from './CLDebug'
-import { BotMemory } from './Memory/BotMemory'
+import { EntityState } from './Memory/EntityState'
 import { BotState } from './Memory/BotState'
 import InProcessMessageState from './Memory/InProcessMessageState'
 
@@ -163,12 +163,12 @@ export class CLStorage {
         await this.MessageState.remove()
 
         if (!app || !curApp || curApp.appId !== app.appId) {
-            await this.BotMemory.ClearAsync()
+            await this.EntityState.ClearAsync()
         }
     }
 
-    public get BotMemory(): BotMemory {
-        return BotMemory.Get(this)
+    public get EntityState(): EntityState {
+        return EntityState.Get(this)
     }
 
     public get BotState(): BotState {
