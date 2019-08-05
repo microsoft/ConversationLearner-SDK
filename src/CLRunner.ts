@@ -17,7 +17,6 @@ import { CLRecognizerResult } from './CLRecognizeResult'
 import { ConversationLearner } from './ConversationLearner'
 import { InputQueue } from './Memory/InputQueue'
 import { UIMode } from './Memory/BotState';
-import InProcessMessageState from './Memory/InProcessMessageState';
 
 interface RunnerLookup {
     [appId: string]: CLRunner
