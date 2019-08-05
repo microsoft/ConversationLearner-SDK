@@ -187,7 +187,7 @@ export class CLRunner {
 
     public async InTrainingUI(turnContext: BB.TurnContext): Promise<boolean> {
         if (turnContext.activity.from && turnContext.activity.from.name === Utils.CL_DEVELOPER) {
-            let clMemory = await CLStorage.InitMemory(turnContext, this.configModelId)
+            let clMemory = CLStorage.GetFromContext(turnContext, this.configModelId)
             let app = await clMemory.BotState.GetApp()
             // If no app selected in UI or no app set in config, or they don't match return true
             if (!app || !this.configModelId || app.appId !== this.configModelId) {
@@ -210,7 +210,7 @@ export class CLRunner {
         }
 
         try {
-            let clMemory = await CLStorage.InitMemory(turnContext, this.configModelId)
+            let clMemory = CLStorage.GetFromContext(turnContext, this.configModelId)
             let app = await this.GetRunningApp(clMemory, false)
 
             if (app) {
@@ -253,7 +253,7 @@ export class CLRunner {
             return null;
         }
 
-        let clMemory = await CLStorage.InitMemory(turnContext, this.configModelId)
+        let clMemory = CLStorage.GetFromContext(turnContext, this.configModelId)
         let botState = clMemory.BotState;
 
         // If I'm in teach or edit mode, or testing process message right away
@@ -387,7 +387,7 @@ export class CLRunner {
                 return null
             }
 
-            let clMemory = await CLStorage.InitMemory(turnContext, this.configModelId)
+            let clMemory = CLStorage.GetFromContext(turnContext, this.configModelId)
             let app = await this.GetRunningApp(clMemory, inEditingUI)
             let uiMode = await clMemory.BotState.getUIMode()
 
@@ -545,7 +545,7 @@ export class CLRunner {
         } catch (error) {
             // Try to end the session, so use can potentially recover
             try {
-                const clMemory = await CLStorage.InitMemory(turnContext, this.configModelId)
+                const clMemory = CLStorage.GetFromContext(turnContext, this.configModelId)
                 await this.EndSessionAsync(clMemory, CLM.SessionEndState.OPEN)
             } catch {
                 CLDebug.Log(`Failed to End Session`)

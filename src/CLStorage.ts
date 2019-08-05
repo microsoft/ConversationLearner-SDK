@@ -41,14 +41,13 @@ export class CLStorage {
         this.turnContext = turnContext
     }
 
-    public static GetMemory(key: string): CLStorage {
+    public static Get(key: string): CLStorage {
         const memory = new CLStorage(key)
         memory.conversationStorage = new CLStorage(key)
         return memory
     }
 
-    // Generate memory key from session
-    public static async InitMemory(turnContext: BB.TurnContext, modelId: string = ''): Promise<CLStorage> {
+    public static GetFromContext(turnContext: BB.TurnContext, modelId: string = ''): CLStorage {
         const conversationReference = BB.TurnContext.getConversationReference(turnContext.activity)
         const user = conversationReference.user
 
@@ -69,7 +68,7 @@ export class CLStorage {
             if (!conversationReference.conversation || !conversationReference.conversation.id) {
                 throw new Error(`Attempted to initialize memory, but conversationReference.conversation.id was not provided which is required for use as memory key.`)
             }
-            // Dispatcher subModels will have the same converataion id thus we need the model id to differentiate
+            // Dispatcher subModels will have the same conversation id thus we need the model id to differentiate
             keyPrefix = `${modelId}${conversationReference.conversation.id}`
             messageMutexPrefix = conversationReference.conversation.id
         }

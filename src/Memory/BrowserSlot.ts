@@ -57,7 +57,7 @@ export class BrowserSlot {
 
     private static async BrowserSlots(): Promise<BrowserSlot[]> {
         try {
-            let memory = CLStorage.GetMemory("BROWSER")
+            let memory = CLStorage.Get("BROWSER")
             let data = await memory.GetAsync("SLOTS")
             if (data) {
                 return JSON.parse(data) as BrowserSlot[];
@@ -72,7 +72,7 @@ export class BrowserSlot {
 
     private static async UpdateBrowserSlots(browserSlots: BrowserSlot[]): Promise<void> {
         try {
-            let memory = CLStorage.GetMemory("BROWSER")
+            let memory = CLStorage.Get("BROWSER")
             await memory.SetAsync("SLOTS", JSON.stringify(browserSlots))
         }
         catch (err) {
