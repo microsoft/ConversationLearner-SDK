@@ -323,21 +323,19 @@ export class CLRunner {
     private async GetRunningApp(clMemory: CLMemory, inEditingUI: boolean): Promise<CLM.AppBase | null> {
         let app = await clMemory.BotState.GetApp()
 
-        if (app) {
-            // If I'm not in the editing UI, always use app specified by options
-            if (!inEditingUI && this.configModelId && this.configModelId != app.appId) {
-                // Use config value
-                CLDebug.Log(`Switching to app specified in config: ${this.configModelId}`)
-                app = await this.clClient.GetApp(this.configModelId)
-                await clMemory.SetAppAsync(app)
-            }
-        }
-        // If I don't have an app, attempt to use one set in config
-        else if (this.configModelId) {
-            CLDebug.Log(`Selecting app specified in config: ${this.configModelId}`)
+        // If this instance is configured to use a specific model, check conditions to use that model.
+        if (this.configModelId
+            // If current app is not set
+            && (!app
+                // If I'm not in the editing UI and config model id differs than the current app
+                || (!inEditingUI && this.configModelId != app.appId))
+        ) {
+            // Get app specified by options
+            CLDebug.Log(`Switching to app specified in config: ${this.configModelId}`)
             app = await this.clClient.GetApp(this.configModelId)
             await clMemory.SetAppAsync(app)
         }
+
         return app;
     }
 
