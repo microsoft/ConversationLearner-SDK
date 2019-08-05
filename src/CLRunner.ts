@@ -8,7 +8,7 @@ import * as CLM from '@conversationlearner/models'
 import * as Utils from './Utils'
 import { CLMemory } from './CLMemory'
 import { BotMemory } from './Memory/BotMemory'
-import { CLDebug } from './CLDebug'
+import { CLDebug, DebugType } from './CLDebug'
 import { CLClient } from './CLClient'
 import { CLStrings } from './CLStrings'
 import { TemplateProvider } from './TemplateProvider'
@@ -511,12 +511,12 @@ export class CLRunner {
             // TODO: Use new action type and check type instead of text prefix
             const dispatchActionPrefix = '@DISPATCH'
             if (scoredAction.payload.includes(dispatchActionPrefix)) {
-                console.log(`DISPATCH action detected in model ${this.configModelId}.`)
+                CLDebug.Log(`DISPATCH action detected in model ${this.configModelId}.`, DebugType.Dispatch)
                 // Get child model id and name from action
                 const matches = scoredAction.payload.match(new RegExp(`${dispatchActionPrefix}:([^:]+):([^"]+)`, 'i'))
                 if (matches) {
                     const [, modelId, modelName] = matches
-                    console.log(`Dispatch to Model: ${modelId} ${modelName}`)
+                    CLDebug.Log(`Dispatch to Model: ${modelId} ${modelName}`, DebugType.Dispatch)
 
                     // Get CL model
                     // if it does not exist as child of this instance, then create it and add it.
