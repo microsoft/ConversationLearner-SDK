@@ -5,7 +5,7 @@
 import * as BB from 'botbuilder'
 import { CLRunner, EntityDetectionCallback, OnSessionStartCallback, OnSessionEndCallback, ICallbackInput } from './CLRunner'
 import { ICLOptions } from './CLOptions'
-import { CLStorage } from './CLMemory'
+import { CLStorage } from './CLStorage'
 import { CLDebug } from './CLDebug'
 import { CLClient } from './CLClient'
 import getRouter from './http/router'

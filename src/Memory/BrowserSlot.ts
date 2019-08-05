@@ -2,7 +2,7 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License.
  */
-import { CLStorage } from '../CLMemory'
+import { CLStorage } from '../CLStorage'
 import { CLDebug } from '../CLDebug'
 
 const MAX_BROWSER_SLOTS = 10;

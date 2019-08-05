@@ -11,7 +11,8 @@ export enum DebugType {
     ClientBody = 1 << 1,
     MessageQueue = 1 << 2,
     Memory = 1 << 3,
-    MemVerbose = 1 << 4
+    MemVerbose = 1 << 4,
+    Dispatch = 1 << 5,
 }
 
 enum LogType {

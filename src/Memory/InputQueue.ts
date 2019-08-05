@@ -3,8 +3,8 @@
  * Licensed under the MIT License.
  */
 import * as BB from 'botbuilder'
-import { BotState } from './BotState'
 import { CLDebug, DebugType } from '../CLDebug'
+import InProcessMessageState from './InProcessMessageState'
 
 const MESSAGE_TIMEOUT = 10000
 
@@ -18,7 +18,7 @@ export class InputQueue {
 
     private static messageQueue: QueuedInput[] = [];
 
-    public static async AddInput(botState: BotState, request: BB.Activity, conversationReference: Partial<BB.ConversationReference>, callback: Function) : Promise<any> {
+    public static async AddInput(inProcessMessageState: InProcessMessageState, request: BB.Activity, conversationReference: Partial<BB.ConversationReference>, callback: Function): Promise<any> {
 
         if (!request.id) {
             return null;
@@ -28,27 +28,27 @@ export class InputQueue {
         await InputQueue.InputQueueAdd(request.id, callback);
 
         // Process queue
-        await InputQueue.InputQueueProcess(botState)
+        await InputQueue.InputQueueProcess(inProcessMessageState)
     }
 
     // Add message to queue
     private static async InputQueueAdd(conversationId: string, callback: Function): Promise<void> {
         const now = new Date().getTime();
         const queuedInput =
-        {
-            conversationId: conversationId,
-            timestamp: now,
-            callback: callback
-        } as QueuedInput
+            {
+                conversationId: conversationId,
+                timestamp: now,
+                callback: callback
+            } as QueuedInput
 
         this.messageQueue.push(queuedInput);
         CLDebug.Log(`ADD QUEUE: ${conversationId} ${this.messageQueue.length}`, DebugType.MessageQueue)
     }
 
     // Attempt to process next message in the queue
-    private static async InputQueueProcess(botState: BotState) : Promise<void> {
+    private static async InputQueueProcess(inProcessMessageState: InProcessMessageState): Promise<void> {
         const now = new Date().getTime();
-        const messageProcessing = await botState.GetMessageProcessing();
+        const messageProcessing = await inProcessMessageState.get<QueuedInput>();
 
         // Is a message being processed
         if (messageProcessing) {
@@ -58,14 +58,14 @@ export class InputQueue {
 
             if (age > MESSAGE_TIMEOUT) {
                 CLDebug.Log(`EXPIRED: ${messageProcessing.conversationId} ${this.messageQueue.length}`, DebugType.MessageQueue)
-                await botState.MessageProcessingPopAsync();
+                await inProcessMessageState.remove();
                 let queuedInput = this.messageQueue.find(mq => mq.conversationId == messageProcessing.conversationId);
                 if (queuedInput) {
                     // Fire the callback with failure
                     queuedInput.callback(true, queuedInput.conversationId);
                 }
                 else {
-                    CLDebug.Log(`EXPIRE-WARNING: Couldn't find queud message`, DebugType.MessageQueue)
+                    CLDebug.Log(`EXPIRE-WARNING: Couldn't find queued message`, DebugType.MessageQueue)
                 }
                 CLDebug.Log(`EXPIRE-POP: ${messageProcessing.conversationId} ${this.messageQueue.length}`, DebugType.MessageQueue)
             }
@@ -73,21 +73,21 @@ export class InputQueue {
 
         // If no message being processed, try next message
         if (!messageProcessing) {
-           await InputQueue.InputQueueProcessNext(botState);
+            await InputQueue.InputQueueProcessNext(inProcessMessageState);
         }
     }
 
     // Process next message
-    private static async InputQueueProcessNext(botState: BotState): Promise<void> {
+    private static async InputQueueProcessNext(inProcessMessageState: InProcessMessageState): Promise<void> {
 
-        let curProcessing = await botState.GetMessageProcessing();
+        let curProcessing = await inProcessMessageState.get();
 
         // If no message being process, and item in queue, process teh next one
         if (!curProcessing && this.messageQueue.length > 0) {
             let messageProcessing = this.messageQueue.shift();
 
             if (messageProcessing) {
-                await botState.SetMessageProcessing(messageProcessing);
+                await inProcessMessageState.set(messageProcessing);
 
                 // Fire the callback with success
                 CLDebug.Log(`PROCESS-CALLBACK: ${messageProcessing.conversationId} ${this.messageQueue.length}`, DebugType.MessageQueue)
@@ -103,12 +103,12 @@ export class InputQueue {
     }
 
     // Done processing message, remove from queue
-    public static async MessageHandled(botState: BotState, conversationId: string | undefined): Promise<void> {
+    public static async MessageHandled(inProcessMessageState: InProcessMessageState, conversationId: string | undefined): Promise<void> {
 
-        if (!conversationId)  {
+        if (!conversationId) {
             CLDebug.Log(`HANDLE: Missing conversation id`, DebugType.MessageQueue)
         }
-        let messageProcessing = await botState.MessageProcessingPopAsync();
+        let messageProcessing = await inProcessMessageState.remove<QueuedInput>();
 
         // Check for consistency
         if (messageProcessing && messageProcessing.conversationId === conversationId) {
@@ -116,6 +116,6 @@ export class InputQueue {
         }
 
         // Process next message in the queue
-        await InputQueue.InputQueueProcessNext(botState);
+        await InputQueue.InputQueueProcessNext(inProcessMessageState);
     }
 }
