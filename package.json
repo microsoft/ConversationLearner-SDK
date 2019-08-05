@@ -40,6 +40,7 @@
   "dependencies": {
     "@conversationlearner/models": "0.206.0",
     "@conversationlearner/ui": "0.376.0",
+    "@gewoonmaarten/dialogtracker": "^1.0.0-preview",
     "@types/supertest": "2.0.4",
     "async-file": "^2.0.2",
     "body-parser": "1.18.3",

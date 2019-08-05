@@ -15,6 +15,7 @@ import * as HttpStatus from 'http-status-codes'
 import * as constants from '../constants'
 import * as bodyParser from 'body-parser'
 import * as cors from 'cors'
+import * as dt from '@gewoonmaarten/dialogtracker'
 import getAppDefinitionChange from '../upgrade'
 import { CLDebug } from '../CLDebug'
 import { CLClient, ICLClientOptions } from '../CLClient'
@@ -1154,6 +1155,21 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
     //========================================================
     // Transcript Validation
     //========================================================
+    /** Loads dialog from list of files */
+    router.post('/obidialog', async (req, res, next) => {
+        try {
+
+            const fileNames: string[] = req.body
+            const schema = new dt.SchemaTracker()
+            const tracker = new dt.DialogTracker(schema)
+            await tracker.addDialogFiles(fileNames)
+
+            res.send(JSON.stringify(tracker.dialogs))
+        } catch (error) {
+            HandleError(res, error)
+        }
+    })
+
     /** Replays a transcript and test whether responses match expected values */
     router.post('/app/:appId/validatetranscript', async (req, res, next) => {
         try {
