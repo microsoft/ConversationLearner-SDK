@@ -20,7 +20,7 @@ export default class InProcessMessageState {
 
     private clStorage: CLMemory
 
-    constructor(clStorage: CLMemory) {
+    private constructor(clStorage: CLMemory) {
         this.clStorage = clStorage
     }
 
