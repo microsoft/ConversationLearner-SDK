@@ -4,7 +4,7 @@
  */
 import * as BB from 'botbuilder'
 import { ConversationLearner } from '../ConversationLearner'
-import { CLMemory } from '../CLMemory'
+import { CLStorage } from '../CLStorage'
 import { AppBase } from '@conversationlearner/models'
 import { QueuedInput } from './InputQueue';
 import { SessionStartFlags } from '../CLRunner';
@@ -67,7 +67,7 @@ export type ConvIdMapper = (ref: Partial<BB.ConversationReference> | null) => st
 export class BotState {
     private static _instance: BotState | undefined
     private readonly conversationReferenceToConversationIdMapper: ConvIdMapper
-    public memory: CLMemory | undefined
+    public memory: CLStorage | undefined
 
     private constructor(init?: Partial<BotState>,
         conversationReferenceToConvIdMapper: ConvIdMapper = BotState.DefaultConversationIdMapper) {
@@ -75,7 +75,7 @@ export class BotState {
         this.conversationReferenceToConversationIdMapper = conversationReferenceToConvIdMapper
     }
 
-    public static Get(clMemory: CLMemory, conversationReference: Partial<BB.ConversationReference> | null): BotState {
+    public static Get(clMemory: CLStorage, conversationReference: Partial<BB.ConversationReference> | null): BotState {
         if (!BotState._instance) {
             BotState._instance = new BotState()
         }

@@ -9,7 +9,7 @@ import { CLDebug, DebugType } from './CLDebug'
 import { BotMemory } from './Memory/BotMemory'
 import { BotState } from './Memory/BotState'
 
-export class CLMemory {
+export class CLStorage {
     private static storage: BB.Storage | null = null
     private memCache = {}
     private keyPrefix: string
@@ -22,7 +22,7 @@ export class CLMemory {
             storage = new BB.MemoryStorage()
         }
 
-        CLMemory.storage = storage
+        CLStorage.storage = storage
     }
 
     private constructor(keyPrefix: string, turnContext?: BB.TurnContext) {
@@ -30,12 +30,12 @@ export class CLMemory {
         this.turnContext = turnContext
     }
 
-    public static GetMemory(key: string): CLMemory {
-        return new CLMemory(key)
+    public static GetMemory(key: string): CLStorage {
+        return new CLStorage(key)
     }
 
     // Generate memory key from session
-    public static async InitMemory(turnContext: BB.TurnContext): Promise<CLMemory> {
+    public static async InitMemory(turnContext: BB.TurnContext): Promise<CLStorage> {
         const conversationReference = BB.TurnContext.getConversationReference(turnContext.activity)
         const user = conversationReference.user
 
@@ -56,7 +56,7 @@ export class CLMemory {
             keyPrefix = conversationReference.conversation.id
         }
 
-        return new CLMemory(keyPrefix, turnContext)
+        return new CLStorage(keyPrefix, turnContext)
     }
 
     private Key(datakey: string): string {
@@ -64,7 +64,7 @@ export class CLMemory {
     }
 
     public async GetAsync(datakey: string): Promise<any> {
-        if (!CLMemory.storage) {
+        if (!CLStorage.storage) {
             throw new Error('Memory storage not found')
         }
 
@@ -75,7 +75,7 @@ export class CLMemory {
             return cacheData
         } else {
             try {
-                let data = await CLMemory.storage.read([key])
+                let data = await CLStorage.storage.read([key])
                 if (data[key]) {
                     this.memCache[key] = data[key].value
                 } else {
@@ -92,7 +92,7 @@ export class CLMemory {
     }
 
     public async SetAsync(datakey: string, jsonString: string): Promise<void> {
-        if (!CLMemory.storage) {
+        if (!CLStorage.storage) {
             throw new Error('Memory storage not found')
         }
 
@@ -110,7 +110,7 @@ export class CLMemory {
             } else {
                 // Write to memory storage (use * for etag)
                 this.memCache[key] = jsonString
-                await CLMemory.storage.write({ [key]: { value: jsonString, eTag: '*' } })
+                await CLStorage.storage.write({ [key]: { value: jsonString, eTag: '*' } })
                 CLDebug.Log(`W> ${key} : ${jsonString}`, DebugType.Memory)
             }
         } catch (err) {
@@ -123,12 +123,12 @@ export class CLMemory {
 
         try {
             // TODO: Remove possibility of being null
-            if (!CLMemory.storage) {
+            if (!CLStorage.storage) {
                 CLDebug.Error(`You attempted to delete key: ${key} before memoryStorage was defined`)
             }
             else {
                 this.memCache[key] = null
-                CLMemory.storage.delete([key])
+                CLStorage.storage.delete([key])
                 CLDebug.Log(`D> ${key} : -----`, DebugType.Memory)
             }
         } catch (err) {
@@ -153,7 +153,7 @@ export class CLMemory {
         return BotState.Get(this, this.turnContext ? BB.TurnContext.getConversationReference(this.turnContext.activity) : null)
     }
 
-    public get TurnContext(): BB.TurnContext | null {
+    public get TurnContext(): BB.TurnContext | undefined {
         return this.turnContext
     }
 }

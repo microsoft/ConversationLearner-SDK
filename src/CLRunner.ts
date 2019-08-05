@@ -6,7 +6,7 @@ import * as util from 'util'
 import * as BB from 'botbuilder'
 import * as CLM from '@conversationlearner/models'
 import * as Utils from './Utils'
-import { CLMemory } from './CLMemory'
+import { CLStorage } from './CLStorage'
 import { BotMemory } from './Memory/BotMemory'
 import { CLDebug } from './CLDebug'
 import { CLClient } from './CLClient'
@@ -186,7 +186,7 @@ export class CLRunner {
 
     public async InTrainingUI(turnContext: BB.TurnContext): Promise<boolean> {
         if (turnContext.activity.from && turnContext.activity.from.name === Utils.CL_DEVELOPER) {
-            let clMemory = await CLMemory.InitMemory(turnContext)
+            let clMemory = await CLStorage.InitMemory(turnContext)
             let app = await clMemory.BotState.GetApp()
             // If no app selected in UI or no app set in config, or they don't match return true
             if (!app || !this.configModelId || app.appId !== this.configModelId) {
@@ -209,7 +209,7 @@ export class CLRunner {
         }
 
         try {
-            let clMemory = await CLMemory.InitMemory(turnContext)
+            let clMemory = await CLStorage.InitMemory(turnContext)
             let app = await this.GetRunningApp(clMemory, false);
 
             if (app) {
@@ -252,7 +252,7 @@ export class CLRunner {
             return null;
         }
 
-        let clMemory = await CLMemory.InitMemory(turnContext)
+        let clMemory = await CLStorage.InitMemory(turnContext)
         let botState = clMemory.BotState;
 
         // If I'm in teach or edit mode, or testing process message right away
@@ -275,7 +275,7 @@ export class CLRunner {
         }
     }
 
-    public async StartSessionAsync(clMemory: CLMemory, conversationRef: Partial<BB.ConversationReference> | null, appId: string, sessionStartFlags: SessionStartFlags, createParams: CLM.SessionCreateParams | CLM.CreateTeachParams): Promise<CLM.Teach | CLM.Session> {
+    public async StartSessionAsync(clMemory: CLStorage, conversationRef: Partial<BB.ConversationReference> | null, appId: string, sessionStartFlags: SessionStartFlags, createParams: CLM.SessionCreateParams | CLM.CreateTeachParams): Promise<CLM.Teach | CLM.Session> {
 
         const inTeach = ((sessionStartFlags & SessionStartFlags.IN_TEACH) > 0)
         let entityList = await this.clClient.GetEntities(appId)
@@ -320,7 +320,7 @@ export class CLRunner {
     }
 
     // Get the currently running app
-    private async GetRunningApp(clMemory: CLMemory, inEditingUI: boolean): Promise<CLM.AppBase | null> {
+    private async GetRunningApp(clMemory: CLStorage, inEditingUI: boolean): Promise<CLM.AppBase | null> {
         let app = await clMemory.BotState.GetApp()
 
         // If this instance is configured to use a specific model, check conditions to use that model.
@@ -340,7 +340,7 @@ export class CLRunner {
     }
 
     // End a teach or log session
-    public async EndSessionAsync(memory: CLMemory, sessionEndState: CLM.SessionEndState, data?: string): Promise<void> {
+    public async EndSessionAsync(memory: CLStorage, sessionEndState: CLM.SessionEndState, data?: string): Promise<void> {
 
         let app = await memory.BotState.GetApp()
 
@@ -384,7 +384,7 @@ export class CLRunner {
                 return null
             }
 
-            let clMemory = await CLMemory.InitMemory(turnContext)
+            let clMemory = await CLStorage.InitMemory(turnContext)
             let app = await this.GetRunningApp(clMemory, inEditingUI);
             let uiMode = await clMemory.BotState.getUIMode()
 
@@ -512,7 +512,7 @@ export class CLRunner {
         } catch (error) {
             // Try to end the session, so use can potentially recover
             try {
-                const clMemory = await CLMemory.InitMemory(turnContext)
+                const clMemory = await CLStorage.InitMemory(turnContext)
                 await this.EndSessionAsync(clMemory, CLM.SessionEndState.OPEN)
             } catch {
                 CLDebug.Log(`Failed to End Session`)
@@ -523,7 +523,7 @@ export class CLRunner {
         }
     }
 
-    private async ProcessFormData(request: BB.Activity, clMemory: CLMemory, appId: string): Promise<string | null> {
+    private async ProcessFormData(request: BB.Activity, clMemory: CLStorage, appId: string): Promise<string | null> {
         const data = request.value as FormData
         if (data) {
             // Get list of all entities
@@ -556,7 +556,7 @@ export class CLRunner {
     public async Score(
         appId: string,
         sessionId: string,
-        memory: CLMemory,
+        memory: CLStorage,
         text: string,
         predictedEntities: CLM.PredictedEntity[],
         allEntities: CLM.EntityBase[],
@@ -684,7 +684,7 @@ export class CLRunner {
         }
     }
 
-    public async CallEntityDetectionCallback(text: string, predictedEntities: CLM.PredictedEntity[], clMemory: CLMemory, allEntities: CLM.EntityBase[], skipEntityDetectionCallBack: boolean = false): Promise<CLM.ScoreInput> {
+    public async CallEntityDetectionCallback(text: string, predictedEntities: CLM.PredictedEntity[], clMemory: CLStorage, allEntities: CLM.EntityBase[], skipEntityDetectionCallBack: boolean = false): Promise<CLM.ScoreInput> {
 
         // Entities before processing
         let prevMemories = new CLM.FilledEntityMap(await clMemory.BotMemory.FilledEntityMap());
@@ -713,7 +713,7 @@ export class CLRunner {
         return scoreInput
     }
 
-    private async CreateMemoryManagerAsync(clMemory: CLMemory, allEntities: CLM.EntityBase[], prevMemories?: CLM.FilledEntityMap): Promise<ClientMemoryManager> {
+    private async CreateMemoryManagerAsync(clMemory: CLStorage, allEntities: CLM.EntityBase[], prevMemories?: CLM.FilledEntityMap): Promise<ClientMemoryManager> {
         let sessionInfo = await clMemory.BotState.SessionInfoAsync()
         let curMemories = new CLM.FilledEntityMap(await clMemory.BotMemory.FilledEntityMap());
         if (!prevMemories) {
@@ -722,7 +722,7 @@ export class CLRunner {
         return new ClientMemoryManager(prevMemories, curMemories, allEntities, sessionInfo);
     }
 
-    private async CreateReadOnlyMemoryManagerAsync(clMemory: CLMemory, allEntities: CLM.EntityBase[], prevMemories?: CLM.FilledEntityMap): Promise<ReadOnlyClientMemoryManager> {
+    private async CreateReadOnlyMemoryManagerAsync(clMemory: CLStorage, allEntities: CLM.EntityBase[], prevMemories?: CLM.FilledEntityMap): Promise<ReadOnlyClientMemoryManager> {
         let sessionInfo = await clMemory.BotState.SessionInfoAsync()
         let curMemories = new CLM.FilledEntityMap(await clMemory.BotMemory.FilledEntityMap());
         if (!prevMemories) {
@@ -731,7 +731,7 @@ export class CLRunner {
         return new ReadOnlyClientMemoryManager(prevMemories, curMemories, allEntities, sessionInfo);
     }
 
-    private async GetTurnContext(clMemory: CLMemory): Promise<BB.TurnContext> {
+    private async GetTurnContext(clMemory: CLStorage): Promise<BB.TurnContext> {
 
         const getTurnContextForConversationReference = (conversationRef: Partial<BB.ConversationReference>, activity?: Partial<BB.Activity>): BB.TurnContext => {
             if (!this.adapter) {
@@ -760,7 +760,7 @@ export class CLRunner {
     }
 
     // Call session start callback, set memory and return list of filled entities coming from callback
-    protected async CheckSessionStartCallback(clMemory: CLMemory, entities: CLM.EntityBase[]): Promise<void> {
+    protected async CheckSessionStartCallback(clMemory: CLStorage, entities: CLM.EntityBase[]): Promise<void> {
 
         // If bot has callback, call it
         if (this.onSessionStartCallback && this.adapter) {
@@ -791,7 +791,7 @@ export class CLRunner {
         }
     }
 
-    protected async CheckSessionEndCallback(clMemory: CLMemory, entities: CLM.EntityBase[], sessionEndState: CLM.SessionEndState, data?: string): Promise<void> {
+    protected async CheckSessionEndCallback(clMemory: CLStorage, entities: CLM.EntityBase[], sessionEndState: CLM.SessionEndState, data?: string): Promise<void> {
 
         // If onEndSession hasn't been called yet, call it
         let needEndSession = await clMemory.BotState.GetNeedSessionEndCall();
@@ -1033,7 +1033,7 @@ export class CLRunner {
         return actionResult
     }
 
-    private async SendMessage(memory: CLMemory, message: string | Partial<BB.Activity>, incomingActivityId?: string | undefined): Promise<void> {
+    private async SendMessage(memory: CLStorage, message: string | Partial<BB.Activity>, incomingActivityId?: string | undefined): Promise<void> {
 
         // If requested, pop incoming activity from message queue
         if (incomingActivityId) {
@@ -1082,7 +1082,7 @@ export class CLRunner {
         return renderedArgumentValues
     }
 
-    public async TakeAPIPlaceholderAction(placeholderAction: CLM.ApiAction, placeHolderFilledEntities: CLM.FilledEntity[], clMemory: CLMemory, allEntities: CLM.EntityBase[]): Promise<IActionResult> {
+    public async TakeAPIPlaceholderAction(placeholderAction: CLM.ApiAction, placeHolderFilledEntities: CLM.FilledEntity[], clMemory: CLStorage, allEntities: CLM.EntityBase[]): Promise<IActionResult> {
 
         try {
             const memoryManager = await this.CreateMemoryManagerAsync(clMemory, allEntities)
@@ -1128,7 +1128,7 @@ export class CLRunner {
         }
     }
 
-    public async TakeSetEntityAction(action: CLM.SetEntityAction, filledEntityMap: CLM.FilledEntityMap, clMemory: CLMemory, allEntities: CLM.EntityBase[], inTeach: boolean): Promise<IActionResult> {
+    public async TakeSetEntityAction(action: CLM.SetEntityAction, filledEntityMap: CLM.FilledEntityMap, clMemory: CLStorage, allEntities: CLM.EntityBase[], inTeach: boolean): Promise<IActionResult> {
         try {
             let replayError: CLM.ReplayError | undefined
             let response: Partial<BB.Activity> | string | null = null
@@ -1175,7 +1175,7 @@ export class CLRunner {
         }
     }
 
-    public async TakeAPIAction(apiAction: CLM.ApiAction, filledEntityMap: CLM.FilledEntityMap, clMemory: CLMemory, allEntities: CLM.EntityBase[], inTeach: boolean, actionInput: IActionInput): Promise<IActionResult> {
+    public async TakeAPIAction(apiAction: CLM.ApiAction, filledEntityMap: CLM.FilledEntityMap, clMemory: CLStorage, allEntities: CLM.EntityBase[], inTeach: boolean, actionInput: IActionInput): Promise<IActionResult> {
         // Extract API name and args
         const callback = this.callbacks[apiAction.name]
         if (!callback) {
@@ -1318,7 +1318,7 @@ export class CLRunner {
         }
     }
 
-    private async TakeSessionAction(sessionAction: CLM.SessionAction, filledEntityIdMap: CLM.FilledEntityMap, inTeach: boolean, clMemory: CLMemory, sessionId: string | null, app: CLM.AppBase | null): Promise<Partial<BB.Activity> | null> {
+    private async TakeSessionAction(sessionAction: CLM.SessionAction, filledEntityIdMap: CLM.FilledEntityMap, inTeach: boolean, clMemory: CLStorage, sessionId: string | null, app: CLM.AppBase | null): Promise<Partial<BB.Activity> | null> {
 
         // Get any context from the action
         let content = sessionAction.renderValue(CLM.getEntityDisplayValueMap(filledEntityIdMap))
@@ -1495,7 +1495,7 @@ export class CLRunner {
     /**
      * Initialize memory for replay
      */
-    private async InitReplayMemory(clMemory: CLMemory, trainDialog: CLM.TrainDialog, allEntities: CLM.EntityBase[]) {
+    private async InitReplayMemory(clMemory: CLStorage, trainDialog: CLM.TrainDialog, allEntities: CLM.EntityBase[]) {
 
         // Reset the memory
         await clMemory.BotMemory.ClearAsync()
@@ -1513,7 +1513,7 @@ export class CLRunner {
      * Replay a TrainDialog, calling EntityDetection callback and API Logic,
      * recalculating FilledEntities along the way
      */
-    public async ReplayTrainDialogLogic(trainDialog: CLM.TrainDialog, clMemory: CLMemory, cleanse: boolean): Promise<CLM.TrainDialog> {
+    public async ReplayTrainDialogLogic(trainDialog: CLM.TrainDialog, clMemory: CLStorage, cleanse: boolean): Promise<CLM.TrainDialog> {
 
         if (!trainDialog || !trainDialog.rounds) {
             return trainDialog
@@ -1750,7 +1750,7 @@ export class CLRunner {
      * Return any errors in TrainDialog  
      * NOTE: Will set bot memory to state at end of history
      */
-    public async GetHistory(trainDialog: CLM.TrainDialog, userName: string, userId: string, clMemory: CLMemory, useMarkdown: boolean = true): Promise<CLM.TeachWithHistory | null> {
+    public async GetHistory(trainDialog: CLM.TrainDialog, userName: string, userId: string, clMemory: CLStorage, useMarkdown: boolean = true): Promise<CLM.TeachWithHistory | null> {
 
         let entities: CLM.EntityBase[] = trainDialog.definitions ? trainDialog.definitions.entities : []
         let actions: CLM.ActionBase[] = trainDialog.definitions ? trainDialog.definitions.actions : []

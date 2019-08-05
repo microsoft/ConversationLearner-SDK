@@ -2,7 +2,7 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License.
  */
-import { CLMemory } from '../CLMemory'
+import { CLStorage } from '../CLMemory'
 import { CLDebug } from '../CLDebug'
 import { Memory, FilledEntity, MemoryValue, FilledEntityMap } from '@conversationlearner/models'
 import { ClientMemoryManager } from '..';
@@ -12,7 +12,7 @@ const NEGATIVE_PREFIX = '~'
 export class BotMemory {
     private static _instance: BotMemory | undefined
     private static MEMKEY = 'BOTMEMORY'
-    private clMemory: CLMemory | undefined
+    private clMemory: CLStorage | undefined
     public filledEntityMap: FilledEntityMap
 
     private constructor(init?: Partial<BotMemory>) {
@@ -20,7 +20,7 @@ export class BotMemory {
         Object.assign(this, init)
     }
 
-    public static Get(clMemory: CLMemory): BotMemory {
+    public static Get(clMemory: CLStorage): BotMemory {
         if (!BotMemory._instance) {
             BotMemory._instance = new BotMemory()
         }
