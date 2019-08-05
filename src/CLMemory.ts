@@ -10,21 +10,22 @@ import { BotMemory } from './Memory/BotMemory'
 import { BotState } from './Memory/BotState'
 
 export class CLMemory {
-    private static memoryStorage: BB.Storage | null = null
+    private static storage: BB.Storage | null = null
     private memCache = {}
     private keyPrefix: string
-    private turnContext: BB.TurnContext | null
+    public readonly turnContext?: BB.TurnContext
 
-    public static Init(memoryStorage: BB.Storage | null): void {
-        CLMemory.memoryStorage = memoryStorage
+    public static Init(storage: BB.Storage | null): void {
         // If memory storage not defined use disk storage
-        if (!memoryStorage) {
+        if (!storage) {
             CLDebug.Log('Storage not defined.  Defaulting to in-memory storage.')
-            CLMemory.memoryStorage = new BB.MemoryStorage()
+            storage = new BB.MemoryStorage()
         }
+
+        CLMemory.storage = storage
     }
 
-    private constructor(keyPrefix: string, turnContext: BB.TurnContext | null = null) {
+    private constructor(keyPrefix: string, turnContext?: BB.TurnContext) {
         this.keyPrefix = keyPrefix
         this.turnContext = turnContext
     }
@@ -63,7 +64,7 @@ export class CLMemory {
     }
 
     public async GetAsync(datakey: string): Promise<any> {
-        if (!CLMemory.memoryStorage) {
+        if (!CLMemory.storage) {
             throw new Error('Memory storage not found')
         }
 
@@ -74,7 +75,7 @@ export class CLMemory {
             return cacheData
         } else {
             try {
-                let data = await CLMemory.memoryStorage.read([key])
+                let data = await CLMemory.storage.read([key])
                 if (data[key]) {
                     this.memCache[key] = data[key].value
                 } else {
@@ -91,7 +92,7 @@ export class CLMemory {
     }
 
     public async SetAsync(datakey: string, jsonString: string): Promise<void> {
-        if (!CLMemory.memoryStorage) {
+        if (!CLMemory.storage) {
             throw new Error('Memory storage not found')
         }
 
@@ -109,7 +110,7 @@ export class CLMemory {
             } else {
                 // Write to memory storage (use * for etag)
                 this.memCache[key] = jsonString
-                await CLMemory.memoryStorage.write({ [key]: { value: jsonString, eTag: '*' } })
+                await CLMemory.storage.write({ [key]: { value: jsonString, eTag: '*' } })
                 CLDebug.Log(`W> ${key} : ${jsonString}`, DebugType.Memory)
             }
         } catch (err) {
@@ -122,12 +123,12 @@ export class CLMemory {
 
         try {
             // TODO: Remove possibility of being null
-            if (!CLMemory.memoryStorage) {
+            if (!CLMemory.storage) {
                 CLDebug.Error(`You attempted to delete key: ${key} before memoryStorage was defined`)
             }
             else {
                 this.memCache[key] = null
-                CLMemory.memoryStorage.delete([key])
+                CLMemory.storage.delete([key])
                 CLDebug.Log(`D> ${key} : -----`, DebugType.Memory)
             }
         } catch (err) {
