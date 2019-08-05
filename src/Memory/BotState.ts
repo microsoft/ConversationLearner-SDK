@@ -6,8 +6,7 @@ import * as BB from 'botbuilder'
 import { ConversationLearner } from '../ConversationLearner'
 import { CLMemory } from '../CLMemory'
 import { AppBase } from '@conversationlearner/models'
-import { QueuedInput } from './InputQueue';
-import { SessionStartFlags } from '../CLRunner';
+import { SessionStartFlags } from '../CLRunner'
 
 export interface ConversationSession {
     sessionId: string | null
@@ -118,7 +117,6 @@ export class BotState {
         await this.SetApp(app)
         await this.SetConversationReference(null)
         await this.SetLastActive(0);
-        await this.SetMessageProcessing(null);
         await this.SetNeedSessionEndCall(false)
         await this.SetUIMode(UIMode.NONE)
         await this.SetSessionId(null)
@@ -247,7 +245,6 @@ export class BotState {
         await this.SetConversationReference(conversationReference)
         await this.SetLastActive(new Date().getTime())
         await this.SetUIMode(uiMode)
-        await this.SetMessageProcessing(null)
     }
 
     // End a session.
@@ -257,7 +254,6 @@ export class BotState {
         await this.SetConversationReference(null)
         await this.SetLastActive(0);
         await this.SetUIMode(UIMode.NONE);
-        await this.SetMessageProcessing(null);
     }
 
     // ------------------------------------------------
@@ -309,23 +305,6 @@ export class BotState {
 
     public async SetLogDialogId(logDialogId: string | null): Promise<void> {
         await this.SetStateAsync(BotStateType.LOG_DIALOG_ID, logDialogId)
-    }
-
-    // ------------------------------------------------
-    //  MESSAGE_MUTEX
-    // ------------------------------------------------
-    public async GetMessageProcessing(): Promise<QueuedInput | null> {
-        return await this.GetStateAsync<QueuedInput>(BotStateType.MESSAGE_MUTEX)
-    }
-
-    public async MessageProcessingPopAsync(): Promise<QueuedInput | null> {
-        let popVal = await this.GetStateAsync<QueuedInput>(BotStateType.MESSAGE_MUTEX)
-        await this.SetStateAsync(BotStateType.MESSAGE_MUTEX, null);
-        return popVal;
-    }
-
-    public async SetMessageProcessing(queuedInput: QueuedInput | null): Promise<void> {
-        await this.SetStateAsync(BotStateType.MESSAGE_MUTEX, queuedInput)
     }
 
     // -------------------------------------------------------------------

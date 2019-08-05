@@ -8,9 +8,20 @@ import * as Utils from './Utils'
 import { CLDebug, DebugType } from './CLDebug'
 import { BotMemory } from './Memory/BotMemory'
 import { BotState } from './Memory/BotState'
+import InProcessMessageState from './Memory/InProcessMessageState'
 
+/**
+ * This outer instance of CLMemory has keyPrefix specific to model + conversation.
+ * This was required for dispatching when multiple models needed separate state for the same conversation.
+ * 
+ * The inner conversationStorage instance of CLMemory has keyPrefix mapped to the conversation.
+ * This enabled tracking message state within the conversation independently of how many models are used within the conversation.
+ */
 export class CLMemory {
     private static memoryStorage: BB.Storage | null = null
+    // TODO: Remove later, after refactor to change hierarchy to State -> ClStorage -> BB.Storage
+    private conversationStorage: CLMemory | undefined
+
     private memCache = {}
     private keyPrefix: string
     private turnContext: BB.TurnContext | null
@@ -30,15 +41,18 @@ export class CLMemory {
     }
 
     public static GetMemory(key: string): CLMemory {
-        return new CLMemory(key)
+        const memory = new CLMemory(key)
+        memory.conversationStorage = new CLMemory(key)
+        return memory
     }
 
     // Generate memory key from session
-    public static async InitMemory(turnContext: BB.TurnContext): Promise<CLMemory> {
+    public static async InitMemory(turnContext: BB.TurnContext, modelId: string = ''): Promise<CLMemory> {
         const conversationReference = BB.TurnContext.getConversationReference(turnContext.activity)
         const user = conversationReference.user
 
         let keyPrefix: string | null = null
+        let messageMutexPrefix: string
         if (Utils.isRunningInClUI(turnContext)) {
             if (!user) {
                 throw new Error(`Attempted to initialize memory, but cannot get memory key because current request did not have 'from'/user specified`)
@@ -46,16 +60,23 @@ export class CLMemory {
             if (!user.id) {
                 throw new Error(`Attempted to initialize memory, but user.id was not provided which is required for use as memory key.`)
             }
-            keyPrefix = user.id
+            // User ID is the browser slot assigned to the UI
+            keyPrefix = `${modelId}${user.id}`
+            messageMutexPrefix = user.id
         } else {
             // Memory uses conversation Id as the prefix key for all the objects kept in CLMemory when bot is not running against CL UI
             if (!conversationReference.conversation || !conversationReference.conversation.id) {
                 throw new Error(`Attempted to initialize memory, but conversationReference.conversation.id was not provided which is required for use as memory key.`)
             }
-            keyPrefix = conversationReference.conversation.id
+            // Dispatcher subModels will have the same converataion id thus we need the model id to differentiate
+            keyPrefix = `${modelId}${conversationReference.conversation.id}`
+            messageMutexPrefix = conversationReference.conversation.id
         }
 
-        return new CLMemory(keyPrefix, turnContext)
+        const modelStorage = new CLMemory(keyPrefix, turnContext)
+        const conversationStorage = new CLMemory(messageMutexPrefix, turnContext)
+        modelStorage.conversationStorage = conversationStorage
+        return modelStorage
     }
 
     private Key(datakey: string): string {
@@ -138,6 +159,7 @@ export class CLMemory {
     public async SetAppAsync(app: CLM.AppBase | null): Promise<void> {
         const curApp = await this.BotState.GetApp();
         await this.BotState._SetAppAsync(app)
+        await this.MessageState.remove()
 
         if (!app || !curApp || curApp.appId !== app.appId) {
             await this.BotMemory.ClearAsync()
@@ -150,6 +172,14 @@ export class CLMemory {
 
     public get BotState(): BotState {
         return BotState.Get(this, this.turnContext ? BB.TurnContext.getConversationReference(this.turnContext.activity) : null)
+    }
+
+    public get MessageState(): InProcessMessageState {
+        if (!this.conversationStorage) {
+            throw new Error(`conversationStorage must be set in order to get MessageState`)
+        }
+
+        return InProcessMessageState.Get(this.conversationStorage)
     }
 
     public get TurnContext(): BB.TurnContext | null {
