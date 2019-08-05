@@ -1323,14 +1323,7 @@ export class CLRunner {
     }
 
     public async TakeTextAction(textAction: CLM.TextAction, filledEntityMap: CLM.FilledEntityMap): Promise<Partial<BB.Activity> | string> {
-        const actionString = textAction.renderValue(CLM.getEntityDisplayValueMap(filledEntityMap))
-
-        if (actionString.startsWith('@DISPATCH')) {
-            const [, modelId,] = actionString.split(':')
-            console.log(`TakeTextAction: Dispatch to model: ${modelId}`)
-        }
-
-        return Promise.resolve(actionString)
+        return Promise.resolve(textAction.renderValue(CLM.getEntityDisplayValueMap(filledEntityMap)))
     }
 
     public async TakeCardAction(cardAction: CLM.CardAction, filledEntityMap: CLM.FilledEntityMap): Promise<Partial<BB.Activity> | string> {
