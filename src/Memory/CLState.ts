@@ -5,7 +5,7 @@
 import * as BB from 'botbuilder'
 import * as CLM from '@conversationlearner/models'
 import * as Utils from '../Utils'
-import { CLDebug, DebugType } from '../CLDebug'
+import { CLDebug } from '../CLDebug'
 import { EntityState } from './EntityState'
 import { BotState } from './BotState'
 import { InProcessMessageState as MessageState } from './InProcessMessageState'
@@ -26,8 +26,6 @@ import { BrowserSlotState } from './BrowserSlot';
  */
 export class CLState {
     private static bbStorage: BB.Storage
-    private keyPrefix: string
-    private modelId: string
     public readonly turnContext?: BB.TurnContext
 
     BotState: BotState
@@ -40,8 +38,6 @@ export class CLState {
         entityState: EntityState,
         messageState: MessageState,
         browserSlotState: BrowserSlotState,
-        keyPrefix: string,
-        modelId: string = '',
         turnContext?: BB.TurnContext) {
 
         this.BotState = botState
@@ -49,8 +45,6 @@ export class CLState {
         this.MessageState = messageState
         this.BrowserSlotState = browserSlotState
 
-        this.keyPrefix = keyPrefix
-        this.modelId = modelId
         this.turnContext = turnContext
     }
 
@@ -75,7 +69,7 @@ export class CLState {
         const messageState = new MessageState(storage, () => `${modelUniqueKeyPrefix}_MESSAGE_MUTEX`)
         const browserSlotState = new BrowserSlotState(storage, () => `BROWSER_SLOTS`)
 
-        return new CLState(botState, entityState, messageState, browserSlotState, key, modelId)
+        return new CLState(botState, entityState, messageState, browserSlotState)
     }
 
     public static GetFromContext(turnContext: BB.TurnContext, modelId: string = ''): CLState {
@@ -101,16 +95,6 @@ export class CLState {
         }
 
         return CLState.Get(keyPrefix, modelId)
-    }
-
-    private Key(datakey: string): string {
-        return `${Utils.getSha256Hash(this.keyPrefix)}_${datakey}`
-    }
-
-    private modelKey(datakey: string): string {
-        // Dispatcher subModels will have the same conversation id thus we need the model id to differentiate
-        const keyPrefix = `${this.modelId}${this.keyPrefix}`
-        return `${Utils.getSha256Hash(keyPrefix)}_${datakey}`
     }
 
     public async SetAppAsync(app: CLM.AppBase | null): Promise<void> {

@@ -5,7 +5,7 @@
 import * as BB from 'botbuilder'
 import { CLRunner, EntityDetectionCallback, OnSessionStartCallback, OnSessionEndCallback, ICallbackInput } from './CLRunner'
 import { ICLOptions } from './CLOptions'
-import { CLStorage } from './CLStorage'
+import { CLState } from './Memory/CLState'
 import { CLDebug } from './CLDebug'
 import { CLClient } from './CLClient'
 import getRouter from './http/router'
@@ -18,12 +18,12 @@ export class ConversationLearner {
     public static clClient: CLClient
     public clRunner: CLRunner
 
-    public static Init(options: ICLOptions, storage: BB.Storage | null = null): express.Router {
+    public static Init(options: ICLOptions, storage?: BB.Storage): express.Router {
         ConversationLearner.options = options
 
         try {
             this.clClient = new CLClient(options)
-            CLStorage.Init(storage)
+            CLState.Init(storage)
         } catch (error) {
             CLDebug.Error(error, 'Conversation Learner Initialization')
         }
