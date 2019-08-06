@@ -64,56 +64,34 @@ export enum BotStateType {
 export type ConvIdMapper = (ref: Partial<BB.ConversationReference> | null) => string | null
 
 export class BotState {
-    private static _instance: BotState | undefined
     private readonly conversationReferenceToConversationIdMapper: ConvIdMapper
-    public storage: CLStorage | undefined
+    private readonly storage: CLStorage
 
-    private constructor(init?: Partial<BotState>,
-        conversationReferenceToConvIdMapper: ConvIdMapper = BotState.DefaultConversationIdMapper) {
-        Object.assign(this, init)
+    constructor(storage: CLStorage, conversationReferenceToConvIdMapper: ConvIdMapper = BotState.DefaultConversationIdMapper) {
+        this.storage = storage
         this.conversationReferenceToConversationIdMapper = conversationReferenceToConvIdMapper
     }
 
-    public static Get(storage: CLStorage, conversationReference: Partial<BB.ConversationReference> | null): BotState {
-        if (!BotState._instance) {
-            BotState._instance = new BotState()
-        }
-        BotState._instance.storage = storage
-        // For API calls from training UI there is no conversationReference. 
-        // Then we should use the cached conversationReference from CLMemory to send replies
-        if (conversationReference) {
-            BotState._instance.SetConversationReference(conversationReference)
-        }
-        return BotState._instance
-    }
-
     private async GetStateAsync<T>(botStateType: BotStateType): Promise<T> {
-        if (!this.storage) {
-            throw new Error('BotState called without initializing memory')
-        }
-
         try {
             let data = await this.storage.GetAsync(botStateType);
             return JSON.parse(data) as T;
         }
         catch {
             // If brand new use, need to initialize
-            await this._SetAppAsync(null)
+            await this.SetAppAsync(null)
             let data = await this.storage.GetAsync(botStateType)
             return JSON.parse(data) as T;
         }
     }
 
     private async SetStateAsync<T>(botStateType: BotStateType, value: T): Promise<void> {
-        if (!this.storage) {
-            throw new Error('BotState called without initializing memory')
-        }
+
         const json = JSON.stringify(value)
         await this.storage.SetAsync(botStateType, json)
     }
 
-    // NOTE: CLMemory should be the only one to call this
-    public async _SetAppAsync(app: AppBase | null): Promise<void> {
+    public async SetAppAsync(app: AppBase | null): Promise<void> {
         await this.SetApp(app)
         await this.SetConversationReference(null)
         await this.SetLastActive(0);

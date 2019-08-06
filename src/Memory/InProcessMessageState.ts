@@ -11,7 +11,7 @@ const MESSAGE_MUTEX = 'MESSAGE_MUTEX'
  * Tracks the state of messages which are being processed.
  * The memory instances given to this class should be associated with lifetime of messages, eg the conversation
  */
-export default class InProcessMessageState {
+export class InProcessMessageState {
     private static _instance: InProcessMessageState | undefined
 
     public static Get(clStorage: CLStorage): InProcessMessageState {
@@ -60,3 +60,5 @@ export default class InProcessMessageState {
         await this.clStorage.SetAsync(MESSAGE_MUTEX, json)
     }
 }
+
+export default InProcessMessageState
