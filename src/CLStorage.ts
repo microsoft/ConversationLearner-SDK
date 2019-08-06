@@ -45,9 +45,9 @@ export class CLStorage {
     }
 
     public static Get(key: string): CLStorage {
-        const memory = new CLStorage(key)
-        memory.conversationStorage = new CLStorage(key)
-        return memory
+        const storage = new CLStorage(key)
+        storage.conversationStorage = new CLStorage(key)
+        return storage
     }
 
     public static GetFromContext(turnContext: BB.TurnContext, modelId: string = ''): CLStorage {
