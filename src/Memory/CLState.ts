@@ -10,10 +10,19 @@ import { EntityState } from './EntityState'
 import { BotState } from './BotState'
 import { InProcessMessageState as MessageState } from './InProcessMessageState'
 import { CLStorage } from '../CLStorage';
+import { BrowserSlotState } from './BrowserSlot';
 
 /**
  * CLState is a container all states (BotState, EntityState, MessageState) and can be passed around as a single access point.
- * Higher level state operations that span multiple types of state such as SetApp (which affects BotState and Messag)
+ * 
+ * Responsibilities
+ * - Single place to define keys for each of the sub states
+ *  - MessageState is dynamic from conversation
+ *  - Entity and Bot are dynamic from conversation model
+ *  - BrowserSlot is static `BROWSER_SLOTS`
+ * 
+ * - Higher level state operations that span multiple types of state
+ *   - Example: SetApp (which affects BotState, EntityState, and MessageState)
  */
 export class CLState {
     private static bbStorage: BB.Storage
@@ -24,11 +33,21 @@ export class CLState {
     BotState: BotState
     EntityState: EntityState
     MessageState: MessageState
+    BrowserSlotState: BrowserSlotState
 
-    private constructor(botState: BotState, entityState: EntityState, messageState: MessageState, keyPrefix: string, modelId: string = '', turnContext?: BB.TurnContext) {
+    private constructor(
+        botState: BotState,
+        entityState: EntityState,
+        messageState: MessageState,
+        browserSlotState: BrowserSlotState,
+        keyPrefix: string,
+        modelId: string = '',
+        turnContext?: BB.TurnContext) {
+
         this.BotState = botState
         this.EntityState = entityState
         this.MessageState = messageState
+        this.BrowserSlotState = browserSlotState
 
         this.keyPrefix = keyPrefix
         this.modelId = modelId
@@ -48,11 +67,15 @@ export class CLState {
     public static Get(key: string, modelId: string = ''): CLState {
         const storage = new CLStorage(CLState.bbStorage)
 
-        const botState = new BotState(storage)
-        const entityState = EntityState.Get(storage)
-        const messageState = MessageState.Get(storage)
+        const keyPrefix = Utils.getSha256Hash(key)
+        const modelUniqueKeyPrefix = Utils.getSha256Hash(`${modelId}${key}`)
 
-        return new CLState(botState, entityState, messageState, key, modelId)
+        const botState = new BotState(storage, (datakey) => `${keyPrefix}_${datakey}`)
+        const entityState = new EntityState(storage, () => `${keyPrefix}_BOTMEMORY`)
+        const messageState = new MessageState(storage, () => `${modelUniqueKeyPrefix}_MESSAGE_MUTEX`)
+        const browserSlotState = new BrowserSlotState(storage, () => `BROWSER_SLOTS`)
+
+        return new CLState(botState, entityState, messageState, browserSlotState, key, modelId)
     }
 
     public static GetFromContext(turnContext: BB.TurnContext, modelId: string = ''): CLState {

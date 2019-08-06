@@ -61,34 +61,39 @@ export enum BotStateType {
     SESSION_ID = 'SESSION_ID'
 }
 
+type GetKey = (datakey: string) => string
 export type ConvIdMapper = (ref: Partial<BB.ConversationReference> | null) => string | null
 
 export class BotState {
-    private readonly conversationReferenceToConversationIdMapper: ConvIdMapper
     private readonly storage: CLStorage
+    private readonly getKey: GetKey
+    private readonly conversationReferenceToConversationIdMapper: ConvIdMapper
 
-    constructor(storage: CLStorage, conversationReferenceToConvIdMapper: ConvIdMapper = BotState.DefaultConversationIdMapper) {
+    constructor(storage: CLStorage, getKey: GetKey, conversationReferenceToConvIdMapper: ConvIdMapper = BotState.DefaultConversationIdMapper) {
         this.storage = storage
+        this.getKey = getKey
         this.conversationReferenceToConversationIdMapper = conversationReferenceToConvIdMapper
     }
 
     private async GetStateAsync<T>(botStateType: BotStateType): Promise<T> {
+        const key = this.getKey(botStateType)
+
         try {
-            let data = await this.storage.GetAsync(botStateType);
+            let data = await this.storage.GetAsync(key)
             return JSON.parse(data) as T;
         }
         catch {
             // If brand new use, need to initialize
             await this.SetAppAsync(null)
-            let data = await this.storage.GetAsync(botStateType)
+            let data = await this.storage.GetAsync(key)
             return JSON.parse(data) as T;
         }
     }
 
     private async SetStateAsync<T>(botStateType: BotStateType, value: T): Promise<void> {
-
+        const key = this.getKey(botStateType)
         const json = JSON.stringify(value)
-        await this.storage.SetAsync(botStateType, json)
+        await this.storage.SetAsync(key, json)
     }
 
     public async SetAppAsync(app: AppBase | null): Promise<void> {
