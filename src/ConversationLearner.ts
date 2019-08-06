@@ -5,7 +5,7 @@
 import * as BB from 'botbuilder'
 import { CLRunner, EntityDetectionCallback, OnSessionStartCallback, OnSessionEndCallback, ICallbackInput } from './CLRunner'
 import { ICLOptions } from './CLOptions'
-import { CLMemory } from './CLMemory'
+import { CLStorage } from './CLStorage'
 import { CLDebug } from './CLDebug'
 import { CLClient } from './CLClient'
 import getRouter from './http/router'
@@ -23,7 +23,7 @@ export class ConversationLearner {
 
         try {
             this.clClient = new CLClient(options)
-            CLMemory.Init(storage)
+            CLStorage.Init(storage)
         } catch (error) {
             CLDebug.Error(error, 'Conversation Learner Initialization')
         }

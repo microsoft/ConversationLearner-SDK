@@ -2,30 +2,28 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License.
  */
-import { CLMemory } from '../CLMemory'
+import { CLStorage } from '../CLStorage'
 import { CLDebug } from '../CLDebug'
 import { Memory, FilledEntity, MemoryValue, FilledEntityMap } from '@conversationlearner/models'
 import { ClientMemoryManager } from '..';
 
 const NEGATIVE_PREFIX = '~'
 
-export class BotMemory {
-    private static _instance: BotMemory | undefined
+export class EntityState {
+    private static _instance: EntityState | undefined
     private static MEMKEY = 'BOTMEMORY'
-    private clMemory: CLMemory | undefined
-    public filledEntityMap: FilledEntityMap
+    private clStorage: CLStorage | undefined
+    public filledEntityMap = new FilledEntityMap()
 
-    private constructor(init?: Partial<BotMemory>) {
-        this.filledEntityMap = new FilledEntityMap()
-        Object.assign(this, init)
+    private constructor() {
     }
 
-    public static Get(clMemory: CLMemory): BotMemory {
-        if (!BotMemory._instance) {
-            BotMemory._instance = new BotMemory()
+    public static Get(clStorage: CLStorage): EntityState {
+        if (!EntityState._instance) {
+            EntityState._instance = new EntityState()
         }
-        BotMemory._instance.clMemory = clMemory
-        return BotMemory._instance
+        EntityState._instance.clStorage = clStorage
+        return EntityState._instance
     }
 
     public async FilledEntityMap(): Promise<FilledEntityMap> {
@@ -34,11 +32,11 @@ export class BotMemory {
     }
 
     private async Init(): Promise<void> {
-        if (!this.clMemory) {
-            throw new Error('BotMemory called without initializing memory')
+        if (!this.clStorage) {
+            throw new Error('EntityState called without setting storage')
         }
 
-        let data = await this.clMemory.GetAsync(BotMemory.MEMKEY)
+        let data = await this.clStorage.GetAsync(EntityState.MEMKEY)
         if (data) {
             this.Deserialize(data)
         } else {
@@ -46,7 +44,7 @@ export class BotMemory {
         }
     }
 
-    public Serialize(): string {
+    private Serialize(): string {
         return JSON.stringify(this.filledEntityMap.map)
     }
 
@@ -59,10 +57,10 @@ export class BotMemory {
     }
 
     private async Set(): Promise<void> {
-        if (!this.clMemory) {
-            throw new Error('BotMemory called without initializing memory')
+        if (!this.clStorage) {
+            throw new Error('EntityState called without setting storage')
         }
-        await this.clMemory.SetAsync(BotMemory.MEMKEY, this.Serialize())
+        await this.clStorage.SetAsync(EntityState.MEMKEY, this.Serialize())
     }
 
     public async RestoreFromMapAsync(filledEntityMap: FilledEntityMap): Promise<void> {

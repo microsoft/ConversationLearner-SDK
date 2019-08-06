@@ -6,48 +6,51 @@ import * as BB from 'botbuilder'
 import * as CLM from '@conversationlearner/models'
 import * as Utils from './Utils'
 import { CLDebug, DebugType } from './CLDebug'
-import { BotMemory } from './Memory/BotMemory'
+import { EntityState } from './Memory/EntityState'
 import { BotState } from './Memory/BotState'
 import InProcessMessageState from './Memory/InProcessMessageState'
 
 /**
- * This outer instance of CLMemory has keyPrefix specific to model + conversation.
+ * This is a wrapper around BB.Storage that operates in the string domain
+ * The higher level operations on the Storage are done through EntityState, BotState, and MessageState
+ * 
+ * This outer instance of CLStorage has keyPrefix specific to model + conversation.
  * This was required for dispatching when multiple models needed separate state for the same conversation.
  * 
- * The inner conversationStorage instance of CLMemory has keyPrefix mapped to the conversation.
+ * The inner conversationStorage instance of CLStorage has keyPrefix mapped to the conversation.
  * This enabled tracking message state within the conversation independently of how many models are used within the conversation.
  */
-export class CLMemory {
-    private static memoryStorage: BB.Storage | null = null
+export class CLStorage {
+    private static storage: BB.Storage | null = null
     // TODO: Remove later, after refactor to change hierarchy to State -> ClStorage -> BB.Storage
-    private conversationStorage: CLMemory | undefined
+    private conversationStorage: CLStorage | undefined
 
     private memCache = {}
     private keyPrefix: string
-    private turnContext: BB.TurnContext | null
+    public readonly turnContext?: BB.TurnContext
 
-    public static Init(memoryStorage: BB.Storage | null): void {
-        CLMemory.memoryStorage = memoryStorage
+    public static Init(storage: BB.Storage | null): void {
         // If memory storage not defined use disk storage
-        if (!memoryStorage) {
+        if (!storage) {
             CLDebug.Log('Storage not defined.  Defaulting to in-memory storage.')
-            CLMemory.memoryStorage = new BB.MemoryStorage()
+            storage = new BB.MemoryStorage()
         }
+
+        CLStorage.storage = storage
     }
 
-    private constructor(keyPrefix: string, turnContext: BB.TurnContext | null = null) {
+    private constructor(keyPrefix: string, turnContext?: BB.TurnContext) {
         this.keyPrefix = keyPrefix
         this.turnContext = turnContext
     }
 
-    public static GetMemory(key: string): CLMemory {
-        const memory = new CLMemory(key)
-        memory.conversationStorage = new CLMemory(key)
-        return memory
+    public static Get(key: string): CLStorage {
+        const storage = new CLStorage(key)
+        storage.conversationStorage = new CLStorage(key)
+        return storage
     }
 
-    // Generate memory key from session
-    public static async InitMemory(turnContext: BB.TurnContext, modelId: string = ''): Promise<CLMemory> {
+    public static GetFromContext(turnContext: BB.TurnContext, modelId: string = ''): CLStorage {
         const conversationReference = BB.TurnContext.getConversationReference(turnContext.activity)
         const user = conversationReference.user
 
@@ -68,13 +71,13 @@ export class CLMemory {
             if (!conversationReference.conversation || !conversationReference.conversation.id) {
                 throw new Error(`Attempted to initialize memory, but conversationReference.conversation.id was not provided which is required for use as memory key.`)
             }
-            // Dispatcher subModels will have the same converataion id thus we need the model id to differentiate
+            // Dispatcher subModels will have the same conversation id thus we need the model id to differentiate
             keyPrefix = `${modelId}${conversationReference.conversation.id}`
             messageMutexPrefix = conversationReference.conversation.id
         }
 
-        const modelStorage = new CLMemory(keyPrefix, turnContext)
-        const conversationStorage = new CLMemory(messageMutexPrefix, turnContext)
+        const modelStorage = new CLStorage(keyPrefix, turnContext)
+        const conversationStorage = new CLStorage(messageMutexPrefix, turnContext)
         modelStorage.conversationStorage = conversationStorage
         return modelStorage
     }
@@ -84,7 +87,7 @@ export class CLMemory {
     }
 
     public async GetAsync(datakey: string): Promise<any> {
-        if (!CLMemory.memoryStorage) {
+        if (!CLStorage.storage) {
             throw new Error('Memory storage not found')
         }
 
@@ -95,7 +98,7 @@ export class CLMemory {
             return cacheData
         } else {
             try {
-                let data = await CLMemory.memoryStorage.read([key])
+                let data = await CLStorage.storage.read([key])
                 if (data[key]) {
                     this.memCache[key] = data[key].value
                 } else {
@@ -112,7 +115,7 @@ export class CLMemory {
     }
 
     public async SetAsync(datakey: string, jsonString: string): Promise<void> {
-        if (!CLMemory.memoryStorage) {
+        if (!CLStorage.storage) {
             throw new Error('Memory storage not found')
         }
 
@@ -130,7 +133,7 @@ export class CLMemory {
             } else {
                 // Write to memory storage (use * for etag)
                 this.memCache[key] = jsonString
-                await CLMemory.memoryStorage.write({ [key]: { value: jsonString, eTag: '*' } })
+                await CLStorage.storage.write({ [key]: { value: jsonString, eTag: '*' } })
                 CLDebug.Log(`W> ${key} : ${jsonString}`, DebugType.Memory)
             }
         } catch (err) {
@@ -143,12 +146,12 @@ export class CLMemory {
 
         try {
             // TODO: Remove possibility of being null
-            if (!CLMemory.memoryStorage) {
+            if (!CLStorage.storage) {
                 CLDebug.Error(`You attempted to delete key: ${key} before memoryStorage was defined`)
             }
             else {
                 this.memCache[key] = null
-                CLMemory.memoryStorage.delete([key])
+                CLStorage.storage.delete([key])
                 CLDebug.Log(`D> ${key} : -----`, DebugType.Memory)
             }
         } catch (err) {
@@ -162,12 +165,12 @@ export class CLMemory {
         await this.MessageState.remove()
 
         if (!app || !curApp || curApp.appId !== app.appId) {
-            await this.BotMemory.ClearAsync()
+            await this.EntityState.ClearAsync()
         }
     }
 
-    public get BotMemory(): BotMemory {
-        return BotMemory.Get(this)
+    public get EntityState(): EntityState {
+        return EntityState.Get(this)
     }
 
     public get BotState(): BotState {
@@ -182,7 +185,7 @@ export class CLMemory {
         return InProcessMessageState.Get(this.conversationStorage)
     }
 
-    public get TurnContext(): BB.TurnContext | null {
+    public get TurnContext(): BB.TurnContext | undefined {
         return this.turnContext
     }
 }

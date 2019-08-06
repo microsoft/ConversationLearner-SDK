@@ -2,7 +2,7 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License.
  */
-import { CLMemory } from '../CLMemory'
+import { CLStorage } from '../CLStorage'
 
 // Current message being processed
 const MESSAGE_MUTEX = 'MESSAGE_MUTEX'
@@ -14,17 +14,17 @@ const MESSAGE_MUTEX = 'MESSAGE_MUTEX'
 export default class InProcessMessageState {
     private static _instance: InProcessMessageState | undefined
 
-    public static Get(clMemory: CLMemory): InProcessMessageState {
+    public static Get(clStorage: CLStorage): InProcessMessageState {
         if (!InProcessMessageState._instance) {
-            InProcessMessageState._instance = new InProcessMessageState(clMemory)
+            InProcessMessageState._instance = new InProcessMessageState(clStorage)
         }
 
         return InProcessMessageState._instance
     }
 
-    private clStorage: CLMemory
+    private clStorage: CLStorage
 
-    private constructor(clStorage: CLMemory) {
+    private constructor(clStorage: CLStorage) {
         this.clStorage = clStorage
     }
 
