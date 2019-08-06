@@ -388,7 +388,7 @@ export class CLRunner {
             }
 
             const storage = CLStorage.GetFromContext(turnContext, this.configModelId)
-            const app = await this.GetRunningApp(storage, inEditingUI)
+            let app = await this.GetRunningApp(storage, inEditingUI)
             const uiMode = await storage.BotState.getUIMode()
 
             if (!app) {
