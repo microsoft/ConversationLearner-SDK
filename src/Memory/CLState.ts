@@ -61,12 +61,14 @@ export class CLState {
     public static Get(key: string, modelId: string = ''): CLState {
         const storage = new CLStorage(CLState.bbStorage)
 
+        // Used for state shared through lifetime of conversation (conversationId)
         const keyPrefix = Utils.getSha256Hash(key)
+        // Used for state shared between models within a conversation (Dispatcher has multiple models per conversation)
         const modelUniqueKeyPrefix = Utils.getSha256Hash(`${modelId}${key}`)
 
-        const botState = new BotState(storage, (datakey) => `${keyPrefix}_BOTSTATE_${datakey}`)
-        const entityState = new EntityState(storage, () => `${keyPrefix}_ENTITYSTATE`)
-        const messageState = new MessageState(storage, () => `${modelUniqueKeyPrefix}_MESSAGE_MUTEX`)
+        const botState = new BotState(storage, (datakey) => `${modelUniqueKeyPrefix}_BOTSTATE_${datakey}`)
+        const entityState = new EntityState(storage, () => `${modelUniqueKeyPrefix}_ENTITYSTATE`)
+        const messageState = new MessageState(storage, () => `${keyPrefix}_MESSAGE_MUTEX`)
         const browserSlotState = new BrowserSlotState(storage, () => `BROWSER_SLOTS`)
 
         return new CLState(botState, entityState, messageState, browserSlotState)
