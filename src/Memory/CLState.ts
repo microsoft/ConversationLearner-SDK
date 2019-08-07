@@ -64,8 +64,8 @@ export class CLState {
         const keyPrefix = Utils.getSha256Hash(key)
         const modelUniqueKeyPrefix = Utils.getSha256Hash(`${modelId}${key}`)
 
-        const botState = new BotState(storage, (datakey) => `${keyPrefix}_${datakey}`)
-        const entityState = new EntityState(storage, () => `${keyPrefix}_BOTMEMORY`)
+        const botState = new BotState(storage, (datakey) => `${keyPrefix}_BOTSTATE_${datakey}`)
+        const entityState = new EntityState(storage, () => `${keyPrefix}_ENTITYSTATE`)
         const messageState = new MessageState(storage, () => `${modelUniqueKeyPrefix}_MESSAGE_MUTEX`)
         const browserSlotState = new BrowserSlotState(storage, () => `BROWSER_SLOTS`)
 
