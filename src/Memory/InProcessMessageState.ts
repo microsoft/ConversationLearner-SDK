@@ -2,7 +2,7 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License.
  */
-import { CLStorage } from '../CLStorage'
+import { CLStorage } from './CLStorage'
 
 export type GetKey = () => string
 

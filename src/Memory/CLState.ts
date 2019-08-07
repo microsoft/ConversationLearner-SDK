@@ -9,7 +9,7 @@ import { CLDebug } from '../CLDebug'
 import { EntityState } from './EntityState'
 import { BotState } from './BotState'
 import { InProcessMessageState as MessageState } from './InProcessMessageState'
-import { CLStorage } from '../CLStorage';
+import { CLStorage } from './CLStorage';
 import { BrowserSlotState } from './BrowserSlot';
 
 /**

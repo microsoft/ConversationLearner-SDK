@@ -3,7 +3,7 @@
  * Licensed under the MIT License.
  */
 import * as BB from 'botbuilder'
-import { CLDebug, DebugType } from './CLDebug'
+import { CLDebug, DebugType } from '../CLDebug'
 
 /**
  * This is a wrapper around BB.Storage that operates in the string domain

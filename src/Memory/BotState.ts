@@ -4,7 +4,7 @@
  */
 import * as BB from 'botbuilder'
 import { ConversationLearner } from '../ConversationLearner'
-import { CLStorage } from '../CLStorage'
+import { CLStorage } from './CLStorage'
 import { AppBase } from '@conversationlearner/models'
 import { SessionStartFlags } from '../CLRunner'
 
