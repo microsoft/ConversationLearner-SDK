@@ -2,48 +2,63 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License.
  */
-import { CLStorage } from '../CLStorage'
+import { CLStorage } from './CLStorage'
 import { CLDebug } from '../CLDebug'
 
 const MAX_BROWSER_SLOTS = 10;
 
-/**
- * Used to keep track of memory slots used by open instances of the UI
- * Each browser instance uses a different slot, with a max number of
- * slots available
- */
-export class BrowserSlot {
+type BrowserSlot = {
     browserId: string;
     lastUsed: number;
     id: string;
+}
 
-    constructor(browserId: string, offset: number) {
-        this.browserId = browserId;
-        this.lastUsed = new Date().getTime();
-        this.id = String.fromCharCode(offset + 65)
+type GetKey = () => string
+
+/**
+ * Used to keep track of storage keys associated with open instances of the UI
+ * Each UI instance uses a different slot, with a max number of
+ * slots available
+ */
+export class BrowserSlotState {
+    private readonly storage: CLStorage
+    private readonly getKey: GetKey
+
+    constructor(storage: CLStorage, getKey: GetKey) {
+        this.storage = storage
+        this.getKey = getKey
     }
 
-    public static async GetSlot(browserId: string): Promise<string> {
-        let browserSlots = await this.BrowserSlots();
+    createSlot(browserId: string, offset: number): BrowserSlot {
+        return {
+            browserId: browserId,
+            lastUsed: new Date().getTime(),
+            // 0 1 2 3 4 5 6 7 8 9 10
+            // A B C D E F G H I J K
+            id: String.fromCharCode(offset + 'A'.charCodeAt(0)),
+        }
+    }
 
-        // Check if browser already has a spot
-        let existingSlot = browserSlots.find(b => b.browserId === browserId)
+    async get(browserId: string): Promise<string> {
+        const browserSlots = await this.getAll();
+
+        // If browser already exists, update last used time, save new slots, and return existing id
+        const existingSlot = browserSlots.find(b => b.browserId === browserId)
         if (existingSlot) {
             existingSlot.lastUsed = new Date().getTime();
-            await this.UpdateBrowserSlots(browserSlots);
+            await this.update(browserSlots);
             return existingSlot.id
         }
-        // Add slot of spaces still availabled
-        if (browserSlots.length < MAX_BROWSER_SLOTS) {
-            let newSlot = new BrowserSlot(browserId, browserSlots.length);
+        // If browser not found in existing slots, but spaces is still available, create slot, save, and return new id
+        else if (browserSlots.length < MAX_BROWSER_SLOTS) {
+            const newSlot = this.createSlot(browserId, browserSlots.length)
             browserSlots.push(newSlot);
-            await this.UpdateBrowserSlots(browserSlots);
+            await this.update(browserSlots);
             return newSlot.id;
         }
-        // Use oldest slot
-        let oldestTime = browserSlots.reduce((min, b) => Math.min(min, b.lastUsed), browserSlots[0].lastUsed)
-        let oldestSlot = browserSlots.find(b => b.lastUsed === oldestTime);
-
+        // If browser not found, and no slots, overwrite the oldest slot
+        const oldestTime = browserSlots.reduce((min, b) => Math.min(min, b.lastUsed), browserSlots[0].lastUsed)
+        const oldestSlot = browserSlots.find(b => b.lastUsed === oldestTime);
         if (!oldestSlot) {
             throw new Error("Slot not found. This should never happen.")
         }
@@ -51,14 +66,14 @@ export class BrowserSlot {
         // Claim this slot
         oldestSlot.lastUsed = new Date().getTime();
         oldestSlot.browserId = browserId;
-        await this.UpdateBrowserSlots(browserSlots);
+        await this.update(browserSlots);
         return oldestSlot.id;
     }
 
-    private static async BrowserSlots(): Promise<BrowserSlot[]> {
+    private async getAll(): Promise<BrowserSlot[]> {
         try {
-            let memory = CLStorage.Get("BROWSER")
-            let data = await memory.GetAsync("SLOTS")
+            const key = this.getKey()
+            const data = await this.storage.GetAsync(key)
             if (data) {
                 return JSON.parse(data) as BrowserSlot[];
             }
@@ -70,10 +85,10 @@ export class BrowserSlot {
         }
     }
 
-    private static async UpdateBrowserSlots(browserSlots: BrowserSlot[]): Promise<void> {
+    private async update(browserSlots: BrowserSlot[]): Promise<void> {
         try {
-            let memory = CLStorage.Get("BROWSER")
-            await memory.SetAsync("SLOTS", JSON.stringify(browserSlots))
+            const key = this.getKey()
+            await this.storage.SetAsync(key, JSON.stringify(browserSlots))
         }
         catch (err) {
             CLDebug.Error(err, "BrowserSlots")
