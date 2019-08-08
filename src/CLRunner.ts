@@ -7,6 +7,7 @@ import * as BB from 'botbuilder'
 import * as CLM from '@conversationlearner/models'
 import * as Utils from './Utils'
 import { CLState } from './Memory/CLState'
+import { CLStateFactory } from './Memory/CLStateFactory'
 import { CLDebug, DebugType } from './CLDebug'
 import { CLClient } from './CLClient'
 import { CLStrings } from './CLStrings'
@@ -15,8 +16,9 @@ import { ReadOnlyClientMemoryManager, ClientMemoryManager } from './Memory/Clien
 import { CLRecognizerResult } from './CLRecognizeResult'
 import { ConversationLearner } from './ConversationLearner'
 import { InputQueue } from './Memory/InputQueue'
-import { UIMode } from './Memory/BotState';
+import { UIMode } from './Memory/BotState'
 import { EntityState } from './Memory/EntityState';
+import { ICLOptions } from '.';
 
 interface RunnerLookup {
     [appId: string]: CLRunner
@@ -111,25 +113,27 @@ export class CLRunner {
     private static Runners: RunnerLookup = {}
     private static UIRunner: CLRunner
 
+    private stateFactory: CLStateFactory
+    private options: ICLOptions
     public clClient: CLClient
     public adapter: BB.BotAdapter | undefined
     // Used to detect changes in API callbacks / Templates when bot reloaded and UI running
     private checksum: string | null = null
 
     /* Model Id passed in from configuration.  Used when not running in Conversation Learner UI */
-    public readonly configModelId: string | undefined;
+    public readonly modelId: string | undefined;
     private maxTimeout: number | undefined;  // TODO: Move timeout to app settings
 
     /* Mapping between user defined API names and functions */
     public callbacks: CallbackMap = {}
     private models: ConversationLearner[] = []
 
-    public static Create(configModelId: string | undefined, maxTimeout: number | undefined, client: CLClient): CLRunner {
+    public static Create(stateFactory: CLStateFactory, client: CLClient, options: ICLOptions, modelId: string | undefined, maxTimeout: number | undefined): CLRunner {
 
         // Ok to not provide modelId when just running in training UI.
         // If not, Use UI_RUNNER_APPID const as lookup value
-        let newRunner = new CLRunner(configModelId, maxTimeout, client);
-        CLRunner.Runners[configModelId || Utils.UI_RUNNER_APPID] = newRunner;
+        let newRunner = new CLRunner(stateFactory, client, options, modelId, maxTimeout);
+        CLRunner.Runners[modelId || Utils.UI_RUNNER_APPID] = newRunner;
 
         // Bot can define multiple CLs.  Always run UI on first CL defined in the bot
         if (!CLRunner.UIRunner) {
@@ -153,10 +157,12 @@ export class CLRunner {
         return CLRunner.Runners[appId];
     }
 
-    private constructor(configModelId: string | undefined, maxTimeout: number | undefined, client: CLClient) {
-        this.configModelId = configModelId
-        this.maxTimeout = maxTimeout
+    private constructor(stateFactory: CLStateFactory, client: CLClient, options: ICLOptions, configModelId: string | undefined, maxTimeout: number | undefined) {
+        this.stateFactory = stateFactory
         this.clClient = client
+        this.options = options
+        this.modelId = configModelId
+        this.maxTimeout = maxTimeout
     }
 
     public botChecksum(): string {
@@ -187,10 +193,10 @@ export class CLRunner {
 
     public async InTrainingUI(turnContext: BB.TurnContext): Promise<boolean> {
         if (turnContext.activity.from && turnContext.activity.from.name === Utils.CL_DEVELOPER) {
-            const state = CLState.GetFromContext(turnContext, this.configModelId)
+            const state = this.stateFactory.getFromContext(turnContext, this.modelId)
             const app = await state.BotState.GetApp()
             // If no app selected in UI or no app set in config, or they don't match return true
-            if (!app || !this.configModelId || app.appId !== this.configModelId) {
+            if (!app || !this.modelId || app.appId !== this.modelId) {
                 return true
             }
         }
@@ -210,7 +216,7 @@ export class CLRunner {
         }
 
         try {
-            const state = CLState.GetFromContext(turnContext, this.configModelId)
+            const state = this.stateFactory.getFromContext(turnContext, this.modelId)
             const app = await this.GetRunningApp(state, false)
 
             if (app) {
@@ -253,7 +259,7 @@ export class CLRunner {
             return null;
         }
 
-        const state = CLState.GetFromContext(turnContext, this.configModelId)
+        const state = this.stateFactory.getFromContext(turnContext, this.modelId)
 
         // If I'm in teach or edit mode, or testing process message right away
         let uiMode = await state.BotState.getUIMode()
@@ -325,15 +331,15 @@ export class CLRunner {
         let app = await state.BotState.GetApp()
 
         // If this instance is configured to use a specific model, check conditions to use that model.
-        if (this.configModelId
+        if (this.modelId
             // If current app is not set
             && (!app
                 // If I'm not in the editing UI and config model id differs than the current app
-                || (!inEditingUI && this.configModelId != app.appId))
+                || (!inEditingUI && this.modelId != app.appId))
         ) {
             // Get app specified by options
-            CLDebug.Log(`Switching to app specified in config: ${this.configModelId}`)
-            app = await this.clClient.GetApp(this.configModelId)
+            CLDebug.Log(`Switching to app specified in config: ${this.modelId}`)
+            app = await this.clClient.GetApp(this.modelId)
             await state.SetAppAsync(app)
         }
 
@@ -374,19 +380,19 @@ export class CLRunner {
                 conversationReference.user.name === Utils.CL_DEVELOPER || false;
 
             // Validate setup
-            if (!inEditingUI && !this.configModelId) {
+            if (!inEditingUI && !this.modelId) {
                 let msg = 'Must specify modelId in ConversationLearner constructor when not running bot in Editing UI\n\n'
                 CLDebug.Error(msg)
                 return null
             }
 
-            if (!ConversationLearner.options || !ConversationLearner.options.LUIS_AUTHORING_KEY) {
+            if (!this.options || !this.options.LUIS_AUTHORING_KEY) {
                 let msg = 'Options must specify luisAuthoringKey.  Set the LUIS_AUTHORING_KEY.\n\n'
                 CLDebug.Error(msg)
                 return null
             }
 
-            const state = CLState.GetFromContext(turnContext, this.configModelId)
+            const state = this.stateFactory.getFromContext(turnContext, this.modelId)
             let app = await this.GetRunningApp(state, inEditingUI)
             const uiMode = await state.BotState.getUIMode()
 
@@ -430,13 +436,13 @@ export class CLRunner {
                     // If I'm not in the UI, reload the App to get any changes (live package version may have been updated)
                     if (!inEditingUI) {
 
-                        if (!this.configModelId) {
+                        if (!this.modelId) {
                             let error = "ERROR: ModelId not specified.  When running in a channel (i.e. Skype) or the Bot Framework Emulator, CONVERSATION_LEARNER_MODEL_ID must be specified in your Bot's .env file or Application Settings on the server"
                             await this.SendMessage(state, error, activity.id)
                             return null
                         }
 
-                        app = await this.clClient.GetApp(this.configModelId)
+                        app = await this.clClient.GetApp(this.modelId)
                         await state.SetAppAsync(app)
 
                         if (!app) {
@@ -508,7 +514,7 @@ export class CLRunner {
             // TODO: Use new action type and check type instead of text prefix
             const dispatchActionPrefix = '@DISPATCH'
             if (scoredAction.payload.includes(dispatchActionPrefix)) {
-                CLDebug.Log(`DISPATCH action detected in model ${this.configModelId}.`, DebugType.Dispatch)
+                CLDebug.Log(`DISPATCH action detected in model ${this.modelId}.`, DebugType.Dispatch)
                 // Get child model id and name from action
                 const matches = scoredAction.payload.match(new RegExp(`${dispatchActionPrefix}:([^:]+):([^"]+)`, 'i'))
                 if (matches) {
@@ -518,10 +524,10 @@ export class CLRunner {
                     // Get CL model
                     // if it does not exist as child of this instance, then create it and add it.
                     // TODO: ConversationLearner instance vs CLRunner instance?
-                    let model = this.models.find(m => m.clRunner.configModelId === modelId)
+                    let model = this.models.find(m => m.clRunner.modelId === modelId)
                     if (!model) {
                         // call SetAdapter on cl instance if new?
-                        model = new ConversationLearner(modelId)
+                        model = new ConversationLearner(this.stateFactory, this.clClient, this.options, modelId)
                         model.clRunner.SetAdapter(turnContext.adapter, conversationReference)
 
                         this.models.push(model)
@@ -544,7 +550,7 @@ export class CLRunner {
         } catch (error) {
             // Try to end the session, so use can potentially recover
             try {
-                const state = CLState.GetFromContext(turnContext, this.configModelId)
+                const state = this.stateFactory.getFromContext(turnContext, this.modelId)
                 await this.EndSessionAsync(state, CLM.SessionEndState.OPEN)
             } catch {
                 CLDebug.Log(`Failed to End Session`)

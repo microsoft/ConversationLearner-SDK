@@ -5,7 +5,9 @@
 import * as supertest from 'supertest'
 import * as express from 'express'
 import router from './router'
-import { ICLClientOptions, CLClient } from '../CLClient'
+import { ICLClientOptions } from '../CLClient'
+import { CLClient } from '..';
+import CLStateFactory from '../Memory/CLStateFactory';
 
 describe('Test SDK router', () => {
     const options: ICLClientOptions = {
@@ -13,8 +15,10 @@ describe('Test SDK router', () => {
         APIM_SUBSCRIPTION_KEY: undefined,
         LUIS_AUTHORING_KEY: undefined
     }
-    const clClient = new CLClient(options)
-    const sdkRouter = router(clClient, options)
+
+    const client = new CLClient(options)
+    const stateFactory = new CLStateFactory()
+    const sdkRouter = router(client, stateFactory, options)
     const app = express()
     app.use(sdkRouter)
 

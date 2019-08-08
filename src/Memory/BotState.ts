@@ -3,7 +3,6 @@
  * Licensed under the MIT License.
  */
 import * as BB from 'botbuilder'
-import { ConversationLearner } from '../ConversationLearner'
 import { CLStorage } from './CLStorage'
 import { AppBase } from '@conversationlearner/models'
 import { SessionStartFlags } from '../CLRunner'
@@ -69,7 +68,11 @@ export class BotState {
     private readonly getKey: GetKey
     private readonly conversationReferenceToConversationIdMapper: ConvIdMapper
 
-    constructor(storage: CLStorage, getKey: GetKey, conversationReferenceToConvIdMapper: ConvIdMapper = BotState.DefaultConversationIdMapper) {
+    constructor(
+        storage: CLStorage,
+        getKey: GetKey,
+        conversationReferenceToConvIdMapper: ConvIdMapper = BotState.DefaultConversationIdMapper
+    ) {
         this.storage = storage
         this.getKey = getKey
         this.conversationReferenceToConversationIdMapper = conversationReferenceToConvIdMapper
@@ -274,7 +277,7 @@ export class BotState {
             channelId: 'emulator',
             // TODO: Refactor away from static coupling.  BotState needs to have access to options object through constructor
             // tslint:disable-next-line:no-http-string
-            serviceUrl: `http://127.0.0.1:${ConversationLearner.options!.botPort}`
+            serviceUrl: `http://127.0.0.1:${3978}`
         } as Partial<BB.ConversationReference>
         this.SetConversationReference(conversationReference)
     }

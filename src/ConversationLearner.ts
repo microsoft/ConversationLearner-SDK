@@ -4,43 +4,21 @@
  */
 import * as BB from 'botbuilder'
 import { CLRunner, EntityDetectionCallback, OnSessionStartCallback, OnSessionEndCallback, ICallbackInput } from './CLRunner'
-import { ICLOptions } from './CLOptions'
-import { CLState } from './Memory/CLState'
-import { CLDebug } from './CLDebug'
 import { CLClient } from './CLClient'
-import getRouter from './http/router'
 import { DEFAULT_MAX_SESSION_LENGTH } from './Utils'
 import { CLRecognizerResult } from './CLRecognizeResult'
-import * as express from 'express'
+import CLStateFactory from './Memory/CLStateFactory';
+import { ICLOptions } from '.';
 
 export class ConversationLearner {
-    public static options: ICLOptions | null = null;
-    public static clClient: CLClient
     public clRunner: CLRunner
 
-    public static Init(options: ICLOptions, storage?: BB.Storage): express.Router {
-        ConversationLearner.options = options
-
-        try {
-            this.clClient = new CLClient(options)
-            CLState.Init(storage)
-        } catch (error) {
-            CLDebug.Error(error, 'Conversation Learner Initialization')
-        }
-
-        return getRouter(this.clClient, options)
-    }
-
-    constructor(modelId: string | undefined, maxTimeout?: number) {
-        if (!ConversationLearner.options) {
-            throw new Error("Init() must be called on ConversationLearner before instances are created")
-        }
-
+    constructor(stateFactory: CLStateFactory, client: CLClient, options: ICLOptions, modelId: string | undefined, maxTimeout?: number) {
         if (typeof maxTimeout !== 'number') {
             maxTimeout = DEFAULT_MAX_SESSION_LENGTH
         }
 
-        this.clRunner = CLRunner.Create(modelId, maxTimeout, ConversationLearner.clClient)
+        this.clRunner = CLRunner.Create(stateFactory, client, options, modelId, maxTimeout)
     }
 
     public async recognize(turnContext: BB.TurnContext, force?: boolean): Promise<CLRecognizerResult | null> {
