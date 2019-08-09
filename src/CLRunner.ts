@@ -506,33 +506,25 @@ export class CLRunner {
             )
 
             // TODO: Use new action type and check type instead of text prefix
-            const dispatchActionPrefix = '@DISPATCH'
-            if (scoredAction.payload.includes(dispatchActionPrefix)) {
-                CLDebug.Log(`DISPATCH action detected in model ${this.configModelId}.`, DebugType.Dispatch)
-                // Get child model id and name from action
-                const matches = scoredAction.payload.match(new RegExp(`${dispatchActionPrefix}:([^:]+):([^"]+)`, 'i'))
-                if (matches) {
-                    const [, modelId, modelName] = matches
-                    CLDebug.Log(`Dispatch to Model: ${modelId} ${modelName}`, DebugType.Dispatch)
+            if (scoredAction.actionType === CLM.ActionTypes.DISPATCH) {
+                CLDebug.Log(`${CLM.ActionTypes.DISPATCH} action detected in model ${this.configModelId}.`, DebugType.Dispatch)
+                // TODO: Schema refactor: another hack between scoredAction and Action
+                const dispatchAction = new CLM.DispatchAction(scoredAction as unknown as CLM.ActionBase)
+                CLDebug.Log(`Dispatch to Model: ${dispatchAction.modelId} ${dispatchAction.modelName}`, DebugType.Dispatch)
 
-                    // Get CL model
-                    // if it does not exist as child of this instance, then create it and add it.
-                    // TODO: ConversationLearner instance vs CLRunner instance?
-                    let model = this.models.find(m => m.clRunner.configModelId === modelId)
-                    if (!model) {
-                        // call SetAdapter on cl instance if new?
-                        model = new ConversationLearner(modelId)
-                        model.clRunner.SetAdapter(turnContext.adapter, conversationReference)
+                // If CL model does not exist as child of this instance, then create it and add it.
+                // TODO: ConversationLearner instance vs CLRunner instance?
+                let model = this.models.find(m => m.clRunner.configModelId === dispatchAction.modelId)
+                if (!model) {
+                    // TODO: Learn more about requirement/need to call SetAdapter on new cl runner instance.
+                    model = new ConversationLearner(dispatchAction.modelId)
+                    model.clRunner.SetAdapter(turnContext.adapter, conversationReference)
 
-                        this.models.push(model)
-                    }
-
-                    // call ProcessInput on the model
-                    const recognizerResult = await model.clRunner.ProcessInput(turnContext)
-
-                    // return value
-                    return recognizerResult
+                    this.models.push(model)
                 }
+
+                const recognizerResult = await model.clRunner.ProcessInput(turnContext)
+                return recognizerResult
             }
             return {
                 scoredAction: scoredAction,
@@ -1199,6 +1191,34 @@ export class CLRunner {
             const title = error.message || `Exception hit when calling Set Entity Action: '${action.actionId}'`
             const message = this.RenderErrorCard(title, error.stack || error.message || "")
             const replayError = new CLM.ReplaySetEntityException()
+            return {
+                logicResult: undefined,
+                response: message,
+                replayError
+            }
+        }
+    }
+
+    public async TakeDispatchAction(action: CLM.DispatchAction, inTeach: boolean): Promise<IActionResult> {
+        try {
+            let replayError: CLM.ReplayError | undefined
+            let response: Partial<BB.Activity> | string | null = null
+
+            if (inTeach) {
+                response = this.RenderDispatchCard(action.modelName)
+            }
+
+            return {
+                logicResult: undefined,
+                response,
+                replayError: replayError || undefined
+            }
+        }
+        catch (e) {
+            const error: Error = e
+            const title = error.message || `Exception hit when calling Dispatch Action: '${action.actionId}'`
+            const message = this.RenderErrorCard(title, error.stack || error.message || "")
+            const replayError = new CLM.ReplayDispatchException()
             return {
                 logicResult: undefined,
                 response: message,
@@ -1975,6 +1995,9 @@ export class CLRunner {
                             } else if (curAction.actionType === CLM.ActionTypes.SET_ENTITY) {
                                 const setEntityAction = new CLM.SetEntityAction(curAction)
                                 botResponse = await this.TakeSetEntityAction(setEntityAction, filledEntityMap, state, entityList.entities, true)
+                            } else if (curAction.actionType === CLM.ActionTypes.DISPATCH) {
+                                const dispatchAction = new CLM.DispatchAction(curAction)
+                                botResponse = await this.TakeDispatchAction(dispatchAction, true)
                             }
                             else {
                                 throw new Error(`Cannot construct bot response for unknown action type: ${curAction.actionType}`)
@@ -2120,6 +2143,29 @@ export class CLRunner {
         return message;
     }
 
+    private RenderDispatchCard(modelName: string): Partial<BB.Activity> {
+        const card = {
+            type: "AdaptiveCard",
+            version: "1.0",
+            body: [
+                {
+                    type: "Container",
+                    items: [
+                        {
+                            type: "TextBlock",
+                            text: modelName,
+                            wrap: true
+                        }
+                    ]
+                }]
+        }
+
+        const attachment = BB.CardFactory.adaptiveCard(card)
+        const message = BB.MessageFactory.attachment(attachment)
+        message.text = "DISPATCH:"
+        return message;
+    }
+
     // Generate a card to show for an API action w/o output
     private RenderAPICard(callback: CLM.Callback, args: string[]): Partial<BB.Activity> {
 
@@ -2167,5 +2213,4 @@ export class CLRunner {
         message.text = title
         return message;
     }
-
 }
