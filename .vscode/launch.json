@@ -8,7 +8,7 @@
             "type": "node",
             "request": "attach",
             "name": "Attach to Process",
-            "processId": "${command.PickProcess}",
+            "processId": "${command:PickProcess}",
             "stopOnEntry": true,
             "sourceMaps": true,
             "port": 5858,
