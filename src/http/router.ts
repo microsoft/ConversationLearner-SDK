@@ -20,10 +20,9 @@ import { CLDebug } from '../CLDebug'
 import { CLClient, ICLClientOptions } from '../CLClient'
 import { CLRunner, SessionStartFlags } from '../CLRunner'
 import { ConversationLearner } from '../ConversationLearner'
-import { CLStorage } from '../CLStorage'
+import { CLState } from '../Memory/CLState'
 import { CLRecognizerResult } from '../CLRecognizeResult'
 import { TemplateProvider } from '../TemplateProvider'
-import { BrowserSlot } from '../Memory/BrowserSlot'
 import { CLStrings } from '../CLStrings';
 import { UIMode } from '../Memory/BotState';
 
@@ -145,8 +144,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const key = getMemoryKey(req)
             const app: CLM.AppBase = req.body
 
-            const storage = CLStorage.Get(key)
-            await storage.SetAppAsync(app)
+            const state = CLState.Get(key)
+            await state.SetAppAsync(app)
             res.sendStatus(200)
         } catch (error) {
             HandleError(res, error)
@@ -158,8 +157,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
         try {
             const key = getMemoryKey(req)
             const { conversationId, userName } = getQuery(req)
-            const storage = CLStorage.Get(key)
-            await storage.BotState.CreateConversationReference(userName, key, conversationId)
+            const state = CLState.Get(key)
+            await state.BotState.CreateConversationReference(userName, key, conversationId)
             res.sendStatus(200)
         } catch (error) {
             HandleError(res, error)
@@ -176,11 +175,14 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const clRunner = CLRunner.GetRunnerForUI(appId)
             const validationError = clRunner.clClient.ValidationError();
 
+            // TODO: This is code smell, this is using internal knowledge that BrowserState full key is static and will be the same regardless of key
+            // It makes BrowserState accessed in consistent way other states. Would be more natural as static object but need to share underlying storage.
+            const state = CLState.Get('')
             // Generate id
-            const browserSlot = await BrowserSlot.GetSlot(browserId);
+            const browserSlotId = await state.BrowserSlotState.get(browserId);
             const key = ConversationLearner.options!.LUIS_AUTHORING_KEY!
             const hashedKey = key ? crypto.createHash('sha256').update(key).digest('hex') : ""
-            const id = `${browserSlot}-${hashedKey}`
+            const id = `${browserSlotId}-${hashedKey}`
 
             // Retrieve any status message
             let banner = await getBanner(statusEndpoint);
@@ -233,7 +235,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             res.send(app)
 
             // Initialize memory
-            CLStorage.Get(key).SetAppAsync(app)
+            CLState.Get(key).SetAppAsync(app)
         } catch (error) {
             HandleError(res, error)
         }
@@ -248,13 +250,13 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             await client.ArchiveApp(appId)
 
             // Did I delete my loaded app, if so clear my state
-            const storage = CLStorage.Get(key)
-            const app = await storage.BotState.GetApp()
+            const state = CLState.Get(key)
+            const app = await state.BotState.GetApp()
             if (app && app.appId === appId) {
-                await storage.SetAppAsync(null)
+                await state.SetAppAsync(null)
 
                 const clRunner = CLRunner.GetRunnerForUI(appId);
-                await clRunner.EndSessionAsync(storage, CLM.SessionEndState.OPEN);
+                await clRunner.EndSessionAsync(state, CLM.SessionEndState.OPEN);
             }
             res.sendStatus(200)
         } catch (error) {
@@ -270,8 +272,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const apps = await client.GetApps(query)
 
             // Get lookup table for which apps packages are being edited
-            const storage = CLStorage.Get(key)
-            const activeApps = await storage.BotState.GetEditingPackages();
+            const state = CLState.Get(key)
+            const activeApps = await state.BotState.GetEditingPackages();
 
             const uiAppList = { appList: apps, activeApps: activeApps } as CLM.UIAppList;
             res.send(uiAppList)
@@ -373,8 +375,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 }
             }
 
-            const storage = CLStorage.Get(key)
-            const updatedPackageVersions = await storage.BotState.SetEditingPackage(appId, packageId);
+            const state = CLState.Get(key)
+            const updatedPackageVersions = await state.BotState.SetEditingPackage(appId, packageId);
             res.send(updatedPackageVersions)
 
         } catch (error) {
@@ -492,8 +494,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const userInput: CLM.UserInput = req.body
             const extractResponse = await client.LogDialogExtract(appId, logDialogId, turnIndex, userInput)
 
-            const storage = CLStorage.Get(key)
-            const memories = await storage.EntityState.DumpMemory()
+            const state = CLState.Get(key)
+            const memories = await state.EntityState.DumpMemory()
             const uiExtractResponse: CLM.UIExtractResponse = { extractResponse, memories }
             res.send(uiExtractResponse)
         } catch (error) {
@@ -514,8 +516,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const userInput: CLM.UserInput = req.body
             const extractResponse = await client.TrainDialogExtract(appId, trainDialogId, turnIndex, userInput)
 
-            const storage = CLStorage.Get(key)
-            const memories = await storage.EntityState.DumpMemory()
+            const state = CLState.Get(key)
+            const memories = await state.EntityState.DumpMemory()
             const uiExtractResponse: CLM.UIExtractResponse = { extractResponse, memories }
             res.send(uiExtractResponse)
         } catch (error) {
@@ -535,9 +537,9 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             trainDialog.rounds = trainDialog.rounds.slice(0, turnIndex)
 
             // Get history and replay to put bot into last round
-            const storage = CLStorage.Get(key)
+            const state = CLState.Get(key)
             const clRunner = CLRunner.GetRunnerForUI(appId);
-            const teachWithHistory = await clRunner.GetHistory(trainDialog, userName, userId, storage)
+            const teachWithHistory = await clRunner.GetHistory(trainDialog, userName, userId, state)
             if (!teachWithHistory) {
                 res.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 res.send(new Error(`Could not find teach session history for given train dialog`))
@@ -546,7 +548,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
             // Start new teach session from the old train dialog
             const createTeachParams = CLM.ModelUtils.ToCreateTeachParams(trainDialog)
-            teachWithHistory.teach = await clRunner.StartSessionAsync(storage, null, appId, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE, createTeachParams) as CLM.Teach
+            teachWithHistory.teach = await clRunner.StartSessionAsync(state, null, appId, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE, createTeachParams) as CLM.Teach
 
             res.send(teachWithHistory)
         } catch (error) {
@@ -571,12 +573,12 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const clRunner = CLRunner.GetRunnerForUI(appId);
             validateBot(req, clRunner.botChecksum())
 
-            const storage = CLStorage.Get(key)
+            const state = CLState.Get(key)
 
             // Clear memory when running Log from UI
-            storage.EntityState.ClearAsync()
+            state.EntityState.ClearAsync()
 
-            const session = await clRunner.StartSessionAsync(storage, null, appId, SessionStartFlags.NONE, sessionCreateParams) as CLM.Session
+            const session = await clRunner.StartSessionAsync(state, null, appId, SessionStartFlags.NONE, sessionCreateParams) as CLM.Session
             res.send(session)
 
         } catch (error) {
@@ -588,15 +590,15 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
     router.put('/app/:appId/session', async (req, res, next) => {
         try {
             const key = getMemoryKey(req)
-            const storage = CLStorage.Get(key)
-            const conversationId = await storage.BotState.GetConversationId();
+            const state = CLState.Get(key)
+            const conversationId = await state.BotState.GetConversationId();
             // If conversation is empty
             if (!conversationId) {
                 return
             }
 
             // Look up what the current sessionId 
-            const currentSessionId = await storage.BotState.GetSessionIdAsync()
+            const currentSessionId = await state.BotState.GetSessionIdAsync()
 
             // May have already been closed
             if (!currentSessionId) {
@@ -605,7 +607,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             }
 
             // Force session to expire
-            await storage.BotState.SetLastActive(0);
+            await state.BotState.SetLastActive(0);
             res.sendStatus(200)
         } catch (error) {
             HandleError(res, error)
@@ -619,9 +621,9 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const { appId } = req.params
 
             // Session may be a replacement for an expired one
-            const storage = CLStorage.Get(key)
+            const state = CLState.Get(key)
 
-            const sessionId = await storage.BotState.GetSessionIdAsync()
+            const sessionId = await state.BotState.GetSessionIdAsync()
             // May have already been closed
             if (!sessionId) {
                 res.sendStatus(200)
@@ -632,7 +634,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             res.sendStatus(200)
 
             const clRunner = CLRunner.GetRunnerForUI(appId);
-            clRunner.EndSessionAsync(storage, CLM.SessionEndState.OPEN)
+            clRunner.EndSessionAsync(state, CLM.SessionEndState.OPEN)
         } catch (error) {
             HandleError(res, error)
         }
@@ -653,7 +655,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
             validateBot(req, clRunner.botChecksum())
 
-            const storage = CLStorage.Get(key)
+            const state = CLState.Get(key)
 
             const createTeachParams: CLM.CreateTeachParams = {
                 contextDialog: [],
@@ -661,9 +663,9 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             }
 
             // TeachSession always starts with a clear the memory (no saved entities)
-            await storage.EntityState.ClearAsync()
+            await state.EntityState.ClearAsync()
 
-            const teachResponse = await clRunner.StartSessionAsync(storage, null, appId, SessionStartFlags.IN_TEACH, createTeachParams) as CLM.TeachResponse
+            const teachResponse = await clRunner.StartSessionAsync(state, null, appId, SessionStartFlags.IN_TEACH, createTeachParams) as CLM.TeachResponse
 
             res.send(teachResponse)
 
@@ -677,8 +679,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
         try {
             const key = getMemoryKey(req)
             // Update Memory
-            const storage = CLStorage.Get(key)
-            await storage.EntityState.ClearAsync();
+            const state = CLState.Get(key)
+            await state.EntityState.ClearAsync();
             res.sendStatus(200)
 
         } catch (error) {
@@ -701,16 +703,16 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const userInput: CLM.UserInput = req.body.userInput
 
             // Get history and replay to put bot into last round
-            const storage = CLStorage.Get(key)
+            const state = CLState.Get(key)
 
             const clRunner = CLRunner.GetRunnerForUI(appId);
 
             validateBot(req, clRunner.botChecksum())
 
             // Replay the TrainDialog logic (API calls and EntityDetectionCallback)
-            let cleanTrainDialog = await clRunner.ReplayTrainDialogLogic(trainDialog, storage, true)
+            let cleanTrainDialog = await clRunner.ReplayTrainDialogLogic(trainDialog, state, true)
 
-            const teachWithHistory = await clRunner.GetHistory(cleanTrainDialog, userName, userId, storage)
+            const teachWithHistory = await clRunner.GetHistory(cleanTrainDialog, userName, userId, state)
             if (!teachWithHistory) {
                 res.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 res.send(new Error(`Could not find teach session history for given train dialog`))
@@ -721,13 +723,13 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const createTeachParams = CLM.ModelUtils.ToCreateTeachParams(cleanTrainDialog)
 
             // NOTE: Todo - pass in filteredDialogId so start sesssion doesn't find conflicts with existing dialog being edited
-            teachWithHistory.teach = await clRunner.StartSessionAsync(storage, null, appId, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE, createTeachParams) as CLM.Teach
+            teachWithHistory.teach = await clRunner.StartSessionAsync(state, null, appId, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE, createTeachParams) as CLM.Teach
 
             // If last action wasn't terminal then score
             if (teachWithHistory.dialogMode === CLM.DialogMode.Scorer) {
 
                 // Get entities from my memory
-                const filledEntities = await storage.EntityState.FilledEntitiesAsync()
+                const filledEntities = await state.EntityState.FilledEntitiesAsync()
                 const scoreInput: CLM.ScoreInput = {
                     filledEntities,
                     context: {},
@@ -772,19 +774,19 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const key = getMemoryKey(req)
             const appId = req.params.appId
             const trainDialog: CLM.TrainDialog = req.body
-            const storage = CLStorage.Get(key)
+            const state = CLState.Get(key)
             const clRunner = CLRunner.GetRunnerForUI(appId);
 
             // Replay the TrainDialog logic (API calls and EntityDetectionCallback)
             // and set storage entities for the history
-            let newTrainDialog = await clRunner.ReplayTrainDialogLogic(trainDialog, storage, true)
+            let newTrainDialog = await clRunner.ReplayTrainDialogLogic(trainDialog, state, true)
 
             // Start new teach session from the old train dialog
             const createTeachParams = CLM.ModelUtils.ToCreateTeachParams(newTrainDialog)
-            const teach = await clRunner.StartSessionAsync(storage, null, appId, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE, createTeachParams) as CLM.Teach
+            const teach = await clRunner.StartSessionAsync(state, null, appId, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE, createTeachParams) as CLM.Teach
 
             // Get entities from my memory
-            const filledEntities = await storage.EntityState.FilledEntitiesAsync()
+            const filledEntities = await state.EntityState.FilledEntitiesAsync()
             const scoreInput: CLM.ScoreInput = {
                 filledEntities,
                 context: {},
@@ -823,16 +825,16 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const appId = req.params.appId
             const trainDialog: CLM.TrainDialog = req.body.trainDialog
             const userInput: CLM.UserInput = req.body.userInput
-            const storage = CLStorage.Get(key)
+            const state = CLState.Get(key)
             const clRunner = CLRunner.GetRunnerForUI(appId);
 
             // Replay the TrainDialog logic (API calls and EntityDetectionCallback)
             // and set storage entities for the history
-            let newTrainDialog = await clRunner.ReplayTrainDialogLogic(trainDialog, storage, true)
+            let newTrainDialog = await clRunner.ReplayTrainDialogLogic(trainDialog, state, true)
 
             // Start new teach session from the old train dialog
             const createTeachParams = CLM.ModelUtils.ToCreateTeachParams(newTrainDialog)
-            const teach = await clRunner.StartSessionAsync(storage, null, appId, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE, createTeachParams) as CLM.Teach
+            const teach = await clRunner.StartSessionAsync(state, null, appId, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE, createTeachParams) as CLM.Teach
 
             // Do extraction
             const extractResponse = await client.TeachExtract(appId, teach.teachId, userInput, null)
@@ -858,13 +860,13 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const key = getMemoryKey(req)
             const appId = req.params.appId
             const trainDialog: CLM.TrainDialog = req.body
-            const storage = CLStorage.Get(key)
+            const state = CLState.Get(key)
             const clRunner = CLRunner.GetRunnerForUI(appId);
             validateBot(req, clRunner.botChecksum())
 
             // Replay the TrainDialog logic (API calls and EntityDetectionCallback)
             // and set storage entities for the history
-            let newTrainDialog = await clRunner.ReplayTrainDialogLogic(trainDialog, storage, false)
+            let newTrainDialog = await clRunner.ReplayTrainDialogLogic(trainDialog, state, false)
 
             res.send(newTrainDialog)
 
@@ -892,8 +894,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             }
             const extractResponse = await client.TeachExtract(appId, teachId, userInput, excludeConflictCheckId)
 
-            const storage = CLStorage.Get(key)
-            const memories = await storage.EntityState.DumpMemory()
+            const state = CLState.Get(key)
+            const memories = await state.EntityState.DumpMemory()
             const uiExtractResponse: CLM.UIExtractResponse = { extractResponse, memories }
             res.send(uiExtractResponse)
         } catch (error) {
@@ -915,7 +917,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const key = getMemoryKey(req)
             const { appId, teachId } = req.params
             const uiScoreInput: CLM.UIScoreInput = req.body
-            const storage = CLStorage.Get(key)
+            const state = CLState.Get(key)
 
             // There will be no extraction step if performing a 2nd scorer round after a non-terminal action
             if (uiScoreInput.trainExtractorStep) {
@@ -948,7 +950,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 scoreInput = await clRunner.CallEntityDetectionCallback(
                     extractResponse.text,
                     extractResponse.predictedEntities,
-                    storage,
+                    state,
                     extractResponse.definitions.entities,
                     // If the previous action is a non-terminal action, the trainExtractorStep is null and the entity detection callback should be skipped. 
                     uiScoreInput.trainExtractorStep == null
@@ -957,7 +959,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             catch (err) {
                 // Hit exception in Bot's Entity Detection Callback
                 // Use existing memory before callback
-                const filledEntities = await storage.EntityState.FilledEntitiesAsync()
+                const filledEntities = await state.EntityState.FilledEntitiesAsync()
                 scoreInput = {
                     filledEntities,
                     context: {},
@@ -971,7 +973,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
             // Get score response
             const scoreResponse = await client.TeachScore(appId, teachId, scoreInput)
-            const memories = await storage.EntityState.DumpMemory()
+            const memories = await state.EntityState.DumpMemory()
             const uiScoreResponse: CLM.UIScoreResponse = { scoreInput, scoreResponse, memories, botAPIError }
             res.send(uiScoreResponse)
         } catch (error) {
@@ -1015,11 +1017,11 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const key = getMemoryKey(req)
             const { appId, teachId } = req.params
             const scoreInput: CLM.ScoreInput = req.body
-            const storage = CLStorage.Get(key)
+            const state = CLState.Get(key)
 
             // Get new score response re-using scoreInput from previous score request
             const scoreResponse = await client.TeachScore(appId, teachId, scoreInput)
-            const memories = await storage.EntityState.DumpMemory()
+            const memories = await state.EntityState.DumpMemory()
             const uiScoreResponse: CLM.UIScoreResponse = {
                 scoreInput,
                 scoreResponse,
@@ -1049,13 +1051,13 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             }
             delete uiTrainScorerStep.trainScorerStep.scoredAction
 
-            const storage = CLStorage.Get(key)
+            const state = CLState.Get(key)
 
             // Now send the trained intent
             const intent = {
                 scoredAction: scoredAction,
                 clEntities: uiTrainScorerStep.entities,
-                memory: storage,
+                memory: state,
                 inTeach: true
             } as CLRecognizerResult
 
@@ -1069,22 +1071,22 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
             const teachResponse = await client.TeachScoreFeedback(appId, teachId, uiTrainScorerStep.trainScorerStep)
 
-            const memories = await storage.EntityState.DumpMemory()
+            const memories = await state.EntityState.DumpMemory()
             const isEndTask = scoredAction.actionType === CLM.ActionTypes.END_SESSION
 
             // End Session call delayed in SendIntent during teach so ScoreFeedback still has a session
             // so need to end the session now if an EndSession action
             if (isEndTask) {
-                let sessionId = await storage.BotState.GetSessionIdAsync()
+                let sessionId = await state.BotState.GetSessionIdAsync()
                 if (sessionId) {
                     // Get filled entities from memory, and generate content for end session callback
-                    let filledEntityMap = await storage.EntityState.FilledEntityMap()
+                    let filledEntityMap = await state.EntityState.FilledEntityMap()
                     filledEntityMap = Utils.addEntitiesById(filledEntityMap)
                     const sessionAction = new CLM.SessionAction(scoredAction as any)
                     let content = sessionAction.renderValue(CLM.getEntityDisplayValueMap(filledEntityMap))
 
                     // End SDK session, but let client delete the Teach Session
-                    await clRunner.EndSessionAsync(storage, CLM.SessionEndState.COMPLETED, content);
+                    await clRunner.EndSessionAsync(state, CLM.SessionEndState.COMPLETED, content);
                 }
             }
 
@@ -1108,9 +1110,9 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const response = await client.EndTeach(appId, teachId, save)
             res.send(response)
 
-            const storage = CLStorage.Get(key)
+            const state = CLState.Get(key)
             const clRunner = CLRunner.GetRunnerForUI(appId);
-            clRunner.EndSessionAsync(storage, CLM.SessionEndState.OPEN)
+            clRunner.EndSessionAsync(state, CLM.SessionEndState.OPEN)
         } catch (error) {
             HandleError(res, error)
         }
@@ -1128,17 +1130,17 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const markdown = useMarkdown === "true";
             const trainDialog: CLM.TrainDialog = req.body
 
-            const storage = CLStorage.Get(key)
+            const state = CLState.Get(key)
             const clRunner = CLRunner.GetRunnerForUI(appId);
             validateBot(req, clRunner.botChecksum())
 
-            const teachWithHistory = await clRunner.GetHistory(trainDialog, userName, userId, storage, markdown)
+            const teachWithHistory = await clRunner.GetHistory(trainDialog, userName, userId, state, markdown)
 
             // Clear bot memory generated with this
-            await storage.EntityState.ClearAsync();
+            await state.EntityState.ClearAsync();
 
             // Note the UI is now in edit mode
-            await storage.BotState.SetUIMode(UIMode.EDIT)
+            await state.BotState.SetUIMode(UIMode.EDIT)
 
             if (teachWithHistory) {
                 res.send(teachWithHistory)
@@ -1162,7 +1164,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const { packageId, userId } = getQuery(req)
             const turnValidations: CLM.TranscriptValidationTurn[] = req.body
             const clRunner = CLRunner.GetRunnerForUI(appId)
-            const storage = CLStorage.Get(key)
+            const state = CLState.Get(key)
 
             if (!packageId) {
                 res.status(HttpStatus.BAD_REQUEST)
@@ -1176,7 +1178,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 packageId,
                 initialFilledEntities: []
             }
-            const session = await clRunner.StartSessionAsync(storage, null, appId, SessionStartFlags.IN_TEST, sessionCreateParams) as CLM.Session
+            const session = await clRunner.StartSessionAsync(state, null, appId, SessionStartFlags.IN_TEST, sessionCreateParams) as CLM.Session
             const logDialogId = session.logDialogId
             const appDefinition = await client.GetAppSource(appId, packageId)
             const conversation: BB.ConversationAccount = {

@@ -2,28 +2,23 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License.
  */
-import { CLStorage } from '../CLStorage'
+import { CLStorage } from './CLStorage'
 import { CLDebug } from '../CLDebug'
 import { Memory, FilledEntity, MemoryValue, FilledEntityMap } from '@conversationlearner/models'
 import { ClientMemoryManager } from '..';
 
 const NEGATIVE_PREFIX = '~'
 
+export type GetKey = () => string
+
 export class EntityState {
-    private static _instance: EntityState | undefined
-    private static MEMKEY = 'BOTMEMORY'
-    private clStorage: CLStorage | undefined
+    private storage: CLStorage
+    private getKey: GetKey
     public filledEntityMap = new FilledEntityMap()
 
-    private constructor() {
-    }
-
-    public static Get(clStorage: CLStorage): EntityState {
-        if (!EntityState._instance) {
-            EntityState._instance = new EntityState()
-        }
-        EntityState._instance.clStorage = clStorage
-        return EntityState._instance
+    constructor(storage: CLStorage, getKey: GetKey) {
+        this.storage = storage
+        this.getKey = getKey
     }
 
     public async FilledEntityMap(): Promise<FilledEntityMap> {
@@ -32,11 +27,8 @@ export class EntityState {
     }
 
     private async Init(): Promise<void> {
-        if (!this.clStorage) {
-            throw new Error('EntityState called without setting storage')
-        }
-
-        let data = await this.clStorage.GetAsync(EntityState.MEMKEY)
+        const key = this.getKey()
+        let data = await this.storage.GetAsync(key)
         if (data) {
             this.Deserialize(data)
         } else {
@@ -57,10 +49,8 @@ export class EntityState {
     }
 
     private async Set(): Promise<void> {
-        if (!this.clStorage) {
-            throw new Error('EntityState called without setting storage')
-        }
-        await this.clStorage.SetAsync(EntityState.MEMKEY, this.Serialize())
+        const key = this.getKey()
+        await this.storage.SetAsync(key, this.Serialize())
     }
 
     public async RestoreFromMapAsync(filledEntityMap: FilledEntityMap): Promise<void> {
