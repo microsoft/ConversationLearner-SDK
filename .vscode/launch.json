@@ -12,23 +12,9 @@
             "stopOnEntry": true,
             "sourceMaps": true,
             "port": 5858,
-            "outDir": "${workspaceRoot}/lib"
-        },
-        {
-            "type": "node",
-            "request": "attach",
-            "name": "port",
-            "sourceMaps": true,
-            "port": 5858
-        },
-        {
-            "name": "Attach with sourcemaps",
-            "type": "node",
-            "request": "attach",
-            "address": "localhost",
-            "sourceMaps": true,
-            "externalConsole": true,
-            "port": 5858
+            "outFiles": [
+                "${workspaceRoot}/lib/**/*"
+            ]
         },
         {
             "type": "node",
@@ -43,21 +29,6 @@
             "sourceMaps": true,
             "outFiles": [
                 "${workspaceRoot}/lib/**/*"
-            ]
-        },
-        {
-            "type": "node",
-            "request": "launch",
-            "name": "Set version test",
-            "program": "${workspaceRoot}\\scripts\\publish.js",
-            "args": [
-                "-i"
-            ],
-            "preLaunchTask": "setpublishversion",
-            "internalConsoleOptions": "openOnSessionStart",
-            "sourceMaps": true,
-            "outFiles": [
-                "${workspaceRoot}/scripts/**/*"
             ]
         }
     ]
