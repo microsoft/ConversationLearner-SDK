@@ -22,6 +22,7 @@ interface RunnerLookup {
     [appId: string]: CLRunner
 }
 
+const RETRY_THRESHOLD = 0.8
 const delay = util.promisify(setTimeout)
 
 export enum SessionStartFlags {
@@ -594,15 +595,55 @@ export class CLRunner {
         let scoreResponse = null
         if (inTeach) {
             scoreResponse = await this.clClient.TeachScore(appId, sessionId, scoreInput)
+            // Return top scoring action
+            return scoreResponse.scoredActions[0]
         } else {
             scoreResponse = await this.clClient.SessionScore(appId, sessionId, scoreInput)
+
+            // Check if re-prompt should happen
+            const retryAction = this.retryScoredAction(scoreResponse)
+            if (retryAction) {
+                // Send server update
+                await this.clClient.SessionScoreFeedback(appId, sessionId, {
+                    input: scoreInput,
+                    forcedActionId: retryAction.actionId
+                })
+                return retryAction
+            }
+            // Otherwise return top scoring action
+            return scoreResponse.scoredActions[0]
+        }
+    }
+
+    private repromptActionId(scoreResponse: CLM.ScoreResponse): string | undefined {
+        if (scoreResponse.scoreContext
+            && scoreResponse.scoreContext.previousAction) {
+            return scoreResponse.scoreContext.previousAction.repromptActionId
+        }
+        return undefined
+    }
+
+    // Returns retry action if re-prompt enabled and score variance is too low
+    private retryScoredAction(scoreResponse: CLM.ScoreResponse): CLM.ScoredAction | undefined {
+
+        if (!scoreResponse.scoreContext || scoreResponse.scoredActions.length < 2) {
+            return undefined
         }
 
-        // Get best action
-        let bestAction = scoreResponse.scoredActions[0]
+        const repromptActionId = this.repromptActionId(scoreResponse)
+        if (!repromptActionId) {
+            return undefined
+        }
 
-        // Return the action
-        return bestAction
+        const scoreVariance = scoreResponse.scoredActions[0].score - scoreResponse.scoredActions[1].score
+        if (scoreVariance < RETRY_THRESHOLD) {
+            // Only need to force if it wasn't already selected
+            if (scoreResponse.scoredActions[0].actionId !== repromptActionId) {
+                const repromptAction = scoreResponse.scoredActions.find(sa => sa.actionId === repromptActionId)
+                return repromptAction
+            }
+        }
+        return undefined
     }
 
     //-------------------------------------------
@@ -1888,7 +1929,13 @@ export class CLRunner {
                         let scoreFilledEntities = scorerStep.input.filledEntities
 
                         replayError = null
-                        curAction = actions.find(a => a.actionId == labelAction) || null
+
+                        if (scorerStep.forcedActionId) {
+                            curAction = actions.find(a => a.actionId == scorerStep.forcedActionId) || null
+                        }
+                        else {
+                            curAction = actions.find(a => a.actionId == labelAction) || null
+                        }
 
                         // Validate Score Step
                         replayError = this.GetHistoryScoreErrors(round, scoreIndex, scoreFilledEntities, curAction, actions, userText, replayErrors)
