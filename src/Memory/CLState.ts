@@ -79,7 +79,8 @@ export class CLState {
         const user = conversationReference.user
 
         let keyPrefix: string
-        if (Utils.isRunningInClUI(turnContext)) {
+        const isRunningInUI = Utils.isRunningInClUI(turnContext)
+        if (isRunningInUI) {
             if (!user) {
                 throw new Error(`Attempted to initialize state, but cannot get state key because current request did not have 'from'/user specified`)
             }
@@ -96,7 +97,7 @@ export class CLState {
             keyPrefix = conversationReference.conversation.id
         }
 
-        return CLState.Get(keyPrefix, modelId)
+        return CLState.Get(keyPrefix, !isRunningInUI ? modelId : undefined)
     }
 
     public async SetAppAsync(app: CLM.AppBase | null): Promise<void> {
