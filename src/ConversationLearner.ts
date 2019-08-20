@@ -11,10 +11,10 @@ import { CLState } from './Memory/CLState'
 import { CLDebug } from './CLDebug'
 import { CLClient } from './CLClient'
 import { CLRecognizerResult } from './CLRecognizeResult'
-import { CLModelOptions } from '.';
+import { CLModelOptions } from '.'
 
 export class ConversationLearner {
-    public static options: CLOptions | null = null;
+    public static options: CLOptions | null = null
     public static clClient: CLClient
     public clRunner: CLRunner
 
@@ -40,7 +40,7 @@ export class ConversationLearner {
     }
 
     public async recognize(turnContext: BB.TurnContext, force?: boolean): Promise<CLRecognizerResult | null> {
-        return await this.clRunner.recognize(turnContext, force);
+        return await this.clRunner.recognize(turnContext, force)
     }
 
     /**
@@ -50,7 +50,7 @@ export class ConversationLearner {
      * @param turnContext BotBuilder Context
      */
     public async StartSession(turnContext: BB.TurnContext): Promise<void> {
-        await this.clRunner.BotStartSession(turnContext);
+        await this.clRunner.BotStartSession(turnContext)
     }
 
     /**
