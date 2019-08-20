@@ -3,7 +3,8 @@
  * Licensed under the MIT License.
  */
 import { ConversationLearner } from './ConversationLearner'
-import { ICLOptions } from './CLOptions'
+import { CLOptions } from './CLOptions'
+import { CLModelOptions } from './CLModelOptions'
 import { ClientMemoryManager, ReadOnlyClientMemoryManager } from './Memory/ClientMemoryManager'
 import { RedisStorage } from './RedisStorage'
 import { FileStorage } from './FileStorage'
@@ -14,7 +15,8 @@ import { EntityDetectionCallback, OnSessionStartCallback, OnSessionEndCallback, 
 export {
     uiRouter,
     ConversationLearner,
-    ICLOptions,
+    CLOptions as ICLOptions,
+    CLModelOptions,
     ClientMemoryManager,
     ReadOnlyClientMemoryManager,
     RedisStorage,

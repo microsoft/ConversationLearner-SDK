@@ -6,6 +6,7 @@ import * as util from 'util'
 import * as BB from 'botbuilder'
 import * as CLM from '@conversationlearner/models'
 import * as Utils from './Utils'
+import * as ModelOptions from './CLModelOptions'
 import { CLState } from './Memory/CLState'
 import { CLDebug, DebugType } from './CLDebug'
 import { CLClient } from './CLClient'
@@ -22,7 +23,6 @@ interface RunnerLookup {
     [appId: string]: CLRunner
 }
 
-const RETRY_THRESHOLD = 0.8
 const delay = util.promisify(setTimeout)
 
 export enum SessionStartFlags {
@@ -119,17 +119,20 @@ export class CLRunner {
 
     /* Model Id passed in from configuration.  Used when not running in Conversation Learner UI */
     public readonly configModelId: string | undefined;
-    private maxTimeout: number | undefined;  // TODO: Move timeout to app settings
+
+    private modelOptions: ModelOptions.CLModelOptions
 
     /* Mapping between user defined API names and functions */
     public callbacks: CallbackMap = {}
     private models: ConversationLearner[] = []
 
-    public static Create(configModelId: string | undefined, maxTimeout: number | undefined, client: CLClient): CLRunner {
+    public static Create(configModelId: string | undefined, client: CLClient, newOptions?: Partial<ModelOptions.CLModelOptions>): CLRunner {
+
+        const modelOptions = this.validiatedModelOptions(newOptions)
 
         // Ok to not provide modelId when just running in training UI.
         // If not, Use UI_RUNNER_APPID const as lookup value
-        let newRunner = new CLRunner(configModelId, maxTimeout, client);
+        let newRunner = new CLRunner(configModelId, client, modelOptions);
         CLRunner.Runners[configModelId || Utils.UI_RUNNER_APPID] = newRunner;
 
         // Bot can define multiple CLs.  Always run UI on first CL defined in the bot
@@ -138,6 +141,27 @@ export class CLRunner {
         }
 
         return newRunner;
+    }
+
+    private static validiatedModelOptions(modelOptions?: Partial<ModelOptions.CLModelOptions>): ModelOptions.CLModelOptions {
+        const sessionTimout = (!modelOptions
+            || !modelOptions.sessionTimout
+            || typeof modelOptions.sessionTimout !== 'number')
+            ? ModelOptions.DEFAULT_MAX_SESSION_LENGTH
+            : modelOptions.sessionTimout
+
+        const repromptThreshold = (!modelOptions
+            || !modelOptions.repromptThreshold
+            || typeof modelOptions.repromptThreshold !== 'number')
+            || +modelOptions.repromptThreshold < 0
+            || +modelOptions.repromptThreshold > 1
+            ? ModelOptions.DEFAULT_REPROMPT_THRESHOLD
+            : modelOptions.repromptThreshold
+
+        return {
+            sessionTimout,
+            repromptThreshold
+        }
     }
 
     // Get CLRunner for the UI
@@ -154,9 +178,9 @@ export class CLRunner {
         return CLRunner.Runners[appId];
     }
 
-    private constructor(configModelId: string | undefined, maxTimeout: number | undefined, client: CLClient) {
+    private constructor(configModelId: string | undefined, client: CLClient, modelOptions: ModelOptions.CLModelOptions) {
         this.configModelId = configModelId
-        this.maxTimeout = maxTimeout
+        this.modelOptions = modelOptions
         this.clClient = client
     }
 
@@ -409,7 +433,7 @@ export class CLRunner {
                 const currentTicks = new Date().getTime();
                 let lastActive = await state.BotState.GetLastActive()
                 let passedTicks = currentTicks - lastActive;
-                if (passedTicks > this.maxTimeout!) {
+                if (passedTicks > this.modelOptions.sessionTimout!) {
 
                     // Parameters for new session
                     const sessionCreateParams: CLM.SessionCreateParams = {
@@ -636,7 +660,7 @@ export class CLRunner {
         }
 
         const scoreVariance = scoreResponse.scoredActions[0].score - scoreResponse.scoredActions[1].score
-        if (scoreVariance < RETRY_THRESHOLD) {
+        if (scoreVariance < this.modelOptions.repromptThreshold) {
             // Only need to force if it wasn't already selected
             if (scoreResponse.scoredActions[0].actionId !== repromptActionId) {
                 const repromptAction = scoreResponse.scoredActions.find(sa => sa.actionId === repromptActionId)
