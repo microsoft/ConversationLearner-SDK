@@ -3,22 +3,22 @@
  * Licensed under the MIT License.
  */
 import * as BB from 'botbuilder'
+import * as express from 'express'
+import getRouter from './http/router'
 import { CLRunner, EntityDetectionCallback, OnSessionStartCallback, OnSessionEndCallback, ICallbackInput } from './CLRunner'
-import { ICLOptions } from './CLOptions'
+import { CLOptions } from './CLOptions'
 import { CLState } from './Memory/CLState'
 import { CLDebug } from './CLDebug'
 import { CLClient } from './CLClient'
-import getRouter from './http/router'
-import { DEFAULT_MAX_SESSION_LENGTH } from './Utils'
 import { CLRecognizerResult } from './CLRecognizeResult'
-import * as express from 'express'
+import { CLModelOptions } from '.'
 
 export class ConversationLearner {
-    public static options: ICLOptions | null = null;
+    public static options: CLOptions | null = null
     public static clClient: CLClient
     public clRunner: CLRunner
 
-    public static Init(options: ICLOptions, storage?: BB.Storage): express.Router {
+    public static Init(options: CLOptions, storage?: BB.Storage): express.Router {
         ConversationLearner.options = options
 
         try {
@@ -31,20 +31,16 @@ export class ConversationLearner {
         return getRouter(this.clClient, options)
     }
 
-    constructor(modelId: string | undefined, maxTimeout?: number) {
+    constructor(modelId: string | undefined, modelOptions?: Partial<CLModelOptions>) {
         if (!ConversationLearner.options) {
             throw new Error("Init() must be called on ConversationLearner before instances are created")
         }
 
-        if (typeof maxTimeout !== 'number') {
-            maxTimeout = DEFAULT_MAX_SESSION_LENGTH
-        }
-
-        this.clRunner = CLRunner.Create(modelId, maxTimeout, ConversationLearner.clClient)
+        this.clRunner = CLRunner.Create(modelId, ConversationLearner.clClient, modelOptions)
     }
 
     public async recognize(turnContext: BB.TurnContext, force?: boolean): Promise<CLRecognizerResult | null> {
-        return await this.clRunner.recognize(turnContext, force);
+        return await this.clRunner.recognize(turnContext, force)
     }
 
     /**
@@ -54,7 +50,7 @@ export class ConversationLearner {
      * @param turnContext BotBuilder Context
      */
     public async StartSession(turnContext: BB.TurnContext): Promise<void> {
-        await this.clRunner.BotStartSession(turnContext);
+        await this.clRunner.BotStartSession(turnContext)
     }
 
     /**

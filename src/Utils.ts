@@ -206,10 +206,8 @@ export async function EndSessionIfOpen(clClient: CLClient, appId: string, sessio
     }
 }
 
-
 export const CL_DEVELOPER = 'ConversationLearnerDeveloper';
 export const UI_RUNNER_APPID = 'UIRunner_AppId'
-export const DEFAULT_MAX_SESSION_LENGTH = 20 * 60 * 1000;  // 20 minutes
 
 export const getSha256Hash: (id: string) => string = (id) => {
     return crypto.createHash('sha256').update(id, 'utf8').digest('base64')
