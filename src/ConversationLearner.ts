@@ -90,10 +90,16 @@ export class ConversationLearner {
         this.clRunner.AddCallback(callback)
     }
 
-    /** Define an Callback that will be called after Entity Detection
+    /**
+     * Define an Callback that will be called after Entity Detection
      * @param target Callback of the form (text: string, memoryManager: ClientMemoryManager) => Promise<void>
      */
-    public EntityDetectionCallback(target: EntityDetectionCallback) {
+    get EntityDetectionCallback() {
+        return this.clRunner.entityDetectionCallback
+    }
+
+    // TODO: Have to accept `undefined` here to match type of proprety? Should not allow undefined though
+    set EntityDetectionCallback(target: EntityDetectionCallback | undefined) {
         this.clRunner.entityDetectionCallback = target
     }
 }
