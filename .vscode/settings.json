@@ -3,5 +3,10 @@
     "workbench.colorCustomizations": {
         "activityBar.background": "#5a0656"
     },
-    "editor.formatOnSave": true
+    "editor.formatOnSave": true,
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/bower_components": true,
+        "docs/**/*": true,
+    }
 }

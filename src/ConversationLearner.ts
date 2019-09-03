@@ -90,10 +90,11 @@ export class ConversationLearner {
         this.clRunner.AddCallback(callback)
     }
 
-    /** Define an Callback that will be called after Entity Detection
+    /**
+     * Define an Callback that will be called after Entity Detection
      * @param target Callback of the form (text: string, memoryManager: ClientMemoryManager) => Promise<void>
      */
-    public EntityDetectionCallback(target: EntityDetectionCallback) {
+    set EntityDetectionCallback(target: EntityDetectionCallback) {
         this.clRunner.entityDetectionCallback = target
     }
 }
