@@ -665,6 +665,7 @@ export class CLRunner {
             if (scoreResponse.scoredActions[0].actionId !== repromptActionId) {
                 const repromptAction = scoreResponse.scoredActions.find(sa => sa.actionId === repromptActionId)
                 return repromptAction
+                
             }
         }
         return undefined
