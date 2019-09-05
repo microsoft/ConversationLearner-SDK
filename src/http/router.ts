@@ -1218,46 +1218,48 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                         validity = CLM.TranscriptValidationResultType.CHANGED
                     }
 
-                    // Now take the actual action to update memory 
+                    // Get conversation reference
                     const conversationReference = BB.TurnContext.getConversationReference(activity)
                     if (!conversationReference) {
                         validity = CLM.TranscriptValidationResultType.TEST_FAILED
-                    }
-                    else {
-                        // Include apiResults when taking action so result will be the same when testing
-                        await clRunner.TakeActionAsync(conversationReference, result, null, turnValidation.apiResults[0])
+                        break
                     }
 
-                    // Need to manually run through non-wait actions to retrieve actions to validate against
+                    // Get session Id
+                    const sessionId = await result.memory.BotState.GetSessionIdAsync()
+                    if (!sessionId) {
+                        validity = CLM.TranscriptValidationResultType.TEST_FAILED
+                        break
+                    }
+
+                    // Include apiResults when taking action so result will be the same when testing
+                    await clRunner.TakeActionAsync(conversationReference, result, null, turnValidation.apiResults[0])
+
+                    // Trigger next action if non-terminal
                     let bestAction = result.scoredAction
-                    if (turnValidation.actionHashes.length > 1) {
-                        const sessionId = await result.memory.BotState.GetSessionIdAsync()
-                        if (!sessionId) {
-                            validity = CLM.TranscriptValidationResultType.TEST_FAILED
-                        }
-                        else {
-                            for (let i = 1; i < turnValidation.actionHashes.length; i = i + 1) {
-                                // If last action was terminal, can't do another action
-                                if (bestAction.isTerminal) {
-                                    validity = CLM.TranscriptValidationResultType.CHANGED
-                                }
-                                else {
-                                    bestAction = await clRunner.Score(appId, sessionId, result.memory, '', [], result.clEntities, false, true)
-                                    result.scoredAction = bestAction
+                    let curHashIndex = 0
 
-                                    // Did I select the expected action
-                                    if (turnValidation.actionHashes[i] && !Utils.actionHasHash(bestAction.actionId, turnValidation.actionHashes[i], appDefinition.actions)) {
-                                        validity = CLM.TranscriptValidationResultType.CHANGED
-                                    }
-                                    // Include apiResults when taking action so result will be the same when testing
-                                    await clRunner.TakeActionAsync(conversationReference, result, null, turnValidation.apiResults[i])
-                                }
-                            }
+                    // Server enforces max number of non-terminal actions, so no endless loop here
+                    while (!bestAction.isTerminal) {
+                        curHashIndex = curHashIndex + 1
+                        bestAction = await clRunner.Score(appId, sessionId, result.memory, '', [], result.clEntities, false, true)
+                        result.scoredAction = bestAction
+
+                        // Did I take another action when none was expected
+                        if (curHashIndex >= turnValidation.actionHashes.length) {
+                            validity = CLM.TranscriptValidationResultType.CHANGED
                         }
+                        // Did I take the correct action
+                        else if (!Utils.actionHasHash(bestAction.actionId, turnValidation.actionHashes[curHashIndex], appDefinition.actions)) {
+                            validity = CLM.TranscriptValidationResultType.CHANGED
+                        }
+                        // Include apiResults when taking action so result will be the same when testing
+                        await clRunner.TakeActionAsync(conversationReference, result, null, turnValidation.apiResults[curHashIndex])
                     }
                 }
                 else {
                     validity = CLM.TranscriptValidationResultType.TEST_FAILED
+                    break
                 }
             }
 

@@ -4,7 +4,7 @@
  */
 
 export const DEFAULT_MAX_SESSION_LENGTH = 20 * 60 * 1000;  // 20 minutes
-export const DEFAULT_REPROMPT_THRESHOLD = 0.7
+export const DEFAULT_REPROMPT_THRESHOLD = 0.4
 
 // Model Settings
 export interface CLModelOptions {
