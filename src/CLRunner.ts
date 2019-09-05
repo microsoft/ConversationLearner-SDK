@@ -44,6 +44,12 @@ export interface InternalCallback<T> extends CLM.Callback, ICallback<T> {
 export type EntityDetectionCallback = (text: string, memoryManager: ClientMemoryManager) => Promise<void>
 
 /**
+ * Called when session expires from inactivity.
+ * See CLModelOptions.sessionTimeout
+ */
+export type SessionTimeoutCallback = (memoryManager: ClientMemoryManager) => Promise<void>
+
+/**
  * Called at session start.
  * Allows bot to set initial entities before conversation begins
  */
@@ -433,7 +439,8 @@ export class CLRunner {
                 const currentTicks = new Date().getTime();
                 let lastActive = await state.BotState.GetLastActive()
                 let passedTicks = currentTicks - lastActive;
-                if (passedTicks > this.modelOptions.sessionTimout!) {
+                if (passedTicks > this.modelOptions.sessionTimout) {
+                    await this.CallSessionTimeoutCallback(state, [])
 
                     // Parameters for new session
                     const sessionCreateParams: CLM.SessionCreateParams = {
@@ -470,7 +477,7 @@ export class CLRunner {
                             return null
                         }
 
-                        // Update logging state 
+                        // Update logging state
                         sessionCreateParams.saveToLog = app.metadata.isLoggingOn
                     }
 
@@ -674,6 +681,8 @@ export class CLRunner {
     // Optional callback than runs after LUIS but before Conversation Learner.  Allows Bot to substitute entities
     public entityDetectionCallback: EntityDetectionCallback | undefined
 
+    public sessionTimeoutCallback: SessionTimeoutCallback | undefined
+
     // Optional callback than runs before a new chat session starts.  Allows Bot to set initial entities
     public onSessionStartCallback: OnSessionStartCallback | undefined
 
@@ -800,6 +809,18 @@ export class CLRunner {
             maskedActions: []
         }
         return scoreInput
+    }
+
+    public async CallSessionTimeoutCallback(state: CLState, allEntities: CLM.EntityBase[]) {
+        // If no callback was registered don't try to execute it
+        if (!this.sessionTimeoutCallback) {
+            return
+        }
+
+        const prevMemories = new CLM.FilledEntityMap(await state.EntityState.FilledEntityMap())
+        const memoryManager = await this.CreateMemoryManagerAsync(state, allEntities, prevMemories)
+        await this.sessionTimeoutCallback(memoryManager)
+        await state.EntityState.RestoreFromMemoryManagerAsync(memoryManager)
     }
 
     private async CreateMemoryManagerAsync(state: CLState, allEntities: CLM.EntityBase[], prevMemories?: CLM.FilledEntityMap): Promise<ClientMemoryManager> {
@@ -1076,7 +1097,7 @@ export class CLRunner {
                 throw new Error(`Attempted to get session by conversation id: ${conversationReference.conversation.id} but session was not found`)
             }
 
-            // send the current response to user before score for the next turn 
+            // send the current response to user before score for the next turn
             if (actionResult.response != null) {
                 await this.SendMessage(clRecognizeResult.memory, actionResult.response)
             }
@@ -1457,7 +1478,7 @@ export class CLRunner {
             const message = BB.MessageFactory.attachment(attachment)
             return message
         }
-        // If I'm not in Teach end session.  
+        // If I'm not in Teach end session.
         // (In Teach EndSession is handled in ScoreFeedback to keep session alive for TeachScoreFeedback)
         else {
             // End the current session (if in replay will be no sessionId or app)
@@ -1487,7 +1508,7 @@ export class CLRunner {
         return true;
     }
 
-    // Convert list of filled entities into a filled entity map lookup table 
+    // Convert list of filled entities into a filled entity map lookup table
     private CreateFilledEntityMap(filledEntities: CLM.FilledEntity[], entityList: CLM.EntityList): CLM.FilledEntityMap {
         let filledEntityMap = new CLM.FilledEntityMap()
         for (let filledEntity of filledEntities) {
@@ -1626,7 +1647,7 @@ export class CLRunner {
         await state.EntityState.RestoreFromMapAsync(map)
     }
 
-    /** 
+    /**
      * Replay a TrainDialog, calling EntityDetection callback and API Logic,
      * recalculating FilledEntities along the way
      */
@@ -1749,7 +1770,7 @@ export class CLRunner {
         }
 
         // When editing, may need to run Scorer or Extrator on TrainDialog with invalid rounds
-        //This cleans up the TrainDialog removing bad data so the extractor can run  
+        //This cleans up the TrainDialog removing bad data so the extractor can run
         if (cleanse) {
             // Remove rounds with two user inputs in a row (they'll have a dummy scorer round)
             newTrainDialog.rounds = newTrainDialog.rounds.filter(r => {
@@ -1862,9 +1883,9 @@ export class CLRunner {
         return replayError
     }
 
-    /** 
+    /**
      * Get Activities generated by trainDialog.
-     * Return any errors in TrainDialog  
+     * Return any errors in TrainDialog
      * NOTE: Will set bot memory to state at end of history
      */
     public async GetHistory(trainDialog: CLM.TrainDialog, userName: string, userId: string, state: CLState, useMarkdown: boolean = true): Promise<CLM.TeachWithHistory | null> {

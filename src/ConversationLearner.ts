@@ -5,7 +5,7 @@
 import * as BB from 'botbuilder'
 import * as express from 'express'
 import getRouter from './http/router'
-import { CLRunner, EntityDetectionCallback, OnSessionStartCallback, OnSessionEndCallback, ICallbackInput } from './CLRunner'
+import { CLRunner, EntityDetectionCallback, OnSessionStartCallback, OnSessionEndCallback, ICallbackInput, SessionTimeoutCallback } from './CLRunner'
 import { CLOptions } from './CLOptions'
 import { CLState } from './Memory/CLState'
 import { CLDebug } from './CLDebug'
@@ -96,5 +96,9 @@ export class ConversationLearner {
      */
     set EntityDetectionCallback(target: EntityDetectionCallback) {
         this.clRunner.entityDetectionCallback = target
+    }
+
+    set OnSessionTimeout(sessionTimeoutCallback: SessionTimeoutCallback) {
+        this.clRunner.sessionTimeoutCallback = sessionTimeoutCallback
     }
 }
