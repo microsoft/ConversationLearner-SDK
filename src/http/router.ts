@@ -1232,29 +1232,29 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                         break
                     }
 
-                    if (conversationReference && sessionId) {
-                        // Include apiResults when taking action so result will be the same when testing
-                        await clRunner.TakeActionAsync(conversationReference, result, null, turnValidation.apiResults[0])
+                    // Include apiResults when taking action so result will be the same when testing
+                    await clRunner.TakeActionAsync(conversationReference, result, null, turnValidation.apiResults[0])
 
-                        // Trigger next action if non-terminal
-                        let bestAction = result.scoredAction
-                        let curHashIndex = 0
-                        while (!bestAction.isTerminal) {
-                            curHashIndex = curHashIndex + 1
-                            bestAction = await clRunner.Score(appId, sessionId, result.memory, '', [], result.clEntities, false, true)
-                            result.scoredAction = bestAction
+                    // Trigger next action if non-terminal
+                    let bestAction = result.scoredAction
+                    let curHashIndex = 0
 
-                            // Did I take another action when none was expected
-                            if (curHashIndex >= turnValidation.actionHashes.length) {
-                                validity = CLM.TranscriptValidationResultType.CHANGED
-                            }
-                            // Did I take the correct action
-                            else if (!Utils.actionHasHash(bestAction.actionId, turnValidation.actionHashes[curHashIndex], appDefinition.actions)) {
-                                validity = CLM.TranscriptValidationResultType.CHANGED
-                            }
-                            // Include apiResults when taking action so result will be the same when testing
-                            await clRunner.TakeActionAsync(conversationReference, result, null, turnValidation.apiResults[curHashIndex])
+                    // Server enforces max number of non-terminal actions, so no endless loop here
+                    while (!bestAction.isTerminal) {
+                        curHashIndex = curHashIndex + 1
+                        bestAction = await clRunner.Score(appId, sessionId, result.memory, '', [], result.clEntities, false, true)
+                        result.scoredAction = bestAction
+
+                        // Did I take another action when none was expected
+                        if (curHashIndex >= turnValidation.actionHashes.length) {
+                            validity = CLM.TranscriptValidationResultType.CHANGED
                         }
+                        // Did I take the correct action
+                        else if (!Utils.actionHasHash(bestAction.actionId, turnValidation.actionHashes[curHashIndex], appDefinition.actions)) {
+                            validity = CLM.TranscriptValidationResultType.CHANGED
+                        }
+                        // Include apiResults when taking action so result will be the same when testing
+                        await clRunner.TakeActionAsync(conversationReference, result, null, turnValidation.apiResults[curHashIndex])
                     }
                 }
                 else {
