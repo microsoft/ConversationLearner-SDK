@@ -150,17 +150,8 @@ export class CLRunner {
             ? ModelOptions.DEFAULT_MAX_SESSION_LENGTH
             : modelOptions.sessionTimout
 
-        const repromptThreshold = (!modelOptions
-            || !modelOptions.repromptThreshold
-            || typeof modelOptions.repromptThreshold !== 'number')
-            || +modelOptions.repromptThreshold < 0
-            || +modelOptions.repromptThreshold > 1
-            ? ModelOptions.DEFAULT_REPROMPT_THRESHOLD
-            : modelOptions.repromptThreshold
-
         return {
-            sessionTimout,
-            repromptThreshold
+            sessionTimout
         }
     }
 
@@ -624,51 +615,9 @@ export class CLRunner {
         } else {
             scoreResponse = await this.clClient.SessionScore(appId, sessionId, scoreInput)
 
-            // Check if re-prompt should happen
-            const retryAction = this.retryScoredAction(scoreResponse)
-            if (retryAction) {
-                // Send server update
-                await this.clClient.SessionScoreFeedback(appId, sessionId, {
-                    input: scoreInput,
-                    forcedActionId: retryAction.actionId
-                })
-                return retryAction
-            }
-            // Otherwise return top scoring action
+            // Return top scoring action
             return scoreResponse.scoredActions[0]
         }
-    }
-
-    private repromptActionId(scoreResponse: CLM.ScoreResponse): string | undefined {
-        if (scoreResponse.scoreContext
-            && scoreResponse.scoreContext.previousAction) {
-            return scoreResponse.scoreContext.previousAction.repromptActionId
-        }
-        return undefined
-    }
-
-    // Returns retry action if re-prompt enabled and score variance is too low
-    private retryScoredAction(scoreResponse: CLM.ScoreResponse): CLM.ScoredAction | undefined {
-
-        if (!scoreResponse.scoreContext || scoreResponse.scoredActions.length < 2) {
-            return undefined
-        }
-
-        const repromptActionId = this.repromptActionId(scoreResponse)
-        if (!repromptActionId) {
-            return undefined
-        }
-
-        const scoreVariance = scoreResponse.scoredActions[0].score - scoreResponse.scoredActions[1].score
-        if (scoreVariance < this.modelOptions.repromptThreshold) {
-            // Only need to force if it wasn't already selected
-            if (scoreResponse.scoredActions[0].actionId !== repromptActionId) {
-                const repromptAction = scoreResponse.scoredActions.find(sa => sa.actionId === repromptActionId)
-                return repromptAction
-                
-            }
-        }
-        return undefined
     }
 
     //-------------------------------------------
@@ -1955,12 +1904,7 @@ export class CLRunner {
 
                         replayError = null
 
-                        if (scorerStep.forcedActionId) {
-                            curAction = actions.find(a => a.actionId == scorerStep.forcedActionId) || null
-                        }
-                        else {
-                            curAction = actions.find(a => a.actionId == labelAction) || null
-                        }
+                        curAction = actions.find(a => a.actionId == labelAction) || null
 
                         // Validate Score Step
                         replayError = this.GetHistoryScoreErrors(round, scoreIndex, scoreFilledEntities, curAction, actions, userText, replayErrors)
