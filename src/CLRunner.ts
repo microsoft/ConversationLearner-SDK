@@ -615,7 +615,7 @@ export class CLRunner {
         } else {
             scoreResponse = await this.clClient.SessionScore(appId, sessionId, scoreInput)
 
-            // Rreturn top scoring action
+            // Return top scoring action
             return scoreResponse.scoredActions[0]
         }
     }
