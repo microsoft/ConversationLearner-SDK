@@ -1122,7 +1122,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
     // Replay
     //========================================================
 
-    router.post('/app/:appId/activities', async (req, res, next) => {
+    router.post('/app/:appId/history', async (req, res, next) => {
         try {
             const key = getMemoryKey(req)
             const appId = req.params.appId
