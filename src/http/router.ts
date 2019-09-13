@@ -750,7 +750,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 userActivity.from = userAccount
                 userActivity.recipient = botAccount
 
-                teachWithActivities.history.push(userActivity)
+                teachWithActivities.activities.push(userActivity)
 
                 // Extract responses
                 teachWithActivities.extractResponse = await client.TeachExtract(appId, teachWithActivities.teach.teachId, userInput, filteredDialog)
