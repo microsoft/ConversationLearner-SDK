@@ -485,7 +485,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
     // LogDialogs
     //========================================================
     /**
-     * RUN EXTRACTOR: Runs entity extraction on a log dialog  
+     * RUN EXTRACTOR: Runs entity extraction on a log dialog
      */
     router.put('/app/:appId/logdialog/:logDialogId/extractor/:turnIndex', async (req, res, next) => {
         try {
@@ -539,8 +539,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             // Get history and replay to put bot into last round
             const state = CLState.Get(key)
             const clRunner = CLRunner.GetRunnerForUI(appId);
-            const teachWithHistory = await clRunner.GetHistory(trainDialog, userName, userId, state)
-            if (!teachWithHistory) {
+            const teachWithActivities = await clRunner.GetActivities(trainDialog, userName, userId, state)
+            if (!teachWithActivities) {
                 res.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 res.send(new Error(`Could not find teach session history for given train dialog`))
                 return
@@ -548,9 +548,9 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
             // Start new teach session from the old train dialog
             const createTeachParams = CLM.ModelUtils.ToCreateTeachParams(trainDialog)
-            teachWithHistory.teach = await clRunner.StartSessionAsync(state, null, appId, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE, createTeachParams) as CLM.Teach
+            teachWithActivities.teach = await clRunner.StartSessionAsync(state, null, appId, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE, createTeachParams) as CLM.Teach
 
-            res.send(teachWithHistory)
+            res.send(teachWithActivities)
         } catch (error) {
             HandleError(res, error)
         }
@@ -597,7 +597,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 return
             }
 
-            // Look up what the current sessionId 
+            // Look up what the current sessionId
             const currentSessionId = await state.BotState.GetSessionIdAsync()
 
             // May have already been closed
@@ -689,7 +689,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
     })
 
     /** START TEACH SESSION: Creates a new teaching session from existing train dialog */
-    router.post('/app/:appId/teachwithhistory', async (req, res, next) => {
+    router.post('/app/:appId/teachwithactivities', async (req, res, next) => {
         try {
             const key = getMemoryKey(req)
             const appId = req.params.appId
@@ -702,7 +702,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const trainDialog: CLM.TrainDialog = req.body.trainDialog
             const userInput: CLM.UserInput = req.body.userInput
 
-            // Get history and replay to put bot into last round
+            // Get activities and replay to put bot into last round
             const state = CLState.Get(key)
 
             const clRunner = CLRunner.GetRunnerForUI(appId);
@@ -712,8 +712,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             // Replay the TrainDialog logic (API calls and EntityDetectionCallback)
             let cleanTrainDialog = await clRunner.ReplayTrainDialogLogic(trainDialog, state, true)
 
-            const teachWithHistory = await clRunner.GetHistory(cleanTrainDialog, userName, userId, state)
-            if (!teachWithHistory) {
+            const teachWithActivities = await clRunner.GetActivities(cleanTrainDialog, userName, userId, state)
+            if (!teachWithActivities) {
                 res.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 res.send(new Error(`Could not find teach session history for given train dialog`))
                 return
@@ -723,10 +723,10 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const createTeachParams = CLM.ModelUtils.ToCreateTeachParams(cleanTrainDialog)
 
             // NOTE: Todo - pass in filteredDialogId so start sesssion doesn't find conflicts with existing dialog being edited
-            teachWithHistory.teach = await clRunner.StartSessionAsync(state, null, appId, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE, createTeachParams) as CLM.Teach
+            teachWithActivities.teach = await clRunner.StartSessionAsync(state, null, appId, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE, createTeachParams) as CLM.Teach
 
             // If last action wasn't terminal then score
-            if (teachWithHistory.dialogMode === CLM.DialogMode.Scorer) {
+            if (teachWithActivities.dialogMode === CLM.DialogMode.Scorer) {
 
                 // Get entities from my memory
                 const filledEntities = await state.EntityState.FilledEntitiesAsync()
@@ -735,11 +735,11 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                     context: {},
                     maskedActions: []
                 }
-                teachWithHistory.scoreInput = scoreInput
-                teachWithHistory.scoreResponse = await client.TeachScore(
+                teachWithActivities.scoreInput = scoreInput
+                teachWithActivities.scoreResponse = await client.TeachScore(
                     appId,
-                    teachWithHistory.teach.teachId,
-                    teachWithHistory.scoreInput
+                    teachWithActivities.teach.teachId,
+                    teachWithActivities.scoreInput
                 )
             }
             else if (userInput) {
@@ -750,13 +750,13 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 userActivity.from = userAccount
                 userActivity.recipient = botAccount
 
-                teachWithHistory.history.push(userActivity)
+                teachWithActivities.activities.push(userActivity)
 
                 // Extract responses
-                teachWithHistory.extractResponse = await client.TeachExtract(appId, teachWithHistory.teach.teachId, userInput, filteredDialog)
-                teachWithHistory.dialogMode = CLM.DialogMode.Extractor
+                teachWithActivities.extractResponse = await client.TeachExtract(appId, teachWithActivities.teach.teachId, userInput, filteredDialog)
+                teachWithActivities.dialogMode = CLM.DialogMode.Extractor
             }
-            res.send(teachWithHistory)
+            res.send(teachWithActivities)
         } catch (error) {
             if (error.statusCode === HttpStatus.CONFLICT) {
                 res.status(error.statusCode)
@@ -952,7 +952,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                     extractResponse.predictedEntities,
                     state,
                     extractResponse.definitions.entities,
-                    // If the previous action is a non-terminal action, the trainExtractorStep is null and the entity detection callback should be skipped. 
+                    // If the previous action is a non-terminal action, the trainExtractorStep is null and the entity detection callback should be skipped.
                     uiScoreInput.trainExtractorStep == null
                 )
             }
@@ -1134,7 +1134,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const clRunner = CLRunner.GetRunnerForUI(appId);
             validateBot(req, clRunner.botChecksum())
 
-            const teachWithHistory = await clRunner.GetHistory(trainDialog, userName, userId, state, markdown)
+            const teachWithActivities = await clRunner.GetActivities(trainDialog, userName, userId, state, markdown)
 
             // Clear bot memory generated with this
             await state.EntityState.ClearAsync();
@@ -1142,8 +1142,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             // Note the UI is now in edit mode
             await state.BotState.SetUIMode(UIMode.EDIT)
 
-            if (teachWithHistory) {
-                res.send(teachWithHistory)
+            if (teachWithActivities) {
+                res.send(teachWithActivities)
             }
             else {
                 res.sendStatus(204)
