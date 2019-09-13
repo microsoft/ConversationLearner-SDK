@@ -536,13 +536,13 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             // Slice to length requested by user
             trainDialog.rounds = trainDialog.rounds.slice(0, turnIndex)
 
-            // Get history and replay to put bot into last round
+            // Get activities and replay to put bot into last round
             const state = CLState.Get(key)
             const clRunner = CLRunner.GetRunnerForUI(appId);
             const teachWithActivities = await clRunner.GetActivities(trainDialog, userName, userId, state)
             if (!teachWithActivities) {
                 res.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                res.send(new Error(`Could not find teach session history for given train dialog`))
+                res.send(new Error(`Could not find teach session activities for given train dialog`))
                 return
             }
 
@@ -715,7 +715,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const teachWithActivities = await clRunner.GetActivities(cleanTrainDialog, userName, userId, state)
             if (!teachWithActivities) {
                 res.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                res.send(new Error(`Could not find teach session history for given train dialog`))
+                res.send(new Error(`Could not find teach session activities for given train dialog`))
                 return
             }
 
@@ -743,7 +743,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 )
             }
             else if (userInput) {
-                // Add new input to history
+                // Add new input to activities
                 const userAccount: BB.ChannelAccount = { id: userId, name: userName, role: BB.RoleTypes.User, aadObjectId: '' }
                 const botAccount: BB.ChannelAccount = { id: `BOT-${userId}`, name: CLM.CL_USER_NAME_ID, role: BB.RoleTypes.Bot, aadObjectId: '' }
                 let userActivity = Utils.InputToActivity(userInput.text, trainDialog.rounds.length)
@@ -768,8 +768,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
         }
     })
 
-    /** Given a train dialog history return a score for the last round */
-    router.post('/app/:appId/scorefromhistory', async (req, res, next) => {
+    /** Given a train dialog return a score for the last round */
+    router.post('/app/:appId/scorefromtraindialog', async (req, res, next) => {
         try {
             const key = getMemoryKey(req)
             const appId = req.params.appId
@@ -778,7 +778,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const clRunner = CLRunner.GetRunnerForUI(appId);
 
             // Replay the TrainDialog logic (API calls and EntityDetectionCallback)
-            // and set storage entities for the history
+            // and set storage entities for the train dialog
             let newTrainDialog = await clRunner.ReplayTrainDialogLogic(trainDialog, state, true)
 
             // Start new teach session from the old train dialog
@@ -818,8 +818,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
         }
     })
 
-    /** Given a train dialog history return extraction for the last round */
-    router.post('/app/:appId/extractfromhistory', async (req, res, next) => {
+    /** Given a train dialog return extraction for the last round */
+    router.post('/app/:appId/extractfromtraindialog', async (req, res, next) => {
         try {
             const key = getMemoryKey(req)
             const appId = req.params.appId
@@ -829,7 +829,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const clRunner = CLRunner.GetRunnerForUI(appId);
 
             // Replay the TrainDialog logic (API calls and EntityDetectionCallback)
-            // and set storage entities for the history
+            // and set storage entities for the train dialog
             let newTrainDialog = await clRunner.ReplayTrainDialogLogic(trainDialog, state, true)
 
             // Start new teach session from the old train dialog
@@ -865,7 +865,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             validateBot(req, clRunner.botChecksum())
 
             // Replay the TrainDialog logic (API calls and EntityDetectionCallback)
-            // and set storage entities for the history
+            // and set storage entities for the train dialog
             let newTrainDialog = await clRunner.ReplayTrainDialogLogic(trainDialog, state, false)
 
             res.send(newTrainDialog)

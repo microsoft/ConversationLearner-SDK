@@ -1710,7 +1710,7 @@ export class CLRunner {
         return newTrainDialog
     }
 
-    private GetHistoryRoundErrors(
+    private GetTrainDialogRoundErrors(
         round: CLM.TrainRound,
         roundIndex: number,
         curAction: CLM.ActionBase | null,
@@ -1775,7 +1775,7 @@ export class CLRunner {
         return replayError
     }
 
-    private GetHistoryScoreErrors(
+    private GetTrainDialogScoreErrors(
         round: CLM.TrainRound,
         scoreIndex: number,
         scoreFilledEntities: CLM.FilledEntity[],
@@ -1845,7 +1845,7 @@ export class CLRunner {
             const filledEntities = round.scorerSteps[0] && round.scorerSteps[0].input ? round.scorerSteps[0].input.filledEntities : []
 
             // Validate scorer step
-            replayError = this.GetHistoryRoundErrors(round, roundIndex, curAction, trainDialog, entities, filledEntities, replayErrors)
+            replayError = this.GetTrainDialogRoundErrors(round, roundIndex, curAction, trainDialog, entities, filledEntities, replayErrors)
 
             // Generate activity.  Add markdown to highlight labelled entities
             let userText = useMarkdown
@@ -1907,7 +1907,7 @@ export class CLRunner {
                         curAction = actions.find(a => a.actionId == labelAction) || null
 
                         // Validate Score Step
-                        replayError = this.GetHistoryScoreErrors(round, scoreIndex, scoreFilledEntities, curAction, actions, userText, replayErrors)
+                        replayError = this.GetTrainDialogScoreErrors(round, scoreIndex, scoreFilledEntities, curAction, actions, userText, replayErrors)
 
                         // Check for exceptions on API call (specificaly EntityDetectionCallback)
                         const logicAPIError = Utils.GetLogicAPIError(scorerStep.logicResult)
