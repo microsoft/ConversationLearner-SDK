@@ -1180,7 +1180,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             }
             const session = await clRunner.StartSessionAsync(state, null, appId, SessionStartFlags.IN_TEST, sessionCreateParams) as CLM.Session
             const logDialogId = session.logDialogId
-            const appDefinition = await client.GetAppSource(appId, packageId)
+
             const conversation: BB.ConversationAccount = {
                 id: CLM.ModelUtils.generateGUID(),
                 isGroup: false,
@@ -1197,8 +1197,6 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 aadObjectId: ''
             }
 
-            let validity: CLM.TranscriptValidationResultType = CLM.TranscriptValidationResultType.REPRODUCED
-
             for (const turnValidation of turnValidations) {
                 const activity = {
                     id: CLM.ModelUtils.generateGUID(),
@@ -1213,23 +1211,19 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 const result = await clRunner.recognize(turnContext)
 
                 if (result) {
-                    // Did I select the expected action?
-                    if (turnValidation.actionHashes[0] && !Utils.actionHasHash(result.scoredAction.actionId, turnValidation.actionHashes[0], appDefinition.actions)) {
-                        validity = CLM.TranscriptValidationResultType.CHANGED
-                    }
 
                     // Get conversation reference
                     const conversationReference = BB.TurnContext.getConversationReference(activity)
                     if (!conversationReference) {
-                        validity = CLM.TranscriptValidationResultType.TEST_FAILED
-                        break
+                        res.send(null)
+                        return
                     }
 
                     // Get session Id
                     const sessionId = await result.memory.BotState.GetSessionIdAsync()
                     if (!sessionId) {
-                        validity = CLM.TranscriptValidationResultType.TEST_FAILED
-                        break
+                        res.send(null)
+                        return
                     }
 
                     // Include apiResults when taking action so result will be the same when testing
@@ -1245,30 +1239,16 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                         bestAction = await clRunner.Score(appId, sessionId, result.memory, '', [], result.clEntities, false, true)
                         result.scoredAction = bestAction
 
-                        // Did I take another action when none was expected
-                        if (curHashIndex >= turnValidation.actionHashes.length) {
-                            validity = CLM.TranscriptValidationResultType.CHANGED
-                        }
-                        // Did I take the correct action
-                        else if (!Utils.actionHasHash(bestAction.actionId, turnValidation.actionHashes[curHashIndex], appDefinition.actions)) {
-                            validity = CLM.TranscriptValidationResultType.CHANGED
-                        }
                         // Include apiResults when taking action so result will be the same when testing
                         await clRunner.TakeActionAsync(conversationReference, result, null, turnValidation.apiResults[curHashIndex])
                     }
                 }
                 else {
-                    validity = CLM.TranscriptValidationResultType.TEST_FAILED
-                    break
+                    res.send(null)
+                    return
                 }
             }
-
-            const transcriptValidationResult: CLM.TranscriptValidationResult = {
-                validity,
-                logDialogId,
-                rating: CLM.TranscriptRating.UNKNOWN
-            }
-            res.send(transcriptValidationResult)
+            res.send(logDialogId)
         } catch (error) {
             HandleError(res, error)
         }

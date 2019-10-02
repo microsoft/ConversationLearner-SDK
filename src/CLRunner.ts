@@ -2036,7 +2036,8 @@ export class CLRunner {
                         scoreIndex,
                         validWaitAction: validWaitAction,
                         replayError,
-                        activityIndex: activities.length
+                        activityIndex: activities.length,
+                        actionId: curAction ? curAction.actionId : undefined
                     }
 
                     let botActivity: Partial<BB.Activity> | null = null
