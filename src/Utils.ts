@@ -107,8 +107,8 @@ const convertToMapById = (entityMap: CLM.FilledEntityMap): CLM.FilledEntityMap =
 export const actionHasHash = (actionId: string, hash: string, actions: CLM.ActionBase[]) => {
     // Check that correct action was taken
     const action = actions.find(a => a.actionId === actionId)
-    if (action && action.clientData && action.clientData.importHashes) {
-        return action.clientData.importHashes.indexOf(hash) >= 0
+    if (action && action.clientData && action.clientData.actionHashes) {
+        return action.clientData.actionHashes.indexOf(hash) >= 0
     }
     return false
 }
