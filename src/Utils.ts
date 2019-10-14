@@ -234,7 +234,7 @@ export const isConditionTrue = (
     }
 }
 
-export const isEnumConditionTrue = (
+const isEnumConditionTrue = (
     condition: CLM.Condition,
     filledEntities: CLM.FilledEntity[]
 ): boolean => {
@@ -249,7 +249,7 @@ export const isEnumConditionTrue = (
     return false
 }
 
-export const isValueConditionTrue = (
+const isValueConditionTrue = (
     condition: CLM.Condition,
     filledEntities: CLM.FilledEntity[],
     entities: CLM.EntityBase[]
@@ -277,7 +277,7 @@ export const isValueConditionTrue = (
         || (condition.condition === CLM.ConditionType.LESS_THEN_OR_EQUAL && numberValue <= condition.value)
 }
 
-export const findNumberFromFilledEntity = (filledEntity: CLM.FilledEntity, isMultivalue: boolean): number | undefined => {
+const findNumberFromFilledEntity = (filledEntity: CLM.FilledEntity, isMultivalue: boolean): number | undefined => {
     if (isMultivalue) {
         return filledEntity.values.length
     }
