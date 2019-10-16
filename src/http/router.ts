@@ -1159,12 +1159,17 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
     /** Replays a transcript and test whether responses match expected values */
     router.post('/app/:appId/validatetranscript', async (req, res, next) => {
         try {
-            const key = getMemoryKey(req)
             const { appId } = req.params
-            const { packageId, userId } = getQuery(req)
+            const { packageId, testId } = getQuery(req)
             const turnValidations: CLM.TranscriptValidationTurn[] = req.body
             const clRunner = CLRunner.GetRunnerForUI(appId)
-            const state = CLState.Get(key)
+            const app = await client.GetApp(appId)
+
+            // TestId allows us to run multiple validations in parallel
+            const state = CLState.Get(testId)
+
+            // Need to set app as not using default key
+            await state.SetAppAsync(app)
 
             if (!packageId) {
                 res.status(HttpStatus.BAD_REQUEST)
@@ -1192,7 +1197,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             }
             const from: BB.ChannelAccount = {
                 name: Utils.CL_DEVELOPER,
-                id: userId,
+                id: testId,
                 role: BB.RoleTypes.User,
                 aadObjectId: ''
             }
