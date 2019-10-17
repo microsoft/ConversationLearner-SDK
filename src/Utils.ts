@@ -217,4 +217,79 @@ export const isRunningInClUI: (context: BB.TurnContext) => boolean = (context) =
     return context && context.activity && context.activity && context.activity.from && context.activity.from.name === CL_DEVELOPER
 }
 
+export const isConditionTrue = (
+    condition: CLM.Condition,
+    filledEntities: CLM.FilledEntity[],
+    entities: CLM.EntityBase[]
+): boolean => {
+    if (condition.valueId) {
+        return isEnumConditionTrue(condition, filledEntities)
+    }
+    else if (condition.value) {
+        return isValueConditionTrue(condition, filledEntities, entities)
+    }
+    // Unknown condition type, assume false
+    else {
+        return false
+    }
+}
 
+const isEnumConditionTrue = (
+    condition: CLM.Condition,
+    filledEntities: CLM.FilledEntity[]
+): boolean => {
+    if (condition.valueId) {
+        const filledEntity = filledEntities.find(e => e.entityId === condition.entityId)
+        const enumValueId = filledEntity && filledEntity.values.length > 0 && filledEntity.values[0].enumValueId
+        if (enumValueId === condition.valueId) {
+            return true
+        }
+    }
+
+    return false
+}
+
+const isValueConditionTrue = (
+    condition: CLM.Condition,
+    filledEntities: CLM.FilledEntity[],
+    entities: CLM.EntityBase[]
+): boolean => {
+    if (!condition.value) {
+        return false
+    }
+
+    const filledEntity = filledEntities.find(e => e.entityId === condition.entityId)
+    const entity = entities.find(e => e.entityId === condition.entityId)
+    if (!entity || !filledEntity) {
+        return false
+    }
+
+    const numberValue = findNumberFromFilledEntity(filledEntity, entity.isMultivalue)
+    if (!numberValue) {
+        return false
+    }
+
+    return (condition.condition === CLM.ConditionType.EQUAL && numberValue == condition.value)
+        || (condition.condition === CLM.ConditionType.NOT_EQUAL && numberValue != condition.value)
+        || (condition.condition === CLM.ConditionType.GREATER_THAN && numberValue > condition.value)
+        || (condition.condition === CLM.ConditionType.GREATER_THAN_OR_EQUAL && numberValue >= condition.value)
+        || (condition.condition === CLM.ConditionType.LESS_THAN && numberValue < condition.value)
+        || (condition.condition === CLM.ConditionType.LESS_THEN_OR_EQUAL && numberValue <= condition.value)
+}
+
+const findNumberFromFilledEntity = (filledEntity: CLM.FilledEntity, isMultivalue: boolean): number | undefined => {
+    if (isMultivalue) {
+        return filledEntity.values.length
+    }
+
+    const valueString: string | undefined = filledEntity
+        && filledEntity.values[0]
+        && (filledEntity.values[0].resolution ? true : undefined)
+        && (filledEntity.values[0].resolution as any).value as string
+
+    const value = valueString
+        ? parseInt(valueString, 10)
+        : undefined
+
+    return value
+}
