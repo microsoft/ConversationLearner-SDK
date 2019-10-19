@@ -521,7 +521,6 @@ export class CLRunner {
                 false
             )
 
-            // TODO: Use new action type and check type instead of text prefix
             if (scoredAction.actionType === CLM.ActionTypes.DISPATCH) {
                 CLDebug.Log(`${CLM.ActionTypes.DISPATCH} action detected in model ${this.configModelId}.`, DebugType.Dispatch)
                 // TODO: Schema refactor: another hack between scoredAction and Action
@@ -541,6 +540,14 @@ export class CLRunner {
 
                 const recognizerResult = await model.clRunner.ProcessInput(turnContext)
                 return recognizerResult
+            }
+            if (scoredAction.actionType === CLM.ActionTypes.CHANGE_MODEL) {
+                CLDebug.Log(`${CLM.ActionTypes.CHANGE_MODEL} action detected in model ${this.configModelId}.`, DebugType.Dispatch)
+                // TODO: Schema refactor: another hack between scoredAction and Action
+                const changeModelAction = new CLM.DispatchAction(scoredAction as unknown as CLM.ActionBase)
+                CLDebug.Log(`Change to Model: ${changeModelAction.modelId} ${changeModelAction.modelName}`, DebugType.Dispatch)
+
+                // TODO: Change Model Logic
             }
             return {
                 scoredAction: scoredAction,
@@ -2148,7 +2155,8 @@ export class CLRunner {
             await this.clClient.SessionLogicResult(app.appId, sessionId, actionId, actionResult)
         }
     }
-    private RenderSetEntityCard(name: string, value: string): Partial<BB.Activity> {
+
+    private renderPlaceholderCard(title: string, text: string): Partial<BB.Activity> {
         const card = {
             type: "AdaptiveCard",
             version: "1.0",
@@ -2158,87 +2166,38 @@ export class CLRunner {
                     items: [
                         {
                             type: "TextBlock",
-                            text: `memory.Set(${name}, ${value})`,
+                            text,
                             wrap: true
                         }
                     ]
                 }]
         }
 
-        const attachment = BB.CardFactory.adaptiveCard(card)
-        const message = BB.MessageFactory.attachment(attachment)
-        message.text = "Set Entity:"
-        return message;
-    }
-
-    private RenderDispatchCard(modelName: string): Partial<BB.Activity> {
-        const card = {
-            type: "AdaptiveCard",
-            version: "1.0",
-            body: [
-                {
-                    type: "Container",
-                    items: [
-                        {
-                            type: "TextBlock",
-                            text: modelName,
-                            wrap: true
-                        }
-                    ]
-                }]
-        }
-
-        const attachment = BB.CardFactory.adaptiveCard(card)
-        const message = BB.MessageFactory.attachment(attachment)
-        message.text = "DISPATCH:"
-        return message;
-    }
-
-    // Generate a card to show for an API action w/o output
-    private RenderAPICard(callback: CLM.Callback, args: string[]): Partial<BB.Activity> {
-
-        let card = {
-            type: "AdaptiveCard",
-            version: "1.0",
-            body: [
-                {
-                    type: "Container",
-                    items: [
-                        {
-                            type: "TextBlock",
-                            text: `${callback.name}(${args.join(',')})`,
-                            wrap: true
-                        }
-                    ]
-                }]
-        }
-
-        const attachment = BB.CardFactory.adaptiveCard(card)
-        const message = BB.MessageFactory.attachment(attachment)
-        message.text = "API Call:"
-        return message;
-    }
-
-    // Generate a card to show for an API action w/o output
-    private RenderErrorCard(title: string, error: string): Partial<BB.Activity> {
-        let card = {
-            type: "AdaptiveCard",
-            version: "1.0",
-            body: [
-                {
-                    type: "Container",
-                    items: [
-                        {
-                            type: "TextBlock",
-                            text: error,
-                            wrap: true
-                        }
-                    ]
-                }]
-        }
         const attachment = BB.CardFactory.adaptiveCard(card)
         const message = BB.MessageFactory.attachment(attachment)
         message.text = title
         return message;
+    }
+
+    private RenderSetEntityCard(name: string, value: string): Partial<BB.Activity> {
+        return this.renderPlaceholderCard("Set Entity:", `memory.Set(${name}, ${value})`)
+    }
+
+    private RenderDispatchCard(modelName: string): Partial<BB.Activity> {
+        return this.renderPlaceholderCard("DISPATCH:", modelName)
+    }
+
+    private RenderChangeModelCard(modelName: string): Partial<BB.Activity> {
+        return this.renderPlaceholderCard("Change Model:", modelName)
+    }
+
+    // Generate a card to show for an API action w/o output
+    private RenderAPICard(callback: CLM.Callback, args: string[]): Partial<BB.Activity> {
+        return this.renderPlaceholderCard("API Call:", `${callback.name}(${args.join(',')})`)
+    }
+
+    // Generate a card to show for an API action w/o output
+    private RenderErrorCard(title: string, error: string): Partial<BB.Activity> {
+        return this.renderPlaceholderCard(title, error)
     }
 }
