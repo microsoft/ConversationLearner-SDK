@@ -40,7 +40,14 @@ export class ConversationLearner {
     }
 
     public async recognize(turnContext: BB.TurnContext, force?: boolean): Promise<CLRecognizerResult | null> {
-        return await this.clRunner.recognize(turnContext, force)
+        const result = await this.clRunner.recognize(turnContext, force)
+
+        // If no new active model was specified, set the model to the current model
+        if (result && typeof result.model == undefined) {
+            result.model = this
+        }
+
+        return result
     }
 
     /**

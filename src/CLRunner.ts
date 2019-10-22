@@ -548,6 +548,24 @@ export class CLRunner {
                 CLDebug.Log(`Change to Model: ${changeModelAction.modelId} ${changeModelAction.modelName}`, DebugType.Dispatch)
 
                 // TODO: Change Model Logic
+                let model = this.models.find(m => m.clRunner.configModelId === changeModelAction.modelId)
+                if (!model) {
+                    // TODO: Learn more about requirement/need to call SetAdapter on new cl runner instance.
+                    model = new ConversationLearner(changeModelAction.modelId)
+                    model.clRunner.SetAdapter(turnContext.adapter, conversationReference)
+
+                    this.models.push(model)
+                }
+
+                const recognizerResult = await model.clRunner.ProcessInput(turnContext)
+                // Since this is "change model" action set the return/active model
+                // In case that model we're changing to also predicts a "change model" action, set to that child model
+                // Otherwise, set to the chosen model
+                if (recognizerResult) {
+                    recognizerResult.model = recognizerResult.model || model
+                }
+
+                return recognizerResult
             }
             return {
                 scoredAction: scoredAction,
@@ -998,6 +1016,22 @@ export class CLRunner {
                     )
                     break
                 }
+                case CLM.ActionTypes.DISPATCH: {
+                    const dispatchAction = new CLM.DispatchAction(clRecognizeResult.scoredAction as any)
+                    actionResult = await this.TakeDispatchAction(
+                        dispatchAction,
+                        inTeach,
+                    )
+                    break;
+                }
+                case CLM.ActionTypes.CHANGE_MODEL: {
+                    const changeModelAction = new CLM.DispatchAction(clRecognizeResult.scoredAction as any)
+                    actionResult = await this.TakeChangeModelAction(
+                        changeModelAction,
+                        inTeach,
+                    )
+                    break;
+                }
                 default:
                     throw new Error(`Could not find matching renderer for action type: ${clRecognizeResult.scoredAction.actionType}`)
             }
@@ -1233,7 +1267,7 @@ export class CLRunner {
             return {
                 logicResult: undefined,
                 response,
-                replayError: replayError || undefined
+                replayError,
             }
         }
         catch (e) {
@@ -1241,6 +1275,34 @@ export class CLRunner {
             const title = error.message || `Exception hit when calling Dispatch Action: '${action.actionId}'`
             const message = this.RenderErrorCard(title, error.stack || error.message || "")
             const replayError = new CLM.ReplayDispatchException()
+            return {
+                logicResult: undefined,
+                response: message,
+                replayError
+            }
+        }
+    }
+
+    public async TakeChangeModelAction(action: CLM.DispatchAction, inTeach: boolean): Promise<IActionResult> {
+        try {
+            let replayError: CLM.ReplayError | undefined
+            let response: Partial<BB.Activity> | string | null = null
+
+            if (inTeach) {
+                response = this.RenderChangeModelCard(action.modelName)
+            }
+
+            return {
+                logicResult: undefined,
+                response,
+                replayError,
+            }
+        }
+        catch (e) {
+            const error: Error = e
+            const title = error.message || `Exception hit when calling Change Model Action: '${action.actionId}'`
+            const message = this.RenderErrorCard(title, error.stack || error.message || "")
+            const replayError = new CLM.ReplayChangeModelException()
             return {
                 logicResult: undefined,
                 response: message,
@@ -1393,7 +1455,6 @@ export class CLRunner {
     }
 
     private async TakeSessionAction(sessionAction: CLM.SessionAction, filledEntityIdMap: CLM.FilledEntityMap, inTeach: boolean, state: CLState, sessionId: string | null, app: CLM.AppBase | null): Promise<Partial<BB.Activity> | null> {
-
         // Get any context from the action
         let content = sessionAction.renderValue(CLM.getEntityDisplayValueMap(filledEntityIdMap))
 
@@ -2031,6 +2092,9 @@ export class CLRunner {
                             } else if (curAction.actionType === CLM.ActionTypes.DISPATCH) {
                                 const dispatchAction = new CLM.DispatchAction(curAction)
                                 botResponse = await this.TakeDispatchAction(dispatchAction, true)
+                            } else if (curAction.actionType === CLM.ActionTypes.CHANGE_MODEL) {
+                                const changeModelAction = new CLM.DispatchAction(curAction)
+                                botResponse = await this.TakeChangeModelAction(changeModelAction, true)
                             }
                             else {
                                 throw new Error(`Cannot construct bot response for unknown action type: ${curAction.actionType}`)
@@ -2170,12 +2234,14 @@ export class CLRunner {
                             wrap: true
                         }
                     ]
-                }]
+                }
+            ]
         }
 
         const attachment = BB.CardFactory.adaptiveCard(card)
         const message = BB.MessageFactory.attachment(attachment)
         message.text = title
+
         return message;
     }
 
@@ -2193,7 +2259,7 @@ export class CLRunner {
 
     // Generate a card to show for an API action w/o output
     private RenderAPICard(callback: CLM.Callback, args: string[]): Partial<BB.Activity> {
-        return this.renderPlaceholderCard("API Call:", `${callback.name}(${args.join(',')})`)
+        return this.renderPlaceholderCard("API Call:", `${callback.name}(${args.join(', ')})`)
     }
 
     // Generate a card to show for an API action w/o output
