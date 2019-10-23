@@ -548,32 +548,38 @@ export class CLRunner {
                 CLDebug.Log(`Change to Model: ${changeModelAction.modelId} ${changeModelAction.modelName}`, DebugType.Dispatch)
 
                 // TODO: Change Model Logic
-                let model = this.models.find(m => m.clRunner.configModelId === changeModelAction.modelId)
-                if (!model) {
-                    // TODO: Learn more about requirement/need to call SetAdapter on new cl runner instance.
-                    model = new ConversationLearner(changeModelAction.modelId)
-                    model.clRunner.SetAdapter(turnContext.adapter, conversationReference)
+                // If changing to a model different than current
+                if (changeModelAction.modelId !== this.configModelId) {
+                    let model = this.models.find(m => m.clRunner.configModelId === changeModelAction.modelId)
+                    if (!model) {
+                        // TODO: Learn more about requirement/need to call SetAdapter on new cl runner instance.
+                        model = new ConversationLearner(changeModelAction.modelId)
+                        model.clRunner.SetAdapter(turnContext.adapter, conversationReference)
 
-                    this.models.push(model)
+                        this.models.push(model)
+                    }
+
+                    const recognizerResult = await model.clRunner.ProcessInput(turnContext)
+                    // Since this is "change model" action set the return/active model
+                    // In case that model we're changing to also predicts a "change model" action, set to that child model
+                    // Otherwise, set to the chosen model
+                    if (recognizerResult) {
+                        recognizerResult.model = recognizerResult.model || model
+                    }
+
+                    return recognizerResult
                 }
-
-                const recognizerResult = await model.clRunner.ProcessInput(turnContext)
-                // Since this is "change model" action set the return/active model
-                // In case that model we're changing to also predicts a "change model" action, set to that child model
-                // Otherwise, set to the chosen model
-                if (recognizerResult) {
-                    recognizerResult.model = recognizerResult.model || model
-                }
-
-                return recognizerResult
             }
+
             return {
-                scoredAction: scoredAction,
+                // TODO: Fix types, result from Recognize can't have undefined model, but inner from ProcessInput can
+                model: undefined!,
+                scoredAction,
                 clEntities: entities,
                 memory: state,
                 inTeach: false,
-                activity: activity
-            } as CLRecognizerResult
+                activity
+            }
         } catch (error) {
             // Try to end the session, so use can potentially recover
             try {

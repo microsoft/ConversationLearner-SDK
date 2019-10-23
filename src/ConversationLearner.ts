@@ -43,7 +43,7 @@ export class ConversationLearner {
         const result = await this.clRunner.recognize(turnContext, force)
 
         // If no new active model was specified, set the model to the current model
-        if (result && typeof result.model == undefined) {
+        if (result && result.model == undefined) {
             result.model = this
         }
 
