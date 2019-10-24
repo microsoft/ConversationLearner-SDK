@@ -16,6 +16,7 @@ import { CLModelOptions } from '.'
 export class ConversationLearner {
     public static options: CLOptions | null = null
     public static clClient: CLClient
+    public static models: ConversationLearner[] = []
     public clRunner: CLRunner
 
     public static Init(options: CLOptions, storage?: BB.Storage): express.Router {
@@ -37,15 +38,24 @@ export class ConversationLearner {
         }
 
         this.clRunner = CLRunner.Create(modelId, ConversationLearner.clClient, modelOptions)
+        ConversationLearner.models.push(this)
     }
 
     public async recognize(turnContext: BB.TurnContext, force?: boolean): Promise<CLRecognizerResult | null> {
-        const result = await this.clRunner.recognize(turnContext, force)
-
-        // If no new active model was specified, set the model to the current model
-        if (result && result.model == undefined) {
-            result.model = this
+        // tslint:disable-next-line:no-this-assignment
+        let activeModel: ConversationLearner = this
+        // If there is more than one model in use for running bot need to check which model is active for conversation
+        // This check avoids doing work for normal singe model model bots
+        if (ConversationLearner.models.length > 1) {
+            const context = CLState.GetFromContext(turnContext)
+            const activeModelIdForConversation = await context.ConversationModelState.get<string>()
+            const model = ConversationLearner.models.find(m => m.clRunner.configModelId === activeModelIdForConversation)
+            if (model) {
+                activeModel = model
+            }
         }
+
+        const result = await activeModel.clRunner.recognize(turnContext, force)
 
         return result
     }

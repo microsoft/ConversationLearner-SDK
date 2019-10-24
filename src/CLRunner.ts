@@ -124,7 +124,6 @@ export class CLRunner {
 
     /* Mapping between user defined API names and functions */
     public callbacks: CallbackMap = {}
-    private models: ConversationLearner[] = []
 
     public static Create(configModelId: string | undefined, client: CLClient, newOptions?: Partial<ModelOptions.CLModelOptions>): CLRunner {
 
@@ -432,7 +431,7 @@ export class CLRunner {
                         initialFilledEntities: []
                     }
 
-                    // If I'm running in the editing UI I need to retreive the packageId as
+                    // If I'm running in the editing UI I need to retrieve the packageId as
                     // may not be running live package
                     if (inEditingUI) {
                         const result = await this.clClient.GetSession(app.appId, sessionId)
@@ -529,13 +528,11 @@ export class CLRunner {
 
                 // If CL model does not exist as child of this instance, then create it and add it.
                 // TODO: ConversationLearner instance vs CLRunner instance?
-                let model = this.models.find(m => m.clRunner.configModelId === dispatchAction.modelId)
+                let model = ConversationLearner.models.find(m => m.clRunner.configModelId === dispatchAction.modelId)
                 if (!model) {
                     // TODO: Learn more about requirement/need to call SetAdapter on new cl runner instance.
                     model = new ConversationLearner(dispatchAction.modelId)
                     model.clRunner.SetAdapter(turnContext.adapter, conversationReference)
-
-                    this.models.push(model)
                 }
 
                 const recognizerResult = await model.clRunner.ProcessInput(turnContext)
@@ -547,33 +544,23 @@ export class CLRunner {
                 const changeModelAction = new CLM.DispatchAction(scoredAction as unknown as CLM.ActionBase)
                 CLDebug.Log(`Change to Model: ${changeModelAction.modelId} ${changeModelAction.modelName}`, DebugType.Dispatch)
 
-                // TODO: Change Model Logic
-                // If changing to a model different than current
-                if (changeModelAction.modelId !== this.configModelId) {
-                    let model = this.models.find(m => m.clRunner.configModelId === changeModelAction.modelId)
-                    if (!model) {
-                        // TODO: Learn more about requirement/need to call SetAdapter on new cl runner instance.
-                        model = new ConversationLearner(changeModelAction.modelId)
-                        model.clRunner.SetAdapter(turnContext.adapter, conversationReference)
-
-                        this.models.push(model)
-                    }
-
-                    const recognizerResult = await model.clRunner.ProcessInput(turnContext)
-                    // Since this is "change model" action set the return/active model
-                    // In case that model we're changing to also predicts a "change model" action, set to that child model
-                    // Otherwise, set to the chosen model
-                    if (recognizerResult) {
-                        recognizerResult.model = recognizerResult.model || model
-                    }
-
-                    return recognizerResult
+                // Illegal for model to predict an action that changes to itself
+                if (changeModelAction.modelId === this.configModelId) {
+                    throw new Error(`Change Mode action has same ID as active model. The shouldn't be possible.`)
                 }
+
+                let model = ConversationLearner.models.find(m => m.clRunner.configModelId === changeModelAction.modelId)
+                if (!model) {
+                    model = new ConversationLearner(changeModelAction.modelId)
+                    model.clRunner.SetAdapter(turnContext.adapter, conversationReference)
+                    state.ConversationModelState.set(model.clRunner.configModelId)
+                }
+
+                const recognizerResult = await model.clRunner.ProcessInput(turnContext)
+                return recognizerResult
             }
 
             return {
-                // TODO: Fix types, result from Recognize can't have undefined model, but inner from ProcessInput can
-                model: undefined!,
                 scoredAction,
                 clEntities: entities,
                 memory: state,
