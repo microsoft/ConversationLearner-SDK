@@ -1420,21 +1420,30 @@ export class CLRunner {
     }
 
     // Returns true if Action is available given Entities in Memory
-    public isActionAvailable(action: CLM.ActionBase, filledEntities: CLM.FilledEntity[]): boolean {
+    public isActionAvailable(action: CLM.ActionBase, filledEntities: CLM.FilledEntity[], entities: CLM.EntityBase[]): boolean {
+        const areRequiredConditionsTrue = action.requiredConditions.every(condition => Utils.isConditionTrue(condition, filledEntities, entities))
+        if (areRequiredConditionsTrue === false) {
+            return false
+        }
 
-        for (let entityId of action.requiredEntities) {
-            let found = filledEntities.find(e => e.entityId == entityId);
+        const areNegativeConditionsTrue = action.negativeConditions.every(condition => !Utils.isConditionTrue(condition, filledEntities, entities))
+        if (areNegativeConditionsTrue === false) {
+            return false
+        }
+
+        for (const entityId of action.requiredEntities) {
+            const found = filledEntities.find(e => e.entityId == entityId)
             if (!found || found.values.length === 0) {
-                return false;
+                return false
             }
         }
-        for (let entityId of action.negativeEntities) {
-            let found = filledEntities.find(e => e.entityId == entityId);
+        for (const entityId of action.negativeEntities) {
+            const found = filledEntities.find(e => e.entityId == entityId)
             if (found && found.values.length > 0) {
-                return false;
+                return false
             }
         }
-        return true;
+        return true
     }
 
     // Convert list of filled entities into a filled entity map lookup table
@@ -1481,7 +1490,7 @@ export class CLRunner {
                 }
                 else {
                     // Check action availability
-                    if (!this.isActionAvailable(selectedAction, scorerStep.input.filledEntities)) {
+                    if (!this.isActionAvailable(selectedAction, scorerStep.input.filledEntities, entities)) {
                         validationErrors.push(`Selected Action in unavailable in response to "${userText}"`);
                     }
                 }
@@ -1781,6 +1790,7 @@ export class CLRunner {
         scoreFilledEntities: CLM.FilledEntity[],
         curAction: CLM.ActionBase | null,
         actions: CLM.ActionBase[],
+        entities: CLM.EntityBase[],
         userText: string,
         replayErrors: CLM.ReplayError[]): CLM.ReplayError | null {
 
@@ -1793,7 +1803,7 @@ export class CLRunner {
         }
         else {
             // Check action availability
-            if (!this.isActionAvailable(curAction, scoreFilledEntities)) {
+            if (!this.isActionAvailable(curAction, scoreFilledEntities, entities)) {
                 replayError = new CLM.ReplayErrorActionUnavailable(userText)
                 replayErrors.push(replayError)
             }
@@ -1907,7 +1917,7 @@ export class CLRunner {
                         curAction = actions.find(a => a.actionId == labelAction) || null
 
                         // Validate Score Step
-                        replayError = this.GetTrainDialogScoreErrors(round, scoreIndex, scoreFilledEntities, curAction, actions, userText, replayErrors)
+                        replayError = this.GetTrainDialogScoreErrors(round, scoreIndex, scoreFilledEntities, curAction, actions, entities, userText, replayErrors)
 
                         // Check for exceptions on API call (specificaly EntityDetectionCallback)
                         const logicAPIError = Utils.GetLogicAPIError(scorerStep.logicResult)
