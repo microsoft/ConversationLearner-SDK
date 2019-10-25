@@ -108,7 +108,7 @@ export class CLState {
             keyPrefix = conversationReference.conversation.id
         }
 
-        return CLState.Get(keyPrefix, modelId, turnContext)
+        return CLState.Get(keyPrefix, !isRunningInUI ? modelId : undefined, turnContext)
     }
 
     public async SetAppAsync(app: CLM.AppBase | null): Promise<void> {
