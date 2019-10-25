@@ -2,7 +2,6 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License.
  */
-//LARSimport * as utils from './Utils'
 import * as CLM from '@conversationlearner/models';
 import { CosmosLogStorage } from './CosmosLogStorage';
 
