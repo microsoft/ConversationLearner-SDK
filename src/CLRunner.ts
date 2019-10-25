@@ -553,8 +553,8 @@ export class CLRunner {
                 if (!model) {
                     model = new ConversationLearner(changeModelAction.modelId)
                     model.clRunner.SetAdapter(turnContext.adapter, conversationReference)
-                    state.ConversationModelState.set(model.clRunner.configModelId)
                 }
+                state.ConversationModelState.set(model.clRunner.configModelId)
 
                 const recognizerResult = await model.clRunner.ProcessInput(turnContext)
                 return recognizerResult
