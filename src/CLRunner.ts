@@ -541,7 +541,7 @@ export class CLRunner {
             if (scoredAction.actionType === CLM.ActionTypes.CHANGE_MODEL) {
                 CLDebug.Log(`${CLM.ActionTypes.CHANGE_MODEL} action detected in model ${this.configModelId}.`, DebugType.Dispatch)
                 // TODO: Schema refactor: another hack between scoredAction and Action
-                const changeModelAction = new CLM.DispatchAction(scoredAction as unknown as CLM.ActionBase)
+                const changeModelAction = new CLM.ChangeModelAction(scoredAction as unknown as CLM.ActionBase)
                 CLDebug.Log(`Change to Model: ${changeModelAction.modelId} ${changeModelAction.modelName}`, DebugType.Dispatch)
 
                 // Illegal for model to predict an action that changes to itself
@@ -1018,7 +1018,7 @@ export class CLRunner {
                     break;
                 }
                 case CLM.ActionTypes.CHANGE_MODEL: {
-                    const changeModelAction = new CLM.DispatchAction(clRecognizeResult.scoredAction as any)
+                    const changeModelAction = new CLM.ChangeModelAction(clRecognizeResult.scoredAction as any)
                     actionResult = await this.TakeChangeModelAction(
                         changeModelAction,
                         inTeach,
@@ -1276,7 +1276,7 @@ export class CLRunner {
         }
     }
 
-    public async TakeChangeModelAction(action: CLM.DispatchAction, inTeach: boolean): Promise<IActionResult> {
+    public async TakeChangeModelAction(action: CLM.ChangeModelAction, inTeach: boolean): Promise<IActionResult> {
         try {
             let replayError: CLM.ReplayError | undefined
             let response: Partial<BB.Activity> | string | null = null
@@ -2086,7 +2086,7 @@ export class CLRunner {
                                 const dispatchAction = new CLM.DispatchAction(curAction)
                                 botResponse = await this.TakeDispatchAction(dispatchAction, true)
                             } else if (curAction.actionType === CLM.ActionTypes.CHANGE_MODEL) {
-                                const changeModelAction = new CLM.DispatchAction(curAction)
+                                const changeModelAction = new CLM.ChangeModelAction(curAction)
                                 botResponse = await this.TakeChangeModelAction(changeModelAction, true)
                             }
                             else {
