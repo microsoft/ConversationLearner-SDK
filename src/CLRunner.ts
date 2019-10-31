@@ -756,6 +756,8 @@ export class CLRunner {
 
         const activity = <BB.Activity>{ type: BB.ActivityTypes.Message }
         const incomingActivity = BB.TurnContext.applyConversationReference(activity, conversationRef, true)
+        CLDebug.Log(`Activity artificially created using conversation reference`)
+
         return new BB.TurnContext(this.adapter, incomingActivity)
     }
 
@@ -977,7 +979,7 @@ export class CLRunner {
 
                     if (!inTeach) {
                         CLDebug.Log(`Dispatch to Model: ${dispatchAction.modelId} ${dispatchAction.modelName}`, DebugType.Dispatch)
-                        await this.forwardInputToModel(dispatchAction.modelId, clRecognizeResult)
+                        await this.forwardInputToModel(dispatchAction.modelId, clRecognizeResult.state)
                         // Force response to null to avoid sending message as message will come from next model.
                         actionResult.response = null
                     }
@@ -997,7 +999,7 @@ export class CLRunner {
 
                     if (!inTeach) {
                         CLDebug.Log(`Change to Model: ${changeModelAction.modelId} ${changeModelAction.modelName}`, DebugType.Dispatch)
-                        await this.forwardInputToModel(changeModelAction.modelId, clRecognizeResult)
+                        await this.forwardInputToModel(changeModelAction.modelId, clRecognizeResult.state)
                         // Force response to null to avoid sending message as message will come from next model.
                         actionResult.response = null
                     }
@@ -1061,27 +1063,34 @@ export class CLRunner {
         return actionResult
     }
 
-    private async forwardInputToModel(modelId: string, clRecognizeResult: CLRecognizerResult) {
+    private async forwardInputToModel(modelId: string, state: CLState, changeActiveModel: boolean = false) {
         if (modelId === this.configModelId) {
-            throw new Error(`Change Mode action has same ID as active model. The shouldn't be possible.`)
+            throw new Error(`Cannot forward input to model with same ID as active model. This shouldn't be possible open an issue.`)
         }
 
-        // Reuse model from cache or create it
+        // Reuse model instance from cache or create it
         let model = ConversationLearner.models.find(m => m.clRunner.configModelId === modelId)
         if (!model) {
-            model = new ConversationLearner(modelId);
+            model = new ConversationLearner(modelId)
         }
 
-        clRecognizeResult.state.ConversationModelState.set(model.clRunner.configModelId)
-        const turnContext = clRecognizeResult.state.turnContext
+        // Save the model id for the conversation so all future input is directed to it.
+        if (changeActiveModel) {
+            state.ConversationModelState.set(model.clRunner.configModelId)
+        }
+
+        const turnContext = state.turnContext
         if (!turnContext) {
             throw new Error(`Cannot forward input (turnContext) to next model because turnContext is undefined.`)
         }
 
-        // model.clRunner.SetAdapter(turnContext.adapter, conversationReference)
-        const recognizerResult = await model.clRunner.recognize(turnContext);
+        const conversationReference = BB.TurnContext.getConversationReference(turnContext.activity)
+        // Need to set adapter since we're going around this setup in recognize
+        // and can't use recognize for dispatch since want to force which model processes input instead looking for match from conversation again
+        model.clRunner.SetAdapter(turnContext.adapter, conversationReference)
+        const recognizerResult = await model.clRunner.ProcessInput(turnContext)
         if (recognizerResult) {
-            await model.SendResult(recognizerResult);
+            await model.SendResult(recognizerResult)
         }
     }
 
