@@ -1094,7 +1094,7 @@ export class CLRunner {
         }
     }
 
-    public async SendResult(recognizerResult: CLRecognizerResult, uiTrainScorerStep: CLM.UITrainScorerStep | null = null): Promise<void> {
+    public async SendResult(recognizerResult: CLRecognizerResult, uiTrainScorerStep: CLM.UITrainScorerStep | null = null): Promise<IActionResult | undefined> {
         const conversationReference = await recognizerResult.state.BotState.GetConversationReference();
         if (!conversationReference) {
             CLDebug.Error('Missing ConversationReference')
@@ -1111,6 +1111,8 @@ export class CLRunner {
             const context = await this.GetTurnContext(recognizerResult.state)
             await context.sendActivity(actionResult.response)
         }
+
+        return actionResult
     }
 
     private async SendMessage(state: CLState, message: string | Partial<BB.Activity>, incomingActivityId?: string | undefined): Promise<void> {
