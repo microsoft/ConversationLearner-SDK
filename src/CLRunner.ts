@@ -999,7 +999,7 @@ export class CLRunner {
 
                     if (!inTeach) {
                         CLDebug.Log(`Change to Model: ${changeModelAction.modelId} ${changeModelAction.modelName}`, DebugType.Dispatch)
-                        await this.forwardInputToModel(changeModelAction.modelId, clRecognizeResult.state)
+                        await this.forwardInputToModel(changeModelAction.modelId, clRecognizeResult.state, true)
                         // Force response to null to avoid sending message as message will come from next model.
                         actionResult.response = null
                     }
