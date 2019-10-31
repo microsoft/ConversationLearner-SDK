@@ -31,18 +31,21 @@ export class CLState {
     BotState: BotState
     EntityState: EntityState
     MessageState: MessageState
+    ConversationModelState: MessageState
     BrowserSlotState: BrowserSlotState
 
     private constructor(
         botState: BotState,
         entityState: EntityState,
         messageState: MessageState,
+        conversationModelState: MessageState,
         browserSlotState: BrowserSlotState,
-        turnContext?: BB.TurnContext) {
-
+        turnContext?: BB.TurnContext,
+    ) {
         this.BotState = botState
         this.EntityState = entityState
         this.MessageState = messageState
+        this.ConversationModelState = conversationModelState
         this.BrowserSlotState = browserSlotState
 
         this.turnContext = turnContext
@@ -58,7 +61,7 @@ export class CLState {
         CLState.bbStorage = storage
     }
 
-    public static Get(key: string, modelId: string = ''): CLState {
+    public static Get(key: string, modelId: string = '', turnContext?: BB.TurnContext): CLState {
         const storage = new CLStorage(CLState.bbStorage)
 
         // Used for state shared through lifetime of conversation (conversationId)
@@ -69,9 +72,17 @@ export class CLState {
         const botState = new BotState(storage, (datakey) => `${modelUniqueKeyPrefix}_BOTSTATE_${datakey}`)
         const entityState = new EntityState(storage, () => `${modelUniqueKeyPrefix}_ENTITYSTATE`)
         const messageState = new MessageState(storage, () => `${keyPrefix}_MESSAGE_MUTEX`)
+        const conversationModelState = new MessageState(storage, () => `${keyPrefix}_CONVERSATION_MODEL`)
         const browserSlotState = new BrowserSlotState(storage, () => `BROWSER_SLOTS`)
 
-        return new CLState(botState, entityState, messageState, browserSlotState)
+        return new CLState(
+            botState,
+            entityState,
+            messageState,
+            conversationModelState,
+            browserSlotState,
+            turnContext,
+        )
     }
 
     public static GetFromContext(turnContext: BB.TurnContext, modelId: string = ''): CLState {
@@ -97,7 +108,7 @@ export class CLState {
             keyPrefix = conversationReference.conversation.id
         }
 
-        return CLState.Get(keyPrefix, !isRunningInUI ? modelId : undefined)
+        return CLState.Get(keyPrefix, !isRunningInUI ? modelId : undefined, turnContext)
     }
 
     public async SetAppAsync(app: CLM.AppBase | null): Promise<void> {

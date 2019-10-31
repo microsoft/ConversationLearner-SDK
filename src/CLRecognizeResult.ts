@@ -9,7 +9,7 @@ import { ScoredAction, EntityBase } from '@conversationlearner/models'
 export interface CLRecognizerResult {
     scoredAction: ScoredAction
     clEntities: EntityBase[]
-    memory: CLState
+    state: CLState
     inTeach: boolean
     activity: BB.Activity
 }
