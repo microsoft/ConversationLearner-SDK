@@ -373,7 +373,7 @@ export class CLRunner {
 
     // Process user input
     private async ProcessInput(turnContext: BB.TurnContext): Promise<CLRecognizerResult | null> {
-        let errComponent = 'ProcessInput'
+        let errorContext = 'ProcessInput'
         const activity = turnContext.activity
         const conversationReference = BB.TurnContext.getConversationReference(activity)
 
@@ -505,11 +505,11 @@ export class CLRunner {
             let entities: CLM.EntityBase[] = []
 
             // Generate result
-            errComponent = 'Extract Entities'
+            errorContext = 'Extract Entities'
             let userInput: CLM.UserInput = { text: buttonResponse || activity.text || '  ' }
             let extractResponse = await this.clClient.SessionExtract(app.appId, sessionId, userInput)
             entities = extractResponse.definitions.entities
-            errComponent = 'Score Actions'
+            errorContext = 'Score Actions'
             const scoredAction = await this.Score(
                 app.appId,
                 sessionId,
@@ -535,7 +535,6 @@ export class CLRunner {
                     model.clRunner.SetAdapter(turnContext.adapter, conversationReference)
                 }
 
-                const recognizerResult = await model.clRunner.ProcessInput(turnContext)
                 return recognizerResult
             }
             if (scoredAction.actionType === CLM.ActionTypes.CHANGE_MODEL) {
@@ -563,7 +562,7 @@ export class CLRunner {
             return {
                 scoredAction,
                 clEntities: entities,
-                memory: state,
+                state: state,
                 inTeach: false,
                 activity
             }
@@ -576,7 +575,7 @@ export class CLRunner {
                 CLDebug.Log(`Failed to End Session`)
             }
 
-            CLDebug.Error(error, errComponent)
+            CLDebug.Error(error, errorContext)
             return null
         }
     }
@@ -788,31 +787,30 @@ export class CLRunner {
         return new ReadOnlyClientMemoryManager(prevMemories, curMemories, allEntities, sessionInfo);
     }
 
+    private getTurnContextForConversationReference = (conversationRef: Partial<BB.ConversationReference>): BB.TurnContext => {
+        if (!this.adapter) {
+            CLDebug.Error('Missing Adapter')
+            throw new Error('Adapter is missing!')
+        }
+
+        const activity = <BB.Activity>{ type: BB.ActivityTypes.Message }
+        const incomingActivity = BB.TurnContext.applyConversationReference(activity, conversationRef, true)
+        return new BB.TurnContext(this.adapter, incomingActivity)
+    }
+
     private async GetTurnContext(state: CLState): Promise<BB.TurnContext> {
-
-        const getTurnContextForConversationReference = (conversationRef: Partial<BB.ConversationReference>, activity?: Partial<BB.Activity>): BB.TurnContext => {
-            if (!this.adapter) {
-                CLDebug.Error('Missing Adapter')
-                throw new Error('Adapter is missing!')
-            }
-
-            if (!activity) {
-                activity = <BB.Activity>{ type: BB.ActivityTypes.Message }
-            }
-            const incomingActivity = BB.TurnContext.applyConversationReference(activity, conversationRef, true)
-            return new BB.TurnContext(this.adapter, incomingActivity)
-        }
-
-        // Get conversation ref, so I can generate context and send it back to bot dev
-        let conversationReference = await state.BotState.GetConversationReference()
-        if (!conversationReference) {
-            throw new Error('Missing ConversationReference')
-        }
-
         let context = state.turnContext
+        // If no context, construct artificial context
         if (!context) {
-            context = getTurnContextForConversationReference(conversationReference)
+            // Get conversation ref, so I can generate context and send it back to bot dev
+            const conversationReference = await state.BotState.GetConversationReference()
+            if (!conversationReference) {
+                throw new Error('Missing ConversationReference')
+            }
+
+            context = this.getTurnContextForConversationReference(conversationReference)
         }
+
         return context
     }
 
@@ -876,7 +874,7 @@ export class CLRunner {
                     await state.EntityState.ClearAsync(saveEntities)
                 }
                 catch (err) {
-                    const message = BB.MessageFactory.text(CLStrings.EXCEPTION_ONSESSIONSTART_CALLBACK)
+                    const message = BB.MessageFactory.text(CLStrings.EXCEPTION_ONSESSIONEND_CALLBACK)
                     const replayError = new CLM.ReplayErrorAPIException()
                     message.channelData = { clData: { replayError } }
 
@@ -894,13 +892,13 @@ export class CLRunner {
 
     public async TakeActionAsync(conversationReference: Partial<BB.ConversationReference>, clRecognizeResult: CLRecognizerResult, uiTrainScorerStep: CLM.UITrainScorerStep | null, testAPIResults: CLM.FilledEntity[] = []): Promise<IActionResult> {
         // Get filled entities from memory
-        let filledEntityMap = await clRecognizeResult.memory.EntityState.FilledEntityMap()
+        let filledEntityMap = await clRecognizeResult.state.EntityState.FilledEntityMap()
         filledEntityMap = Utils.addEntitiesById(filledEntityMap)
 
         // If the action was terminal, free up the mutex allowing queued messages to be processed
         // Activity won't be present if running in training as messages aren't queued
         if (clRecognizeResult.scoredAction.isTerminal && clRecognizeResult.activity) {
-            await InputQueue.MessageHandled(clRecognizeResult.memory.MessageState, clRecognizeResult.activity.id);
+            await InputQueue.MessageHandled(clRecognizeResult.state.MessageState, clRecognizeResult.activity.id);
         }
 
         if (!conversationReference.conversation) {
@@ -912,7 +910,7 @@ export class CLRunner {
         let sessionId: string | null = null
         let replayError: CLM.ReplayError | null = null
         const inTeach = uiTrainScorerStep !== null
-        let uiMode = await clRecognizeResult.memory.BotState.getUIMode()
+        let uiMode = await clRecognizeResult.state.BotState.getUIMode()
 
         if (CLM.ActionBase.isPlaceholderAPI(clRecognizeResult.scoredAction)) {
 
@@ -930,7 +928,7 @@ export class CLRunner {
             actionResult = await this.TakeAPIPlaceholderAction(
                 apiAction,
                 placeHolderFilledEntities,
-                clRecognizeResult.memory,
+                clRecognizeResult.state,
                 clRecognizeResult.clEntities)
             if (inTeach) {
                 replayError = new CLM.ReplayErrorAPIPlaceholder()
@@ -958,7 +956,7 @@ export class CLRunner {
                     actionResult = await this.TakeAPIAction(
                         apiAction,
                         filledEntityMap,
-                        clRecognizeResult.memory,
+                        clRecognizeResult.state,
                         clRecognizeResult.clEntities,
                         inTeach,
                         {
@@ -986,10 +984,10 @@ export class CLRunner {
                     break
                 }
                 case CLM.ActionTypes.END_SESSION: {
-                    app = await clRecognizeResult.memory.BotState.GetApp()
+                    app = await clRecognizeResult.state.BotState.GetApp()
                     const sessionAction = new CLM.SessionAction(clRecognizeResult.scoredAction as any)
-                    sessionId = await clRecognizeResult.memory.BotState.GetSessionIdAndSetConversationId(conversationReference)
-                    const response = await this.TakeSessionAction(sessionAction, filledEntityMap, inTeach, clRecognizeResult.memory, sessionId, app);
+                    sessionId = await clRecognizeResult.state.BotState.GetSessionIdAndSetConversationId(conversationReference)
+                    const response = await this.TakeSessionAction(sessionAction, filledEntityMap, inTeach, clRecognizeResult.state, sessionId, app);
                     actionResult = {
                         logicResult: undefined,
                         response
@@ -1003,7 +1001,7 @@ export class CLRunner {
                     actionResult = await this.TakeSetEntityAction(
                         setEntityAction,
                         filledEntityMap,
-                        clRecognizeResult.memory,
+                        clRecognizeResult.state,
                         clRecognizeResult.clEntities,
                         inTeach
                     )
@@ -1019,10 +1017,42 @@ export class CLRunner {
                 }
                 case CLM.ActionTypes.CHANGE_MODEL: {
                     const changeModelAction = new CLM.ChangeModelAction(clRecognizeResult.scoredAction as any)
+                    sessionId = await clRecognizeResult.state.BotState.GetSessionIdAndSetConversationId(conversationReference)
                     actionResult = await this.TakeChangeModelAction(
                         changeModelAction,
                         inTeach,
+                        clRecognizeResult.state,
+                        sessionId,
+                        app
                     )
+
+                    if (!inTeach) {
+                        // Illegal for model to predict an action that changes to itself
+                        if (changeModelAction.modelId === this.configModelId) {
+                            throw new Error(`Change Mode action has same ID as active model. The shouldn't be possible.`)
+                        }
+
+                        // Reuse model from cache or create it
+                        let model = ConversationLearner.models.find(m => m.clRunner.configModelId === changeModelAction.modelId)
+                        if (!model) {
+                            model = new ConversationLearner(changeModelAction.modelId)
+                        }
+                        clRecognizeResult.state.ConversationModelState.set(model.clRunner.configModelId)
+
+                        const turnContext = clRecognizeResult.state.turnContext
+                        if (!turnContext) {
+                            throw new Error(`Cannot forward input (turnContext) to next model because it is undefined.`)
+                        }
+                        // model.clRunner.SetAdapter(turnContext.adapter, conversationReference)
+
+                        const recognizerResult = await model.clRunner.recognize(turnContext)
+                        if (recognizerResult) {
+                            await model.SendResult(recognizerResult)
+                        }
+
+                        // Force response to null to avoid sending message as message will come from next model.
+                        actionResult.response = null
+                    }
                     break;
                 }
                 default:
@@ -1043,7 +1073,7 @@ export class CLRunner {
         // If action wasn't terminal loop through Conversation Learner again after a short delay (unless I'm testing where it's handled by the tester)
         if (!clRecognizeResult.inTeach && !clRecognizeResult.scoredAction.isTerminal && uiMode !== UIMode.TEST) {
             if (app === null) {
-                app = await clRecognizeResult.memory.BotState.GetApp()
+                app = await clRecognizeResult.state.BotState.GetApp()
             }
             if (!app) {
                 throw new Error(`Attempted to get current app before app was set.`)
@@ -1054,7 +1084,7 @@ export class CLRunner {
             }
 
             if (sessionId == null) {
-                sessionId = await clRecognizeResult.memory.BotState.GetSessionIdAndSetConversationId(conversationReference)
+                sessionId = await clRecognizeResult.state.BotState.GetSessionIdAndSetConversationId(conversationReference)
             }
             if (!sessionId) {
                 throw new Error(`Attempted to get session by conversation id: ${conversationReference.conversation.id} but session was not found`)
@@ -1062,14 +1092,14 @@ export class CLRunner {
 
             // send the current response to user before score for the next turn
             if (actionResult.response != null) {
-                await this.SendMessage(clRecognizeResult.memory, actionResult.response)
+                await this.SendMessage(clRecognizeResult.state, actionResult.response)
             }
             await delay(100)
 
             let bestAction = await this.Score(
                 app.appId,
                 sessionId,
-                clRecognizeResult.memory,
+                clRecognizeResult.state,
                 '',
                 [],
                 clRecognizeResult.clEntities,
@@ -1083,10 +1113,8 @@ export class CLRunner {
         return actionResult
     }
 
-    public async SendIntent(intent: CLRecognizerResult, uiTrainScorerStep: CLM.UITrainScorerStep | null = null): Promise<IActionResult | undefined> {
-
-        let conversationReference = await intent.memory.BotState.GetConversationReference();
-
+    public async SendResult(recognizerResult: CLRecognizerResult, uiTrainScorerStep: CLM.UITrainScorerStep | null = null): Promise<void> {
+        const conversationReference = await recognizerResult.state.BotState.GetConversationReference();
         if (!conversationReference) {
             CLDebug.Error('Missing ConversationReference')
             return
@@ -1096,14 +1124,12 @@ export class CLRunner {
             return
         }
 
-        const actionResult = await this.TakeActionAsync(conversationReference, intent, uiTrainScorerStep)
+        const actionResult = await this.TakeActionAsync(conversationReference, recognizerResult, uiTrainScorerStep)
 
         if (actionResult.response != null) {
-            const context = await this.GetTurnContext(intent.memory)
+            const context = await this.GetTurnContext(recognizerResult.state)
             await context.sendActivity(actionResult.response)
         }
-
-        return actionResult
     }
 
     private async SendMessage(state: CLState, message: string | Partial<BB.Activity>, incomingActivityId?: string | undefined): Promise<void> {
@@ -1276,19 +1302,28 @@ export class CLRunner {
         }
     }
 
-    public async TakeChangeModelAction(action: CLM.ChangeModelAction, inTeach: boolean): Promise<IActionResult> {
+    public async TakeChangeModelAction(
+        action: CLM.ChangeModelAction,
+        inTeach: boolean,
+        state: CLState,
+        sessionId: string | null,
+        app: CLM.AppBase | null,
+    ): Promise<IActionResult> {
         try {
-            let replayError: CLM.ReplayError | undefined
-            let response: Partial<BB.Activity> | string | null = null
+            let response: Partial<BB.Activity> | null = null
 
             if (inTeach) {
                 response = this.RenderChangeModelCard(action.modelName)
+            }
+            else if (app && sessionId) {
+                await Utils.EndSessionIfOpen(this.clClient, app.appId, sessionId)
+                await this.EndSessionAsync(state, CLM.SessionEndState.COMPLETED, action.modelName)
             }
 
             return {
                 logicResult: undefined,
                 response,
-                replayError,
+                replayError: undefined,
             }
         }
         catch (e) {
@@ -1449,18 +1484,17 @@ export class CLRunner {
 
     private async TakeSessionAction(sessionAction: CLM.SessionAction, filledEntityIdMap: CLM.FilledEntityMap, inTeach: boolean, state: CLState, sessionId: string | null, app: CLM.AppBase | null): Promise<Partial<BB.Activity> | null> {
         // Get any context from the action
-        let content = sessionAction.renderValue(CLM.getEntityDisplayValueMap(filledEntityIdMap))
+        const content = sessionAction.renderValue(CLM.getEntityDisplayValueMap(filledEntityIdMap))
 
         // If inTeach, show something to user in WebChat so they can edit
         if (inTeach) {
-            let payload = sessionAction.renderValue(CLM.getEntityDisplayValueMap(filledEntityIdMap))
-            let card = {
+            const card = {
                 type: "AdaptiveCard",
                 version: "1.0",
                 body: [
                     {
                         type: "TextBlock",
-                        text: `EndSession: *${payload}*`
+                        text: `EndSession: *${content}*`
                     }
                 ]
             }
@@ -1739,6 +1773,9 @@ export class CLRunner {
                             } else if (curAction.actionType === CLM.ActionTypes.SET_ENTITY) {
                                 const setEntityAction = new CLM.SetEntityAction(curAction)
                                 await this.TakeSetEntityAction(setEntityAction, filledEntityMap, state, entityList.entities, true)
+                            } else if (curAction.actionType === CLM.ActionTypes.CHANGE_MODEL) {
+                                const changeModelAction = new CLM.ChangeModelAction(curAction)
+                                await this.TakeChangeModelAction(changeModelAction, true, state, null, null)
                             }
                         }
                     }
@@ -1980,7 +2017,7 @@ export class CLRunner {
                         // Validate Score Step
                         replayError = this.GetTrainDialogScoreErrors(round, scoreIndex, scoreFilledEntities, curAction, actions, entities, userText, replayErrors)
 
-                        // Check for exceptions on API call (specificaly EntityDetectionCallback)
+                        // Check for exceptions on API call (specifically EntityDetectionCallback)
                         const logicAPIError = Utils.GetLogicAPIError(scorerStep.logicResult)
                         if (logicAPIError) {
                             replayError = new CLM.ReplayErrorAPIException()
@@ -2087,7 +2124,7 @@ export class CLRunner {
                                 botResponse = await this.TakeDispatchAction(dispatchAction, true)
                             } else if (curAction.actionType === CLM.ActionTypes.CHANGE_MODEL) {
                                 const changeModelAction = new CLM.ChangeModelAction(curAction)
-                                botResponse = await this.TakeChangeModelAction(changeModelAction, true)
+                                botResponse = await this.TakeChangeModelAction(changeModelAction, true, state, null, null)
                             }
                             else {
                                 throw new Error(`Cannot construct bot response for unknown action type: ${curAction.actionType}`)
@@ -2196,7 +2233,7 @@ export class CLRunner {
     }
 
     private async SaveLogicResult(clRecognizeResult: CLRecognizerResult, actionResult: IActionResult, actionId: string, conversationReference: Partial<BB.ConversationReference>): Promise<void> {
-        const app = await clRecognizeResult.memory.BotState.GetApp()
+        const app = await clRecognizeResult.state.BotState.GetApp()
         if (!app) {
             throw new Error(`Attempted to get current app before app was set.`)
         }
@@ -2205,7 +2242,7 @@ export class CLRunner {
                 throw new Error(`Attempted to get session by conversation id, but user was not defined on current conversation`)
             }
 
-            const sessionId = await clRecognizeResult.memory.BotState.GetSessionIdAndSetConversationId(conversationReference)
+            const sessionId = await clRecognizeResult.state.BotState.GetSessionIdAndSetConversationId(conversationReference)
             if (!sessionId) {
                 throw new Error(`Attempted to get session by conversation id: ${conversationReference.conversation.id} but session was not found`)
             }

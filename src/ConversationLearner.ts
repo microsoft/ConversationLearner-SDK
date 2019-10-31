@@ -44,7 +44,7 @@ export class ConversationLearner {
     public async recognize(turnContext: BB.TurnContext, force?: boolean): Promise<CLRecognizerResult | null> {
         // tslint:disable-next-line:no-this-assignment
         let activeModel: ConversationLearner = this
-        // If there is more than one model in use for running bot need to check which model is active for conversation
+        // If there is more than one model in use for running bot we need to check which model is active for conversation
         // This check avoids doing work for normal singe model model bots
         if (ConversationLearner.models.length > 1) {
             const context = CLState.GetFromContext(turnContext)
@@ -88,7 +88,7 @@ export class ConversationLearner {
     }
 
     public async SendResult(result: CLRecognizerResult): Promise<void> {
-        await this.clRunner.SendIntent(result)
+        await this.clRunner.SendResult(result)
     }
 
     /** Returns true is bot is running in the Training UI

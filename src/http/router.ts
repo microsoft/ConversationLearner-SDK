@@ -1057,12 +1057,12 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const intent = {
                 scoredAction: scoredAction,
                 clEntities: uiTrainScorerStep.entities,
-                memory: state,
+                state: state,
                 inTeach: true
             } as CLRecognizerResult
 
             const clRunner = CLRunner.GetRunnerForUI(appId);
-            const actionResult = await clRunner.SendIntent(intent, uiTrainScorerStep)
+            const actionResult = await clRunner.SendResult(intent, uiTrainScorerStep)
 
             // Set logicResult on scorer step
             if (actionResult) {
@@ -1225,7 +1225,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                     }
 
                     // Get session Id
-                    const sessionId = await result.memory.BotState.GetSessionIdAsync()
+                    const sessionId = await result.state.BotState.GetSessionIdAsync()
                     if (!sessionId) {
                         res.send(null)
                         return
@@ -1241,7 +1241,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                     // Server enforces max number of non-terminal actions, so no endless loop here
                     while (!bestAction.isTerminal) {
                         curHashIndex = curHashIndex + 1
-                        bestAction = await clRunner.Score(appId, sessionId, result.memory, '', [], result.clEntities, false, true)
+                        bestAction = await clRunner.Score(appId, sessionId, result.state, '', [], result.clEntities, false, true)
                         result.scoredAction = bestAction
 
                         // Include apiResults when taking action so result will be the same when testing
