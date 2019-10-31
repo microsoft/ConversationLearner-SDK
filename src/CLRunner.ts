@@ -16,8 +16,8 @@ import { ReadOnlyClientMemoryManager, ClientMemoryManager } from './Memory/Clien
 import { CLRecognizerResult } from './CLRecognizeResult'
 import { ConversationLearner } from './ConversationLearner'
 import { InputQueue } from './Memory/InputQueue'
-import { UIMode } from './Memory/BotState';
-import { EntityState } from './Memory/EntityState';
+import { UIMode } from './Memory/BotState'
+import { EntityState } from './Memory/EntityState'
 
 interface RunnerLookup {
     [appId: string]: CLRunner
@@ -520,45 +520,6 @@ export class CLRunner {
                 false
             )
 
-            if (scoredAction.actionType === CLM.ActionTypes.DISPATCH) {
-                CLDebug.Log(`${CLM.ActionTypes.DISPATCH} action detected in model ${this.configModelId}.`, DebugType.Dispatch)
-                // TODO: Schema refactor: another hack between scoredAction and Action
-                const dispatchAction = new CLM.DispatchAction(scoredAction as unknown as CLM.ActionBase)
-                CLDebug.Log(`Dispatch to Model: ${dispatchAction.modelId} ${dispatchAction.modelName}`, DebugType.Dispatch)
-
-                // If CL model does not exist as child of this instance, then create it and add it.
-                // TODO: ConversationLearner instance vs CLRunner instance?
-                let model = ConversationLearner.models.find(m => m.clRunner.configModelId === dispatchAction.modelId)
-                if (!model) {
-                    // TODO: Learn more about requirement/need to call SetAdapter on new cl runner instance.
-                    model = new ConversationLearner(dispatchAction.modelId)
-                    model.clRunner.SetAdapter(turnContext.adapter, conversationReference)
-                }
-
-                return recognizerResult
-            }
-            if (scoredAction.actionType === CLM.ActionTypes.CHANGE_MODEL) {
-                CLDebug.Log(`${CLM.ActionTypes.CHANGE_MODEL} action detected in model ${this.configModelId}.`, DebugType.Dispatch)
-                // TODO: Schema refactor: another hack between scoredAction and Action
-                const changeModelAction = new CLM.ChangeModelAction(scoredAction as unknown as CLM.ActionBase)
-                CLDebug.Log(`Change to Model: ${changeModelAction.modelId} ${changeModelAction.modelName}`, DebugType.Dispatch)
-
-                // Illegal for model to predict an action that changes to itself
-                if (changeModelAction.modelId === this.configModelId) {
-                    throw new Error(`Change Mode action has same ID as active model. The shouldn't be possible.`)
-                }
-
-                let model = ConversationLearner.models.find(m => m.clRunner.configModelId === changeModelAction.modelId)
-                if (!model) {
-                    model = new ConversationLearner(changeModelAction.modelId)
-                    model.clRunner.SetAdapter(turnContext.adapter, conversationReference)
-                }
-                state.ConversationModelState.set(model.clRunner.configModelId)
-
-                const recognizerResult = await model.clRunner.ProcessInput(turnContext)
-                return recognizerResult
-            }
-
             return {
                 scoredAction,
                 clEntities: entities,
@@ -1013,6 +974,14 @@ export class CLRunner {
                         dispatchAction,
                         inTeach,
                     )
+
+                    if (!inTeach) {
+                        CLDebug.Log(`Dispatch to Model: ${dispatchAction.modelId} ${dispatchAction.modelName}`, DebugType.Dispatch)
+                        await this.forwardInputToModel(dispatchAction.modelId, clRecognizeResult)
+                        // Force response to null to avoid sending message as message will come from next model.
+                        actionResult.response = null
+                    }
+
                     break;
                 }
                 case CLM.ActionTypes.CHANGE_MODEL: {
@@ -1023,33 +992,12 @@ export class CLRunner {
                         inTeach,
                         clRecognizeResult.state,
                         sessionId,
-                        app
+                        app,
                     )
 
                     if (!inTeach) {
-                        // Illegal for model to predict an action that changes to itself
-                        if (changeModelAction.modelId === this.configModelId) {
-                            throw new Error(`Change Mode action has same ID as active model. The shouldn't be possible.`)
-                        }
-
-                        // Reuse model from cache or create it
-                        let model = ConversationLearner.models.find(m => m.clRunner.configModelId === changeModelAction.modelId)
-                        if (!model) {
-                            model = new ConversationLearner(changeModelAction.modelId)
-                        }
-                        clRecognizeResult.state.ConversationModelState.set(model.clRunner.configModelId)
-
-                        const turnContext = clRecognizeResult.state.turnContext
-                        if (!turnContext) {
-                            throw new Error(`Cannot forward input (turnContext) to next model because it is undefined.`)
-                        }
-                        // model.clRunner.SetAdapter(turnContext.adapter, conversationReference)
-
-                        const recognizerResult = await model.clRunner.recognize(turnContext)
-                        if (recognizerResult) {
-                            await model.SendResult(recognizerResult)
-                        }
-
+                        CLDebug.Log(`Change to Model: ${changeModelAction.modelId} ${changeModelAction.modelName}`, DebugType.Dispatch)
+                        await this.forwardInputToModel(changeModelAction.modelId, clRecognizeResult)
                         // Force response to null to avoid sending message as message will come from next model.
                         actionResult.response = null
                     }
@@ -1111,6 +1059,30 @@ export class CLRunner {
             actionResult = await this.TakeActionAsync(conversationReference, clRecognizeResult, uiTrainScorerStep)
         }
         return actionResult
+    }
+
+    private async forwardInputToModel(modelId: string, clRecognizeResult: CLRecognizerResult) {
+        if (modelId === this.configModelId) {
+            throw new Error(`Change Mode action has same ID as active model. The shouldn't be possible.`)
+        }
+
+        // Reuse model from cache or create it
+        let model = ConversationLearner.models.find(m => m.clRunner.configModelId === modelId)
+        if (!model) {
+            model = new ConversationLearner(modelId);
+        }
+
+        clRecognizeResult.state.ConversationModelState.set(model.clRunner.configModelId)
+        const turnContext = clRecognizeResult.state.turnContext
+        if (!turnContext) {
+            throw new Error(`Cannot forward input (turnContext) to next model because turnContext is undefined.`)
+        }
+
+        // model.clRunner.SetAdapter(turnContext.adapter, conversationReference)
+        const recognizerResult = await model.clRunner.recognize(turnContext);
+        if (recognizerResult) {
+            await model.SendResult(recognizerResult);
+        }
     }
 
     public async SendResult(recognizerResult: CLRecognizerResult, uiTrainScorerStep: CLM.UITrainScorerStep | null = null): Promise<void> {
@@ -1276,7 +1248,6 @@ export class CLRunner {
 
     public async TakeDispatchAction(action: CLM.DispatchAction, inTeach: boolean): Promise<IActionResult> {
         try {
-            let replayError: CLM.ReplayError | undefined
             let response: Partial<BB.Activity> | string | null = null
 
             if (inTeach) {
@@ -1286,18 +1257,18 @@ export class CLRunner {
             return {
                 logicResult: undefined,
                 response,
-                replayError,
+                replayError: undefined,
             }
         }
         catch (e) {
             const error: Error = e
-            const title = error.message || `Exception hit when calling Dispatch Action: '${action.actionId}'`
+            const title = error.message || `Exception hit when calling ${CLM.ActionTypes.DISPATCH} Action: '${action.actionId}'`
             const message = this.RenderErrorCard(title, error.stack || error.message || "")
             const replayError = new CLM.ReplayDispatchException()
             return {
                 logicResult: undefined,
                 response: message,
-                replayError
+                replayError,
             }
         }
     }
@@ -1328,13 +1299,13 @@ export class CLRunner {
         }
         catch (e) {
             const error: Error = e
-            const title = error.message || `Exception hit when calling Change Model Action: '${action.actionId}'`
+            const title = error.message || `Exception hit when calling ${CLM.ActionTypes.CHANGE_MODEL} Action: '${action.actionId}'`
             const message = this.RenderErrorCard(title, error.stack || error.message || "")
             const replayError = new CLM.ReplayChangeModelException()
             return {
                 logicResult: undefined,
                 response: message,
-                replayError
+                replayError,
             }
         }
     }
