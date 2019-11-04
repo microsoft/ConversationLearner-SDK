@@ -74,7 +74,7 @@ export class ConversationLearner {
      * Provide an callback that will be invoked whenever a Session is started
      * @param target Callback of the form (context: BB.TurnContext, memoryManager: ClientMemoryManager) => Promise<void>
      */
-    public OnSessionStartCallback(target: OnSessionStartCallback) {
+    set OnSessionStartCallback(target: OnSessionStartCallback) {
         this.clRunner.onSessionStartCallback = target
     }
 
@@ -83,7 +83,7 @@ export class ConversationLearner {
      * can end because of a timeout or the selection of an EndSession activity
      * @param target Callback of the form (context: BB.TurnContext, memoryManager: ClientMemoryManager, sessionEndState: CLM.SessionEndState, data: string | undefined) => Promise<string[] | undefined>
      */
-    public OnSessionEndCallback(target: OnSessionEndCallback) {
+    set OnSessionEndCallback(target: OnSessionEndCallback) {
         this.clRunner.onSessionEndCallback = target
     }
 
