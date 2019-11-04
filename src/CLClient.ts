@@ -237,6 +237,12 @@ export class CLClient {
     // Log Dialogs
     //=============================================================================
 
+    public GetLogDialogs(appId: string, packageIds: string[]): Promise<CLM.LogDialogList> {
+        const packages = packageIds.map(p => `package=${p}`).join("&")
+        const apiPath = `app/${appId}/logdialogs?includeDefinitions=false&${packages}`
+        return this.send('GET', this.MakeURL(apiPath))
+    }
+    
     /** Runs entity extraction (prediction). */
     public LogDialogExtract(
         appId: string,

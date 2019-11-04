@@ -12,18 +12,19 @@ import { CLDebug } from './CLDebug'
 import { CLClient } from './CLClient'
 import { CLRecognizerResult } from './CLRecognizeResult'
 import { CLModelOptions } from '.'
+import { ILogStorage } from './Memory/ILogStorage'
 
 export class ConversationLearner {
     public static options: CLOptions | null = null
     public static clClient: CLClient
     public clRunner: CLRunner
 
-    public static Init(options: CLOptions, storage?: BB.Storage): express.Router {
+    public static Init(options: CLOptions, storage?: BB.Storage, logStorage?: ILogStorage): express.Router {
         ConversationLearner.options = options
 
         try {
             this.clClient = new CLClient(options)
-            CLState.Init(storage)
+            CLState.Init(storage, logStorage)
         } catch (error) {
             CLDebug.Error(error, 'Conversation Learner Initialization')
         }

@@ -237,7 +237,7 @@ export class CLRunner {
                         packageId: packageId,
                         initialFilledEntities: []
                     }
-                    await this.StartSessionAsync(state, BB.TurnContext.getConversationReference(activity), app.appId, SessionStartFlags.NONE, sessionCreateParams)
+                    await this.CreateSessionAsync(state, BB.TurnContext.getConversationReference(activity), app.appId, SessionStartFlags.NONE, sessionCreateParams)
                 }
             }
         }
@@ -291,7 +291,7 @@ export class CLRunner {
         }
     }
 
-    public async StartSessionAsync(state: CLState, conversationRef: Partial<BB.ConversationReference> | null, appId: string, sessionStartFlags: SessionStartFlags, createParams: CLM.SessionCreateParams | CLM.CreateTeachParams): Promise<CLM.Teach | CLM.Session> {
+    public async CreateSessionAsync(state: CLState, conversationRef: Partial<BB.ConversationReference> | null, appId: string, sessionStartFlags: SessionStartFlags, createParams: CLM.SessionCreateParams | CLM.CreateTeachParams): Promise<CLM.Teach | CLM.Session> {
 
         const inTeach = ((sessionStartFlags & SessionStartFlags.IN_TEACH) > 0)
         let entityList = await this.clClient.GetEntities(appId)
@@ -304,7 +304,7 @@ export class CLRunner {
         }
 
         //  check that this works = should it be inside edit continue above
-        // Check if StartSession call is required
+        // Check if StartSessionCallback is required
         await this.CheckSessionStartCallback(state, entityList.entities);
         let startSessionEntities = await state.EntityState.FilledEntitiesAsync()
         startSessionEntities = [...createParams.initialFilledEntities || [], ...startSessionEntities]
@@ -323,7 +323,7 @@ export class CLRunner {
             logDialogId = null
         }
         else {
-            startResponse = await this.clClient.StartSession(appId, createParams as CLM.SessionCreateParams)
+            startResponse = await this.StartSession(appId, createParams as CLM.SessionCreateParams)
             sessionId = startResponse.sessionId
             logDialogId = startResponse.logDialogId
         }
@@ -334,6 +334,70 @@ export class CLRunner {
 
         CLDebug.Verbose(`Started Session: ${sessionId} - ${state.BotState.GetConversationId()}`)
         return startResponse
+    }
+
+    private async StartSession(appId: string, createParams: CLM.SessionCreateParams): Promise<CLM.Session> {
+        
+        // Don't save logs on server if custom storage was provided
+        if (CLState.logStorage) {
+            createParams.saveToLog = false
+        }
+        
+        const session = await this.clClient.StartSession(appId, createParams as CLM.SessionCreateParams)
+
+        // If using customer storage add to log storage
+        if (CLState.logStorage) {
+            // For self-hosted log storage logDialogId is hash of sessionId
+            session.logDialogId = CLM.hashText(session.logDialogId)
+            const logDialog: CLM.LogDialog = {
+                logDialogId: session.logDialogId,
+                packageId: session.packageId,
+                rounds: [],
+                initialFilledEntities: [],
+                targetTrainDialogIds: [],
+                createdDateTime: session.createdDatetime,
+                dialogBeginDatetime: new Date().getTime().toString(),
+                dialogEndDatetime: new Date().getTime().toString(),
+                lastModifiedDateTime: new Date().getTime().toString(),
+                metrics: "LARS"
+            }
+            CLState.logStorage.NewSession(appId, logDialog)
+        }
+        return session
+    }
+
+    private async SessionExtract(appId: string, sessionId: string, userInput: CLM.UserInput): Promise<CLM.ExtractResponse> {
+        const extractResponse = await this.clClient.SessionExtract(appId, sessionId, userInput)
+
+        // Add to dev's log storage account (if it exists)
+        if (CLState.logStorage) {
+            const logDialogId = CLM.hashText(sessionId)
+            CLState.logStorage.AppendExtractorStep(appId, logDialogId, extractResponse)
+        }
+        return extractResponse
+    }
+
+    private async SessionScore(appId: string, sessionId: string, scoreInput: CLM.ScoreInput): Promise<CLM.ScoreResponse> {
+        const stepBeginDatetime = new Date().getTime().toString()
+        const scoreResponse = await this.clClient.SessionScore(appId, sessionId, scoreInput)
+
+        // Add to dev's log storage account (if it exists)
+        if (CLState.logStorage) {
+            const logDialogId = CLM.hashText(sessionId)
+            const predictedAction = scoreResponse.scoredActions[0] ? scoreResponse.scoredActions[0].actionId : ""
+            const logScorerStep: CLM.LogScorerStep = {
+                input: scoreInput,
+                predictedAction,
+                logicResult: undefined, // LARS what should this be
+                predictionDetails: scoreResponse,
+                stepBeginDatetime,
+                stepEndDatetime: new Date().getTime().toString(),
+                metrics: scoreResponse.metrics
+            }
+
+            CLState.logStorage.AppendScorerStep(appId, logDialogId, logScorerStep)
+        }
+        return scoreResponse
     }
 
     // Get the currently running app
@@ -466,7 +530,7 @@ export class CLRunner {
                     }
 
                     // Start a new session
-                    let session = await this.StartSessionAsync(state, conversationReference, app.appId, SessionStartFlags.NONE, sessionCreateParams) as CLM.Session
+                    let session = await this.CreateSessionAsync(state, conversationReference, app.appId, SessionStartFlags.NONE, sessionCreateParams) as CLM.Session
                     sessionId = session.sessionId
                 }
                 // Otherwise update last access time
@@ -496,7 +560,7 @@ export class CLRunner {
                     initialFilledEntities: []
                 }
                 let sessionStartFlags = uiMode === UIMode.TEST ? SessionStartFlags.IN_TEST : SessionStartFlags.NONE
-                let session = await this.StartSessionAsync(state, BB.TurnContext.getConversationReference(activity), app.appId, sessionStartFlags, sessionCreateParams) as CLM.Session
+                let session = await this.CreateSessionAsync(state, BB.TurnContext.getConversationReference(activity), app.appId, sessionStartFlags, sessionCreateParams) as CLM.Session
                 sessionId = session.sessionId
             }
 
@@ -507,8 +571,13 @@ export class CLRunner {
 
             // Generate result
             errComponent = 'Extract Entities'
-            let userInput: CLM.UserInput = { text: buttonResponse || activity.text || '  ' }
-            let extractResponse = await this.clClient.SessionExtract(app.appId, sessionId, userInput)
+            const logDialogId = await state.BotState.GetLogDialogId()
+            if (!logDialogId) {
+                throw new Error("No logDialogId")
+            }
+            const userInput: CLM.UserInput = { text: buttonResponse || activity.text || '  ' }
+            const extractResponse = await this.SessionExtract(app.appId, sessionId, userInput)
+
             entities = extractResponse.definitions.entities
             errComponent = 'Score Actions'
             const scoredAction = await this.Score(
@@ -613,7 +682,7 @@ export class CLRunner {
             // Return top scoring action
             return scoreResponse.scoredActions[0]
         } else {
-            scoreResponse = await this.clClient.SessionScore(appId, sessionId, scoreInput)
+            scoreResponse = await this.SessionScore(appId, sessionId, scoreInput)
 
             // Return top scoring action
             return scoreResponse.scoredActions[0]

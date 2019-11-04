@@ -485,7 +485,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
     // LogDialogs
     //========================================================
     /**
-     * RUN EXTRACTOR: Runs entity extraction on a log dialog
+     * RUN EXTRACTOR: Runs entity extraction on an existing log dialog for the specified turn
      */
     router.put('/app/:appId/logdialog/:logDialogId/extractor/:turnIndex', async (req, res, next) => {
         try {
@@ -493,11 +493,31 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const { appId, logDialogId, turnIndex } = req.params
             const userInput: CLM.UserInput = req.body
             const extractResponse = await client.LogDialogExtract(appId, logDialogId, turnIndex, userInput)
-
             const state = CLState.Get(key)
+
             const memories = await state.EntityState.DumpMemory()
             const uiExtractResponse: CLM.UIExtractResponse = { extractResponse, memories }
             res.send(uiExtractResponse)
+        } catch (error) {
+            HandleError(res, error)
+        }
+    })
+
+    router.get('/app/:appId/logdialogs', async (req, res, next) => {
+        const { appId, continuationToken, pageSize } = req.params
+
+        try {
+            const { packageId } = getQuery(req)
+            const packageIds = packageId.split(",")
+            let logDialogs
+            if (CLState.logStorage) {
+                // LARS paging and multiple package ids
+                logDialogs = CLState.logStorage.GetMany(appId, packageId[0], continuationToken, pageSize)
+            }
+            else {
+                logDialogs = await client.GetLogDialogs(appId, packageIds)
+            }
+            res.send(logDialogs)
         } catch (error) {
             HandleError(res, error)
         }
@@ -548,7 +568,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
             // Start new teach session from the old train dialog
             const createTeachParams = CLM.ModelUtils.ToCreateTeachParams(trainDialog)
-            teachWithActivities.teach = await clRunner.StartSessionAsync(state, null, appId, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE, createTeachParams) as CLM.Teach
+            teachWithActivities.teach = await clRunner.CreateSessionAsync(state, null, appId, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE, createTeachParams) as CLM.Teach
 
             res.send(teachWithActivities)
         } catch (error) {
@@ -578,7 +598,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             // Clear memory when running Log from UI
             state.EntityState.ClearAsync()
 
-            const session = await clRunner.StartSessionAsync(state, null, appId, SessionStartFlags.NONE, sessionCreateParams) as CLM.Session
+            const session = await clRunner.CreateSessionAsync(state, null, appId, SessionStartFlags.NONE, sessionCreateParams) as CLM.Session
+
             res.send(session)
 
         } catch (error) {
@@ -665,7 +686,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             // TeachSession always starts with a clear the memory (no saved entities)
             await state.EntityState.ClearAsync()
 
-            const teachResponse = await clRunner.StartSessionAsync(state, null, appId, SessionStartFlags.IN_TEACH, createTeachParams) as CLM.TeachResponse
+            const teachResponse = await clRunner.CreateSessionAsync(state, null, appId, SessionStartFlags.IN_TEACH, createTeachParams) as CLM.TeachResponse
 
             res.send(teachResponse)
 
@@ -723,7 +744,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const createTeachParams = CLM.ModelUtils.ToCreateTeachParams(cleanTrainDialog)
 
             // NOTE: Todo - pass in filteredDialogId so start sesssion doesn't find conflicts with existing dialog being edited
-            teachWithActivities.teach = await clRunner.StartSessionAsync(state, null, appId, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE, createTeachParams) as CLM.Teach
+            teachWithActivities.teach = await clRunner.CreateSessionAsync(state, null, appId, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE, createTeachParams) as CLM.Teach
 
             // If last action wasn't terminal then score
             if (teachWithActivities.dialogMode === CLM.DialogMode.Scorer) {
@@ -783,7 +804,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
             // Start new teach session from the old train dialog
             const createTeachParams = CLM.ModelUtils.ToCreateTeachParams(newTrainDialog)
-            const teach = await clRunner.StartSessionAsync(state, null, appId, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE, createTeachParams) as CLM.Teach
+            const teach = await clRunner.CreateSessionAsync(state, null, appId, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE, createTeachParams) as CLM.Teach
 
             // Get entities from my memory
             const filledEntities = await state.EntityState.FilledEntitiesAsync()
@@ -834,7 +855,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
             // Start new teach session from the old train dialog
             const createTeachParams = CLM.ModelUtils.ToCreateTeachParams(newTrainDialog)
-            const teach = await clRunner.StartSessionAsync(state, null, appId, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE, createTeachParams) as CLM.Teach
+            const teach = await clRunner.CreateSessionAsync(state, null, appId, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE, createTeachParams) as CLM.Teach
 
             // Do extraction
             const extractResponse = await client.TeachExtract(appId, teach.teachId, userInput, null)
@@ -1183,7 +1204,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 packageId,
                 initialFilledEntities: []
             }
-            const session = await clRunner.StartSessionAsync(state, null, appId, SessionStartFlags.IN_TEST, sessionCreateParams) as CLM.Session
+            const session = await clRunner.CreateSessionAsync(state, null, appId, SessionStartFlags.IN_TEST, sessionCreateParams) as CLM.Session
             const logDialogId = session.logDialogId
 
             const conversation: BB.ConversationAccount = {

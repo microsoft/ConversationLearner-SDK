@@ -11,6 +11,7 @@ import { BotState } from './BotState'
 import { InProcessMessageState as MessageState } from './InProcessMessageState'
 import { CLStorage } from './CLStorage';
 import { BrowserSlotState } from './BrowserSlot';
+import { ILogStorage } from './ILogStorage'
 
 /**
  * CLState is a container all states (BotState, EntityState, MessageState) and can be passed around as a single access point.
@@ -26,6 +27,7 @@ import { BrowserSlotState } from './BrowserSlot';
  */
 export class CLState {
     private static bbStorage: BB.Storage
+    public static logStorage: ILogStorage
     public readonly turnContext?: BB.TurnContext
 
     BotState: BotState
@@ -48,13 +50,17 @@ export class CLState {
         this.turnContext = turnContext
     }
 
-    public static Init(storage?: BB.Storage): void {
+    public static Init(storage?: BB.Storage, logStorage?: ILogStorage): void {
         // If memory storage not defined use disk storage
         if (!storage) {
             CLDebug.Log('Storage not defined.  Defaulting to in-memory storage.')
             storage = new BB.MemoryStorage()
         }
 
+        // Is developer providing their own log storage
+        if (logStorage) {
+            CLState.logStorage = logStorage
+        }
         CLState.bbStorage = storage
     }
 

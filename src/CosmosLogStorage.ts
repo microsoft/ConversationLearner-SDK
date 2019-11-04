@@ -10,7 +10,7 @@ import * as CLM from '@conversationlearner/models'
 const DATABASE_ID = "LOG_DIALOGS"
 const COLLECTION_ID = "LOG_DIALOGS"
 const MAX_PAGE_SIZE = 100
-const PARTITION_KEY = { kind: 'Hash', paths: ['/appId'] }
+const PARTITION_KEY = { kind: 'Hash', paths: ['/appId', '/packageId'] }
 
 interface StoredLogDialog extends CLM.LogDialog {
     // CosmosId
@@ -47,19 +47,26 @@ export class CosmosLogStorage implements ILogStorage {
     }
 
     /** Add a log dialog to storage */
-    public async Add(appId: string, logDialog: CLM.LogDialog) {
-        if (this.container) {
-            const storedLog = logDialog as StoredLogDialog
-            storedLog.id = this.GetDialogDocumentId(appId, logDialog.logDialogId)
-            storedLog.appId = appId
-            await this.container.items.create(storedLog)
+    public async Add(appId: string, logDialog: CLM.LogDialog): Promise<CLM.LogDialog> {
+        if (!this.container) {
+            throw new Error("Cosmos Container Doesn't exist")
         }
+
+        const storedLog = logDialog as StoredLogDialog
+        storedLog.id = this.GetDialogDocumentId(appId, logDialog.logDialogId)
+        storedLog.appId = appId
+        await this.container.items.create(storedLog)
+        return storedLog
+    }
+
+    public async NewSession(appId: string, logDialog: CLM.LogDialog): Promise<CLM.LogDialog> {
+        return await this.Add(appId, logDialog)
     }
 
     /** Append a scorer step to already existing log dialog */
     public async AppendScorerStep(appId: string, logDialogId: string, scorerStep: CLM.LogScorerStep): Promise<CLM.LogDialog> {
         if (!this.container) {
-            throw new Error("Cosmos Constainer Doesn't exist")
+            throw new Error("Cosmos Container Doesn't exist")
         }
         const { resource: logDialog } = await this.container.item(this.GetDialogDocumentId(appId, logDialogId), appId).read()
         if (!logDialog) {
@@ -120,11 +127,13 @@ export class CosmosLogStorage implements ILogStorage {
         }
         else {
             querySpec = {
-                query: `SELECT * FROM c WHERE c.packageId = @packageId`,
+                //query: `SELECT * FROM c WHERE c.packageId = @packageId`,LARS
+                query: `SELECT * FROM c WHERE ARRAY_CONTAINS(@packageList, c.packageId)`,
                 parameters: [
                     {
-                        name: "@packageId",
-                        value: packageId!
+                        //name: "@packageId",
+                        //value: packageId!
+
                     }
                 ]
             }
