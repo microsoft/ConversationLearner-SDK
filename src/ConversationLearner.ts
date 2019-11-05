@@ -17,6 +17,7 @@ import { ILogStorage } from './Memory/ILogStorage'
 export class ConversationLearner {
     public static options: CLOptions | null = null
     public static clClient: CLClient
+    public static models: ConversationLearner[] = []
     public clRunner: CLRunner
 
     public static Init(options: CLOptions, storage?: BB.Storage, logStorage?: ILogStorage): express.Router {
@@ -38,10 +39,26 @@ export class ConversationLearner {
         }
 
         this.clRunner = CLRunner.Create(modelId, ConversationLearner.clClient, modelOptions)
+        ConversationLearner.models.push(this)
     }
 
     public async recognize(turnContext: BB.TurnContext, force?: boolean): Promise<CLRecognizerResult | null> {
-        return await this.clRunner.recognize(turnContext, force)
+        // tslint:disable-next-line:no-this-assignment
+        let activeModel: ConversationLearner = this
+        // If there is more than one model in use for running bot we need to check which model is active for conversation
+        // This check avoids doing work for normal singe model model bots
+        if (ConversationLearner.models.length > 1) {
+            const context = CLState.GetFromContext(turnContext)
+            const activeModelIdForConversation = await context.ConversationModelState.get<string>()
+            const model = ConversationLearner.models.find(m => m.clRunner.configModelId === activeModelIdForConversation)
+            if (model) {
+                activeModel = model
+            }
+        }
+
+        const result = await activeModel.clRunner.recognize(turnContext, force)
+
+        return result
     }
 
     /**
@@ -58,7 +75,7 @@ export class ConversationLearner {
      * Provide an callback that will be invoked whenever a Session is started
      * @param target Callback of the form (context: BB.TurnContext, memoryManager: ClientMemoryManager) => Promise<void>
      */
-    public OnSessionStartCallback(target: OnSessionStartCallback) {
+    set OnSessionStartCallback(target: OnSessionStartCallback) {
         this.clRunner.onSessionStartCallback = target
     }
 
@@ -67,12 +84,12 @@ export class ConversationLearner {
      * can end because of a timeout or the selection of an EndSession activity
      * @param target Callback of the form (context: BB.TurnContext, memoryManager: ClientMemoryManager, sessionEndState: CLM.SessionEndState, data: string | undefined) => Promise<string[] | undefined>
      */
-    public OnSessionEndCallback(target: OnSessionEndCallback) {
+    set OnSessionEndCallback(target: OnSessionEndCallback) {
         this.clRunner.onSessionEndCallback = target
     }
 
     public async SendResult(result: CLRecognizerResult): Promise<void> {
-        await this.clRunner.SendIntent(result)
+        await this.clRunner.SendResult(result)
     }
 
     /** Returns true is bot is running in the Training UI

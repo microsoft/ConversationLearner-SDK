@@ -17,5 +17,6 @@ export enum CLStrings {
     MEMORY_MANAGER_EXPIRED_EXCEPTION = "called after your function has already returned. You must await results within your code rather than use callbacks",
     EXCEPTION_API_CALLBACK = "Exception hit in Bot's API Callback: ",
     MALFORMED_API_CALLBACK = "Malformed API Callback: ",
-    EXCEPTION_ONSESSIONSTART_CALLBACK = "Exception hit in Bot's OnSessionStartCallback"
+    EXCEPTION_ONSESSIONEND_CALLBACK = "Exception hit in Bot's OnSessionEndCallback",
+    EXCEPTION_ONSESSIONSTART_CALLBACK = "Exception hit in Bot's OnSessionStartCallback",
 }
