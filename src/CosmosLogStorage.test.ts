@@ -12,7 +12,7 @@ const options = {
 
 function makeLogDialog(logDialogId: string): CLM.LogDialog {
     return {
-        ...CLM.makeLogDialog(),
+        ...CLM.MockData.makeLogDialog(),
         logDialogId
     }
 }
@@ -114,7 +114,7 @@ describe('CosmosLogStorage', () => {
         const logDialog1 = makeLogDialog(logDialog1Id)
         await cls.Add(appId, logDialog1)
 
-        const scorerStep = CLM.makeLogScorerStep()
+        const scorerStep = CLM.MockData.makeLogScorerStep()
         await cls.AppendScorerStep(appId, logDialog1.logDialogId, scorerStep)
 
         let logDialog = await cls.Get(appId, logDialog1Id)
@@ -136,7 +136,7 @@ describe('CosmosLogStorage', () => {
         const logDialog1 = makeLogDialog(logDialog1Id)
         await cls.Add(appId, logDialog1)
 
-        const extractorStep = CLM.makeLogExtractorStep()
+        const extractorStep = CLM.MockData.makeLogExtractorStep()
         await cls.AppendExtractorStep(appId, logDialog1.logDialogId, extractorStep)
 
         let logDialog = await cls.Get(appId, logDialog1Id)

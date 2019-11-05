@@ -102,19 +102,19 @@ export class CosmosLogStorage implements ILogStorage {
     /**
      * Get all log dialogs matching parameters
      * @param appId Filer by appId if set
-     * @param packageId Filter by Package if set
+     * @param packageIds Filter by Package if set
      * @param continuationToken Continuation token
      * @param pageSize Number to retrieve (max 100)
      */
-    public async GetMany(appId?: string, packageId?: string, continuationToken?: string, pageSize = MAX_PAGE_SIZE): Promise<LogQueryResult> {
+    public async GetMany(appId?: string, packageIds?: string[], continuationToken?: string, pageSize = MAX_PAGE_SIZE): Promise<LogQueryResult> {
 
         let querySpec: Cosmos.SqlQuerySpec
-        if (!appId && !packageId) {
+        if (!appId && (!packageIds || packageIds.length == 0)) {
             querySpec = {
                 query: `SELECT * FROM c`
             }
         }
-        else if (appId) {
+        else if (appId && (!packageIds || packageIds.length == 0)) {
             querySpec = {
                 query: `SELECT * FROM c WHERE c.appId = @appId`,
                 parameters: [
@@ -125,15 +125,32 @@ export class CosmosLogStorage implements ILogStorage {
                 ]
             }
         }
-        else {
+        else if (!appId && (packageIds && packageIds.length > 0)) {
             querySpec = {
                 //query: `SELECT * FROM c WHERE c.packageId = @packageId`,LARS
                 query: `SELECT * FROM c WHERE ARRAY_CONTAINS(@packageList, c.packageId)`,
                 parameters: [
                     {
+                        name: '@packageList',
+                        value: packageIds
                         //name: "@packageId",
                         //value: packageId!
 
+                    }
+                ]
+            }
+        }
+        else {
+            querySpec = {
+                query: `SELECT * FROM c WHERE ARRAY_CONTAINS(@packageList, c.packageId) AND c.appId = @appId`,
+                parameters: [
+                    {
+                        name: "@appId",
+                        value: appId!
+                    },
+                    {
+                        name: '@packageList',
+                        value: packageIds!
                     }
                 ]
             }

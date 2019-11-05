@@ -29,7 +29,7 @@ export interface ILogStorage {
      * @param continuationToken Continuation token
      * @param pageSize Number to retrieve (max 100)
      */
-    GetMany(appId: string, packageId: string, continuationToken?: string, pageSize?: number): Promise<LogQueryResult>
+    GetMany(appId: string, packageIds: string[], continuationToken?: string, pageSize?: number): Promise<LogQueryResult>
 
     /** Append an extractor step to already existing log dialog */
     AppendExtractorStep(appId: string, logDialogId: string, extractorStep: Partial<CLM.LogExtractorStep>): Promise<CLM.LogDialog>
