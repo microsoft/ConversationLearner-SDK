@@ -10,7 +10,7 @@ import * as path from 'path'
 import * as crypto from 'crypto'
 import * as CLM from '@conversationlearner/models'
 import * as HttpStatus from 'http-status-codes'
-import { CLClient } from './CLClient';
+import { CLClient } from './CLClient'
 
 export class Utils {
     public static SendTyping(adapter: BB.BotAdapter, address: any) {
@@ -107,8 +107,8 @@ const convertToMapById = (entityMap: CLM.FilledEntityMap): CLM.FilledEntityMap =
 export const actionHasHash = (actionId: string, hash: string, actions: CLM.ActionBase[]) => {
     // Check that correct action was taken
     const action = actions.find(a => a.actionId === actionId)
-    if (action && action.clientData && action.clientData.actionHashes) {
-        return action.clientData.actionHashes.indexOf(hash) >= 0
+    if (action?.clientData?.actionHashes) {
+        return action.clientData.actionHashes.includes(hash)
     }
     return false
 }
@@ -160,20 +160,17 @@ export function IsCardValid(card: string | Partial<BB.Activity>): boolean {
 }
 
 export function GetLogicAPIError(logicResult: CLM.LogicResult | undefined): CLM.LogicAPIError | null {
-    if (!logicResult) {
-        return null
-    }
-    if (!logicResult.logicValue) {
+    if (!logicResult?.logicValue) {
         return null
     }
     const logicAPIResult = JSON.parse(logicResult.logicValue) as CLM.LogicAPIError
-    if (!logicAPIResult || !logicAPIResult.APIError) {
+    if (!logicAPIResult?.APIError) {
         return null
     }
     return logicAPIResult
 }
 
-/* Converts user intput into BB.Activity */
+/* Converts user input into BB.Activity */
 export function InputToActivity(userText: string, roundNum: number): Partial<BB.Activity> {
     let clData: CLM.CLChannelData = {
         senderType: CLM.SenderType.User,
@@ -206,7 +203,7 @@ export async function EndSessionIfOpen(clClient: CLClient, appId: string, sessio
     }
 }
 
-export const CL_DEVELOPER = 'ConversationLearnerDeveloper';
+export const CL_DEVELOPER = 'ConversationLearnerDeveloper'
 export const UI_RUNNER_APPID = 'UIRunner_AppId'
 
 export const getSha256Hash: (id: string) => string = (id) => {
@@ -214,7 +211,7 @@ export const getSha256Hash: (id: string) => string = (id) => {
 }
 
 export const isRunningInClUI: (context: BB.TurnContext) => boolean = (context) => {
-    return context && context.activity && context.activity && context.activity.from && context.activity.from.name === CL_DEVELOPER
+    return context?.activity?.from?.name === CL_DEVELOPER
 }
 
 export const isConditionTrue = (
@@ -282,10 +279,7 @@ const findNumberFromFilledEntity = (filledEntity: CLM.FilledEntity, isMultivalue
         return filledEntity.values.length
     }
 
-    const valueString: string | undefined = filledEntity
-        && filledEntity.values[0]
-        && (filledEntity.values[0].resolution ? true : undefined)
-        && (filledEntity.values[0].resolution as any).value as string
+    const valueString: string | undefined = (filledEntity?.values?.[0]?.resolution as any)?.value
 
     const value = valueString
         ? parseInt(valueString, 10)
