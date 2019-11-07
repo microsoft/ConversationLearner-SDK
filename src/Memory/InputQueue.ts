@@ -24,7 +24,7 @@ export class InputQueue {
         }
 
         // Add to queue
-        await InputQueue.InputQueueAdd(activity.id, callback);
+        await InputQueue.InputQueueAdd(activity.id, callback)
 
         // Process queue
         await InputQueue.InputQueueProcess(inProcessMessageState)
@@ -32,35 +32,35 @@ export class InputQueue {
 
     // Add message to queue
     private static async InputQueueAdd(activityId: string, callback: Function): Promise<void> {
-        const now = new Date().getTime();
+        const now = new Date().getTime()
         const queuedInput: QueuedInput = {
             activityId,
             timestamp: now,
             callback,
         }
 
-        this.messageQueue.push(queuedInput);
+        this.messageQueue.push(queuedInput)
         CLDebug.Log(`ADD QUEUE: ${activityId} ${this.messageQueue.length}`, DebugType.MessageQueue)
     }
 
     // Attempt to process next message in the queue
     private static async InputQueueProcess(inProcessMessageState: InProcessMessageState): Promise<void> {
-        const now = new Date().getTime();
-        const messageProcessing = await inProcessMessageState.get<QueuedInput>();
+        const now = new Date().getTime()
+        const messageProcessing = await inProcessMessageState.get<QueuedInput>()
 
         // Is a message being processed
         if (messageProcessing) {
 
             // Remove if it's been expired
-            const age = now - messageProcessing.timestamp;
+            const age = now - messageProcessing.timestamp
 
             if (age > MESSAGE_TIMEOUT) {
                 CLDebug.Log(`EXPIRED: ${messageProcessing.activityId} ${this.messageQueue.length}`, DebugType.MessageQueue)
-                await inProcessMessageState.remove();
-                let queuedInput = this.messageQueue.find(mq => mq.activityId == messageProcessing.activityId);
+                await inProcessMessageState.remove()
+                let queuedInput = this.messageQueue.find(mq => mq.activityId == messageProcessing.activityId)
                 if (queuedInput) {
                     // Fire the callback with failure
-                    queuedInput.callback(true, queuedInput.activityId);
+                    queuedInput.callback(true, queuedInput.activityId)
                 }
                 else {
                     CLDebug.Log(`EXPIRE-WARNING: Couldn't find queued message`, DebugType.MessageQueue)
@@ -71,25 +71,25 @@ export class InputQueue {
 
         // If no message being processed, try next message
         if (!messageProcessing) {
-            await InputQueue.InputQueueProcessNext(inProcessMessageState);
+            await InputQueue.InputQueueProcessNext(inProcessMessageState)
         }
     }
 
     // Process next message
     private static async InputQueueProcessNext(inProcessMessageState: InProcessMessageState): Promise<void> {
 
-        let curProcessing = await inProcessMessageState.get();
+        let curProcessing = await inProcessMessageState.get()
 
         // If no message being process, and item in queue, process teh next one
         if (!curProcessing && this.messageQueue.length > 0) {
-            let messageProcessing = this.messageQueue.shift();
+            let messageProcessing = this.messageQueue.shift()
 
             if (messageProcessing) {
-                await inProcessMessageState.set(messageProcessing);
+                await inProcessMessageState.set(messageProcessing)
 
                 // Fire the callback with success
                 CLDebug.Log(`PROCESS-CALLBACK: ${messageProcessing.activityId} ${this.messageQueue.length}`, DebugType.MessageQueue)
-                messageProcessing.callback(false, messageProcessing.activityId);
+                messageProcessing.callback(false, messageProcessing.activityId)
             }
             else {
                 CLDebug.Log(`PROCESS-ERR: No Message`, DebugType.MessageQueue)
@@ -106,14 +106,14 @@ export class InputQueue {
         if (!activityId) {
             CLDebug.Log(`HANDLE: Missing activity id`, DebugType.MessageQueue)
         }
-        let messageProcessing = await inProcessMessageState.remove<QueuedInput>();
+        let messageProcessing = await inProcessMessageState.remove<QueuedInput>()
 
         // Check for consistency
-        if (messageProcessing && messageProcessing.activityId === activityId) {
+        if (messageProcessing?.activityId === activityId) {
             CLDebug.Log(`HANDLE-POP: ${messageProcessing.activityId} ${this.messageQueue.length}`, DebugType.MessageQueue)
         }
 
         // Process next message in the queue
-        await InputQueue.InputQueueProcessNext(inProcessMessageState);
+        await InputQueue.InputQueueProcessNext(inProcessMessageState)
     }
 }

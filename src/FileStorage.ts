@@ -9,11 +9,11 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License.
  */
-import { Storage, StoreItems, StoreItem } from 'botbuilder';
-import * as path from 'path';
-import * as fs from 'async-file';
-import * as file from 'fs';
-import * as filenamify from 'filenamify';
+import { Storage, StoreItems, StoreItem } from 'botbuilder'
+import * as path from 'path'
+import * as fs from 'async-file'
+import * as file from 'fs'
+import * as filenamify from 'filenamify'
 
 /**
  * :package: **botbuilder**
@@ -65,7 +65,7 @@ export class FileStorage implements Storage {
             return fs.exists(filePath)
                 .then((exists) => {
                     const newObj: StoreItem = { ...changes[key] }
-                    newObj.eTag = (parseInt(newObj.eTag || '0', 10) + 1).toString()
+                    newObj.eTag = (parseInt(newObj.eTag ?? '0', 10) + 1).toString()
                     return fs.writeTextFile(filePath, JSON.stringify(newObj))
                 })
         })
@@ -90,7 +90,7 @@ export class FileStorage implements Storage {
 
     private async ensureFolder(): Promise<void> {
         if (this.pEnsureFolder) {
-            return this.pEnsureFolder;
+            return this.pEnsureFolder
         }
 
         const exists = await fs.exists(this.path)
@@ -100,11 +100,11 @@ export class FileStorage implements Storage {
     }
 
     private getFileName(key: string): string {
-        return filenamify(key);
+        return filenamify(key)
     }
 
     private getFilePath(key: string): string {
-        return path.join(this.path, this.getFileName(key));
+        return path.join(this.path, this.getFileName(key))
     }
 }
 

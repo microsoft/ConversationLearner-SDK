@@ -34,7 +34,7 @@ export class ReadOnlyClientMemoryManager {
 
     protected __ToString(value: string | number | boolean | object): string {
         if (typeof value == 'object') {
-            return JSON.stringify(value);
+            return JSON.stringify(value)
         }
         return value.toString()
     }
@@ -57,7 +57,7 @@ export class ReadOnlyClientMemoryManager {
      * Get information about the current running session
      */
     public SessionInfo(): SessionInfo {
-        return this.sessionInfo;
+        return this.sessionInfo
     }
 
     public static AS_VALUE(memoryValues: CLM.MemoryValue[]): CLM.MemoryValue | null {
@@ -143,11 +143,11 @@ export class ReadOnlyClientMemoryManager {
     private GetValues<T = CLM.MemoryValue[]>(entityName: string, entityMap: CLM.FilledEntityMap, converter?: (memoryValues: CLM.MemoryValue[]) => T): MemoryManagerReturnType<T> {
 
         let values = entityMap.Values(entityName)
-        const entity = this.__FindEntity(entityName);
-        if (entity && entity.entityType === CLM.EntityType.LUIS && entity.enumValues) {
+        const entity = this.__FindEntity(entityName)
+        if (entity?.entityType === CLM.EntityType.LUIS && entity.enumValues) {
             for (let value of values) {
                 const enumValue = entity.enumValues.find(ev => ev.enumValue === value.enumValueId)
-                value.displayText = enumValue ? enumValue.enumValue : null
+                value.displayText = enumValue?.enumValue ?? null
             }
         }
 
@@ -155,7 +155,7 @@ export class ReadOnlyClientMemoryManager {
         // see here for description https://github.com/Microsoft/TypeScript/issues/22735#issuecomment-376960435
         if (!converter) {
             const entityValues = entityMap.Values(entityName)
-            const foundEntity = this.__FindEntity(entityName);
+            const foundEntity = this.__FindEntity(entityName)
             if (foundEntity && !foundEntity.isMultivalue) {
                 return <MemoryManagerReturnType<T>>ClientMemoryManager.AS_VALUE(entityValues)
             }
