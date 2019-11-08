@@ -354,7 +354,7 @@ export class CLRunner {
                 rounds: [],
                 initialFilledEntities: [],
                 targetTrainDialogIds: [],
-                createdDateTime: session.createdDatetime,
+                createdDateTime: new Date().toJSON(),
                 // Start out the same.  End is updated when dialog is edited
                 dialogBeginDatetime: new Date().toJSON(),
                 dialogEndDatetime: new Date().toJSON(),
