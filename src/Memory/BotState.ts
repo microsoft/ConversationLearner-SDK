@@ -80,13 +80,13 @@ export class BotState {
 
         try {
             let data = await this.storage.GetAsync(key)
-            return JSON.parse(data) as T;
+            return JSON.parse(data) as T
         }
         catch {
             // If brand new use, need to initialize
             await this.SetAppAsync(null)
             let data = await this.storage.GetAsync(key)
-            return JSON.parse(data) as T;
+            return JSON.parse(data) as T
         }
     }
 
@@ -99,12 +99,12 @@ export class BotState {
     public async SetAppAsync(app: AppBase | null): Promise<void> {
         await this.SetApp(app)
         await this.SetConversationReference(null)
-        await this.SetLastActive(0);
+        await this.SetLastActive(0)
         await this.SetNeedSessionEndCall(false)
         await this.SetUIMode(UIMode.NONE)
         await this.SetSessionId(null)
-        await this.SetLogDialogId(null);
-        await this.ClearEditingPackageAsync();
+        await this.SetLogDialogId(null)
+        await this.ClearEditingPackageAsync()
     }
 
     // ------------------------------------------------
@@ -142,23 +142,23 @@ export class BotState {
     //  EDITING_PACKAGE
     // ------------------------------------------------
     public async GetEditingPackages(): Promise<ActiveApps> {
-        return await this.GetStateAsync<ActiveApps>(BotStateType.EDITING_PACKAGE) || {}
+        return await this.GetStateAsync<ActiveApps>(BotStateType.EDITING_PACKAGE) ?? {}
     }
 
     public async SetEditingPackage(appId: string, packageId: string): Promise<{ [appId: string]: string }> {
-        let activeApps = await this.GetStateAsync<ActiveApps>(BotStateType.EDITING_PACKAGE) || {}
-        activeApps[appId] = packageId;
-        await this.SetStateAsync<ActiveApps>(BotStateType.EDITING_PACKAGE, activeApps);
-        return activeApps;
+        let activeApps = await this.GetStateAsync<ActiveApps>(BotStateType.EDITING_PACKAGE) ?? {}
+        activeApps[appId] = packageId
+        await this.SetStateAsync<ActiveApps>(BotStateType.EDITING_PACKAGE, activeApps)
+        return activeApps
     }
 
     public async GetEditingPackageForApp(appId: string): Promise<string> {
-        let activeApps = await this.GetStateAsync<ActiveApps>(BotStateType.EDITING_PACKAGE) || {}
-        return activeApps[appId];
+        let activeApps = await this.GetStateAsync<ActiveApps>(BotStateType.EDITING_PACKAGE) ?? {}
+        return activeApps[appId]
     }
 
     public async ClearEditingPackageAsync(): Promise<void> {
-        await this.SetStateAsync<ActiveApps>(BotStateType.EDITING_PACKAGE, {});
+        await this.SetStateAsync<ActiveApps>(BotStateType.EDITING_PACKAGE, {})
     }
 
     // ------------------------------------------------
@@ -166,11 +166,11 @@ export class BotState {
     // ------------------------------------------------
     public async GetNeedSessionEndCall(): Promise<boolean> {
         const needed = await this.GetStateAsync<boolean>(BotStateType.NEED_SESSIONEND_CALL)
-        return (needed ? needed : false);
+        return (needed ? needed : false)
     }
 
     public async SetNeedSessionEndCall(needed: boolean): Promise<void> {
-        needed = needed ? needed : false;
+        needed = needed ? needed : false
         await this.SetStateAsync(BotStateType.NEED_SESSIONEND_CALL, needed)
     }
 
@@ -222,7 +222,7 @@ export class BotState {
             uiMode = UIMode.NONE
         }
 
-        await this.SetSessionId(sessionId);
+        await this.SetSessionId(sessionId)
         await this.SetLogDialogId(logDialogId)
         await this.SetNeedSessionEndCall(true)
         await this.SetConversationReference(conversationReference)
@@ -232,11 +232,11 @@ export class BotState {
 
     // End a session.
     public async EndSessionAsync(): Promise<void> {
-        await this.SetSessionId(null);
-        await this.SetLogDialogId(null);
+        await this.SetSessionId(null)
+        await this.SetLogDialogId(null)
         await this.SetConversationReference(null)
-        await this.SetLastActive(0);
-        await this.SetUIMode(UIMode.NONE);
+        await this.SetLastActive(0)
+        await this.SetUIMode(UIMode.NONE)
     }
 
     // ------------------------------------------------
@@ -292,12 +292,12 @@ export class BotState {
 
     // -------------------------------------------------------------------
     public async SessionInfoAsync(): Promise<SessionInfo> {
-        const conversationReference = await this.GetConversationReference();
+        const conversationReference = await this.GetConversationReference()
 
-        if (conversationReference && conversationReference.conversation) {
+        if (conversationReference?.conversation) {
             return {
-                userName: conversationReference.user && conversationReference.user.name,
-                userId: conversationReference.user && conversationReference.user.id,
+                userName: conversationReference.user?.name,
+                userId: conversationReference.user?.id,
                 logDialogId: await this.GetLogDialogId()
             } as SessionInfo
         }
@@ -309,10 +309,7 @@ export class BotState {
     }
 
     private static DefaultConversationIdMapper: ConvIdMapper = ref => {
-        if (ref && ref.conversation) {
-            return ref.conversation.id
-        }
-        return null
+        return ref?.conversation?.id ?? null
     }
 
     private async SetConversationReference(conversationReference: Partial<BB.ConversationReference> | null): Promise<void> {

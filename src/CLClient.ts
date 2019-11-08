@@ -67,7 +67,7 @@ export class CLClient {
     private MakeURL(apiPath: string, query: object | string = '') {
         const queryString = typeof query === 'string'
             ? query
-            : querystring.stringify(query)
+            : querystring.stringify(query as querystring.ParsedUrlQueryInput)
         return this.BuildURL(this.options.CONVERSATION_LEARNER_SERVICE_URI, apiPath, queryString)
     }
 
@@ -103,7 +103,7 @@ export class CLClient {
 
         const queryString = typeof query === 'string'
             ? query
-            : querystring.stringify(query)
+            : querystring.stringify(query as querystring.ParsedUrlQueryInput)
 
         return this.BuildURL(baseUri, apiPath, queryString)
     }

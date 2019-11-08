@@ -12,9 +12,10 @@ const app = express()
 app.use(uiRouter)
 
 const port = 5053
-const listener = app.listen(port, () =>
-    console.log(`Navigate to http://localhost:${listener.address().port}/ui to view Conversation Learner administration application.`)
-).on('error', (error: NodeJS.ErrnoException) => {
+const listener = app.listen(port, () => {
+    const addressInfo = listener.address()
+    console.log(`Navigate to http://localhost:${typeof addressInfo === 'string' ? addressInfo : addressInfo?.port}/ui to view Conversation Learner administration application.`)
+}).on('error', (error: NodeJS.ErrnoException) => {
     if (error.code === 'EADDRINUSE') {
         console.log(`ERROR: The UI is already running or the port (${port}) is in use by another process`)
         return

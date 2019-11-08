@@ -25,7 +25,7 @@ export class TemplateProvider {
         for (let argumentName of argumentNames) {
             let renderedActionArgument = templateArguments.find(a => a.parameter == argumentName)
             if (renderedActionArgument) {
-                templateString = templateString.replace(new RegExp(`{{${argumentName}}}`, 'g'), renderedActionArgument.value || '')
+                templateString = templateString.replace(new RegExp(`{{${argumentName}}}`, 'g'), renderedActionArgument.value ?? '')
             }
         }
         templateString = this.RemoveEmptyArguments(templateString)
@@ -107,12 +107,12 @@ export class TemplateProvider {
         if (!fs.existsSync(templateDirectory)) {
             templateDirectory = path.join(process.cwd(), '../../cards')
         }
-        return templateDirectory;
+        return templateDirectory
     }
 
     public static GetTemplate(templateName: string): any {
 
-        const filename = path.join(this.TemplateDirectory(), `${templateName}.json`);
+        const filename = path.join(this.TemplateDirectory(), `${templateName}.json`)
 
         try {
             const templateString = fs.readFileSync(filename, 'utf-8')
@@ -138,7 +138,7 @@ export class TemplateProvider {
             return templates
         } catch {
             CLDebug.Log("No Card directory found")
-            return [];
+            return []
         }
     }
 
@@ -158,7 +158,7 @@ export class TemplateProvider {
 
     private static GetTemplateVariables(template: any): TemplateVariable[] {
         let tvs: TemplateVariable[] = []
-        if (template && template.type === "Action.Submit" && (typeof template.data !== 'string')) {
+        if (template?.type === "Action.Submit" && (typeof template.data !== 'string')) {
             this.hasSubmitError = true
         }
 
