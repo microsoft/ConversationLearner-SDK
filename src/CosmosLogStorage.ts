@@ -10,6 +10,7 @@ import * as CLM from '@conversationlearner/models'
 const DATABASE_ID = "LOG_DIALOGS"
 const COLLECTION_ID = "LOG_DIALOGS"
 const MAX_PAGE_SIZE = 100
+const DELETE_BATCH_SIZE = 10
 const PARTITION_KEY = { kind: 'Hash', paths: ['/appId', '/packageId'] }
 
 interface StoredLogDialog extends CLM.LogDialog {
@@ -22,6 +23,8 @@ export class CosmosLogStorage implements ILogStorage {
     private client: Cosmos.CosmosClient
     private database: Cosmos.Database | undefined
     private container: Cosmos.Container | undefined
+    // Queue of items to be deleted
+    private deleteQueue: string[]
 
     /**
      * 
@@ -31,6 +34,7 @@ export class CosmosLogStorage implements ILogStorage {
      */
     constructor(options: Cosmos.CosmosClientOptions) {
         this.client = new Cosmos.CosmosClient(options)
+        this.deleteQueue = []
     }
 
     static async Get(options: Cosmos.CosmosClientOptions): Promise<CosmosLogStorage> {
@@ -55,48 +59,30 @@ export class CosmosLogStorage implements ILogStorage {
         const storedLog = logDialog as StoredLogDialog
         storedLog.id = this.GetDialogDocumentId(appId, logDialog.logDialogId)
         storedLog.appId = appId
-        await this.container.items.create(storedLog)
-        return storedLog
-    }
-
-    public async NewSession(appId: string, logDialog: CLM.LogDialog): Promise<CLM.LogDialog> {
-        return await this.Add(appId, logDialog)
-    }
-
-    /** Append a scorer step to already existing log dialog */
-    public async AppendScorerStep(appId: string, logDialogId: string, scorerStep: CLM.LogScorerStep): Promise<CLM.LogDialog> {
-        if (!this.container) {
-            throw new Error("Cosmos Container Doesn't exist")
-        }
-        const { resource: logDialog } = await this.container.item(this.GetDialogDocumentId(appId, logDialogId), appId).read()
-        if (!logDialog) {
-            throw new Error(`Log Dialog does not exist App:${appId} Log:${logDialogId}`)
-        }
-        const lastRound = logDialog.rounds[logDialog.rounds.length - 1]
-        if (!lastRound || lastRound.scorerSteps.length === 0) {
-            throw new Error(`Log Dialogs has no Extractor Step Log:${logDialogId}`)
-        }
-        lastRound.scorerSteps.push(scorerStep)
-        await this.container.items.upsert(logDialog)
-        return logDialog
+        const itemResponse = await this.container.items.create<StoredLogDialog>(storedLog)
+        const { resource: createdLog } = await itemResponse.item.read<StoredLogDialog>()
+        return createdLog
     }
 
     /** Append an extractor step to already existing log dialog */
-    public async AppendExtractorStep(appId: string, logDialogId: string, extractorStep: CLM.LogExtractorStep): Promise<CLM.LogDialog> {
-        if (!this.container) {
-            throw new Error("Cosmos Constainer Doesn't exist")
+    public async Replace(appId: string, logDialog: CLM.LogDialog): Promise<void> {
+        if (this.container) {
+            await this.container.item(this.GetDialogDocumentId(appId, logDialog.logDialogId), appId).replace(logDialog)
         }
-        const { resource: logDialog } = await this.container.item(this.GetDialogDocumentId(appId, logDialogId), appId).read()
-        if (!logDialog) {
-            throw new Error(`Log Dialog does not exist App:${appId} Log:${logDialogId}`)
+    }
+
+
+    /** Retrieve a log dialog from storage */
+    public async Get(appId: string, logDialogId: string): Promise<CLM.LogDialog | undefined> {
+        if (this.container) {
+            // Check if scheduled for deletion
+            if (this.deleteQueue.includes(logDialogId)) {
+                return undefined
+            }
+            const { resource } = await this.container.item(this.GetDialogDocumentId(appId, logDialogId), appId).read<StoredLogDialog>()
+            return resource
         }
-        const newRound: CLM.LogRound = {
-            extractorStep: extractorStep,
-            scorerSteps: []
-        }
-        logDialog.rounds.push(newRound)
-        await this.container.items.upsert(logDialog)
-        return logDialog
+        return undefined
     }
 
     /**
@@ -108,89 +94,80 @@ export class CosmosLogStorage implements ILogStorage {
      */
     public async GetMany(appId?: string, packageIds?: string[], continuationToken?: string, pageSize = MAX_PAGE_SIZE): Promise<LogQueryResult> {
 
-        let querySpec: Cosmos.SqlQuerySpec
-        if (!appId && (!packageIds || packageIds.length == 0)) {
-            querySpec = {
-                query: `SELECT * FROM c`
-            }
-        }
-        else if (appId && (!packageIds || packageIds.length == 0)) {
-            querySpec = {
-                query: `SELECT * FROM c WHERE c.appId = @appId`,
-                parameters: [
-                    {
-                        name: "@appId",
-                        value: appId
-                    }
-                ]
-            }
-        }
-        else if (!appId && (packageIds && packageIds.length > 0)) {
-            querySpec = {
-                //query: `SELECT * FROM c WHERE c.packageId = @packageId`,LARS
-                query: `SELECT * FROM c WHERE ARRAY_CONTAINS(@packageList, c.packageId)`,
-                parameters: [
-                    {
-                        name: '@packageList',
-                        value: packageIds
-                        //name: "@packageId",
-                        //value: packageId!
-
-                    }
-                ]
-            }
-        }
-        else {
-            querySpec = {
-                query: `SELECT * FROM c WHERE ARRAY_CONTAINS(@packageList, c.packageId) AND c.appId = @appId`,
-                parameters: [
-                    {
-                        name: "@appId",
-                        value: appId!
-                    },
-                    {
-                        name: '@packageList',
-                        value: packageIds!
-                    }
-                ]
-            }
-        }
-
-        const feedOptions: Cosmos.FeedOptions = {
-            maxItemCount: Math.min(pageSize, MAX_PAGE_SIZE),
-            continuation: continuationToken
-        }
-
         if (this.container) {
-            const feedResponse = await this.container.items.query(querySpec, feedOptions).fetchNext();
+            let and = ""
+            const querySpec: Cosmos.SqlQuerySpec = {
+                query: `SELECT * FROM c`,
+                parameters: []
+            }
+            if (appId) {
+                querySpec.query = querySpec.query.concat(' WHERE c.appId = @appId')
+                querySpec.parameters!.push({ name: "@appId", value: appId })
+                and = " AND"
+            }
+            if (packageIds && packageIds.length > 0) {
+                querySpec.query = querySpec.query.concat(`${and} ARRAY_CONTAINS(@packageList, c.packageId)`)
+                querySpec.parameters!.push({ name: '@packageList', value: packageIds })
+                and = " AND"
+            }
+            if (this.deleteQueue && this.deleteQueue.length > 0) {
+                querySpec.query = querySpec.query.concat(`${and} NOT ARRAY_CONTAINS(@logIdList, c.logDialogId)`)
+                querySpec.parameters!.push({ name: '@logIdList', value: this.deleteQueue })
+            }
+
+            const feedOptions: Cosmos.FeedOptions = {
+                maxItemCount: Math.min(pageSize, MAX_PAGE_SIZE),
+                continuation: continuationToken
+            }
+
+            const feedResponse = await this.container.items.query(querySpec, feedOptions).fetchNext()
+
             return {
-                logDialogs: feedResponse.resources,
+                logDialogs: feedResponse.resources as CLM.LogDialog[],
                 continuationToken: feedResponse.continuation
             }
         }
         throw new Error("Contained undefined")
     }
 
-    /** Retrieve a log dialog from storage */
-    public async Get(appId: string, logDialogId: string): Promise<CLM.LogDialog | undefined> {
-        if (this.container) {
-            // this.container.
-            const { resource } = await this.container.item(this.GetDialogDocumentId(appId, logDialogId), appId).read()
-            return resource
-        }
-        return undefined
-    }
-
     /** Delete a log dialog in storage */
     public async Delete(appId: string, logDialogId: string): Promise<void> {
         if (this.container) {
-            await this.container.item(this.GetDialogDocumentId(appId, logDialogId), appId).delete()
-            CLDebug.Log(`Deleted ${logDialogId} / ${this.GetDialogDocumentId(appId, logDialogId)}`)
+            try {
+                await this.container.item(this.GetDialogDocumentId(appId, logDialogId), appId).delete()
+            }
+            catch (err) {
+                // TODO: consider retry
+                CLDebug.Error(err)
+            }
+        }
+    }
+
+    /** Delete a log dialog in storage LARS review comments */
+    public async DeleteMany(appId: string, logDialogIds: string[]): Promise<void> {
+        if (this.container) {
+            // Add items to existing delete queue
+            if (this.deleteQueue.length > 0) {
+                this.deleteQueue.push(...logDialogIds)
+            }
+            // Otherwise set queue and start deleting. 
+            else {
+                this.deleteQueue.push(...logDialogIds)
+                while (this.deleteQueue.length > 0) {
+                    // Batch in batches of DELETE_BATCH_SIZE
+                    const logSet = this.deleteQueue.slice(0, DELETE_BATCH_SIZE)
+                    const promises = logSet.map(lid => this.Delete(appId, lid))
+                    await Promise.all(promises)
+
+                    // Remove them from the delete queue w/o mutating the object
+                    logSet.forEach(id => this.deleteQueue.splice(this.deleteQueue.indexOf(id), 1))
+                }
+            }
         }
     }
 
     /** Delete all log dialogs in storage */
-    public async DeleteAll() {
+    public async DeleteAll(appId?: string) {
         if (!this.container) {
             throw new Error("Continer is undefined")
         }
@@ -198,16 +175,22 @@ export class CosmosLogStorage implements ILogStorage {
             query: `SELECT * FROM c`
         }
 
+        if (appId) {
+            querySpec.query = querySpec.query.concat(' WHERE c.appId = @appId`')
+            querySpec.parameters = [{ name: "@appId", value: appId }]
+        }
+
         let continuationToken: string | undefined
         do {
             const feedOptions: Cosmos.FeedOptions = {
-                maxItemCount: 5,
+                maxItemCount: DELETE_BATCH_SIZE,
                 continuation: continuationToken
             }
             const feedResponse = await this.container.items.query(querySpec, feedOptions).fetchNext()
-            for (const logDialog of feedResponse.resources) {
-                await this.container.item(logDialog.id, logDialog.appId).delete(logDialog)
-            }
+            const logDialogs: StoredLogDialog[] = feedResponse.resources
+            const promises = logDialogs.map(ld => this.Delete(ld.logDialogId, ld.appId))
+            await Promise.all(promises)
+
             continuationToken = feedResponse.continuation
         }
         while (continuationToken);

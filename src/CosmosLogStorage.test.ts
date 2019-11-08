@@ -17,19 +17,59 @@ function makeLogDialog(logDialogId: string): CLM.LogDialog {
     }
 }
 
+async function getStorage(): Promise<CosmosLogStorage | undefined> {
+    if (!options.endpoint || !options.key) {
+        console.log("Skipping Test.  Cosmos credentials not defined.")
+        return undefined
+    }
+    return await CosmosLogStorage.Get(options)
+}
+
+async function appendScorerStep(appId: string, logDialogId: string, logScorerStep: CLM.LogScorerStep, cls: CosmosLogStorage) {
+    const logDialog: CLM.LogDialog | undefined = await cls.Get(appId, logDialogId)
+    if (!logDialog) {
+        throw new Error(`Log Dialog does not exist App:${appId} Log:${logDialogId}`)
+    }
+    const lastRound = logDialog.rounds[logDialog.rounds.length - 1]
+    if (!lastRound || !lastRound.extractorStep) {
+        throw new Error(`Log Dialogs has no Extractor Step Id:${logDialogId}`)
+    }
+    lastRound.scorerSteps.push(logScorerStep as any)
+    await cls.Replace(appId, logDialog)
+}
+
+async function appendExtractorStep(appId: string, logDialogId: string, extractorStep: CLM.LogExtractorStep, cls: CosmosLogStorage) {
+    // Append an extractor step to already existing log dialog
+    const logDialog: CLM.LogDialog | undefined = await cls.Get(appId, logDialogId)
+    if (!logDialog) {
+        throw new Error(`Log Dialog does not exist App:${appId} Id:${logDialogId}`)
+    }
+    const newRound: CLM.LogRound = {
+        extractorStep: { ...extractorStep, stepBeginDatetime: "", stepEndDatetime: "" },
+        scorerSteps: []
+    }
+    logDialog.rounds.push(newRound)
+    await cls.Replace(appId, logDialog)
+}
+
 describe('CosmosLogStorage', () => {
 
     // Before each test clear the database
     beforeEach(async () => {
-        const cls = await CosmosLogStorage.Get(options)
-        await cls.DeleteAll()
+
+        const cls = await getStorage()
+        if (cls) {
+            await cls.DeleteAll()
+        }
     })
 
 
     test('CreateAsync', async () => {
 
-        const cls = await CosmosLogStorage.Get(options)
-
+        const cls = await getStorage()
+        if (!cls) {
+            return
+        }
         const appId = CLM.ModelUtils.generateGUID()
         const logDialog1Id = CLM.ModelUtils.generateGUID()
         const logDialog1 = makeLogDialog(logDialog1Id)
@@ -41,7 +81,10 @@ describe('CosmosLogStorage', () => {
 
     test('GetAsync', async () => {
 
-        const cls = await CosmosLogStorage.Get(options)
+        const cls = await getStorage()
+        if (!cls) {
+            return
+        }
 
         const appId = CLM.ModelUtils.generateGUID()
         const logDialog1Id = CLM.ModelUtils.generateGUID()
@@ -54,7 +97,10 @@ describe('CosmosLogStorage', () => {
 
     test('DeleteAsync', async () => {
 
-        const cls = await CosmosLogStorage.Get(options)
+        const cls = await getStorage()
+        if (!cls) {
+            return
+        }
 
         const appId = CLM.ModelUtils.generateGUID()
         const logDialog1Id = CLM.ModelUtils.generateGUID()
@@ -73,7 +119,10 @@ describe('CosmosLogStorage', () => {
 
     test('DeleteAll', async () => {
 
-        const cls = await CosmosLogStorage.Get(options)
+        const cls = await getStorage()
+        if (!cls) {
+            return
+        }
         await cls.DeleteAll()
 
         let queryResult = await cls.GetMany()
@@ -84,7 +133,10 @@ describe('CosmosLogStorage', () => {
 
     test('GetMany', async () => {
 
-        const cls = await CosmosLogStorage.Get(options)
+        const cls = await getStorage()
+        if (!cls) {
+            return
+        }
 
         // Create 10 items
         for (let i = 0; i < 8; i = i + 1) {
@@ -107,7 +159,10 @@ describe('CosmosLogStorage', () => {
 
     test('AppendScorerStep', async () => {
 
-        const cls = await CosmosLogStorage.Get(options)
+        const cls = await getStorage()
+        if (!cls) {
+            return
+        }
 
         const appId = CLM.ModelUtils.generateGUID()
         const logDialog1Id = CLM.ModelUtils.generateGUID()
@@ -115,7 +170,7 @@ describe('CosmosLogStorage', () => {
         await cls.Add(appId, logDialog1)
 
         const scorerStep = CLM.MockData.makeLogScorerStep()
-        await cls.AppendScorerStep(appId, logDialog1.logDialogId, scorerStep)
+        await appendScorerStep(appId, logDialog1.logDialogId, scorerStep, cls)
 
         let logDialog = await cls.Get(appId, logDialog1Id)
         expect(logDialog).not.toBe(undefined)
@@ -129,7 +184,10 @@ describe('CosmosLogStorage', () => {
 
     test('AppendExtractorStep', async () => {
 
-        const cls = await CosmosLogStorage.Get(options)
+        const cls = await getStorage()
+        if (!cls) {
+            return
+        }
 
         const appId = CLM.ModelUtils.generateGUID()
         const logDialog1Id = CLM.ModelUtils.generateGUID()
@@ -137,7 +195,7 @@ describe('CosmosLogStorage', () => {
         await cls.Add(appId, logDialog1)
 
         const extractorStep = CLM.MockData.makeLogExtractorStep()
-        await cls.AppendExtractorStep(appId, logDialog1.logDialogId, extractorStep)
+        await appendExtractorStep(appId, logDialog1.logDialogId, extractorStep, cls)
 
         let logDialog = await cls.Get(appId, logDialog1Id)
         expect(logDialog).not.toBe(undefined)

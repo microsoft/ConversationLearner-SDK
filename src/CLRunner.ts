@@ -346,8 +346,8 @@ export class CLRunner {
 
         // If using customer storage add to log storage
         if (CLState.logStorage) {
-            // For self-hosted log storage logDialogId is hash of sessionId
-            session.logDialogId = CLM.hashText(session.logDialogId)
+            // For self-hosted log storage logDialogId is sessionId
+            session.logDialogId = session.sessionId
             const logDialog: CLM.LogDialog = {
                 logDialogId: session.logDialogId,
                 packageId: session.packageId,
@@ -358,20 +358,35 @@ export class CLRunner {
                 dialogBeginDatetime: new Date().getTime().toString(),
                 dialogEndDatetime: new Date().getTime().toString(),
                 lastModifiedDateTime: new Date().getTime().toString(),
-                metrics: "LARS"
+                metrics: ""
             }
-            CLState.logStorage.NewSession(appId, logDialog)
+            const ld = await CLState.logStorage.Add(appId, logDialog)
+            console.log(`${session.sessionId}:${session.logDialogId} / ${ld.logDialogId}`)
         }
         return session
     }
 
     private async SessionExtract(appId: string, sessionId: string, userInput: CLM.UserInput): Promise<CLM.ExtractResponse> {
+        const stepBeginDatetime = new Date().getTime().toString()
         const extractResponse = await this.clClient.SessionExtract(appId, sessionId, userInput)
+        const stepEndDatetime = new Date().getTime().toString()
 
         // Add to dev's log storage account (if it exists)
         if (CLState.logStorage) {
-            const logDialogId = CLM.hashText(sessionId)
-            CLState.logStorage.AppendExtractorStep(appId, logDialogId, extractResponse)
+            // For local stroate logDialogId = sessionId
+            const logDialogId = sessionId
+
+            // Append an extractor step to already existing log dialog
+            const logDialog: CLM.LogDialog | undefined = await CLState.logStorage.Get(appId, logDialogId)
+            if (!logDialog) {
+                throw new Error(`Log Dialog does not exist App:${appId} Id:${logDialogId}`)
+            }
+            const newRound: CLM.LogRound = {
+                extractorStep: { ...extractResponse, stepBeginDatetime, stepEndDatetime },
+                scorerSteps: []
+            }
+            logDialog.rounds.push(newRound)
+            await CLState.logStorage.Replace(appId, logDialog)
         }
         return extractResponse
     }
@@ -382,19 +397,44 @@ export class CLRunner {
 
         // Add to dev's log storage account (if it exists)
         if (CLState.logStorage) {
-            const logDialogId = CLM.hashText(sessionId)
+            // For self-hosted storage logDialogId is sessionId
+            const logDialogId = sessionId
             const predictedAction = scoreResponse.scoredActions[0] ? scoreResponse.scoredActions[0].actionId : ""
-            const logScorerStep: CLM.LogScorerStep = {
+
+            // Keep only needed data (drop payload, etc)
+            const scoredActions = scoreResponse.scoredActions.map(sa => {
+                return {
+                    score: sa.score,
+                    actionId: sa.actionId
+                }
+            })
+            const unscoredActions = scoreResponse.unscoredActions.map(sa => {
+                return {
+                    reason: sa.reason,
+                    actionId: sa.actionId
+                }
+            })
+            // Need to use recursive partial as scored and unscored have only partial data
+            const logScorerStep: Utils.RecursivePartial<CLM.LogScorerStep> = {
                 input: scoreInput,
                 predictedAction,
                 logicResult: undefined, // LARS what should this be
-                predictionDetails: scoreResponse,
+                predictionDetails: { scoredActions, unscoredActions },
                 stepBeginDatetime,
                 stepEndDatetime: new Date().getTime().toString(),
                 metrics: scoreResponse.metrics
             }
 
-            CLState.logStorage.AppendScorerStep(appId, logDialogId, logScorerStep)
+            const logDialog: CLM.LogDialog | undefined = await CLState.logStorage.Get(appId, logDialogId)
+            if (!logDialog) {
+                throw new Error(`Log Dialog does not exist App:${appId} Log:${logDialogId}`)
+            }
+            const lastRound = logDialog.rounds[logDialog.rounds.length - 1]
+            if (!lastRound || !lastRound.extractorStep) {
+                throw new Error(`Log Dialogs has no Extractor Step Id:${logDialogId}`)
+            }
+            lastRound.scorerSteps.push(logScorerStep as any)
+            await CLState.logStorage.Replace(appId, logDialog)
         }
         return scoreResponse
     }
@@ -472,7 +512,7 @@ export class CLRunner {
             if (!app) {
                 let error = "ERROR: AppId not specified.  When running in a channel (i.e. Skype) or the Bot Framework Emulator, CONVERSATION_LEARNER_MODEL_ID must be specified in your Bot's .env file or Application Settings on the server"
                 await this.SendMessage(state, error, activity.id)
-                return null;
+                return null
             }
 
             let sessionId = await state.BotState.GetSessionIdAndSetConversationId(conversationReference)
@@ -541,14 +581,14 @@ export class CLRunner {
             // Handle any other non-message input, filter out empty messages
             if (activity.type !== BB.ActivityTypes.Message || !activity.text || activity.text === "") {
                 await InputQueue.MessageHandled(state.MessageState, activity.id);
-                return null;
+                return null
             }
 
             // PackageId: Use live package id if not in editing UI, default to devPackage if no active package set
             let packageId = (inEditingUI ? await state.BotState.GetEditingPackageForApp(app.appId) : app.livePackageId) || app.devPackageId
             if (!packageId) {
                 await this.SendMessage(state, "ERROR: No PackageId has been set", activity.id)
-                return null;
+                return null
             }
 
             // If no session for this conversation, create a new one
@@ -574,7 +614,15 @@ export class CLRunner {
             if (!logDialogId) {
                 throw new Error("No logDialogId")
             }
-            const userInput: CLM.UserInput = { text: buttonResponse || activity.text || '  ' }
+
+            if (activity.text.length > Utils.CL_MAX_USER_UTTERANCE) {
+                CLDebug.Verbose(`Trimming user input to ${Utils.CL_MAX_USER_UTTERANCE} chars`)
+            }
+
+            const userInput: CLM.UserInput = {
+                text: buttonResponse || activity.text.substr(0, Utils.CL_MAX_USER_UTTERANCE) || '  '
+            }
+
             const extractResponse = await this.SessionExtract(app.appId, sessionId, userInput)
 
             entities = extractResponse.definitions.entities
@@ -605,7 +653,8 @@ export class CLRunner {
                 CLDebug.Log(`Failed to End Session`)
             }
 
-            CLDebug.Error(error, errorContext)
+            const errMessage = error.body ? JSON.stringify(error.body) : JSON.stringify(error)
+            CLDebug.Error(errMessage, errorContext)
             return null
         }
     }

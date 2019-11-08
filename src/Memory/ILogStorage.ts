@@ -17,11 +17,6 @@ export interface ILogStorage {
     /** Retrieve a log dialog from storage */
     Get(appId: string, logDialogId: string): Promise<CLM.LogDialog | undefined>
 
-    /** Delete a log dialog in storage */
-    Delete(appId: string, lodDialogId: string): Promise<void>
-
-    NewSession(appId: string, logDialog: CLM.LogDialog): Promise<CLM.LogDialog>
-
     /**
      * Get all log dialogs matching parameters
      * @param appId Filer by appId if set
@@ -31,12 +26,14 @@ export interface ILogStorage {
      */
     GetMany(appId: string, packageIds: string[], continuationToken?: string, pageSize?: number): Promise<LogQueryResult>
 
-    /** Append an extractor step to already existing log dialog */
-    AppendExtractorStep(appId: string, logDialogId: string, extractorStep: Partial<CLM.LogExtractorStep>): Promise<CLM.LogDialog>
+    /** Delete a log dialog in storage */
+    Delete(appId: string, lodDialogId: string): Promise<void>
 
-    /** Append a scorer step to already existing log dialog */
-    AppendScorerStep(appId: string, logDialogId: string, scorerStep: CLM.LogScorerStep): Promise<CLM.LogDialog>
+    /** Delete multiple log dialogs */
+    DeleteMany(appId: string, logDialogIds: string[]): Promise<void>
 
     /** Delete all log dialogs in storage */
-    DeleteAll(): Promise<void>
+    DeleteAll(appID?: string): Promise<void>
+
+    Replace(appId: string, logDialog: CLM.LogDialog): Promise<void>
 }

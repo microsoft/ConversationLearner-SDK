@@ -503,21 +503,73 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
         }
     })
 
+    router.get('/app/:appId/logdialog/:logDialogId', async (req, res, next) => {
+        const { appId, logDialogId } = req.params
+
+        try {
+            let logDialog
+            if (CLState.logStorage) {
+                logDialog = await CLState.logStorage.Get(appId, logDialogId)
+            }
+            else {
+                logDialog = await client.GetLogDialog(appId, logDialogId)
+            }
+            res.send(logDialog)
+        } catch (error) {
+            HandleError(res, error)
+        }
+    })
+
+    // Get log dialogs
     router.get('/app/:appId/logdialogs', async (req, res, next) => {
         const { appId, continuationToken, pageSize } = req.params
 
         try {
-            const { packageId } = getQuery(req)
-            const packageIds = packageId.split(",")
+            const { package: packages } = getQuery(req)
+            const packageIds = packages.split(",")
             let logDialogs
             if (CLState.logStorage) {
-                // LARS paging and multiple package ids
-                logDialogs = CLState.logStorage.GetMany(appId, packageId[0], continuationToken, pageSize)
+                logDialogs = await CLState.logStorage.GetMany(appId, packageIds, continuationToken, pageSize)
             }
             else {
+                // LARS add paging
                 logDialogs = await client.GetLogDialogs(appId, packageIds)
             }
             res.send(logDialogs)
+        } catch (error) {
+            HandleError(res, error)
+        }
+    })
+
+    // Delete one log dialogs
+    router.delete('/app/:appId/logdialogs/:logDialogId', async (req, res, next) => {
+        const { appId, logDialogId } = req.params
+
+        try {
+            if (CLState.logStorage) {
+                await CLState.logStorage.Delete(appId, logDialogId)
+            }
+            else {
+                await client.DeleteLogDialog(appId, logDialogId)
+            }
+            res.send(200)
+        } catch (error) {
+            HandleError(res, error)
+        }
+    })
+
+    // Delete a list of log dialogs
+    router.delete('/app/:appId/logdialog', async (req, res, next) => {
+        const { appId } = req.params
+        const { id: logDialogIds } = getQuery(req)
+        try {
+            if (CLState.logStorage) {
+                CLState.logStorage.DeleteMany(appId, logDialogIds)
+            }
+            else {
+                await client.DeleteLogDialogs(appId, logDialogIds)
+            }
+            res.send(200)
         } catch (error) {
             HandleError(res, error)
         }
@@ -1234,42 +1286,56 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 }
 
                 const turnContext = new BB.TurnContext(clRunner.adapter!, activity)
-                const result = await clRunner.recognize(turnContext)
 
-                if (result) {
+                try {
+                    const result = await clRunner.recognize(turnContext)
 
-                    // Get conversation reference
-                    const conversationReference = BB.TurnContext.getConversationReference(activity)
-                    if (!conversationReference) {
-                        res.send(null)
-                        return
-                    }
+                    if (result) {
 
-                    // Get session Id
-                    const sessionId = await result.state.BotState.GetSessionIdAsync()
-                    if (!sessionId) {
-                        res.send(null)
-                        return
-                    }
+                        // Get conversation reference
+                        const conversationReference = BB.TurnContext.getConversationReference(activity)
+                        if (!conversationReference) {
+                            throw new Error("Missing Conversation Reference")
+                        }
 
-                    // Include apiResults when taking action so result will be the same when testing
-                    await clRunner.TakeActionAsync(conversationReference, result, null, turnValidation.apiResults[0])
-
-                    // Trigger next action if non-terminal
-                    let bestAction = result.scoredAction
-                    let curHashIndex = 0
-
-                    // Server enforces max number of non-terminal actions, so no endless loop here
-                    while (!bestAction.isTerminal) {
-                        curHashIndex = curHashIndex + 1
-                        bestAction = await clRunner.Score(appId, sessionId, result.state, '', [], result.clEntities, false, true)
-                        result.scoredAction = bestAction
+                        // Get session Id
+                        const sessionId = await result.state.BotState.GetSessionIdAsync()
+                        if (!sessionId) {
+                            throw new Error("Can't find sessionId")
+                        }
 
                         // Include apiResults when taking action so result will be the same when testing
-                        await clRunner.TakeActionAsync(conversationReference, result, null, turnValidation.apiResults[curHashIndex])
+                        await clRunner.TakeActionAsync(conversationReference, result, null, turnValidation.apiResults[0])
+
+                        // Trigger next action if non-terminal
+                        let bestAction = result.scoredAction
+                        let curHashIndex = 0
+
+                        // Server enforces max number of non-terminal actions, so no endless loop here
+                        while (!bestAction.isTerminal) {
+                            curHashIndex = curHashIndex + 1
+                            bestAction = await clRunner.Score(appId, sessionId, result.state, '', [], result.clEntities, false, true)
+                            result.scoredAction = bestAction
+
+                            // Include apiResults when taking action so result will be the same when testing
+                            await clRunner.TakeActionAsync(conversationReference, result, null, turnValidation.apiResults[curHashIndex])
+                        }
+                    }
+                    else {
+                        throw new Error("No recognize result")
                     }
                 }
-                else {
+                catch (e) {
+                    const error: Error = e
+                    CLDebug.Error(error.message)
+
+                    // Delete log dialog
+                    if (CLState.logStorage) {
+                        await CLState.logStorage.Delete(appId, logDialogId)
+                    }
+                    else {
+                        await client.DeleteLogDialog(appId, logDialogId)
+                    }
                     res.send(null)
                     return
                 }
