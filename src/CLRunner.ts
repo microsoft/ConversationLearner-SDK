@@ -338,14 +338,14 @@ export class CLRunner {
     private async StartSession(appId: string, createParams: CLM.SessionCreateParams): Promise<CLM.Session> {
 
         // Don't save logs on server if custom storage was provided
-        if (CLState.logStorage) {
+        if (ConversationLearner.logStorage) {
             createParams.saveToLog = false
         }
 
         const session = await this.clClient.StartSession(appId, createParams as CLM.SessionCreateParams)
 
         // If using customer storage add to log storage
-        if (CLState.logStorage) {
+        if (ConversationLearner.logStorage) {
             // For self-hosted log storage logDialogId is sessionId
             session.logDialogId = session.sessionId
             const logDialog: CLM.LogDialog = {
@@ -355,29 +355,29 @@ export class CLRunner {
                 initialFilledEntities: [],
                 targetTrainDialogIds: [],
                 createdDateTime: session.createdDatetime,
-                dialogBeginDatetime: new Date().getTime().toString(),
-                dialogEndDatetime: new Date().getTime().toString(),
-                lastModifiedDateTime: new Date().getTime().toString(),
+                // Start out the same.  End is updated when dialog is edited
+                dialogBeginDatetime: new Date().toJSON(),
+                dialogEndDatetime: new Date().toJSON(),
+                lastModifiedDateTime: new Date().toJSON(),
                 metrics: ""
             }
-            const ld = await CLState.logStorage.Add(appId, logDialog)
-            console.log(`${session.sessionId}:${session.logDialogId} / ${ld.logDialogId}`)
+            await ConversationLearner.logStorage.Add(appId, logDialog)
         }
         return session
     }
 
     private async SessionExtract(appId: string, sessionId: string, userInput: CLM.UserInput): Promise<CLM.ExtractResponse> {
-        const stepBeginDatetime = new Date().getTime().toString()
+        const stepBeginDatetime = new Date().toJSON()
         const extractResponse = await this.clClient.SessionExtract(appId, sessionId, userInput)
-        const stepEndDatetime = new Date().getTime().toString()
+        const stepEndDatetime = new Date().toJSON()
 
         // Add to dev's log storage account (if it exists)
-        if (CLState.logStorage) {
+        if (ConversationLearner.logStorage) {
             // For local stroate logDialogId = sessionId
             const logDialogId = sessionId
 
             // Append an extractor step to already existing log dialog
-            const logDialog: CLM.LogDialog | undefined = await CLState.logStorage.Get(appId, logDialogId)
+            const logDialog: CLM.LogDialog | undefined = await ConversationLearner.logStorage.Get(appId, logDialogId)
             if (!logDialog) {
                 throw new Error(`Log Dialog does not exist App:${appId} Id:${logDialogId}`)
             }
@@ -386,17 +386,17 @@ export class CLRunner {
                 scorerSteps: []
             }
             logDialog.rounds.push(newRound)
-            await CLState.logStorage.Replace(appId, logDialog)
+            await ConversationLearner.logStorage.Replace(appId, logDialog)
         }
         return extractResponse
     }
 
     private async SessionScore(appId: string, sessionId: string, scoreInput: CLM.ScoreInput): Promise<CLM.ScoreResponse> {
-        const stepBeginDatetime = new Date().getTime().toString()
+        const stepBeginDatetime = new Date().toJSON()
         const scoreResponse = await this.clClient.SessionScore(appId, sessionId, scoreInput)
 
         // Add to dev's log storage account (if it exists)
-        if (CLState.logStorage) {
+        if (ConversationLearner.logStorage) {
             // For self-hosted storage logDialogId is sessionId
             const logDialogId = sessionId
             const predictedAction = scoreResponse.scoredActions[0] ? scoreResponse.scoredActions[0].actionId : ""
@@ -421,11 +421,11 @@ export class CLRunner {
                 logicResult: undefined, // LARS what should this be
                 predictionDetails: { scoredActions, unscoredActions },
                 stepBeginDatetime,
-                stepEndDatetime: new Date().getTime().toString(),
+                stepEndDatetime: new Date().toJSON(),
                 metrics: scoreResponse.metrics
             }
 
-            const logDialog: CLM.LogDialog | undefined = await CLState.logStorage.Get(appId, logDialogId)
+            const logDialog: CLM.LogDialog | undefined = await ConversationLearner.logStorage.Get(appId, logDialogId)
             if (!logDialog) {
                 throw new Error(`Log Dialog does not exist App:${appId} Log:${logDialogId}`)
             }
@@ -434,7 +434,7 @@ export class CLRunner {
                 throw new Error(`Log Dialogs has no Extractor Step Id:${logDialogId}`)
             }
             lastRound.scorerSteps.push(logScorerStep as any)
-            await CLState.logStorage.Replace(appId, logDialog)
+            await ConversationLearner.logStorage.Replace(appId, logDialog)
         }
         return scoreResponse
     }

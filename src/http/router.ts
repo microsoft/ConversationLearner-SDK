@@ -508,8 +508,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
         try {
             let logDialog
-            if (CLState.logStorage) {
-                logDialog = await CLState.logStorage.Get(appId, logDialogId)
+            if (ConversationLearner.logStorage) {
+                logDialog = await ConversationLearner.logStorage.Get(appId, logDialogId)
             }
             else {
                 logDialog = await client.GetLogDialog(appId, logDialogId)
@@ -528,8 +528,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const { package: packages } = getQuery(req)
             const packageIds = packages.split(",")
             let logDialogs
-            if (CLState.logStorage) {
-                logDialogs = await CLState.logStorage.GetMany(appId, packageIds, continuationToken, pageSize)
+            if (ConversationLearner.logStorage) {
+                logDialogs = await ConversationLearner.logStorage.GetMany(appId, packageIds, continuationToken, pageSize)
             }
             else {
                 // LARS add paging
@@ -546,8 +546,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
         const { appId, logDialogId } = req.params
 
         try {
-            if (CLState.logStorage) {
-                await CLState.logStorage.Delete(appId, logDialogId)
+            if (ConversationLearner.logStorage) {
+                await ConversationLearner.logStorage.Delete(appId, logDialogId)
             }
             else {
                 await client.DeleteLogDialog(appId, logDialogId)
@@ -563,8 +563,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
         const { appId } = req.params
         const { id: logDialogIds } = getQuery(req)
         try {
-            if (CLState.logStorage) {
-                CLState.logStorage.DeleteMany(appId, logDialogIds)
+            if (ConversationLearner.logStorage) {
+                ConversationLearner.logStorage.DeleteMany(appId, logDialogIds)
             }
             else {
                 await client.DeleteLogDialogs(appId, logDialogIds)
@@ -1330,8 +1330,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                     CLDebug.Error(error.message)
 
                     // Delete log dialog
-                    if (CLState.logStorage) {
-                        await CLState.logStorage.Delete(appId, logDialogId)
+                    if (ConversationLearner.logStorage) {
+                        await ConversationLearner.logStorage.Delete(appId, logDialogId)
                     }
                     else {
                         await client.DeleteLogDialog(appId, logDialogId)

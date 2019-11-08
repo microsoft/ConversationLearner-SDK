@@ -35,6 +35,7 @@ async function appendScorerStep(appId: string, logDialogId: string, logScorerSte
         throw new Error(`Log Dialogs has no Extractor Step Id:${logDialogId}`)
     }
     lastRound.scorerSteps.push(logScorerStep as any)
+    logDialog.dialogEndDatetime = new Date().toJSON()
     await cls.Replace(appId, logDialog)
 }
 
@@ -49,6 +50,7 @@ async function appendExtractorStep(appId: string, logDialogId: string, extractor
         scorerSteps: []
     }
     logDialog.rounds.push(newRound)
+    logDialog.dialogEndDatetime = new Date().toJSON()
     await cls.Replace(appId, logDialog)
 }
 

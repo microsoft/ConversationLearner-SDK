@@ -17,15 +17,21 @@ import { ILogStorage } from './Memory/ILogStorage'
 export class ConversationLearner {
     public static options: CLOptions | null = null
     public static clClient: CLClient
+    public static logStorage: ILogStorage
     public static models: ConversationLearner[] = []
     public clRunner: CLRunner
 
-    public static Init(options: CLOptions, storage?: BB.Storage, logStorage?: ILogStorage): express.Router {
+    public static Init(options: CLOptions, stateStorage?: BB.Storage, logStorage?: ILogStorage): express.Router {
         ConversationLearner.options = options
 
         try {
             this.clClient = new CLClient(options)
-            CLState.Init(storage, logStorage)
+            CLState.Init(stateStorage)
+
+            // Is developer providing their own log storage
+            if (logStorage) {
+                this.logStorage = logStorage
+            }
         } catch (error) {
             CLDebug.Error(error, 'Conversation Learner Initialization')
         }
