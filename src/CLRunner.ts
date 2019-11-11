@@ -304,7 +304,7 @@ export class CLRunner {
 
         //  check that this works = should it be inside edit continue above
         // Check if StartSessionCallback is required
-        await this.CheckSessionStartCallback(state, entityList.entities);
+        await this.CheckSessionStartCallback(state, entityList.entities)
         let startSessionEntities = await state.EntityState.FilledEntitiesAsync()
         startSessionEntities = [...createParams.initialFilledEntities ?? [], ...startSessionEntities]
 
@@ -345,7 +345,7 @@ export class CLRunner {
         const session = await this.clClient.StartSession(appId, createParams as CLM.SessionCreateParams)
 
         // If using customer storage add to log storage
-        if (ConversationLearner.logStorage) {
+        if (ConversationLearner.logStorage && createParams.saveToLog) {
             // For self-hosted log storage logDialogId is sessionId
             session.logDialogId = session.sessionId
             const logDialog: CLM.LogDialog = {
@@ -371,9 +371,9 @@ export class CLRunner {
         const extractResponse = await this.clClient.SessionExtract(appId, sessionId, userInput)
         const stepEndDatetime = new Date().toJSON()
 
-        // Add to dev's log storage account (if it exists)
+        // Add to dev's self-hosted log storage account (if it exists)
         if (ConversationLearner.logStorage) {
-            // For local stroate logDialogId = sessionId
+            // For self-holsted logDialogId = sessionId
             const logDialogId = sessionId
 
             // Append an extractor step to already existing log dialog
@@ -399,7 +399,7 @@ export class CLRunner {
         if (ConversationLearner.logStorage) {
             // For self-hosted storage logDialogId is sessionId
             const logDialogId = sessionId
-            const predictedAction = scoreResponse.scoredActions[0] ? scoreResponse.scoredActions[0].actionId : ""
+            const predictedAction = scoreResponse.scoredActions[0]?.actionId ?? ""
 
             // Keep only needed data (drop payload, etc)
             const scoredActions = scoreResponse.scoredActions.map(sa => {

@@ -50,17 +50,20 @@ export class CosmosLogStorage implements ILogStorage {
         return storage
     }
 
-    /** Add a new log dialog to storage */
-    public async Add(appId: string, logDialog: CLM.LogDialog): Promise<CLM.LogDialog | undefined> {
+    private get Container(): Cosmos.Container {
         if (!this.container) {
             throw new Error("Cosmos Container Doesn't exist")
         }
+        return this.container
+    }
 
+    /** Add a new log dialog to storage */
+    public async Add(appId: string, logDialog: CLM.LogDialog): Promise<CLM.LogDialog | undefined> {
         try {
             const storedLog = logDialog as StoredLogDialog
             storedLog.id = this.GetDialogDocumentId(appId, logDialog.logDialogId)
             storedLog.appId = appId
-            const itemResponse = await this.container.items.create<StoredLogDialog>(storedLog)
+            const itemResponse = await this.Container.items.create<StoredLogDialog>(storedLog)
             const { resource: createdLog } = await itemResponse.item.read<StoredLogDialog>()
             return createdLog
         }
@@ -72,20 +75,17 @@ export class CosmosLogStorage implements ILogStorage {
 
     /** Retrieve a log dialog from storage */
     public async Get(appId: string, logDialogId: string): Promise<CLM.LogDialog | undefined> {
-        if (this.container) {
-            try {
-                // Check if scheduled for deletion
-                if (this.deleteQueue.includes(logDialogId)) {
-                    return undefined
-                }
-                const { resource } = await this.container.item(this.GetDialogDocumentId(appId, logDialogId), appId).read<StoredLogDialog>()
-                return resource
+        try {
+            // Check if scheduled for deletion
+            if (this.deleteQueue.includes(logDialogId)) {
+                return undefined
             }
-            catch (err) {
-                CLDebug.Error(err)
-            }
+            const { resource } = await this.Container.item(this.GetDialogDocumentId(appId, logDialogId), appId).read<StoredLogDialog>()
+            return resource
         }
-        return undefined
+        catch (err) {
+            CLDebug.Error(err)
+        }
     }
 
     /**
@@ -96,98 +96,91 @@ export class CosmosLogStorage implements ILogStorage {
      * @param pageSize Number to retrieve (max 100)
      */
     public async GetMany(appId?: string, packageIds?: string[], continuationToken?: string, pageSize = MAX_PAGE_SIZE): Promise<LogQueryResult> {
-
-        if (this.container) {
-            try {
-                let and = ""
-                const querySpec: Cosmos.SqlQuerySpec = {
-                    query: `SELECT * FROM c`,
-                    parameters: []
-                }
-                if (appId) {
-                    querySpec.query = querySpec.query.concat(' WHERE c.appId = @appId')
-                    querySpec.parameters!.push({ name: "@appId", value: appId })
-                    and = " AND"
-                }
-                if (packageIds && packageIds.length > 0) {
-                    querySpec.query = querySpec.query.concat(`${and} ARRAY_CONTAINS(@packageList, c.packageId)`)
-                    querySpec.parameters!.push({ name: '@packageList', value: packageIds })
-                    and = " AND"
-                }
-                if (this.deleteQueue && this.deleteQueue.length > 0) {
-                    querySpec.query = querySpec.query.concat(`${and} NOT ARRAY_CONTAINS(@logIdList, c.logDialogId)`)
-                    querySpec.parameters!.push({ name: '@logIdList', value: this.deleteQueue })
-                }
-
-                const feedOptions: Cosmos.FeedOptions = {
-                    maxItemCount: Math.min(pageSize, MAX_PAGE_SIZE),
-                    continuation: continuationToken
-                }
-
-                const feedResponse = await this.container.items.query(querySpec, feedOptions).fetchNext()
-
-                return {
-                    logDialogs: feedResponse.resources as CLM.LogDialog[],
-                    continuationToken: feedResponse.continuation
-                }
+        try {
+            let and = ""
+            const querySpec: Cosmos.SqlQuerySpec = {
+                query: `SELECT * FROM c`,
+                parameters: []
             }
-            catch (err) {
-                CLDebug.Error(err)
+            if (appId) {
+                querySpec.query = querySpec.query.concat(' WHERE c.appId = @appId')
+                querySpec.parameters!.push({ name: "@appId", value: appId })
+                and = " AND"
+            }
+            if (packageIds && packageIds.length > 0) {
+                querySpec.query = querySpec.query.concat(`${and} ARRAY_CONTAINS(@packageList, c.packageId)`)
+                querySpec.parameters!.push({ name: '@packageList', value: packageIds })
+                and = " AND"
+            }
+            if (this.deleteQueue && this.deleteQueue.length > 0) {
+                querySpec.query = querySpec.query.concat(`${and} NOT ARRAY_CONTAINS(@logIdList, c.logDialogId)`)
+                querySpec.parameters!.push({ name: '@logIdList', value: this.deleteQueue })
+            }
+
+            const feedOptions: Cosmos.FeedOptions = {
+                maxItemCount: Math.min(pageSize, MAX_PAGE_SIZE),
+                continuation: continuationToken
+            }
+
+            const feedResponse = await this.Container.items.query(querySpec, feedOptions).fetchNext()
+
+            return {
+                logDialogs: feedResponse.resources as CLM.LogDialog[],
+                continuationToken: feedResponse.continuation
             }
         }
-        throw new Error("Contained undefined")
+        catch (err) {
+            CLDebug.Error(err)
+            return {
+                logDialogs: [],
+                continuationToken: undefined
+            }
+        }
     }
-
 
     /** Replace and exisiting log dialog */
     public async Replace(appId: string, logDialog: CLM.LogDialog): Promise<void> {
-        if (this.container) {
-            try {
-                await this.container.item(this.GetDialogDocumentId(appId, logDialog.logDialogId), appId).replace(logDialog)
-            }
-            catch (err) {
-                CLDebug.Error(err)
-            }
+        try {
+            await this.Container.item(this.GetDialogDocumentId(appId, logDialog.logDialogId), appId).replace(logDialog)
+        }
+        catch (err) {
+            CLDebug.Error(err)
         }
     }
 
     /** Delete a log dialog in storage */
     public async Delete(appId: string, logDialogId: string): Promise<void> {
-        if (this.container) {
-            try {
-                await this.container.item(this.GetDialogDocumentId(appId, logDialogId), appId).delete()
-            }
-            catch (err) {
-                CLDebug.Error(err)
-            }
+        try {
+            await this.Container.item(this.GetDialogDocumentId(appId, logDialogId), appId).delete()
+        }
+        catch (err) {
+            CLDebug.Error(err)
         }
     }
 
     /** Delete multiple log dialogs */
     public async DeleteMany(appId: string, logDialogIds: string[]): Promise<void> {
-        if (this.container) {
-            try {
-                // Add items to existing delete queue
-                if (this.deleteQueue.length > 0) {
-                    this.deleteQueue.push(...logDialogIds)
-                }
-                // Otherwise set queue and start deleting. 
-                else {
-                    this.deleteQueue.push(...logDialogIds)
-                    while (this.deleteQueue.length > 0) {
-                        // Batch in batches of DELETE_BATCH_SIZE
-                        const logSet = this.deleteQueue.slice(0, DELETE_BATCH_SIZE)
-                        const promises = logSet.map(lid => this.Delete(appId, lid))
-                        await Promise.all(promises)
+        try {
+            // Add items to existing delete queue
+            if (this.deleteQueue.length > 0) {
+                this.deleteQueue.push(...logDialogIds)
+            }
+            // Otherwise set queue and start deleting. 
+            else {
+                this.deleteQueue.push(...logDialogIds)
+                while (this.deleteQueue.length > 0) {
+                    // Batch in batches of DELETE_BATCH_SIZE
+                    const logSet = this.deleteQueue.slice(0, DELETE_BATCH_SIZE)
+                    const promises = logSet.map(lid => this.Delete(appId, lid))
+                    await Promise.all(promises)
 
-                        // Remove them from the delete queue w/o mutating the object
-                        logSet.forEach(id => this.deleteQueue.splice(this.deleteQueue.indexOf(id), 1))
-                    }
+                    // Remove them from the delete queue w/o mutating the object
+                    logSet.forEach(id => this.deleteQueue.splice(this.deleteQueue.indexOf(id), 1))
                 }
             }
-            catch (err) {
-                CLDebug.Error(err)
-            }
+        }
+        catch (err) {
+            CLDebug.Error(err)
         }
     }
 
@@ -195,9 +188,6 @@ export class CosmosLogStorage implements ILogStorage {
      * @param appId If provided will only delete log dialogs from the given appId
      */
     public async DeleteAll(appId?: string) {
-        if (!this.container) {
-            throw new Error("Continer is undefined")
-        }
         try {
             const querySpec: Cosmos.SqlQuerySpec = {
                 query: `SELECT * FROM c`
@@ -214,7 +204,7 @@ export class CosmosLogStorage implements ILogStorage {
                     maxItemCount: DELETE_BATCH_SIZE,
                     continuation: continuationToken
                 }
-                const feedResponse = await this.container.items.query(querySpec, feedOptions).fetchNext()
+                const feedResponse = await this.Container.items.query(querySpec, feedOptions).fetchNext()
                 const logDialogs: StoredLogDialog[] = feedResponse.resources
                 const promises = logDialogs.map(ld => this.Delete(ld.logDialogId, ld.appId))
                 await Promise.all(promises)

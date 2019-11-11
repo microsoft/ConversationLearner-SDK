@@ -534,7 +534,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 logDialogs = await ConversationLearner.logStorage.GetMany(appId, packageIds, continuationToken, pageSize)
             }
             else {
-                // LARS add paging
+                // TODO: Add paging to server
                 logDialogs = await client.GetLogDialogs(appId, packageIds)
             }
             res.send(logDialogs)

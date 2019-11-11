@@ -2,8 +2,8 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License.
  */
-import * as CLM from '@conversationlearner/models';
-import { CosmosLogStorage } from './CosmosLogStorage';
+import * as CLM from '@conversationlearner/models'
+import { CosmosLogStorage } from './CosmosLogStorage'
 
 const options = {
     endpoint: "",
@@ -19,7 +19,7 @@ function makeLogDialog(logDialogId: string): CLM.LogDialog {
 
 async function getStorage(): Promise<CosmosLogStorage | undefined> {
     if (!options.endpoint || !options.key) {
-        console.log("Skipping Test.  Cosmos credentials not defined.")
+        console.log("Skipping Test.  Cosmos credentials not defsined.")
         return undefined
     }
     return await CosmosLogStorage.Get(options)
@@ -64,7 +64,6 @@ describe('CosmosLogStorage', () => {
             await cls.DeleteAll()
         }
     })
-
 
     test('CreateAsync', async () => {
 
