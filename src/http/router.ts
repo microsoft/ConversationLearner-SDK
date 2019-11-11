@@ -485,7 +485,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
     // LogDialogs
     //========================================================
     /**
-     * RUN EXTRACTOR: Runs entity extraction on a log dialog
+     * RUN EXTRACTOR: Runs entity extraction on an existing log dialog for the specified turn
      */
     router.put('/app/:appId/logdialog/:logDialogId/extractor/:turnIndex', async (req, res, next) => {
         try {
@@ -493,11 +493,88 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const { appId, logDialogId, turnIndex } = req.params
             const userInput: CLM.UserInput = req.body
             const extractResponse = await client.LogDialogExtract(appId, logDialogId, turnIndex, userInput)
-
             const state = CLState.Get(key)
+
             const memories = await state.EntityState.DumpMemory()
             const uiExtractResponse: CLM.UIExtractResponse = { extractResponse, memories }
             res.send(uiExtractResponse)
+        } catch (error) {
+            HandleError(res, error)
+        }
+    })
+
+    router.get('/app/:appId/logdialog/:logDialogId', async (req, res, next) => {
+        const { appId, logDialogId } = req.params
+
+        try {
+            let logDialog
+            if (ConversationLearner.logStorage) {
+                logDialog = await ConversationLearner.logStorage.Get(appId, logDialogId)
+            }
+            else {
+                logDialog = await client.GetLogDialog(appId, logDialogId)
+            }
+            res.send(logDialog)
+        } catch (error) {
+            HandleError(res, error)
+        }
+    })
+
+    // Get log dialogs
+    router.get('/app/:appId/logdialogs', async (req, res, next) => {
+        const { appId, continuationToken, pageSize } = req.params
+
+        try {
+            let { package: packageIds } = getQuery(req)
+            if (typeof packageIds === "string") {
+                packageIds = [packageIds]
+            }
+            let logDialogs
+            if (ConversationLearner.logStorage) {
+                logDialogs = await ConversationLearner.logStorage.GetMany(appId, packageIds, continuationToken, pageSize)
+            }
+            else {
+                // TODO: Add paging to server
+                logDialogs = await client.GetLogDialogs(appId, packageIds)
+            }
+            res.send(logDialogs)
+        } catch (error) {
+            HandleError(res, error)
+        }
+    })
+
+    // Delete one log dialog
+    router.delete('/app/:appId/logdialog/:logDialogId', async (req, res, next) => {
+        const { appId, logDialogId } = req.params
+
+        try {
+            if (ConversationLearner.logStorage) {
+                await ConversationLearner.logStorage.Delete(appId, logDialogId)
+            }
+            else {
+                await client.DeleteLogDialog(appId, logDialogId)
+            }
+            res.send(200)
+        } catch (error) {
+            HandleError(res, error)
+        }
+    })
+
+    // Delete a list of log dialogs
+    router.delete('/app/:appId/logdialog', async (req, res, next) => {
+        const { appId } = req.params
+        let { id: logDialogIds } = getQuery(req)
+        if (typeof logDialogIds === "string") {
+            logDialogIds = [logDialogIds]
+        }
+        try {
+            if (ConversationLearner.logStorage) {
+                ConversationLearner.logStorage.DeleteMany(appId, logDialogIds)
+            }
+            else {
+                await client.DeleteLogDialogs(appId, logDialogIds)
+            }
+            res.send(200)
         } catch (error) {
             HandleError(res, error)
         }
@@ -548,7 +625,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
             // Start new teach session from the old train dialog
             const createTeachParams = CLM.ModelUtils.ToCreateTeachParams(trainDialog)
-            teachWithActivities.teach = await clRunner.StartSessionAsync(state, null, appId, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE, createTeachParams) as CLM.Teach
+            teachWithActivities.teach = await clRunner.CreateSessionAsync(state, null, appId, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE, createTeachParams) as CLM.Teach
 
             res.send(teachWithActivities)
         } catch (error) {
@@ -578,7 +655,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             // Clear memory when running Log from UI
             state.EntityState.ClearAsync()
 
-            const session = await clRunner.StartSessionAsync(state, null, appId, SessionStartFlags.NONE, sessionCreateParams) as CLM.Session
+            const session = await clRunner.CreateSessionAsync(state, null, appId, SessionStartFlags.NONE, sessionCreateParams) as CLM.Session
+
             res.send(session)
 
         } catch (error) {
@@ -665,7 +743,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             // TeachSession always starts with a clear the memory (no saved entities)
             await state.EntityState.ClearAsync()
 
-            const teachResponse = await clRunner.StartSessionAsync(state, null, appId, SessionStartFlags.IN_TEACH, createTeachParams) as CLM.TeachResponse
+            const teachResponse = await clRunner.CreateSessionAsync(state, null, appId, SessionStartFlags.IN_TEACH, createTeachParams) as CLM.TeachResponse
 
             res.send(teachResponse)
 
@@ -723,7 +801,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             const createTeachParams = CLM.ModelUtils.ToCreateTeachParams(cleanTrainDialog)
 
             // NOTE: Todo - pass in filteredDialogId so start sesssion doesn't find conflicts with existing dialog being edited
-            teachWithActivities.teach = await clRunner.StartSessionAsync(state, null, appId, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE, createTeachParams) as CLM.Teach
+            teachWithActivities.teach = await clRunner.CreateSessionAsync(state, null, appId, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE, createTeachParams) as CLM.Teach
 
             // If last action wasn't terminal then score
             if (teachWithActivities.dialogMode === CLM.DialogMode.Scorer) {
@@ -783,7 +861,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
             // Start new teach session from the old train dialog
             const createTeachParams = CLM.ModelUtils.ToCreateTeachParams(newTrainDialog)
-            const teach = await clRunner.StartSessionAsync(state, null, appId, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE, createTeachParams) as CLM.Teach
+            const teach = await clRunner.CreateSessionAsync(state, null, appId, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE, createTeachParams) as CLM.Teach
 
             // Get entities from my memory
             const filledEntities = await state.EntityState.FilledEntitiesAsync()
@@ -834,7 +912,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
             // Start new teach session from the old train dialog
             const createTeachParams = CLM.ModelUtils.ToCreateTeachParams(newTrainDialog)
-            const teach = await clRunner.StartSessionAsync(state, null, appId, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE, createTeachParams) as CLM.Teach
+            const teach = await clRunner.CreateSessionAsync(state, null, appId, SessionStartFlags.IN_TEACH | SessionStartFlags.IS_EDIT_CONTINUE, createTeachParams) as CLM.Teach
 
             // Do extraction
             const extractResponse = await client.TeachExtract(appId, teach.teachId, userInput, null)
@@ -1183,7 +1261,7 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 packageId,
                 initialFilledEntities: []
             }
-            const session = await clRunner.StartSessionAsync(state, null, appId, SessionStartFlags.IN_TEST, sessionCreateParams) as CLM.Session
+            const session = await clRunner.CreateSessionAsync(state, null, appId, SessionStartFlags.IN_TEST, sessionCreateParams) as CLM.Session
             const logDialogId = session.logDialogId
 
             const conversation: BB.ConversationAccount = {
@@ -1213,42 +1291,56 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
                 }
 
                 const turnContext = new BB.TurnContext(clRunner.adapter!, activity)
-                const result = await clRunner.recognize(turnContext)
 
-                if (result) {
+                try {
+                    const result = await clRunner.recognize(turnContext)
 
-                    // Get conversation reference
-                    const conversationReference = BB.TurnContext.getConversationReference(activity)
-                    if (!conversationReference) {
-                        res.send(null)
-                        return
-                    }
+                    if (result) {
 
-                    // Get session Id
-                    const sessionId = await result.state.BotState.GetSessionIdAsync()
-                    if (!sessionId) {
-                        res.send(null)
-                        return
-                    }
+                        // Get conversation reference
+                        const conversationReference = BB.TurnContext.getConversationReference(activity)
+                        if (!conversationReference) {
+                            throw new Error("Missing Conversation Reference")
+                        }
 
-                    // Include apiResults when taking action so result will be the same when testing
-                    await clRunner.TakeActionAsync(conversationReference, result, null, turnValidation.apiResults[0])
-
-                    // Trigger next action if non-terminal
-                    let bestAction = result.scoredAction
-                    let curHashIndex = 0
-
-                    // Server enforces max number of non-terminal actions, so no endless loop here
-                    while (!bestAction.isTerminal) {
-                        curHashIndex = curHashIndex + 1
-                        bestAction = await clRunner.Score(appId, sessionId, result.state, '', [], result.clEntities, false, true)
-                        result.scoredAction = bestAction
+                        // Get session Id
+                        const sessionId = await result.state.BotState.GetSessionIdAsync()
+                        if (!sessionId) {
+                            throw new Error("Can't find sessionId")
+                        }
 
                         // Include apiResults when taking action so result will be the same when testing
-                        await clRunner.TakeActionAsync(conversationReference, result, null, turnValidation.apiResults[curHashIndex])
+                        await clRunner.TakeActionAsync(conversationReference, result, null, turnValidation.apiResults[0])
+
+                        // Trigger next action if non-terminal
+                        let bestAction = result.scoredAction
+                        let curHashIndex = 0
+
+                        // Server enforces max number of non-terminal actions, so no endless loop here
+                        while (!bestAction.isTerminal) {
+                            curHashIndex = curHashIndex + 1
+                            bestAction = await clRunner.Score(appId, sessionId, result.state, '', [], result.clEntities, false, true)
+                            result.scoredAction = bestAction
+
+                            // Include apiResults when taking action so result will be the same when testing
+                            await clRunner.TakeActionAsync(conversationReference, result, null, turnValidation.apiResults[curHashIndex])
+                        }
+                    }
+                    else {
+                        throw new Error("No recognize result")
                     }
                 }
-                else {
+                catch (e) {
+                    const error: Error = e
+                    CLDebug.Error(error.message)
+
+                    // Delete log dialog
+                    if (ConversationLearner.logStorage) {
+                        await ConversationLearner.logStorage.Delete(appId, logDialogId)
+                    }
+                    else {
+                        await client.DeleteLogDialog(appId, logDialogId)
+                    }
                     res.send(null)
                     return
                 }

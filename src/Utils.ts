@@ -113,6 +113,10 @@ export const actionHasHash = (actionId: string, hash: string, actions: CLM.Actio
     return false
 }
 
+// Create recursive partial of an object
+export type RecursivePartial<T> = {
+    [P in keyof T]?: RecursivePartial<T[P]>;
+}
 
 export const addEntitiesById = (valuesByName: CLM.FilledEntityMap): CLM.FilledEntityMap => {
     const valuesById = convertToMapById(valuesByName)
@@ -205,6 +209,7 @@ export async function EndSessionIfOpen(clClient: CLClient, appId: string, sessio
 
 export const CL_DEVELOPER = 'ConversationLearnerDeveloper'
 export const UI_RUNNER_APPID = 'UIRunner_AppId'
+export const CL_MAX_USER_UTTERANCE = 500
 
 export const getSha256Hash: (id: string) => string = (id) => {
     return crypto.createHash('sha256').update(id, 'utf8').digest('base64')

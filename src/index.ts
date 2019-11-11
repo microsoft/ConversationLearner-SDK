@@ -11,6 +11,8 @@ import { FileStorage } from './FileStorage'
 import uiRouter from './uiRouter'
 import { SessionEndState, MemoryValue } from '@conversationlearner/models'
 import { EntityDetectionCallback, OnSessionStartCallback, OnSessionEndCallback, LogicCallback, RenderCallback, ICallbackInput } from './CLRunner'
+import { ILogStorage } from './Memory/ILogStorage'
+import { CosmosLogStorage } from './CosmosLogStorage'
 
 export {
     uiRouter,
@@ -28,5 +30,9 @@ export {
     LogicCallback,
     MemoryValue,
     RenderCallback,
-    ICallbackInput
+    ICallbackInput,
+    // Interface for custom log storage
+    ILogStorage,
+    // Sample implementation of ILogStorage using CosmosDB
+    CosmosLogStorage
 }

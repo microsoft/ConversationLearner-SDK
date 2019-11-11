@@ -237,6 +237,28 @@ export class CLClient {
     // Log Dialogs
     //=============================================================================
 
+    public DeleteLogDialog(appId: string, logDialogId: string): Promise<void> {
+        let apiPath = `app/${appId}/logdialog/${logDialogId}`
+        return this.send('DELETE', this.MakeURL(apiPath))
+    }
+
+    public DeleteLogDialogs(appId: string, logDialogIds: string[]): Promise<void> {
+        const ids = logDialogIds.map(p => `id=${p}`).join("&")
+        let apiPath = `app/${appId}/logdialog&${ids}`
+        return this.send('DELETE', this.MakeURL(apiPath))
+    }
+
+    public GetLogDialog(appId: string, logDialogId: string): Promise<CLM.LogDialogList> {
+        const apiPath = `app/${appId}/logdialog/${logDialogId}`
+        return this.send('GET', this.MakeURL(apiPath))
+    }
+
+    public GetLogDialogs(appId: string, packageIds: string[]): Promise<CLM.LogDialogList> {
+        const packages = packageIds.map(p => `package=${p}`).join("&")
+        const apiPath = `app/${appId}/logdialogs?includeDefinitions=false&${packages}`
+        return this.send('GET', this.MakeURL(apiPath))
+    }
+
     /** Runs entity extraction (prediction). */
     public LogDialogExtract(
         appId: string,

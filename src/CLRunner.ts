@@ -236,7 +236,7 @@ export class CLRunner {
                         packageId: packageId,
                         initialFilledEntities: []
                     }
-                    await this.StartSessionAsync(state, BB.TurnContext.getConversationReference(activity), app.appId, SessionStartFlags.NONE, sessionCreateParams)
+                    await this.CreateSessionAsync(state, BB.TurnContext.getConversationReference(activity), app.appId, SessionStartFlags.NONE, sessionCreateParams)
                 }
             }
         }
@@ -290,7 +290,7 @@ export class CLRunner {
         }
     }
 
-    public async StartSessionAsync(state: CLState, conversationRef: Partial<BB.ConversationReference> | null, appId: string, sessionStartFlags: SessionStartFlags, createParams: CLM.SessionCreateParams | CLM.CreateTeachParams): Promise<CLM.Teach | CLM.Session> {
+    public async CreateSessionAsync(state: CLState, conversationRef: Partial<BB.ConversationReference> | null, appId: string, sessionStartFlags: SessionStartFlags, createParams: CLM.SessionCreateParams | CLM.CreateTeachParams): Promise<CLM.Teach | CLM.Session> {
 
         const inTeach = ((sessionStartFlags & SessionStartFlags.IN_TEACH) > 0)
         let entityList = await this.clClient.GetEntities(appId)
@@ -303,7 +303,7 @@ export class CLRunner {
         }
 
         //  check that this works = should it be inside edit continue above
-        // Check if StartSession call is required
+        // Check if StartSessionCallback is required
         await this.CheckSessionStartCallback(state, entityList.entities)
         let startSessionEntities = await state.EntityState.FilledEntitiesAsync()
         startSessionEntities = [...createParams.initialFilledEntities ?? [], ...startSessionEntities]
@@ -322,7 +322,7 @@ export class CLRunner {
             logDialogId = null
         }
         else {
-            startResponse = await this.clClient.StartSession(appId, createParams as CLM.SessionCreateParams)
+            startResponse = await this.StartSession(appId, createParams as CLM.SessionCreateParams)
             sessionId = startResponse.sessionId
             logDialogId = startResponse.logDialogId
         }
@@ -333,6 +333,112 @@ export class CLRunner {
 
         CLDebug.Verbose(`Started Session: ${sessionId} - ${state.BotState.GetConversationId()}`)
         return startResponse
+    }
+
+    private async StartSession(appId: string, createParams: CLM.SessionCreateParams): Promise<CLM.Session> {
+
+        const saveToLog = createParams.saveToLog
+
+        // Don't save logs on server if custom storage was provided
+        if (ConversationLearner.logStorage) {
+            createParams.saveToLog = false
+        }
+
+        const session = await this.clClient.StartSession(appId, createParams as CLM.SessionCreateParams)
+
+        // If using customer storage add to log storage
+        if (ConversationLearner.logStorage && saveToLog) {
+            // For self-hosted log storage logDialogId is sessionId
+            session.logDialogId = session.sessionId
+            const logDialog: CLM.LogDialog = {
+                logDialogId: session.logDialogId,
+                packageId: session.packageId,
+                rounds: [],
+                initialFilledEntities: [],
+                targetTrainDialogIds: [],
+                createdDateTime: new Date().toJSON(),
+                // Start out the same.  End is updated when dialog is edited
+                dialogBeginDatetime: new Date().toJSON(),
+                dialogEndDatetime: new Date().toJSON(),
+                lastModifiedDateTime: new Date().toJSON(),
+                metrics: ""
+            }
+            await ConversationLearner.logStorage.Add(appId, logDialog)
+        }
+        return session
+    }
+
+    private async SessionExtract(appId: string, sessionId: string, userInput: CLM.UserInput): Promise<CLM.ExtractResponse> {
+        const stepBeginDatetime = new Date().toJSON()
+        const extractResponse = await this.clClient.SessionExtract(appId, sessionId, userInput)
+        const stepEndDatetime = new Date().toJSON()
+
+        // Add to dev's self-hosted log storage account (if it exists)
+        if (ConversationLearner.logStorage) {
+            // For self-holsted logDialogId = sessionId
+            const logDialogId = sessionId
+
+            // Append an extractor step to already existing log dialog
+            const logDialog: CLM.LogDialog | undefined = await ConversationLearner.logStorage.Get(appId, logDialogId)
+            if (!logDialog) {
+                throw new Error(`Log Dialog does not exist App:${appId} Id:${logDialogId}`)
+            }
+            const newRound: CLM.LogRound = {
+                extractorStep: { ...extractResponse, stepBeginDatetime, stepEndDatetime },
+                scorerSteps: []
+            }
+            logDialog.rounds.push(newRound)
+            await ConversationLearner.logStorage.Replace(appId, logDialog)
+        }
+        return extractResponse
+    }
+
+    private async SessionScore(appId: string, sessionId: string, scoreInput: CLM.ScoreInput): Promise<CLM.ScoreResponse> {
+        const stepBeginDatetime = new Date().toJSON()
+        const scoreResponse = await this.clClient.SessionScore(appId, sessionId, scoreInput)
+
+        // Add to dev's log storage account (if it exists)
+        if (ConversationLearner.logStorage) {
+            // For self-hosted storage logDialogId is sessionId
+            const logDialogId = sessionId
+            const predictedAction = scoreResponse.scoredActions[0]?.actionId ?? ""
+
+            // Keep only needed data (drop payload, etc)
+            const scoredActions = scoreResponse.scoredActions.map(sa => {
+                return {
+                    score: sa.score,
+                    actionId: sa.actionId
+                }
+            })
+            const unscoredActions = scoreResponse.unscoredActions.map(sa => {
+                return {
+                    reason: sa.reason,
+                    actionId: sa.actionId
+                }
+            })
+            // Need to use recursive partial as scored and unscored have only partial data
+            const logScorerStep: Utils.RecursivePartial<CLM.LogScorerStep> = {
+                input: scoreInput,
+                predictedAction,
+                logicResult: undefined, // LARS what should this be
+                predictionDetails: { scoredActions, unscoredActions },
+                stepBeginDatetime,
+                stepEndDatetime: new Date().toJSON(),
+                metrics: scoreResponse.metrics
+            }
+
+            const logDialog: CLM.LogDialog | undefined = await ConversationLearner.logStorage.Get(appId, logDialogId)
+            if (!logDialog) {
+                throw new Error(`Log Dialog does not exist App:${appId} Log:${logDialogId}`)
+            }
+            const lastRound = logDialog.rounds[logDialog.rounds.length - 1]
+            if (!lastRound || !lastRound.extractorStep) {
+                throw new Error(`Log Dialogs has no Extractor Step Id:${logDialogId}`)
+            }
+            lastRound.scorerSteps.push(logScorerStep as any)
+            await ConversationLearner.logStorage.Replace(appId, logDialog)
+        }
+        return scoreResponse
     }
 
     // Get the currently running app
@@ -462,7 +568,7 @@ export class CLRunner {
                     }
 
                     // Start a new session
-                    let session = await this.StartSessionAsync(state, conversationReference, app.appId, SessionStartFlags.NONE, sessionCreateParams) as CLM.Session
+                    let session = await this.CreateSessionAsync(state, conversationReference, app.appId, SessionStartFlags.NONE, sessionCreateParams) as CLM.Session
                     sessionId = session.sessionId
                 }
                 // Otherwise update last access time
@@ -492,7 +598,7 @@ export class CLRunner {
                     initialFilledEntities: []
                 }
                 let sessionStartFlags = uiMode === UIMode.TEST ? SessionStartFlags.IN_TEST : SessionStartFlags.NONE
-                let session = await this.StartSessionAsync(state, BB.TurnContext.getConversationReference(activity), app.appId, sessionStartFlags, sessionCreateParams) as CLM.Session
+                let session = await this.CreateSessionAsync(state, BB.TurnContext.getConversationReference(activity), app.appId, sessionStartFlags, sessionCreateParams) as CLM.Session
                 sessionId = session.sessionId
             }
 
@@ -503,8 +609,16 @@ export class CLRunner {
 
             // Generate result
             errorContext = 'Extract Entities'
-            let userInput: CLM.UserInput = { text: buttonResponse || activity.text || '  ' }
-            let extractResponse = await this.clClient.SessionExtract(app.appId, sessionId, userInput)
+            if (activity.text.length > Utils.CL_MAX_USER_UTTERANCE) {
+                CLDebug.Verbose(`Trimming user input to ${Utils.CL_MAX_USER_UTTERANCE} chars`)
+            }
+
+            const userInput: CLM.UserInput = {
+                text: buttonResponse || activity.text.substr(0, Utils.CL_MAX_USER_UTTERANCE) || '  '
+            }
+
+            const extractResponse = await this.SessionExtract(app.appId, sessionId, userInput)
+
             entities = extractResponse.definitions.entities
             errorContext = 'Score Actions'
             const scoredAction = await this.Score(
@@ -533,7 +647,8 @@ export class CLRunner {
                 CLDebug.Log(`Failed to End Session`)
             }
 
-            CLDebug.Error(error, errorContext)
+            const errMessage = error.body ? JSON.stringify(error.body) : JSON.stringify(error)
+            CLDebug.Error(errMessage, errorContext)
             return null
         }
     }
@@ -588,7 +703,7 @@ export class CLRunner {
             // Return top scoring action
             return scoreResponse.scoredActions[0]
         } else {
-            scoreResponse = await this.clClient.SessionScore(appId, sessionId, scoreInput)
+            scoreResponse = await this.SessionScore(appId, sessionId, scoreInput)
 
             // Return top scoring action
             return scoreResponse.scoredActions[0]
