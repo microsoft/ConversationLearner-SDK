@@ -64,7 +64,10 @@ export class CosmosLogStorage implements ILogStorage {
             storedLog.id = this.GetDialogDocumentId(appId, logDialog.logDialogId)
             storedLog.appId = appId
             const itemResponse = await this.Container.items.create<StoredLogDialog>(storedLog)
-            const { resource: createdLog } = await itemResponse.item.read<StoredLogDialog>()
+            const { resource: createdLog, statusCode } = await itemResponse.item.read<StoredLogDialog>()
+            if (statusCode < 200 || statusCode >= 300) {
+                throw new Error(`${statusCode}`)
+            }
             return createdLog
         }
         catch (err) {
@@ -80,7 +83,10 @@ export class CosmosLogStorage implements ILogStorage {
             if (this.deleteQueue.includes(logDialogId)) {
                 return undefined
             }
-            const { resource } = await this.Container.item(this.GetDialogDocumentId(appId, logDialogId), appId).read<StoredLogDialog>()
+            const { resource, statusCode } = await this.container!.item(this.GetDialogDocumentId(appId, logDialogId), appId).read<StoredLogDialog>()
+            if (statusCode < 200 || statusCode >= 300) {
+                throw new Error(`${statusCode}`)
+            }
             return resource
         }
         catch (err) {
@@ -141,7 +147,10 @@ export class CosmosLogStorage implements ILogStorage {
     /** Replace and exisiting log dialog */
     public async Replace(appId: string, logDialog: CLM.LogDialog): Promise<void> {
         try {
-            await this.Container.item(this.GetDialogDocumentId(appId, logDialog.logDialogId), appId).replace(logDialog)
+            const { statusCode } = await this.Container.item(this.GetDialogDocumentId(appId, logDialog.logDialogId), appId).replace(logDialog)
+            if (statusCode < 200 || statusCode >= 300) {
+                throw new Error(`${statusCode}`)
+            }
         }
         catch (err) {
             CLDebug.Error(err)
@@ -151,7 +160,10 @@ export class CosmosLogStorage implements ILogStorage {
     /** Delete a log dialog in storage */
     public async Delete(appId: string, logDialogId: string): Promise<void> {
         try {
-            await this.Container.item(this.GetDialogDocumentId(appId, logDialogId), appId).delete()
+            const { statusCode } = await this.Container.item(this.GetDialogDocumentId(appId, logDialogId), appId).delete()
+            if (statusCode < 200 || statusCode >= 300) {
+                throw new Error(`${statusCode}`)
+            }
         }
         catch (err) {
             CLDebug.Error(err)
@@ -172,6 +184,7 @@ export class CosmosLogStorage implements ILogStorage {
                     // Batch in batches of DELETE_BATCH_SIZE
                     const logSet = this.deleteQueue.slice(0, DELETE_BATCH_SIZE)
                     const promises = logSet.map(lid => this.Delete(appId, lid))
+                    // TODO: Handle 429's
                     await Promise.all(promises)
 
                     // Remove them from the delete queue w/o mutating the object
@@ -207,6 +220,7 @@ export class CosmosLogStorage implements ILogStorage {
                 const feedResponse = await this.Container.items.query(querySpec, feedOptions).fetchNext()
                 const logDialogs: StoredLogDialog[] = feedResponse.resources
                 const promises = logDialogs.map(ld => this.Delete(ld.logDialogId, ld.appId))
+                // TODO: Handle 429's
                 await Promise.all(promises)
 
                 continuationToken = feedResponse.continuation

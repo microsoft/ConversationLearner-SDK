@@ -543,8 +543,8 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
         }
     })
 
-    // Delete one log dialogs
-    router.delete('/app/:appId/logdialogs/:logDialogId', async (req, res, next) => {
+    // Delete one log dialog
+    router.delete('/app/:appId/logdialog/:logDialogId', async (req, res, next) => {
         const { appId, logDialogId } = req.params
 
         try {

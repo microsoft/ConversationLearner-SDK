@@ -337,6 +337,8 @@ export class CLRunner {
 
     private async StartSession(appId: string, createParams: CLM.SessionCreateParams): Promise<CLM.Session> {
 
+        const saveToLog = createParams.saveToLog
+
         // Don't save logs on server if custom storage was provided
         if (ConversationLearner.logStorage) {
             createParams.saveToLog = false
@@ -345,7 +347,7 @@ export class CLRunner {
         const session = await this.clClient.StartSession(appId, createParams as CLM.SessionCreateParams)
 
         // If using customer storage add to log storage
-        if (ConversationLearner.logStorage && createParams.saveToLog) {
+        if (ConversationLearner.logStorage && saveToLog) {
             // For self-hosted log storage logDialogId is sessionId
             session.logDialogId = session.sessionId
             const logDialog: CLM.LogDialog = {
