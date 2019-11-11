@@ -525,8 +525,10 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
         const { appId, continuationToken, pageSize } = req.params
 
         try {
-            const { package: packages } = getQuery(req)
-            const packageIds = packages.split(",")
+            let { package: packageIds } = getQuery(req)
+            if (typeof packageIds === "string") {
+                packageIds = [packageIds]
+            }
             let logDialogs
             if (ConversationLearner.logStorage) {
                 logDialogs = await ConversationLearner.logStorage.GetMany(appId, packageIds, continuationToken, pageSize)
@@ -561,7 +563,10 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
     // Delete a list of log dialogs
     router.delete('/app/:appId/logdialog', async (req, res, next) => {
         const { appId } = req.params
-        const { id: logDialogIds } = getQuery(req)
+        let { id: logDialogIds } = getQuery(req)
+        if (typeof logDialogIds === "string") {
+            logDialogIds = [logDialogIds]
+        }
         try {
             if (ConversationLearner.logStorage) {
                 ConversationLearner.logStorage.DeleteMany(appId, logDialogIds)
