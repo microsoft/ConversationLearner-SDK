@@ -4,7 +4,7 @@
  */
 import * as Cosmos from '@azure/cosmos'
 import { CLDebug } from './CLDebug'
-import { ILogStorage, LogQueryResult } from './Memory/ILogStorage'
+import { ILogStorage } from './Memory/ILogStorage'
 import * as CLM from '@conversationlearner/models'
 
 const DATABASE_ID = "LOG_DIALOGS"
@@ -101,7 +101,7 @@ export class CosmosLogStorage implements ILogStorage {
      * @param continuationToken Continuation token
      * @param pageSize Number to retrieve (max 100)
      */
-    public async GetMany(appId?: string, packageIds?: string[], continuationToken?: string, pageSize = MAX_PAGE_SIZE): Promise<LogQueryResult> {
+    public async GetMany(appId?: string, packageIds?: string[], continuationToken?: string, pageSize = MAX_PAGE_SIZE): Promise<CLM.LogQueryResult> {
         try {
             let and = ""
             const querySpec: Cosmos.SqlQuerySpec = {

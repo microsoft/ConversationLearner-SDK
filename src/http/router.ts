@@ -529,15 +529,15 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
             if (typeof packageIds === "string") {
                 packageIds = [packageIds]
             }
-            let logDialogs
+            let logQueryResult: CLM.LogQueryResult
             if (ConversationLearner.logStorage) {
-                logDialogs = await ConversationLearner.logStorage.GetMany(appId, packageIds, continuationToken, pageSize)
+                logQueryResult = await ConversationLearner.logStorage.GetMany(appId, packageIds, continuationToken, pageSize)
             }
             else {
                 // TODO: Add paging to server
-                logDialogs = await client.GetLogDialogs(appId, packageIds)
+                logQueryResult = await client.GetLogDialogs(appId, packageIds)
             }
-            res.send(logDialogs)
+            res.send(logQueryResult)
         } catch (error) {
             HandleError(res, error)
         }

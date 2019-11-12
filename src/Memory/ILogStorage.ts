@@ -4,11 +4,6 @@
  */
 import * as CLM from '@conversationlearner/models'
 
-export interface LogQueryResult {
-    logDialogs: CLM.LogDialog[]
-    continuationToken: string | undefined
-}
-
 export interface ILogStorage {
 
     /** Add a new log dialog to storage */
@@ -24,7 +19,7 @@ export interface ILogStorage {
      * @param continuationToken Continuation token
      * @param pageSize Number to retrieve (max 100)
      */
-    GetMany(appId: string, packageIds: string[], continuationToken?: string, pageSize?: number): Promise<LogQueryResult>
+    GetMany(appId: string, packageIds: string[], continuationToken?: string, pageSize?: number): Promise<CLM.LogQueryResult>
 
     /** Replace and exisiting log dialog */
     Replace(appId: string, logDialog: CLM.LogDialog): Promise<void>
