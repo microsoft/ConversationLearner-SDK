@@ -26,6 +26,9 @@ export interface ICLClientOptions {
     LUIS_SUBSCRIPTION_KEY?: string
 }
 
+/**
+ * Manages calls to Conversation Learner Service
+ */
 export class CLClient {
     private options: ICLClientOptions
 
@@ -253,9 +256,15 @@ export class CLClient {
         return this.send('GET', this.MakeURL(apiPath))
     }
 
-    public GetLogDialogs(appId: string, packageIds: string[]): Promise<CLM.LogDialogList> {
+    public GetLogDialogs(appId: string, packageIds: string[], continuationToken?: string, maxPageSize?: string): Promise<CLM.LogQueryResult> {
         const packages = packageIds.map(p => `package=${p}`).join("&")
-        const apiPath = `app/${appId}/logdialogs?includeDefinitions=false&${packages}`
+        let apiPath = `app/${appId}/logdialogs?includeDefinitions=false&${packages}`
+        if (continuationToken) {
+            apiPath = apiPath.concat(`&continuationToken=${encodeURIComponent(continuationToken)}`)
+        }
+        if (maxPageSize) {
+            apiPath = apiPath.concat(`&maxPageSize=${maxPageSize}`)
+        }
         return this.send('GET', this.MakeURL(apiPath))
     }
 

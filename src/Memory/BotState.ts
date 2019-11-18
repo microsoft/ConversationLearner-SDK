@@ -64,6 +64,9 @@ export enum BotStateType {
 type GetKey = (datakey: string) => string
 export type ConvIdMapper = (ref: Partial<BB.ConversationReference> | null) => string | null
 
+/**
+ * Maintains state of Bot
+ */
 export class BotState {
     private readonly storage: CLStorage
     private readonly getKey: GetKey

@@ -14,6 +14,9 @@ export interface QueuedInput {
     callback: Function
 }
 
+/**
+ * Used to queue up multiple user inputs when then come in a row
+ */
 export class InputQueue {
 
     private static messageQueue: QueuedInput[] = [];

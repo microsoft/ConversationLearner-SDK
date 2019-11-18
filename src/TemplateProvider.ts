@@ -7,6 +7,9 @@ import * as path from 'path'
 import { Template, TemplateVariable, RenderedActionArgument } from '@conversationlearner/models'
 import { CLDebug } from './CLDebug'
 
+/**
+ * Provider for rendering templates
+ */
 export class TemplateProvider {
     private static hasSubmitError = false
 

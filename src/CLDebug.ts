@@ -25,6 +25,9 @@ interface LogMessage {
     logType: LogType
 }
 
+/***
+ * Handles debug output instead of console.log
+ */
 export class CLDebug {
     private static adapter: BB.BotAdapter
     private static conversationReference: Partial<BB.ConversationReference>

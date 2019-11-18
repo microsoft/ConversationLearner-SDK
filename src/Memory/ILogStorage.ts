@@ -9,7 +9,10 @@ export interface LogQueryResult {
     continuationToken: string | undefined
 }
 
-export interface ILogStorage {
+/**
+ * Interface for generating custom LogStorage implimentations
+ */
+export declare class ILogStorage {
 
     /** Add a new log dialog to storage */
     Add(appId: string, logDialog: CLM.LogDialog): Promise<CLM.LogDialog | undefined>

@@ -12,6 +12,9 @@ import * as CLM from '@conversationlearner/models'
 import * as HttpStatus from 'http-status-codes'
 import { CLClient } from './CLClient'
 
+/**
+ * General utilities
+ */
 export class Utils {
     public static SendTyping(adapter: BB.BotAdapter, address: any) {
         /* TODO

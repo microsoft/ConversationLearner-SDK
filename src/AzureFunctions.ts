@@ -5,6 +5,9 @@
 import * as Request from 'request'
 import { CLDebug } from './CLDebug'
 
+/**
+ * Support for calls to Azure Functions (currently disabled in UI)
+ */
 export class AzureFunctions {
     public static Call(azureFunctionsUrl: string, azureFunctionsKey: string, funcName: string, args: string): Promise<string> {
         let apiPath = 'app'

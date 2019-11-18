@@ -11,7 +11,7 @@ const DATABASE_ID = "LOG_DIALOGS"
 const COLLECTION_ID = "LOG_DIALOGS"
 const MAX_PAGE_SIZE = 100
 const DELETE_BATCH_SIZE = 10
-const PARTITION_KEY = { kind: 'Hash', paths: ['/appId', '/packageId'] }
+const PARTITION_KEY = { kind: 'Hash', paths: ['/appId'] }
 
 interface StoredLogDialog extends CLM.LogDialog {
     // CosmosId
@@ -19,6 +19,9 @@ interface StoredLogDialog extends CLM.LogDialog {
     appId: string
 }
 
+/**
+ * Custom Log Stoage account using Cosmos
+ */
 export class CosmosLogStorage implements ILogStorage {
     private client: Cosmos.CosmosClient
     private database: Cosmos.Database | undefined
@@ -122,6 +125,8 @@ export class CosmosLogStorage implements ILogStorage {
                 querySpec.query = querySpec.query.concat(`${and} NOT ARRAY_CONTAINS(@logIdList, c.logDialogId)`)
                 querySpec.parameters!.push({ name: '@logIdList', value: this.deleteQueue })
             }
+            // Return in reverse order so newest is on top
+            querySpec.query = querySpec.query.concat(' ORDER BY c.lastModifiedDateTime DESC')
 
             const feedOptions: Cosmos.FeedOptions = {
                 maxItemCount: Math.min(pageSize, MAX_PAGE_SIZE),

@@ -106,6 +106,9 @@ export interface IActionResult {
 
 export type CallbackMap = { [name: string]: InternalCallback<any> }
 
+/**
+ * Runs Conversation Learnern for a given CL Model
+ */
 export class CLRunner {
 
     /* Lookup table for CLRunners.  One CLRunner per CL Model */
@@ -388,6 +391,7 @@ export class CLRunner {
                 scorerSteps: []
             }
             logDialog.rounds.push(newRound)
+            logDialog.lastModifiedDateTime = new Date().toJSON()
             await ConversationLearner.logStorage.Replace(appId, logDialog)
         }
         return extractResponse
@@ -436,6 +440,7 @@ export class CLRunner {
                 throw new Error(`Log Dialogs has no Extractor Step Id:${logDialogId}`)
             }
             lastRound.scorerSteps.push(logScorerStep as any)
+            logDialog.lastModifiedDateTime = new Date().toJSON()
             await ConversationLearner.logStorage.Replace(appId, logDialog)
         }
         return scoreResponse
