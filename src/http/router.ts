@@ -522,22 +522,21 @@ export const getRouter = (client: CLClient, options: ICLClientOptions): express.
 
     // Get log dialogs
     router.get('/app/:appId/logdialogs', async (req, res, next) => {
-        const { appId, continuationToken, pageSize } = req.params
+        const { appId } = req.params
 
         try {
-            let { package: packageIds } = getQuery(req)
+            let { package: packageIds, continuationToken, maxPageSize } = getQuery(req)
             if (typeof packageIds === "string") {
                 packageIds = [packageIds]
             }
-            let logDialogs
+            let logQueryResult: CLM.LogQueryResult
             if (ConversationLearner.logStorage) {
-                logDialogs = await ConversationLearner.logStorage.GetMany(appId, packageIds, continuationToken, pageSize)
+                logQueryResult = await ConversationLearner.logStorage.GetMany(appId, packageIds, continuationToken, maxPageSize)
             }
             else {
-                // TODO: Add paging to server
-                logDialogs = await client.GetLogDialogs(appId, packageIds)
+                logQueryResult = await client.GetLogDialogs(appId, packageIds, continuationToken, maxPageSize)
             }
-            res.send(logDialogs)
+            res.send(logQueryResult)
         } catch (error) {
             HandleError(res, error)
         }

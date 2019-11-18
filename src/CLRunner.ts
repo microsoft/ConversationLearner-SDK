@@ -388,6 +388,7 @@ export class CLRunner {
                 scorerSteps: []
             }
             logDialog.rounds.push(newRound)
+            logDialog.lastModifiedDateTime = new Date().toJSON()
             await ConversationLearner.logStorage.Replace(appId, logDialog)
         }
         return extractResponse
@@ -436,6 +437,7 @@ export class CLRunner {
                 throw new Error(`Log Dialogs has no Extractor Step Id:${logDialogId}`)
             }
             lastRound.scorerSteps.push(logScorerStep as any)
+            logDialog.lastModifiedDateTime = new Date().toJSON()
             await ConversationLearner.logStorage.Replace(appId, logDialog)
         }
         return scoreResponse
