@@ -26,6 +26,9 @@ export interface ICLClientOptions {
     LUIS_SUBSCRIPTION_KEY?: string
 }
 
+/**
+ * Manages calls to Conversation Learner Service
+ */
 export class CLClient {
     private options: ICLClientOptions
 

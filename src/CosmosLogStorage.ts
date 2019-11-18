@@ -19,6 +19,9 @@ interface StoredLogDialog extends CLM.LogDialog {
     appId: string
 }
 
+/**
+ * Custom Log Stoage account using Cosmos
+ */
 export class CosmosLogStorage implements ILogStorage {
     private client: Cosmos.CosmosClient
     private database: Cosmos.Database | undefined

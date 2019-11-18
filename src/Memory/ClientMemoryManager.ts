@@ -8,6 +8,9 @@ import * as CLM from '@conversationlearner/models'
 
 export type MemoryManagerReturnType<T> = T extends CLM.MemoryValue[] | CLM.MemoryValue ? T extends CLM.MemoryValue[] ? CLM.MemoryValue[] : CLM.MemoryValue : T
 
+/**
+ * Used to read CL Memory in Bot code
+ */
 export class ReadOnlyClientMemoryManager {
     protected allEntities: CLM.EntityBase[] = []
     private sessionInfo: SessionInfo
@@ -165,6 +168,9 @@ export class ReadOnlyClientMemoryManager {
     }
 }
 
+/**
+ * Used to manipulate CL Memory in Bot code
+ */
 export class ClientMemoryManager extends ReadOnlyClientMemoryManager {
 
     public constructor(prevMemories: CLM.FilledEntityMap, curMemories: CLM.FilledEntityMap, allEntities: CLM.EntityBase[], sessionInfo: SessionInfo) {

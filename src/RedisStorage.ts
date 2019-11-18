@@ -18,6 +18,9 @@ export interface RedisStorageSettings {
     port?: number
 }
 
+/**
+ * Bot storage implimentation using a Redis cache
+ */
 export class RedisStorage implements Storage {
     private redisClient: Redis.RedisClient
     private _get: (...args: any[]) => Promise<any>

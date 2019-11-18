@@ -106,6 +106,9 @@ export interface IActionResult {
 
 export type CallbackMap = { [name: string]: InternalCallback<any> }
 
+/**
+ * Runs Conversation Learnern for a given CL Model
+ */
 export class CLRunner {
 
     /* Lookup table for CLRunners.  One CLRunner per CL Model */

@@ -14,6 +14,9 @@ import { CLRecognizerResult } from './CLRecognizeResult'
 import { CLModelOptions } from '.'
 import { ILogStorage } from './Memory/ILogStorage'
 
+/**
+ * Main CL class used by Bot
+ */
 export class ConversationLearner {
     public static options: CLOptions | null = null
     public static clClient: CLClient

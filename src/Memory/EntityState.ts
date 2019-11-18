@@ -11,6 +11,9 @@ const NEGATIVE_PREFIX = '~'
 
 export type GetKey = () => string
 
+/**
+ * Memory for a given entity
+ */
 export class EntityState {
     private storage: CLStorage
     private getKey: GetKey
