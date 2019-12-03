@@ -1438,7 +1438,7 @@ export class CLRunner {
         }
     }
 
-    public async TakeAPIAction(apiAction: CLM.ApiAction, filledEntityMap: CLM.FilledEntityMap, state: CLState, allEntities: CLM.EntityBase[], inTeach: boolean, actionInput: IActionInput): Promise<IActionResult> {
+    public async TakeAPIAction(apiAction: CLM.ApiAction, filledEntityMap: CLM.FilledEntityMap, state: CLState, allEntities: CLM.EntityBase[], showAPICard: boolean, actionInput: IActionInput): Promise<IActionResult> {
         // Extract API name and args
         const callback = this.callbacks[apiAction.name]
         if (!callback) {
@@ -1529,7 +1529,7 @@ export class CLRunner {
 
                     // If response is empty, but we're in teach session return a placeholder card in WebChat so they can click it to edit
                     // Otherwise return the response as is.
-                    if (!response && inTeach) {
+                    if (!response && showAPICard) {
                         response = this.RenderAPICard(callback, renderedLogicArgumentValues)
                     }
                 }
