@@ -279,7 +279,7 @@ const isValueConditionTrue = (
         || (condition.condition === CLM.ConditionType.GREATER_THAN && numberValue > condition.value)
         || (condition.condition === CLM.ConditionType.GREATER_THAN_OR_EQUAL && numberValue >= condition.value)
         || (condition.condition === CLM.ConditionType.LESS_THAN && numberValue < condition.value)
-        || (condition.condition === CLM.ConditionType.LESS_THEN_OR_EQUAL && numberValue <= condition.value)
+        || (condition.condition === CLM.ConditionType.LESS_THAN_OR_EQUAL && numberValue <= condition.value)
 }
 
 const findNumberFromFilledEntity = (filledEntity: CLM.FilledEntity, isMultivalue: boolean): number | undefined => {
