@@ -114,7 +114,6 @@ export class CLState {
     public async SetAppAsync(app: CLM.AppBase | null): Promise<void> {
         const curApp = await this.BotState.GetApp();
         await this.BotState.SetAppAsync(app)
-        await this.MessageState.remove()
 
         if (!app || !curApp || curApp.appId !== app.appId) {
             await this.EntityState.ClearAsync()

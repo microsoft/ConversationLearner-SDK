@@ -282,7 +282,7 @@ export class CLRunner {
         // Otherwise I have to queue up messages as user may input them faster than bot responds
         else {
             let addInputPromise = util.promisify(InputQueue.AddInput)
-            let isReady = await addInputPromise(state.MessageState, turnContext.activity, conversationReference)
+            let isReady = await addInputPromise(state.MessageState, turnContext.activity)
 
             if (isReady) {
                 let intents = await this.ProcessInput(turnContext)
@@ -332,7 +332,6 @@ export class CLRunner {
 
         // Initialize Bot State
         await state.BotState.InitSessionAsync(sessionId, logDialogId, conversationRef, sessionStartFlags)
-        await state.MessageState.remove()
 
         CLDebug.Verbose(`Started Session: ${sessionId} - ${state.BotState.GetConversationId()}`)
         return startResponse
@@ -478,7 +477,6 @@ export class CLRunner {
             await this.CheckSessionEndCallback(state, entityList.entities, sessionEndState, data)
 
             await state.BotState.EndSessionAsync()
-            await state.MessageState.remove()
         }
     }
 
@@ -515,7 +513,7 @@ export class CLRunner {
 
             if (!app) {
                 let error = "ERROR: AppId not specified.  When running in a channel (i.e. Skype) or the Bot Framework Emulator, CONVERSATION_LEARNER_MODEL_ID must be specified in your Bot's .env file or Application Settings on the server"
-                await this.SendMessage(state, error, activity.id)
+                await this.SendMessage(state, error, activity)
                 return null
             }
 
@@ -555,7 +553,7 @@ export class CLRunner {
 
                         if (!this.configModelId) {
                             let error = "ERROR: ModelId not specified.  When running in a channel (i.e. Skype) or the Bot Framework Emulator, CONVERSATION_LEARNER_MODEL_ID must be specified in your Bot's .env file or Application Settings on the server"
-                            await this.SendMessage(state, error, activity.id)
+                            await this.SendMessage(state, error, activity)
                             return null
                         }
 
@@ -564,7 +562,7 @@ export class CLRunner {
 
                         if (!app) {
                             let error = "ERROR: Failed to find Model specified by CONVERSATION_LEARNER_MODEL_ID"
-                            await this.SendMessage(state, error, activity.id)
+                            await this.SendMessage(state, error, activity)
                             return null
                         }
 
@@ -584,14 +582,14 @@ export class CLRunner {
 
             // Handle any other non-message input, filter out empty messages
             if (activity.type !== BB.ActivityTypes.Message || !activity.text || activity.text === "") {
-                await InputQueue.MessageHandled(state.MessageState, activity.id)
+                await InputQueue.MessageHandled(state.MessageState, activity.conversation.id, activity)
                 return null
             }
 
             // PackageId: Use live package id if not in editing UI, default to devPackage if no active package set
             let packageId = (inEditingUI ? await state.BotState.GetEditingPackageForApp(app.appId) : app.livePackageId) || app.devPackageId
             if (!packageId) {
-                await this.SendMessage(state, "ERROR: No PackageId has been set", activity.id)
+                await this.SendMessage(state, "ERROR: No PackageId has been set", activity)
                 return null
             }
 
@@ -978,7 +976,7 @@ export class CLRunner {
         // If the action was terminal, free up the mutex allowing queued messages to be processed
         // Activity won't be present if running in training as messages aren't queued
         if (clRecognizeResult.scoredAction.isTerminal && clRecognizeResult.activity) {
-            await InputQueue.MessageHandled(clRecognizeResult.state.MessageState, clRecognizeResult.activity.id)
+            await InputQueue.MessageHandled(clRecognizeResult.state.MessageState, clRecognizeResult.activity.conversation.id, clRecognizeResult.activity)
         }
 
         if (!conversationReference.conversation) {
@@ -1232,11 +1230,23 @@ export class CLRunner {
         return actionResult
     }
 
-    private async SendMessage(state: CLState, message: string | Partial<BB.Activity>, incomingActivityId?: string | undefined): Promise<void> {
+    /**
+     * 
+     * @param state CLState
+     * @param message Message to send to use
+     * @param erroredActivity If message is in response to an error, the incoming activity that triggered it
+     */
+    private async SendMessage(state: CLState, message: string | Partial<BB.Activity>, erroredActivity?: BB.Activity): Promise<void> {
 
-        // If requested, pop incoming activity from message queue
-        if (incomingActivityId) {
-            await InputQueue.MessageHandled(state.MessageState, incomingActivityId)
+        // If there was an error, pop incoming activity from message queue, so can move on to next
+        if (erroredActivity) {
+            const conversationId = await state.BotState.GetConversationId()
+            if (conversationId) {
+                await InputQueue.MessageHandled(state.MessageState, conversationId, erroredActivity)
+            }
+            else {
+                console.debug("Missing ConversationId in SendMessage")
+            }
         }
 
         let conversationReference = await state.BotState.GetConversationReference()

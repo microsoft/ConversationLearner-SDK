@@ -6,117 +6,149 @@ import * as BB from 'botbuilder'
 import { CLDebug, DebugType } from '../CLDebug'
 import InProcessMessageState from './InProcessMessageState'
 
-const MESSAGE_TIMEOUT = 10000
+// Two minutes after which we assume something went wrong in processing message
+const MESSAGE_TIMEOUT = 120000
 
 export interface QueuedInput {
+    conversationId: string
     activityId: string
     timestamp: number
     callback: Function
 }
 
 /**
- * Used to queue up multiple user inputs when then come in a row
+ * Used to queue up multiple user inputs when then come in a row so they can be handled sequentially
  */
 export class InputQueue {
 
-    private static messageQueue: QueuedInput[] = [];
+    // TODO: ADO 2412
+    // In-memory store may result in out of order or dropped messages for a mulit-host bot
+    private static inputQueues: { [key: string]: QueuedInput[] } = {}
 
-    public static async AddInput(inProcessMessageState: InProcessMessageState, activity: BB.Activity, conversationReference: Partial<BB.ConversationReference>, callback: Function): Promise<void> {
+    /**
+     * 
+     * @param inProcessMessageState Store for mutex
+     * @param activity Input that needs to be handled
+     * @param callback To be called when input is ready to be handled
+     */
+    public static async AddInput(inProcessMessageState: InProcessMessageState, activity: BB.Activity, callback: Function): Promise<void> {
         if (!activity.id) {
+            CLDebug.Error("InputQueue: Activity has no activityId")
             return
         }
 
         // Add to queue
-        await InputQueue.InputQueueAdd(activity.id, callback)
+        await InputQueue.InputQueueAdd(activity.conversation.id, activity.id, callback)
 
         // Process queue
-        await InputQueue.InputQueueProcess(inProcessMessageState)
+        await InputQueue.InputQueueProcessNext(inProcessMessageState, activity.conversation.id)
     }
 
-    // Add message to queue
-    private static async InputQueueAdd(activityId: string, callback: Function): Promise<void> {
+    // Add input to queue
+    private static async InputQueueAdd(conversationId: string, activityId: string, callback: Function): Promise<void> {
         const now = new Date().getTime()
         const queuedInput: QueuedInput = {
+            conversationId,
             activityId,
             timestamp: now,
             callback,
         }
 
-        this.messageQueue.push(queuedInput)
-        CLDebug.Log(`ADD QUEUE: ${activityId} ${this.messageQueue.length}`, DebugType.MessageQueue)
+        if (!this.inputQueues[conversationId]) {
+            this.inputQueues[conversationId] = []
+        }
+        this.inputQueues[conversationId].push(queuedInput)
+        this.log(`ADD QUEUE`, conversationId, queuedInput.activityId)
     }
 
-    // Attempt to process next message in the queue
-    private static async InputQueueProcess(inProcessMessageState: InProcessMessageState): Promise<void> {
+    private static hasExpired(queuedInput: QueuedInput): boolean {
         const now = new Date().getTime()
-        const messageProcessing = await inProcessMessageState.get<QueuedInput>()
+        const age = now - queuedInput.timestamp
+        return (age > MESSAGE_TIMEOUT)
+    }
 
-        // Is a message being processed
-        if (messageProcessing) {
+    // Process next input
+    private static async InputQueueProcessNext(inProcessMessageState: InProcessMessageState, conversationId: string): Promise<void> {
 
-            // Remove if it's been expired
-            const age = now - messageProcessing.timestamp
+        // Get current input being processed (mutex)
+        let inputInProcess = await inProcessMessageState.get<QueuedInput>()
 
-            if (age > MESSAGE_TIMEOUT) {
-                CLDebug.Log(`EXPIRED: ${messageProcessing.activityId} ${this.messageQueue.length}`, DebugType.MessageQueue)
+        // If input is being processed (mutex is set), check if it has expired
+        if (inputInProcess) {
+            if (this.hasExpired(inputInProcess)) {
+                // Item in mutex has expired
+                this.log(`EXPIRED U`, conversationId, inputInProcess.activityId)
+
+                // Clear the input mutex
                 await inProcessMessageState.remove()
-                let queuedInput = this.messageQueue.find(mq => mq.activityId == messageProcessing.activityId)
-                if (queuedInput) {
-                    // Fire the callback with failure
-                    queuedInput.callback(true, queuedInput.activityId)
+
+                // Process the next input
+                await InputQueue.InputQueueProcessNext(inProcessMessageState, conversationId)
+            }
+        }
+        // Otherwise process the next one
+        else if (this.inputQueues[conversationId]) {
+            let inputToProcess = this.inputQueues[conversationId].shift()
+
+            if (inputToProcess) {
+                // Skip to the next if it has expired
+                if (this.hasExpired(inputToProcess)) {
+                    // Item in queue has expired
+                    this.log(`EXPIRED Q`, conversationId, inputToProcess.activityId)
+
+                    // Call the callback with failure
+                    inputToProcess.callback(false, inputToProcess.activityId)
+
+                    // Process the next input
+                    await InputQueue.InputQueueProcessNext(inProcessMessageState, conversationId)
                 }
                 else {
-                    CLDebug.Log(`EXPIRE-WARNING: Couldn't find queued message`, DebugType.MessageQueue)
+                    // Set the input currently being processed (mutex)
+                    await inProcessMessageState.set(inputToProcess)
+
+                    // Fire the callback with success to start processing
+                    this.log(`CALLBACK `, conversationId, inputToProcess.activityId)
+                    inputToProcess.callback(false, inputToProcess.activityId)
                 }
-                CLDebug.Log(`EXPIRE-POP: ${messageProcessing.activityId} ${this.messageQueue.length}`, DebugType.MessageQueue)
-            }
-        }
-
-        // If no message being processed, try next message
-        if (!messageProcessing) {
-            await InputQueue.InputQueueProcessNext(inProcessMessageState)
-        }
-    }
-
-    // Process next message
-    private static async InputQueueProcessNext(inProcessMessageState: InProcessMessageState): Promise<void> {
-
-        let curProcessing = await inProcessMessageState.get()
-
-        // If no message being process, and item in queue, process teh next one
-        if (!curProcessing && this.messageQueue.length > 0) {
-            let messageProcessing = this.messageQueue.shift()
-
-            if (messageProcessing) {
-                await inProcessMessageState.set(messageProcessing)
-
-                // Fire the callback with success
-                CLDebug.Log(`PROCESS-CALLBACK: ${messageProcessing.activityId} ${this.messageQueue.length}`, DebugType.MessageQueue)
-                messageProcessing.callback(false, messageProcessing.activityId)
             }
             else {
-                CLDebug.Log(`PROCESS-ERR: No Message`, DebugType.MessageQueue)
+                // Queue is empty
+                this.log(`FIN QUEUE`, conversationId)
+                delete this.inputQueues[conversationId]
             }
         }
-        else {
-            CLDebug.Log(`PROCESS-NEXT: Empty`, DebugType.MessageQueue)
-        }
     }
 
-    // Done processing message, remove from queue
-    public static async MessageHandled(inProcessMessageState: InProcessMessageState, activityId: string | undefined): Promise<void> {
+    // To be called when an input is done being processeed
+    public static async MessageHandled(inProcessMessageState: InProcessMessageState, conversationId: string, activity?: BB.Activity): Promise<void> {
 
-        if (!activityId) {
-            CLDebug.Log(`HANDLE: Missing activity id`, DebugType.MessageQueue)
+        // Remove mutex
+        let processedInput = await inProcessMessageState.remove<QueuedInput>()
+
+        // When response is pre-empted by an error message, no activity will be passed
+        if (!activity) {
+            CLDebug.Log(`HANDLE-PREEMPTIVE`, DebugType.MessageQueue)
         }
-        let messageProcessing = await inProcessMessageState.remove<QueuedInput>()
-
-        // Check for consistency
-        if (messageProcessing?.activityId === activityId) {
-            CLDebug.Log(`HANDLE-POP: ${messageProcessing.activityId} ${this.messageQueue.length}`, DebugType.MessageQueue)
+        else if (!processedInput) {
+            // Handle called when no input being processed
+            this.log(`NO  MUTEX`, conversationId, activity.id)
+        }
+        else if (processedInput.activityId !== activity.id) {
+            CLDebug.Error("Input Queue: Handle called for different input than one being processed")
+        }
+        else {
+            this.log(`HANDLED  `, conversationId, processedInput.activityId)
         }
 
-        // Process next message in the queue
-        await InputQueue.InputQueueProcessNext(inProcessMessageState)
+        // Process next input in the queue
+        await InputQueue.InputQueueProcessNext(inProcessMessageState, conversationId)
+    }
+
+    private static log(prefix: string, conversationId: string, activityId?: string): void {
+        const queue = this.inputQueues[conversationId] ? this.inputQueues[conversationId].map(qi => qi.activityId.substr(0, 4)).join(" ") : "---"
+        const activityText = activityId ? activityId.substr(0, 4) : "----"
+        const debugString = `${prefix}| C: ${conversationId.substr(0, 3)} A: ${activityText} Q: ${queue}`
+        CLDebug.Log(debugString, DebugType.MessageQueue)
     }
 }
+
