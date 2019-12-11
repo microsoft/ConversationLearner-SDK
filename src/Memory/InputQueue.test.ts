@@ -66,7 +66,8 @@ describe('InputQueue', () => {
 
         // Need longer jest timeout for this test
         const processTime = (mutexDelay + processDelay) * inputs.length
-        jest.setTimeout(2 * processTime)
+        // tslint:disable-next-line no-string-based-set-timeout  - tslint bug
+        jest.setTimeout(processTime * 2)
 
         for (let input of inputs) {
             addInput(clState, input, conversationId)
@@ -94,7 +95,8 @@ describe('InputQueue', () => {
 
         // Need longer jest timeout for this test
         const processTime = (mutexDelay + processDelay) * (inputs1.length + inputs2.length)
-        jest.setTimeout(2 * processTime)
+        // tslint:disable-next-line no-string-based-set-timeout - tslint bug
+        jest.setTimeout(processTime * 2)
 
         for (let i = 0; i < inputs1.length; i = i + 1) {
             addInput(clState1, inputs1[i], conversation1Id)
