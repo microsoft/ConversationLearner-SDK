@@ -6,8 +6,9 @@ import * as BB from 'botbuilder'
 import { CLDebug, DebugType } from '../CLDebug'
 import InProcessMessageState from './InProcessMessageState'
 
-// Two minutes after which we assume something went wrong in processing message
-const MESSAGE_TIMEOUT = 120000
+// Delay after which we assume something went wrong in processing message
+const MINUTE = 60000
+const MESSAGE_TIMEOUT = MINUTE * 2
 
 export interface QueuedInput {
     conversationId: string
@@ -22,7 +23,7 @@ export interface QueuedInput {
 export class InputQueue {
 
     // TODO: ADO 2412
-    // In-memory store may result in out of order or dropped messages for a mulit-host bot
+    // In-memory store may result in out of order or dropped messages for a multi-host bot
     private static inputQueues: { [key: string]: QueuedInput[] } = {}
 
     /**
@@ -88,7 +89,7 @@ export class InputQueue {
         }
         // Otherwise process the next one
         else if (this.inputQueues[conversationId]) {
-            let inputToProcess = this.inputQueues[conversationId].shift()
+            const inputToProcess = this.inputQueues[conversationId].shift()
 
             if (inputToProcess) {
                 // Skip to the next if it has expired

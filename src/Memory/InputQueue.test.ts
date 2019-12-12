@@ -28,7 +28,7 @@ function makeActivity(message: string, conversationId: string): any {
     }
 }
 
-function sleep(ms: number) {
+function delay(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
@@ -40,7 +40,7 @@ async function addInput(state: CLState, message: string, conversationId: string)
 
     if (isReady) {
         // Handle input with a delay to simulate CLRunner ProcessInput
-        await sleep(processDelay)
+        await delay(processDelay)
 
         if (!responses[conversationId]) {
             responses[conversationId] = []
@@ -60,8 +60,8 @@ describe('InputQueue', () => {
 
     it('should handle all messages in a single queue', async () => {
 
-        const clState = CLState.Get("InputQueueTest", undefined)
         const conversationId = CLM.ModelUtils.generateGUID()
+        const clState = CLState.Get(conversationId)
         const inputs = ["A", "B", "C", "D", "E"]
 
         // Need longer jest timeout for this test
@@ -71,25 +71,24 @@ describe('InputQueue', () => {
 
         for (let input of inputs) {
             addInput(clState, input, conversationId)
-            await sleep(mutexDelay)
+            await delay(mutexDelay)
         }
 
         // Give messages time to process
-        await sleep(processTime)
+        await delay(processTime)
 
         // Check that they were handled
         const messages = responses[conversationId]
-        console.log(messages.join(" "))
         expect(messages.length).toBe(inputs.length)
         messages.forEach((m, i) => expect(m).toBe(inputs[i]))
     })
 
     it('should handle multiple conversations', async () => {
 
-        const clState1 = CLState.Get("InputQueueTest1", undefined)
-        const clState2 = CLState.Get("InputQueueTest2", undefined)
         const conversation1Id = CLM.ModelUtils.generateGUID()
         const conversation2Id = CLM.ModelUtils.generateGUID()
+        const clState1 = CLState.Get(conversation1Id)
+        const clState2 = CLState.Get(conversation2Id)
         const inputs1 = ["A", "B", "C", "D", "E"]
         const inputs2 = ["1", "2", "3", "4", "5"]
 
@@ -100,13 +99,13 @@ describe('InputQueue', () => {
 
         for (let i = 0; i < inputs1.length; i = i + 1) {
             addInput(clState1, inputs1[i], conversation1Id)
-            await sleep(mutexDelay)
+            await delay(mutexDelay)
             addInput(clState2, inputs2[i], conversation2Id)
-            await sleep(mutexDelay)
+            await delay(mutexDelay)
         }
 
         // Give messages time to process
-        await sleep(processTime)
+        await delay(processTime)
 
         // Check that they were handled
         const messages1 = responses[conversation1Id]
