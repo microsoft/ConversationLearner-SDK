@@ -353,15 +353,6 @@ export class CLClient {
         return this.send('PUT', this.MakeSessionURL(apiPath), scorerInput)
     }
 
-    /**
-     * Updates the score if the SDK decides to force the action to something other than the highest scoring one
-     * Only valid field to change is "forceActionId"
-     */
-    public SessionScoreFeedback(appId: string, teachId: string, scorerResponse: Partial<CLM.LogScorerStep>): Promise<CLM.TeachResponse> {
-        let apiPath = `app/${appId}/session/${teachId}/scorer`
-        return this.send('POST', this.MakeURL(apiPath), scorerResponse)
-    }
-
     public SessionLogicResult(appId: string, sessionId: string, actionId: string, actionResult: IActionResult) {
         let apiPath = `app/${appId}/session/${sessionId}/scorerSteps/action/${actionId}/logicResult`
         return this.send('PUT', this.MakeSessionURL(apiPath), { logicResult: actionResult.logicResult })
