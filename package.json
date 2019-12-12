@@ -39,7 +39,7 @@
   "license": "MIT",
   "dependencies": {
     "@azure/cosmos": "^3.3.6",
-    "@conversationlearner/models": "0.218.0",
+    "@conversationlearner/models": "0.219.0",
     "@conversationlearner/ui": "0.413.7",
     "@types/supertest": "2.0.4",
     "async-file": "^2.0.2",
