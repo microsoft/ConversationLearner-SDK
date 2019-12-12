@@ -696,8 +696,23 @@ export class CLRunner {
         inTeach: boolean,
         skipEntityDetectionCallBack: boolean = false
     ): Promise<CLM.ScoredAction> {
-        // Call LUIS callback
-        let scoreInput = await this.CallEntityDetectionCallback(text, predictedEntities, state, allEntities, skipEntityDetectionCallBack)
+        // Call EnttityDetectionCallback
+        let scoreInput: CLM.ScoreInput
+        try {
+            scoreInput = await this.CallEntityDetectionCallback(text, predictedEntities, state, allEntities, skipEntityDetectionCallBack)
+        }
+        catch (err) {
+            // Hit exception in Bot's Entity Detection Callback
+            // Use existing memory before callback
+            const filledEntities = await state.EntityState.FilledEntitiesAsync()
+            scoreInput = {
+                filledEntities,
+                context: {},
+                maskedActions: []
+            }
+
+            CLDebug.Error(err, CLStrings.ENTITYCALLBACK_EXCEPTION)
+        }
 
         // Call the scorer
         let scoreResponse = null
@@ -2403,6 +2418,7 @@ export class CLRunner {
 
     // Generate a card to show for an API action w/o output
     private RenderErrorCard(title: string, error: string): Partial<BB.Activity> {
+        CLDebug.Error(title, error)
         return this.renderPlaceholderCard(title, error)
     }
 }
