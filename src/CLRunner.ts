@@ -1505,8 +1505,9 @@ export class CLRunner {
                     // Store changes to filled entities
                     logicResult.changedFilledEntities = CLM.ModelUtils.changedFilledEntities(entityMapBeforeCall, memoryManager.curMemories)
                 }
-                catch (error) {
-                    let botAPIError: CLM.LogicAPIError = { APIError: error.stack || error.message || error }
+                catch (e) {
+                    const error: Error = e
+                    let botAPIError: CLM.LogicAPIError = { APIError: error.stack || error.message || JSON.stringify(error) }
                     logicResult.logicValue = JSON.stringify(botAPIError)
                     replayError = new CLM.ReplayErrorAPIException()
                 }
@@ -1565,9 +1566,10 @@ export class CLRunner {
                 }
             }
         }
-        catch (err) {
+        catch (e) {
+            const error: Error = e
             const title = `${CLStrings.EXCEPTION_API_CALLBACK}'${apiAction.name}'`
-            const message = this.RenderErrorCard(title, err.stack || err.message || "")
+            const message = this.RenderErrorCard(title, error.stack || error.message || "")
             const replayError = new CLM.ReplayErrorAPIException()
             return {
                 logicResult: undefined,
