@@ -11,7 +11,7 @@ cache:
     - node_modules
 
 node_js:
-- node
+  - node
 
 install:
   - npm ci
@@ -19,9 +19,8 @@ install:
 script:
   - npm test
   - npm run build
-
-deploy:
-  provider: script
-  skip_cleanup: true
-  script:
-    - npx semantic-release
+# deploy:
+#   provider: script
+#   skip_cleanup: true
+#   script:
+#     - npx semantic-release
